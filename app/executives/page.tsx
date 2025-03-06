@@ -153,7 +153,7 @@ function ExecutiveCard({ executive }: { executive: StudentExecutive }) {
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
       <div className="relative">
         <CardHeader className="flex flex-row items-center gap-4 relative">
-          <div className="absolute -right-8 -top-8 w-40 h-40 opacity-80 group-hover:opacity-100 transition-opacity">
+          <div className="absolute -right-8 -top-6 w-40 h-40 opacity-80 group-hover:opacity-100 transition-opacity">
             {executive.studentId && (
               <Image
                 src={`/executives/${executive.studentId}.png`}
