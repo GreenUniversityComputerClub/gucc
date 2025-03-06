@@ -38,11 +38,11 @@ export function Navbar() {
           <Link href="/executives" className="text-sm font-medium transition-colors hover:text-primary">
             Executives
           </Link>
-          <Button asChild>
+          {/* <Button asChild>
             <Link href="https://forms.gle/example" target="_blank" rel="noopener noreferrer">
               Join Us
             </Link>
-          </Button>
+          </Button> */}
         </nav>
 
         {/* Mobile Menu Button */}

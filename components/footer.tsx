@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Facebook, Instagram, Linkedin, Mail } from "lucide-react"
+import { Facebook, Linkedin, Mail } from "lucide-react"
 import Image from "next/image"
 
 export function Footer() {
@@ -52,23 +52,16 @@ export function Footer() {
               <p className="text-sm text-muted-foreground">Email: gucc@green.edu.bd</p>
               <div className="flex space-x-4 mt-4">
                 <Link
-                  href="https://facebook.com/guccbd"
+                  href="https://www.facebook.com/GreenUniversityComputerClub/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   <Facebook size={20} />
                 </Link>
+ 
                 <Link
-                  href="https://instagram.com/gucc"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                >
-                  <Instagram size={20} />
-                </Link>
-                <Link
-                  href="https://linkedin.com/company/gucc"
+                  href="https://www.linkedin.com/company/greenuniversitycomputerclub/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"

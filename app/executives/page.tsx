@@ -33,14 +33,11 @@ export default function ExecutivesPage() {
 
 
   return (
-    <div className="container py-12 md:py-24">
-      <div className="space-y-4 text-center">
-        <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Our Executives</h1>
-        <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">Meet the dedicated team behind GUCC</p>
-      </div>
+    <div className="container py-4 md:py-8">
+        <p className="text-center mx-auto max-w-[700px] text-muted-foreground md:text-lg">Meet the dedicated team behind GUCC</p>
 
-      <Tabs defaultValue={activeYear} className="mt-12" onValueChange={setActiveYear}>
-        <div className="flex justify-center mb-8">
+      <Tabs defaultValue={activeYear} className="mt-8" onValueChange={setActiveYear}>
+        <div className="flex justify-center mb-4">
           <TabsList>
             {availableYears.map((year) => (
               <TabsTrigger key={year} value={year}>

@@ -22,11 +22,11 @@ export default function Home() {
               <Button asChild size="lg">
                 <Link href="/events">Explore Events</Link>
               </Button>
-              <Button variant="outline" size="lg" asChild>
+              {/* <Button variant="outline" size="lg" asChild>
                 <Link href="https://forms.gle/example" target="_blank" rel="noopener noreferrer">
                   Join Us
                 </Link>
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
