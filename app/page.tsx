@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CalendarDays, Users, Award, BookOpen } from "lucide-react"
+import { AnimatedStat } from "./component"
 
 export default function Home() {
   return (
@@ -120,19 +121,19 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-12">
             <div className="text-center">
-              <div className="text-4xl font-bold text-primary">7000+</div>
+              <AnimatedStat end={7000} suffix="+" />
               <div className="text-sm text-muted-foreground mt-2">Members</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-primary">50+</div>
+              <AnimatedStat end={50} suffix="+" />
               <div className="text-sm text-muted-foreground mt-2">Events Per Year</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-primary">20+</div>
+              <AnimatedStat end={20} suffix="+" />
               <div className="text-sm text-muted-foreground mt-2">Workshops</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-primary">10+</div>
+              <AnimatedStat end={10} suffix="+" />
               <div className="text-sm text-muted-foreground mt-2">Years of Excellence</div>
             </div>
           </div>

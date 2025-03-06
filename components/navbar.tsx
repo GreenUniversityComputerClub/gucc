@@ -18,7 +18,7 @@ export function Navbar() {
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center space-x-2">
           <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/gucc-logo-oQ0WacpwnKj4yjfVo1mNWAjrcbFJQ3.png"
+            src="/android-chrome-512x512.png"
             alt="GUCC Logo"
             width={40}
             height={40}
@@ -76,7 +76,7 @@ export function Navbar() {
             >
               Executives
             </Link>
-            <Button asChild>
+            {/* <Button asChild>
               <Link
                 href="https://forms.gle/example"
                 target="_blank"
@@ -85,7 +85,7 @@ export function Navbar() {
               >
                 Join Us
               </Link>
-            </Button>
+            </Button> */}
           </nav>
         </div>
       )}

@@ -10,7 +10,7 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/gucc-logo-oQ0WacpwnKj4yjfVo1mNWAjrcbFJQ3.png"
+                src="/android-chrome-512x512.png"
                 alt="GUCC Logo"
                 width={48}
                 height={48}
