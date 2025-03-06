@@ -149,7 +149,7 @@ function ExecutiveCard({ executive }: { executive: StudentExecutive }) {
     .toUpperCase();
 
   return (
-    <Card className="relative overflow-hidden group">
+    <Card className="relative overflow-hidden overflow-top-block group">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
       <div className="relative">
         <CardHeader className="flex flex-row items-center gap-4 relative">
