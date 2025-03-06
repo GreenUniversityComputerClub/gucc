@@ -8,6 +8,7 @@ export interface StudentExecutive {
   position: string
   name: string
   studentId: string
+  avatarUrl?: string
 }
 
 export interface ExecutiveYear {
@@ -530,146 +531,175 @@ export const executivesByYear: ExecutiveYear[] = [
         position: "President",
         name: "Md. Showaib Rahman Tanveer",
         studentId: "221902084",
+        avatarUrl: "/executives/221902084.jpg"
       },
       {
         position: "Vice President (Activity)",
         name: "Hasimunnahar Shanta",
         studentId: "221002585",
+        avatarUrl: "/executives/221002585.jpg"
       },
       {
         position: "Vice President (Technical)",
         name: "Ammar Bin Anwar Fuad",
         studentId: "222902080",
+        avatarUrl: "/executives/222902080.png"
       },
       {
         position: "General Secretary",
         name: "Abdul Fattah",
         studentId: "221902066",
+        avatarUrl: "/executives/221902066.jpg"
       },
       {
         position: "Joint General Secretary (Activity)",
         name: "Al Shahriar Ahommed Shanto",
         studentId: "221002567",
+        avatarUrl: "/executives/221002567.jpg"
       },
       {
         position: "Joint General Secretary (Technical)",
         name: "Shawmin Azmi",
         studentId: "221002352",
+        avatarUrl: "/executives/221002352.jpg"
       },
       {
         position: "Treasurer",
         name: "Nazmus Sakib",
         studentId: "223902073",
+        avatarUrl: "/executives/223902073.png"
       },
       {
         position: "Joint Treasurer",
         name: "Mahmuda Akter Nadia",
         studentId: "231002001",
+        avatarUrl: "/executives/231002001.jpg"
       },
       {
         position: "Organizing Secretary",
         name: "Riya Hasan",
         studentId: "221902188",
+        avatarUrl: "/executives/221902188.jpg"
       },
       {
         position: "Joint Organizing Secretary",
         name: "Md. Akramul Hoque",
         studentId: "221002565",
+        avatarUrl: "/executives/221002565.jpg"
       },
       {
         position: "Event Coordinator",
         name: "Tanveer Ahmed Ziad",
         studentId: "231902048",
+        avatarUrl: "/executives/231902048.png"
       },
       {
         position: "Programming and Development Secretary",
         name: "Nurul Huda (Apon)",
         studentId: "221902012",
+        avatarUrl: "/executives/221902012.png"
       },
       {
         position: "Programming and Development Secretary (Activity)",
         name: "Fahmida Akter Nupur",
         studentId: "221902385",
+        avatarUrl: "/executives/221902385.jpg"
       },
       {
         position: "Programming and Development Secretary (Technical)",
         name: "Mohabbat Marjuk Muttaki",
         studentId: "231902001",
+        avatarUrl: "/executives/231902001.png"
       },
       {
         position: "Information Secretary",
         name: "Mehreen Jerin Khan",
         studentId: "222902019",
+        avatarUrl: "/executives/222902019.jpg"
       },
       {
         position: "Joint Information Secretary",
         name: "Bakul Ahmed",
         studentId: "232002184",
+        avatarUrl: "/executives/232002184.jpg"
       },
       {
         position: "Outreach Secretary",
         name: "Tasmia Noor Tama",
         studentId: "223902001",
+        avatarUrl: "/executives/223902001.jpg"
       },
       {
         position: "Publication Secretary",
         name: "Pranta Sarker",
         studentId: "221002516",
+        avatarUrl: "/executives/221002516.jpg"
       },
       {
         position: "Joint Publication Secretary",
         name: "Rahat Hossain Himel",
         studentId: "231902018",
+        avatarUrl: "/executives/231902018.png"
       },
       {
         position: "Cultural Secretary",
         name: "Israt Hossain",
         studentId: "221902331",
+        avatarUrl: "/executives/221902331.jpg"
       },
       {
         position: "Joint Cultural Secretary",
         name: "Shakib Hasan",
         studentId: "241002036",
+        avatarUrl: "/executives/241002036.jpg"
       },
       {
         position: "Graphics and Multimedia Coordinator",
         name: "Majharul Islam",
         studentId: "232002256",
+        avatarUrl: "/executives/232002256.jpg"
       },
       {
         position: "Media Production Coordinator",
         name: "Mohammad Sajid Hossain",
         studentId: "221902116",
+        avatarUrl: "/executives/221902116.png"
       },
       {
         position: "Photography Secretary",
         name: "MD Nahiduzzaman Dipu",
         studentId: "223002150",
+        avatarUrl: "/executives/223002150.jpg"
       },
       {
         position: "Sports Secretary",
         name: "Md. Fazle Rabbi Riyad",
         studentId: "213002027",
+        avatarUrl: "/executives/213002027.jpg"
       },
       {
         position: "Executive Member-1",
         name: "Md. Jawadul Hassan Sowmik",
         studentId: "241002002",
+        avatarUrl: "/executives/241002002.jpg"
       },
       {
         position: "Executive Member-2",
         name: "Md Farhad",
         studentId: "241002017",
+        avatarUrl: "/executives/241002017.jpg"
       },
       {
         position: "Executive Member-3",
         name: "Nafisa Anjum Dina",
         studentId: "242002136",
+        avatarUrl: "/executives/242002136.jpg"
       },
       {
         position: "Executive Member-4",
         name: "Nusrat Jahan Sumaiya",
         studentId: "242002167",
+        avatarUrl: "/executives/242002167.jpg"
       },
     ],
   },

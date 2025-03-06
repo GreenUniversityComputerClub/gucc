@@ -141,22 +141,18 @@ function FacultyCard({ faculty }: { faculty: FacultyMember }) {
 }
 
 function ExecutiveCard({ executive }: { executive: StudentExecutive }) {
-  const initials = executive.name
-    .split(" ")
-    .map((name) => name[0])
-    .join("")
-    .substring(0, 2)
-    .toUpperCase();
+  console.log(executive.avatarUrl);
 
   return (
-    <Card className="relative overflow-hidden overflow-top-block group">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+    <Card className="relative overflow-hidden overflow-top-block group h-30">
+      <div className="absolute inset-0" />
+      {/* <div className="absolute inset-0 bg-gradient-to-r from-green-50 via-green-50/50 to-transparent" /> */}
       <div className="relative">
         <CardHeader className="flex flex-row items-center gap-4 relative">
-          <div className="absolute -right-8 -top-6 w-40 h-40 opacity-80 group-hover:opacity-100 transition-opacity">
-            {executive.studentId && (
+          <div className="absolute -right-8 -top-4 w-40 h-40 opacity-90 group-hover:opacity-100 transition-opacity">
+            {executive.avatarUrl && (
               <Image
-                src={`/executives/${executive.studentId}.png`}
+                src={executive.avatarUrl}
                 alt={executive.name}
                 width={160}
                 height={160}
