@@ -675,7 +675,7 @@ export const executivesByYear: ExecutiveYear[] = [
         position: "Sports Secretary",
         name: "Md. Fazle Rabbi Riyad",
         studentId: "213002027",
-        avatarUrl: "/executives/213002027.jpg"
+        avatarUrl: "/executives/213002027.png"
       },
       {
         position: "Executive Member-1",
