@@ -47,7 +47,7 @@ export function Footer() {
             <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                Green University of Bangladesh, Begum Rokeya Avenue, Dhaka-1207
+                Green University of Bangladesh, Purbachal American City, Kanchan, Rupganj, Narayanganj-1461, Dhaka, Bangladesh
               </p>
               <p className="text-sm text-muted-foreground">Email: gucc@green.edu.bd</p>
               <div className="flex space-x-4 mt-4">

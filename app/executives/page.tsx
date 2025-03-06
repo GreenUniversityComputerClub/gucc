@@ -127,7 +127,7 @@ function ExecutiveCard({ executive }: { executive: StudentExecutive }) {
     const positionLower = position.toLowerCase()
     if (positionLower.includes("president") || positionLower.includes("vice president")) {
       return <Crown className="h-5 w-5 text-primary" />
-    } else if (positionLower.includes("technical") || positionLower.includes("developer")) {
+    } else if (positionLower.includes("programming")) {
       return <Code2 className="h-5 w-5 text-primary" />
     } else if (positionLower.includes("organizational") || positionLower.includes("coordinator")) {
       return <Users className="h-5 w-5 text-primary" />
