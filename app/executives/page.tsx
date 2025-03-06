@@ -1,16 +1,25 @@
 "use client"
 
-import { useState } from "react"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   executivesByYear,
   getAvailableYears,
-  groupExecutivesByCategory,
   type FacultyMember,
-  type StudentExecutive,
+  type StudentExecutive
 } from "@/data/executives"
+import {
+  BookOpen,
+  Building2,
+  Camera,
+  Code2,
+  Crown,
+  GraduationCap,
+  UserCog,
+  Users
+} from "lucide-react"
+import { useState } from "react"
 
 export default function ExecutivesPage() {
   const availableYears = getAvailableYears().sort((a, b) => Number.parseInt(b) - Number.parseInt(a))
@@ -22,8 +31,6 @@ export default function ExecutivesPage() {
     return <div className="container py-12">No data available for the selected year.</div>
   }
 
-  const { facultyMembers, studentExecutives } = currentYearData
-  const { leadership, technical, organizational, cultural } = groupExecutivesByCategory(studentExecutives)
 
   return (
     <div className="container py-12 md:py-24">
@@ -37,74 +44,46 @@ export default function ExecutivesPage() {
           <TabsList>
             {availableYears.map((year) => (
               <TabsTrigger key={year} value={year}>
-                {year} Committee
+                {year}
               </TabsTrigger>
             ))}
           </TabsList>
         </div>
 
-        {availableYears.map((year) => (
-          <TabsContent key={year} value={year}>
-            {executivesByYear.find((exec) => exec.year === year)?.facultyMembers.length > 0 && (
-              <section className="mb-12">
-                <h2 className="text-2xl font-bold mb-6">Faculty Advisors</h2>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {executivesByYear
-                    .find((exec) => exec.year === year)
-                    ?.facultyMembers.map((faculty, index) => (
+        {availableYears.map((year) => {
+          const yearData = executivesByYear.find((exec) => exec.year === year)
+          const facultyMembers = yearData?.facultyMembers || []
+          
+          return (
+            <TabsContent key={year} value={year}>
+              {facultyMembers.length > 0 && (
+                <section className="mb-12">
+                  <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                    <GraduationCap className="h-6 w-6 text-primary" />
+                    Faculty Advisors
+                  </h2>
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {facultyMembers.map((faculty, index) => (
                       <FacultyCard key={index} faculty={faculty} />
                     ))}
-                </div>
-              </section>
-            )}
+                  </div>
+                </section>
+              )}
 
-            <div className="space-y-12">
               <section>
-                <h2 className="text-2xl font-bold mb-6">Leadership Team</h2>
+                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                  <Users className="h-6 w-6 text-primary" />
+                  Student Executives
+                </h2>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {groupExecutivesByCategory(
-                    executivesByYear.find((exec) => exec.year === year)?.studentExecutives || [],
-                  ).leadership.map((executive, index) => (
+                  {(yearData?.studentExecutives || []).map((executive, index) => (
                     <ExecutiveCard key={index} executive={executive} />
                   ))}
                 </div>
               </section>
-
-              <section>
-                <h2 className="text-2xl font-bold mb-6">Technical Team</h2>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {groupExecutivesByCategory(
-                    executivesByYear.find((exec) => exec.year === year)?.studentExecutives || [],
-                  ).technical.map((executive, index) => (
-                    <ExecutiveCard key={index} executive={executive} />
-                  ))}
-                </div>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-bold mb-6">Organizational Team</h2>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {groupExecutivesByCategory(
-                    executivesByYear.find((exec) => exec.year === year)?.studentExecutives || [],
-                  ).organizational.map((executive, index) => (
-                    <ExecutiveCard key={index} executive={executive} />
-                  ))}
-                </div>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-bold mb-6">Cultural & Media Team</h2>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {groupExecutivesByCategory(
-                    executivesByYear.find((exec) => exec.year === year)?.studentExecutives || [],
-                  ).cultural.map((executive, index) => (
-                    <ExecutiveCard key={index} executive={executive} />
-                  ))}
-                </div>
-              </section>
-            </div>
-          </TabsContent>
-        ))}
+            </TabsContent>
+          )
+        })}
       </Tabs>
     </div>
   )
@@ -125,13 +104,16 @@ function FacultyCard({ faculty }: { faculty: FacultyMember }) {
           <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
         </Avatar>
         <div>
-          <CardTitle className="text-lg">{faculty.name}</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <GraduationCap className="h-5 w-5 text-primary" />
+            {faculty.name}
+          </CardTitle>
           <CardDescription>{faculty.position}</CardDescription>
         </div>
       </CardHeader>
-      <CardContent>
+      {/* <CardContent>
         <p className="text-sm text-muted-foreground">{faculty.designation}</p>
-      </CardContent>
+      </CardContent> */}
     </Card>
   )
 }
@@ -144,6 +126,25 @@ function ExecutiveCard({ executive }: { executive: StudentExecutive }) {
     .substring(0, 2)
     .toUpperCase()
 
+  const getRoleIcon = (position: string) => {
+    const positionLower = position.toLowerCase()
+    if (positionLower.includes("president") || positionLower.includes("vice president")) {
+      return <Crown className="h-5 w-5 text-primary" />
+    } else if (positionLower.includes("technical") || positionLower.includes("developer")) {
+      return <Code2 className="h-5 w-5 text-primary" />
+    } else if (positionLower.includes("organizational") || positionLower.includes("coordinator")) {
+      return <Users className="h-5 w-5 text-primary" />
+    } else if (positionLower.includes("cultural") || positionLower.includes("media")) {
+      return <Camera className="h-5 w-5 text-primary" />
+    } else if (positionLower.includes("academic")) {
+      return <BookOpen className="h-5 w-5 text-primary" />
+    } else if (positionLower.includes("admin")) {
+      return <Building2 className="h-5 w-5 text-primary" />
+    } else {
+      return <UserCog className="h-5 w-5 text-primary" />
+    }
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center gap-4">
@@ -151,13 +152,16 @@ function ExecutiveCard({ executive }: { executive: StudentExecutive }) {
           <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
         </Avatar>
         <div>
-          <CardTitle className="text-lg">{executive.name}</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            {getRoleIcon(executive.position)}
+            {executive.name}
+          </CardTitle>
           <CardDescription>{executive.position}</CardDescription>
         </div>
       </CardHeader>
-      <CardContent>
+      {/* <CardContent>
         <p className="text-sm text-muted-foreground">Student ID: {executive.studentId}</p>
-      </CardContent>
+      </CardContent> */}
     </Card>
   )
 }
