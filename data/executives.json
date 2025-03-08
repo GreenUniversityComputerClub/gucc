@@ -1,5 +1,112 @@
 [
   {
+    "year": "2020",
+    "facultyMembers": [
+      {
+        "position": "Moderator",
+        "name": "Ahmed Iqbal Pritom",
+        "designation": "Senior Lecturer"
+      },
+      {
+        "position": "Deputy Moderator",
+        "name": "Sultana Umme Habiba",
+        "designation": "Lecturer"
+      }
+    ],
+    "studentExecutives": [
+      {
+        "position": "President",
+        "name": "Najmus Sakib Sizan",
+        "studentId": "181002115"
+      },
+      {
+        "position": "Vice-President",
+        "name": "Md.Ariful Hoque yash",
+        "studentId": "182002038"
+      },
+      {
+        "position": "General Secretary",
+        "name": "Sajib Miha",
+        "studentId": "181002053"
+      },
+      {
+        "position": "Joint General Secretary",
+        "name": "Md. Mohtamim Islam Nayeem",
+        "studentId": "193015047"
+      },
+      {
+        "position": "Treasurer",
+        "name": "Diganta Dey",
+        "studentId": "181002123"
+      },
+      {
+        "position": "Joint Treasurer",
+        "name": "Mahabub Sajid Habib",
+        "studentId": "182002023"
+      },
+      {
+        "position": "Organizing Secretary",
+        "name": "Md Zahidul Hasan",
+        "studentId": "183002076"
+      },
+      {
+        "position": "Joint Organizing Secretary",
+        "name": "Md.Iqbal Jahan",
+        "studentId": "191002281"
+      },
+      {
+        "position": "Programming Secretary",
+        "name": "Md. Nasir Hossain Hridoy",
+        "studentId": "173002044"
+      },
+      {
+        "position": "Joint Programming Secretary",
+        "name": "K M Farhat Snigdah",
+        "studentId": "191002124"
+      },
+      {
+        "position": "Cultural Secretary",
+        "name": "Bithy Roy",
+        "studentId": "182002004"
+      },
+      {
+        "position": "Joint Cultural Secretary",
+        "name": "Sabikun Nahar Sharna",
+        "studentId": "182002013"
+      },
+      {
+        "position": "Information Secretary",
+        "name": "Md. Rahul Reza",
+        "studentId": "191002067"
+      },
+      {
+        "position": "Joint Information Secretary",
+        "name": "MD. Jahid Hassan",
+        "studentId": "201002463"
+      },
+      {
+        "position": "Sports Secretary",
+        "name": "Neamul Nasir Jony",
+        "studentId": "181002040"
+      },
+      {
+        "position": "Joint Sports Secretary",
+        "name": "Shahriar Mahmud",
+        "studentId": "183015050"
+      },
+      {
+        "position": "Publication Secretary",
+        "name": "Kamrujjaman Shamim",
+        "studentId": "193002044"
+      },
+      {
+        "position": "Joint Publication Secretary",
+        "name": "MD Sakhawat Hossain Rabbi",
+        "studentId": "201002311"
+      }
+    ]
+  },
+  {
     "year": "2021",
     "facultyMembers": [
       {
@@ -429,10 +536,10 @@
         "name": "Al Shahriar Ahommed Shanto",
         "studentId": "221002567",
         "avatarPosition": {
-          "x": -10,
-          "y": -3
+          "x": 3,
+          "y": -2
         },
-        "avatarScale": 0.8
+        "avatarScale": 1
       },
       {
         "position": "Executive Member-2",
@@ -584,10 +691,10 @@
         "name": "Al Shahriar Ahommed Shanto",
         "studentId": "221002567",
         "avatarPosition": {
-          "x": -10,
-          "y": -3
+          "x": 3,
+          "y": -2
         },
-        "avatarScale": 0.8
+        "avatarScale": 1
       },
       {
         "position": "Cultural Secretary",
@@ -769,10 +876,10 @@
         "studentId": "221002567",
         "avatarUrl": "/executives/221002567.png",
         "avatarPosition": {
-          "x": -10,
-          "y": -3
+          "x": 3,
+          "y": -2
         },
-        "avatarScale": 0.8
+        "avatarScale": 1
       },
       {
         "position": "Joint General Secretary (Technical)",
