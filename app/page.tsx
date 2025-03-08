@@ -33,7 +33,7 @@ export default function Home() {
             </div>
 
             {/* Hero Section Buttons */}
-            <div className="space-x-4">
+            {/* <div className="space-x-4">
               <Button asChild size="lg" className="bg-primary hover:bg-primary/90 hover:scale-95 transition-all duration-300">
                 <Link href="/events">Explore Events</Link>
               </Button>
@@ -42,7 +42,7 @@ export default function Home() {
                   Join Us
                 </Link>
               </Button>
-            </div>
+            </div> */}
           </div>
         </div>
       </section>
