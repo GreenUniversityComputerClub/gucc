@@ -3,18 +3,17 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
+  CardTitle
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  executivesByYear,
   getAvailableYears,
   type FacultyMember,
   type StudentExecutive,
 } from "@/data/executives";
+import executivesData from "@/data/executives.json";
 import {
   BookOpen,
   Building2,
@@ -25,9 +24,8 @@ import {
   UserCog,
   Users,
 } from "lucide-react";
-import { useState } from "react";
 import Image from "next/image";
-import executiveImage from "../assets/executives/221902012.png";
+import { useState } from "react";
 
 export default function ExecutivesPage() {
   const availableYears = getAvailableYears().sort(
@@ -35,7 +33,7 @@ export default function ExecutivesPage() {
   );
   const [activeYear, setActiveYear] = useState(availableYears[0]);
 
-  const currentYearData = executivesByYear.find(
+  const currentYearData = executivesData.find(
     (exec) => exec.year === activeYear
   );
 
@@ -69,7 +67,7 @@ export default function ExecutivesPage() {
         </div>
 
         {availableYears.map((year) => {
-          const yearData = executivesByYear.find((exec) => exec.year === year);
+          const yearData = executivesData.find((exec) => exec.year === year);
           const facultyMembers = yearData?.facultyMembers || [];
 
           return (
