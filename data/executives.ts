@@ -1,22 +1,18 @@
 import executivesData from "./executives.json";
 
-export interface FacultyMember {
+export interface Executive {
   position: string
   name: string
-  designation: string
-}
-
-export interface StudentExecutive {
-  position: string
-  name: string
-  studentId: string
+  studentId?: string
   avatarUrl?: string
+  avatarPosition?: { x: number, y: number }
+  avatarScale?: number
 }
 
 export interface ExecutiveYear {
   year: string
-  facultyMembers: FacultyMember[]
-  studentExecutives: StudentExecutive[]
+  facultyMembers: Executive[]
+  studentExecutives: Executive[]
 }
 
 
@@ -31,7 +27,7 @@ export function getAvailableYears(): string[] {
 }
 
 // Helper function to group student executives by category
-export function groupExecutivesByCategory(executives: StudentExecutive[]) {
+export function groupExecutivesByCategory(executives: Executive[]) {
   const leadership = executives.filter((exec) =>
     ["President", "Vice President", "General Secretary", "Joint General Secretary"].some((title) =>
       exec.position.includes(title),
