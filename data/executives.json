@@ -229,7 +229,13 @@
       {
         "position": "Moderator",
         "name": "Md. Monirul Islam",
-        "designation": "Lecturer"
+        "designation": "Lecturer",
+        "avatarUrl": "/executives/monirul.cse.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8
       },
       {
         "position": "Deputy Moderator",
