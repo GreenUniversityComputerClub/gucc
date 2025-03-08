@@ -35,7 +35,7 @@ export default function ExecutivesPage() {
   );
   const [activeYear, setActiveYear] = useState(availableYears[0]);
   const [isResizeMode, setIsResizeMode] = useState(RESIZE_AVATAR);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   const currentYearData = executivesData.find(
@@ -398,7 +398,7 @@ function getRoleIcon(position: string) {
     positionLower.includes("coordinator")
   )
     return <Users className="h-5 w-5 text-primary" />;
-  if (positionLower.includes("cultural") || positionLower.includes("media"))
+  if (positionLower.includes("cultural") || positionLower.includes("media") || positionLower.includes("photo"))
     return <Camera className="h-5 w-5 text-primary" />;
   if (positionLower.includes("academic"))
     return <BookOpen className="h-5 w-5 text-primary" />;
