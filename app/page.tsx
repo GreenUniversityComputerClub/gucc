@@ -31,16 +31,18 @@ export default function Home() {
                 Empowering students to excel in the world of technology
               </p>
             </div>
-            {/* <div className="space-x-4">
-              <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
+
+            {/* Hero Section Buttons */}
+            <div className="space-x-4">
+              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 hover:scale-95 transition-all duration-300">
                 <Link href="/events">Explore Events</Link>
               </Button>
-              <Button variant="outline" size="lg" asChild className="border-primary/20 hover:bg-primary/10">
+              <Button variant="outline" size="lg" asChild className="border-primary/20 hover:bg-primary/10 hover:scale-95 transition-all duration-300">
                 <Link href="https://forms.gle/example" target="_blank" rel="noopener noreferrer">
                   Join Us
                 </Link>
               </Button>
-            </div> */}
+            </div>
           </div>
         </div>
       </section>
@@ -158,7 +160,7 @@ export default function Home() {
 
       {/* Featured Events Section */}
       <section className="w-full">
-        <div className="container px-4 px-6">
+        <div className="container px-6">
           <div className="flex flex-col items-center justify-center space-y-6 text-center">
             <div className="space-y-4">
               <h2 className="text-3xl mt-12 font-bold tracking-tighter md:text-4xl lg:text-5xl">Recent and Upcoming Events</h2>

@@ -5,13 +5,19 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Menu, X } from "lucide-react"
 import Image from "next/image"
+import { usePathname } from 'next/navigation';
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const pathname = usePathname();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
   }
+
+  const isActive = (path: string) => {
+    return pathname === path;
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60">
@@ -29,13 +35,22 @@ export function Navbar() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
+          <Link
+            href="/"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/') ? 'text-primary' : ''}`}
+          >
             Home
           </Link>
-          <Link href="/events" className="text-sm font-medium transition-colors hover:text-primary">
+          <Link
+            href="/events"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/events') ? 'text-primary' : ''}`}
+          >
             Events
           </Link>
-          <Link href="/executives" className="text-sm font-medium transition-colors hover:text-primary">
+          <Link
+            href="/executives"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/executives') ? 'text-primary' : ''}`}
+          >
             Executives
           </Link>
           {/* <Button asChild>
@@ -57,21 +72,21 @@ export function Navbar() {
           <nav className="flex flex-col space-y-4">
             <Link
               href="/"
-              className="text-sm font-medium transition-colors hover:text-primary"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/') ? 'text-primary' : ''}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Home
             </Link>
             <Link
               href="/events"
-              className="text-sm font-medium transition-colors hover:text-primary"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/events') ? 'text-primary' : ''}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Events
             </Link>
             <Link
               href="/executives"
-              className="text-sm font-medium transition-colors hover:text-primary"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/executives') ? 'text-primary' : ''}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Executives
