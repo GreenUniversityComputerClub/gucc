@@ -179,7 +179,12 @@
       {
         "position": "Joint Information Secretary",
         "name": "Md. Montasir Rahman",
-        "studentId": "202002003"
+        "studentId": "202002003",
+        "avatarPosition": {
+          "x": -6,
+          "y": 2
+        },
+        "avatarScale": 0.9
       },
       {
         "position": "Cultural Secretary",
@@ -257,12 +262,22 @@
       {
         "position": "Vice President (Activity)",
         "name": "Md. Montasir Rahman",
-        "studentId": "202002003"
+        "studentId": "202002003",
+        "avatarPosition": {
+          "x": -6,
+          "y": 2
+        },
+        "avatarScale": 0.9
       },
       {
         "position": "Vice President (Technical)",
         "name": "Shakib Imtiaz",
-        "studentId": "202902008"
+        "studentId": "202902008",
+        "avatarPosition": {
+          "x": 0,
+          "y": 2
+        },
+        "avatarScale": 1
       },
       {
         "position": "General Secretary",
@@ -277,7 +292,12 @@
       {
         "position": "Joint General Secretary (Technical)",
         "name": "Al Amin",
-        "studentId": "202902024"
+        "studentId": "202902024",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8
       },
       {
         "position": "Organizing Secretary",
@@ -299,10 +319,10 @@
         "name": "Abdul Fattah",
         "studentId": "221902066",
         "avatarPosition": {
-          "x": -7,
-          "y": -2
+          "x": -1,
+          "y": -9
         },
-        "avatarScale": 0.7
+        "avatarScale": 0.8
       },
       {
         "position": "Programming Secretary",
@@ -312,32 +332,42 @@
       {
         "position": "Joint Programming Secretary",
         "name": "Jannatul Ferdous Nuri",
-        "studentId": "211002005"
+        "studentId": "211002005",
+        "avatarPosition": {
+          "x": 0,
+          "y": -3
+        },
+        "avatarScale": 0.8
       },
       {
         "position": "Information Secretary",
         "name": "Sikder Md. Shariful Islam",
-        "studentId": "213002146"
+        "studentId": "213002146",
+        "avatarPosition": {
+          "x": 1,
+          "y": 10
+        },
+        "avatarScale": 1
       },
       {
         "position": "Joint Information Secretary",
         "name": "Hasimunnahar Shanta",
         "studentId": "221002585",
         "avatarPosition": {
-          "x": -9,
-          "y": 0
+          "x": 0,
+          "y": -10
         },
-        "avatarScale": 0.7
+        "avatarScale": 0.9
       },
       {
         "position": "Event Coordinator",
         "name": "Riya Hasan",
         "studentId": "221902188",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": -5,
+          "y": 11
         },
-        "avatarScale": 0.9
+        "avatarScale": 1
       },
       {
         "position": "Cultural Secretary",
@@ -349,30 +379,40 @@
         "name": "Md. Showaib Rahman Tanveer",
         "studentId": "221902084",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": -7,
+          "y": -11
         },
-        "avatarScale": 0.8
+        "avatarScale": 0.9
       },
       {
         "position": "Publication Secretary",
         "name": "Md. Hasibur Rahman",
-        "studentId": "212902018"
+        "studentId": "212902018",
+        "avatarPosition": {
+          "x": -16,
+          "y": -1
+        },
+        "avatarScale": 0.8
       },
       {
         "position": "Joint Publication Secretary",
         "name": "Shawmin Azmi",
         "studentId": "221002352",
         "avatarPosition": {
-          "x": 6,
-          "y": -5
+          "x": 2,
+          "y": 4
         },
-        "avatarScale": 0.8
+        "avatarScale": 0.9
       },
       {
         "position": "Graphics Designer",
         "name": "Umma Salma Noor Tamanna",
-        "studentId": "213002100"
+        "studentId": "213002100",
+        "avatarPosition": {
+          "x": 0,
+          "y": 10
+        },
+        "avatarScale": 0.9
       },
       {
         "position": "Sports Secretary",
@@ -392,17 +432,17 @@
           "x": -10,
           "y": -3
         },
-        "avatarScale": 0.7
+        "avatarScale": 0.8
       },
       {
         "position": "Executive Member-2",
         "name": "Mahmuda Akter Nadia",
         "studentId": "231002001",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": 1,
+          "y": -10
         },
-        "avatarScale": 0.9
+        "avatarScale": 1
       }
     ]
   },
@@ -447,27 +487,42 @@
       {
         "position": "President",
         "name": "Md. Montasir Rahman",
-        "studentId": "202002003"
+        "studentId": "202002003",
+        "avatarPosition": {
+          "x": -6,
+          "y": 2
+        },
+        "avatarScale": 0.9
       },
       {
         "position": "Vice President",
         "name": "Shakib Imtiaz",
-        "studentId": "202902008"
+        "studentId": "202902008",
+        "avatarPosition": {
+          "x": 0,
+          "y": 2
+        },
+        "avatarScale": 1
       },
       {
         "position": "General Secretary",
         "name": "Al Amin",
-        "studentId": "202902024"
+        "studentId": "202902024",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8
       },
       {
         "position": "Joint General Secretary",
         "name": "Md. Showaib Rahman Tanveer",
         "studentId": "221902084",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": -7,
+          "y": -11
         },
-        "avatarScale": 0.8
+        "avatarScale": 0.9
       },
       {
         "position": "Organizing Secretary",
@@ -484,10 +539,10 @@
         "name": "Abdul Fattah",
         "studentId": "221902066",
         "avatarPosition": {
-          "x": -7,
-          "y": -2
+          "x": -1,
+          "y": -9
         },
-        "avatarScale": 0.7
+        "avatarScale": 0.8
       },
       {
         "position": "Programming Secretary",
@@ -497,22 +552,32 @@
       {
         "position": "Joint Programming Secretary",
         "name": "Jannatul Ferdous Nuri",
-        "studentId": "211002005"
+        "studentId": "211002005",
+        "avatarPosition": {
+          "x": 0,
+          "y": -3
+        },
+        "avatarScale": 0.8
       },
       {
         "position": "Information Secretary",
         "name": "Sikder Md. Shariful Islam",
-        "studentId": "213002146"
+        "studentId": "213002146",
+        "avatarPosition": {
+          "x": 1,
+          "y": 10
+        },
+        "avatarScale": 1
       },
       {
         "position": "Joint Information Secretary",
         "name": "Hasimunnahar Shanta",
         "studentId": "221002585",
         "avatarPosition": {
-          "x": -9,
-          "y": 0
+          "x": 0,
+          "y": -10
         },
-        "avatarScale": 0.7
+        "avatarScale": 0.9
       },
       {
         "position": "Event Coordinator",
@@ -522,32 +587,37 @@
           "x": -10,
           "y": -3
         },
-        "avatarScale": 0.7
+        "avatarScale": 0.8
       },
       {
         "position": "Cultural Secretary",
         "name": "Riya Hasan",
         "studentId": "221902188",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": -5,
+          "y": 11
         },
-        "avatarScale": 0.9
+        "avatarScale": 1
       },
       {
         "position": "Publication Secretary",
         "name": "Md. Hasibur Rahman",
-        "studentId": "212902018"
+        "studentId": "212902018",
+        "avatarPosition": {
+          "x": -16,
+          "y": -1
+        },
+        "avatarScale": 0.8
       },
       {
         "position": "Joint Publication Secretary",
         "name": "Shawmin Azmi",
         "studentId": "221002352",
         "avatarPosition": {
-          "x": 6,
-          "y": -5
+          "x": 2,
+          "y": 4
         },
-        "avatarScale": 0.8
+        "avatarScale": 0.9
       },
       {
         "position": "Sports Secretary",
@@ -562,32 +632,42 @@
       {
         "position": "Graphics and Multimedia Coordinator",
         "name": "Umma Salma Noor Tamanna",
-        "studentId": "213002100"
+        "studentId": "213002100",
+        "avatarPosition": {
+          "x": 0,
+          "y": 10
+        },
+        "avatarScale": 0.9
       },
       {
         "position": "Graphics and Multimedia Coordinator",
         "name": "Mahmuda Akter Nadia",
         "studentId": "231002001",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": 1,
+          "y": -10
         },
-        "avatarScale": 0.9
+        "avatarScale": 1
       },
       {
         "position": "Executive Member",
         "name": "Akash Adhikary",
-        "studentId": "213002021"
+        "studentId": "213002021",
+        "avatarPosition": {
+          "x": -4,
+          "y": 7
+        },
+        "avatarScale": 1
       },
       {
         "position": "Executive Member",
         "name": "Md. Fazle Rabbi Riyad",
         "studentId": "213002027",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": -13,
+          "y": 13
         },
-        "avatarScale": 1.1
+        "avatarScale": 1
       },
       {
         "position": "Executive Member",
@@ -595,9 +675,9 @@
         "studentId": "232002256",
         "avatarPosition": {
           "x": 0,
-          "y": 0
+          "y": 2
         },
-        "avatarScale": 0.8
+        "avatarScale": 0.9
       }
     ]
   },
@@ -643,23 +723,23 @@
         "position": "President",
         "name": "Md. Showaib Rahman Tanveer",
         "studentId": "221902084",
-        "avatarUrl": "/executives/221902084.jpg",
+        "avatarUrl": "/executives/221902084.png",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": -7,
+          "y": -11
         },
-        "avatarScale": 0.8
+        "avatarScale": 0.9
       },
       {
         "position": "Vice President (Activity)",
         "name": "Hasimunnahar Shanta",
         "studentId": "221002585",
-        "avatarUrl": "/executives/221002585.jpg",
+        "avatarUrl": "/executives/221002585.png",
         "avatarPosition": {
-          "x": -9,
-          "y": 0
+          "x": 0,
+          "y": -10
         },
-        "avatarScale": 0.7
+        "avatarScale": 0.9
       },
       {
         "position": "Vice President (Technical)",
@@ -676,34 +756,34 @@
         "position": "General Secretary",
         "name": "Abdul Fattah",
         "studentId": "221902066",
-        "avatarUrl": "/executives/221902066.jpg",
+        "avatarUrl": "/executives/221902066.png",
         "avatarPosition": {
-          "x": -7,
-          "y": -2
+          "x": -1,
+          "y": -9
         },
-        "avatarScale": 0.7
+        "avatarScale": 0.8
       },
       {
         "position": "Joint General Secretary (Activity)",
         "name": "Al Shahriar Ahommed Shanto",
         "studentId": "221002567",
-        "avatarUrl": "/executives/221002567.jpg",
+        "avatarUrl": "/executives/221002567.png",
         "avatarPosition": {
           "x": -10,
           "y": -3
         },
-        "avatarScale": 0.7
+        "avatarScale": 0.8
       },
       {
         "position": "Joint General Secretary (Technical)",
         "name": "Shawmin Azmi",
         "studentId": "221002352",
-        "avatarUrl": "/executives/221002352.jpg",
+        "avatarUrl": "/executives/221002352.png",
         "avatarPosition": {
-          "x": 6,
-          "y": -5
+          "x": 2,
+          "y": 4
         },
-        "avatarScale": 0.8
+        "avatarScale": 0.9
       },
       {
         "position": "Treasurer",
@@ -711,8 +791,8 @@
         "studentId": "223902073",
         "avatarUrl": "/executives/223902073.png",
         "avatarPosition": {
-          "x": 0,
-          "y": 8
+          "x": 1,
+          "y": 11
         },
         "avatarScale": 1
       },
@@ -720,29 +800,29 @@
         "position": "Joint Treasurer",
         "name": "Mahmuda Akter Nadia",
         "studentId": "231002001",
-        "avatarUrl": "/executives/231002001.jpg",
+        "avatarUrl": "/executives/231002001.png",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": 1,
+          "y": -10
         },
-        "avatarScale": 0.9
+        "avatarScale": 1
       },
       {
         "position": "Organizing Secretary",
         "name": "Riya Hasan",
         "studentId": "221902188",
-        "avatarUrl": "/executives/221902188.jpg",
+        "avatarUrl": "/executives/221902188.png",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": -5,
+          "y": 11
         },
-        "avatarScale": 0.9
+        "avatarScale": 1
       },
       {
         "position": "Joint Organizing Secretary",
         "name": "Md. Akramul Hoque",
         "studentId": "221002565",
-        "avatarUrl": "/executives/221002565.jpg",
+        "avatarUrl": "/executives/221002565.png",
         "avatarPosition": {
           "x": 0,
           "y": 0
@@ -775,10 +855,10 @@
         "position": "Programming and Development Secretary (Activity)",
         "name": "Fahmida Akter Nupur",
         "studentId": "221902385",
-        "avatarUrl": "/executives/221902385.jpg",
+        "avatarUrl": "/executives/221902385.png",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": 4,
+          "y": -7
         },
         "avatarScale": 0.8
       },
@@ -797,7 +877,7 @@
         "position": "Information Secretary",
         "name": "Mehreen Jerin Khan",
         "studentId": "222902019",
-        "avatarUrl": "/executives/222902019.jpg",
+        "avatarUrl": "/executives/222902019.png",
         "avatarPosition": {
           "x": 0,
           "y": 0
@@ -808,7 +888,7 @@
         "position": "Joint Information Secretary",
         "name": "Bakul Ahmed",
         "studentId": "232002184",
-        "avatarUrl": "/executives/232002184.jpg",
+        "avatarUrl": "/executives/232002184.png",
         "avatarPosition": {
           "x": 0,
           "y": 0
@@ -819,23 +899,23 @@
         "position": "Outreach Secretary",
         "name": "Tasmia Noor Tama",
         "studentId": "223902001",
-        "avatarUrl": "/executives/223902001.jpg",
-        "avatarPosition": {
-          "x": 0,
-          "y": 0
-        },
-        "avatarScale": 0.9
-      },
-      {
-        "position": "Publication Secretary",
-        "name": "Pranta Sarker",
-        "studentId": "221002516",
-        "avatarUrl": "/executives/221002516.jpg",
+        "avatarUrl": "/executives/223902001.png",
         "avatarPosition": {
           "x": 0,
           "y": 0
         },
         "avatarScale": 0.8
+      },
+      {
+        "position": "Publication Secretary",
+        "name": "Pranta Sarker",
+        "studentId": "221002516",
+        "avatarUrl": "/executives/221002516.png",
+        "avatarPosition": {
+          "x": -6,
+          "y": 2
+        },
+        "avatarScale": 0.9
       },
       {
         "position": "Joint Publication Secretary",
@@ -852,18 +932,18 @@
         "position": "Cultural Secretary",
         "name": "Israt Hossain",
         "studentId": "221902331",
-        "avatarUrl": "/executives/221902331.jpg",
+        "avatarUrl": "/executives/221902331.png",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": 3,
+          "y": -9
         },
-        "avatarScale": 0.9
+        "avatarScale": 0.8
       },
       {
         "position": "Joint Cultural Secretary",
         "name": "Shakib Hasan",
         "studentId": "241002036",
-        "avatarUrl": "/executives/241002036.jpg",
+        "avatarUrl": "/executives/241002036.png",
         "avatarPosition": {
           "x": 0,
           "y": 0
@@ -874,12 +954,12 @@
         "position": "Graphics and Multimedia Coordinator",
         "name": "Majharul Islam",
         "studentId": "232002256",
-        "avatarUrl": "/executives/232002256.jpg",
+        "avatarUrl": "/executives/232002256.png",
         "avatarPosition": {
           "x": 0,
-          "y": 0
+          "y": 2
         },
-        "avatarScale": 0.8
+        "avatarScale": 0.9
       },
       {
         "position": "Media Production Coordinator",
@@ -896,7 +976,7 @@
         "position": "Photography Secretary",
         "name": "MD Nahiduzzaman Dipu",
         "studentId": "223002150",
-        "avatarUrl": "/executives/223002150.jpg",
+        "avatarUrl": "/executives/223002150.png",
         "avatarPosition": {
           "x": 0,
           "y": 0
@@ -909,16 +989,16 @@
         "studentId": "213002027",
         "avatarUrl": "/executives/213002027.png",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": -13,
+          "y": 13
         },
-        "avatarScale": 1.1
+        "avatarScale": 1
       },
       {
         "position": "Executive Member-1",
         "name": "Md. Jawadul Hassan Sowmik",
         "studentId": "241002002",
-        "avatarUrl": "/executives/241002002.jpg",
+        "avatarUrl": "/executives/241002002.png",
         "avatarPosition": {
           "x": 0,
           "y": 0
@@ -929,7 +1009,7 @@
         "position": "Executive Member-2",
         "name": "Md Farhad",
         "studentId": "241002017",
-        "avatarUrl": "/executives/241002017.jpg",
+        "avatarUrl": "/executives/241002017.png",
         "avatarPosition": {
           "x": 0,
           "y": 0
@@ -940,7 +1020,7 @@
         "position": "Executive Member-3",
         "name": "Nafisa Anjum Dina",
         "studentId": "242002136",
-        "avatarUrl": "/executives/242002136.jpg",
+        "avatarUrl": "/executives/242002136.png",
         "avatarPosition": {
           "x": 0,
           "y": 0
@@ -951,7 +1031,7 @@
         "position": "Executive Member-4",
         "name": "Nusrat Jahan Sumaiya",
         "studentId": "242002167",
-        "avatarUrl": "/executives/242002167.jpg",
+        "avatarUrl": "/executives/242002167.png",
         "avatarPosition": {
           "x": 0,
           "y": 0
