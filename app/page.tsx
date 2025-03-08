@@ -19,7 +19,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
       <section className="w-full py-16 md:py-24 lg:py-32 bg-gradient-to-b from-primary/20 via-primary/10 to-background relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
+        {/* <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" /> */}
         <div className="container relative px-4 md:px-6">
           <div className="flex flex-col items-center space-y-6 text-center">
             <div className="space-y-4">
@@ -156,14 +156,12 @@ export default function Home() {
       </section>
 
       {/* Featured Events Section */}
-      <section className="w-full py-16 md:py-24 lg:py-32">
-        <div className="container px-4 md:px-6">
+      <section className="w-full">
+        <div className="container px-4 px-6">
           <div className="flex flex-col items-center justify-center space-y-6 text-center">
             <div className="space-y-4">
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">Recent and Upcoming Events</h2>
-              <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
-                Join us for our exciting upcoming events
-              </p>
+              <h2 className="text-3xl mt-12 font-bold tracking-tighter md:text-4xl lg:text-5xl">Recent and Upcoming Events</h2>
+          
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
@@ -181,7 +179,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <div className="flex justify-center mb-12">
+      <div className="flex justify-center m-12">
             <Button asChild variant="outline" className="border-primary/20 hover:bg-primary/10">
               <Link href="/events">View All Events</Link>
             </Button>

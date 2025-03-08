@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Facebook, Linkedin, Mail } from "lucide-react"
+import { Facebook, Linkedin, Mail, ChevronRight } from "lucide-react"
 import Image from "next/image"
 
 export function Footer() {
@@ -26,19 +26,64 @@ export function Footer() {
           <div>
             <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Home
+            <li>
+                <Link href="https://green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
+                  <ChevronRight className="h-4 w-4 mr-1" />
+                  Main Website
                 </Link>
               </li>
               <li>
-                <Link href="/events" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Events
+                <Link href="https://bus.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
+                  <ChevronRight className="h-4 w-4 mr-1" />
+                  Business Administration
                 </Link>
               </li>
               <li>
-                <Link href="/executives" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Executives
+                <Link href="https://cse.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
+                  <ChevronRight className="h-4 w-4 mr-1" />
+                  Computer Science and Engineering
+                </Link>
+              </li>
+              <li>
+                <Link href="https://swe.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
+                  <ChevronRight className="h-4 w-4 mr-1" />
+                  Software Engineering
+                </Link>
+              </li>
+              <li>
+                <Link href="https://eee.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
+                  <ChevronRight className="h-4 w-4 mr-1" />
+                  Electrical and Electronic Engineering
+                </Link>
+              </li>
+              <li>
+                <Link href="https://eng.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
+                  <ChevronRight className="h-4 w-4 mr-1" />
+                  English
+                </Link>
+              </li>
+              <li>
+                <Link href="https://jmc.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
+                  <ChevronRight className="h-4 w-4 mr-1" />
+                  Journalism and Media Communication
+                </Link>
+              </li>
+              <li>
+                <Link href="https://law.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
+                  <ChevronRight className="h-4 w-4 mr-1" />
+                  Law
+                </Link>
+              </li>
+              <li>
+                <Link href="https://soc.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
+                  <ChevronRight className="h-4 w-4 mr-1" />
+                  Sociology and Anthropology
+                </Link>
+              </li>
+              <li>
+                <Link href="https://tex.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
+                  <ChevronRight className="h-4 w-4 mr-1" />
+                  Textile Engineering
                 </Link>
               </li>
             </ul>
