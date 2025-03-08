@@ -1033,10 +1033,10 @@
         "studentId": "242002167",
         "avatarUrl": "/executives/242002167.png",
         "avatarPosition": {
-          "x": 0,
-          "y": 0
+          "x": -4,
+          "y": -5
         },
-        "avatarScale": 0.8
+        "avatarScale": 0.9
       }
     ]
   }

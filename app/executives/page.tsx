@@ -35,7 +35,7 @@ export default function ExecutivesPage() {
   );
   const [activeYear, setActiveYear] = useState(availableYears[0]);
   const [isResizeMode, setIsResizeMode] = useState(RESIZE_AVATAR);
-  const [isAdmin, setIsAdmin] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const currentYearData = executivesData.find(
