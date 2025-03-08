@@ -403,40 +403,40 @@
   {
     "year": "2024",
     "facultyMembers": [
-        {
-          "position": "Moderator",
-          "name": "Md. Monirul Islam",
-          "designation": "Assistant Professor",
-          "avatarUrl": "/executives/monirul.cse.png",
-          "avatarPosition": {
-            "x": 0,
-            "y": 0
-          },
-          "avatarScale": 0.8
+      {
+        "position": "Moderator",
+        "name": "Md. Monirul Islam",
+        "designation": "Assistant Professor",
+        "avatarUrl": "/executives/monirul.cse.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
         },
-        {
-          "position": "Deputy Moderator",
-          "name": "Jarin Tasnim Tonvi",
-          "designation": "Lecturer",
-          "avatarUrl": "/executives/tonvi.cse.png",
-          "avatarPosition": {
-            "x": 0,
-            "y": 0
-          },
-          "avatarScale": 0.8
+        "avatarScale": 0.8
+      },
+      {
+        "position": "Deputy Moderator",
+        "name": "Jarin Tasnim Tonvi",
+        "designation": "Lecturer",
+        "avatarUrl": "/executives/tonvi.cse.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
         },
-        {
-          "position": "Deputy Moderator",
-          "name": "Montaser Abdul Quader",
-          "designation": "Lecturer",
-          "avatarUrl": "/executives/montaser.cse.png",
-          "avatarPosition": {
-            "x": 0,
-            "y": 0
-          },
-          "avatarScale": 0.8
-        }
-      ],
+        "avatarScale": 0.8
+      },
+      {
+        "position": "Deputy Moderator",
+        "name": "Montaser Abdul Quader",
+        "designation": "Lecturer",
+        "avatarUrl": "/executives/montaser.cse.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8
+      }
+    ],
     "studentExecutives": [
       {
         "position": "President",
@@ -780,7 +780,12 @@
         "position": "Programming and Development Secretary (Technical)",
         "name": "Mohabbat Marjuk Muttaki",
         "studentId": "231902001",
-        "avatarUrl": "/executives/231902001.png"
+        "avatarUrl": "/executives/231902001.png",
+        "avatarPosition": {
+          "x": 7,
+          "y": -4
+        },
+        "avatarScale": 0.8
       },
       {
         "position": "Information Secretary",

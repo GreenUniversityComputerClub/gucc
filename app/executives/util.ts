@@ -1,4 +1,4 @@
-import executivesData from "./executives.json";
+import executivesData from "../../data/executives.json";
 
 export interface Executive {
   position: string

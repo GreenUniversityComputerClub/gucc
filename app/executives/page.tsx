@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getAvailableYears,
   type Executive,
-} from "@/data/executives";
+} from "@/app/executives/util";
 import executivesData from "@/data/executives.json";
 import {
   BookOpen,
@@ -297,7 +297,7 @@ function ExecutiveCard({
         <CardHeader className="flex flex-row items-center gap-4 relative">
           <div 
             ref={imageRef}
-            className={`absolute -right-8 -top-4 w-40 h-40 opacity-90 group-hover:opacity-100 transition-opacity ${isResizeMode ? 'cursor-move' : ''}`}
+            className={`absolute -right-8 -top-4 w-40 h-40 opacity-100 group-hover:opacity-100 transition-opacity ${isResizeMode ? 'cursor-move' : ''}`}
             style={{
               transform: `translate(${position.x}px, ${position.y}px)`,
             }}

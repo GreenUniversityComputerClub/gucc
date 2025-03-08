@@ -3,6 +3,16 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CalendarDays, Users, Award, BookOpen } from "lucide-react"
 import { AnimatedStat } from "./component"
+import eventsData from "@/data/events.json"
+
+const upcomingEvents = eventsData.filter((event) => new Date(event.date) > new Date());
+// Events of this year
+const recentEvents = eventsData.filter((event) => {
+  const eventDate = new Date(event.date);
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  return eventDate >= sixMonthsAgo;
+});
 
 export default function Home() {
   return (
@@ -150,52 +160,32 @@ export default function Home() {
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-6 text-center">
             <div className="space-y-4">
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">Upcoming Events</h2>
+              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">Recent and Upcoming Events</h2>
               <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
                 Join us for our exciting upcoming events
               </p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-            <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-              <CardHeader>
-                <CardTitle className="text-xl">Green University Gaming Battle</CardTitle>
-                <CardDescription className="text-primary">1st Jun 2024</CardDescription>
+            {[...upcomingEvents, ...recentEvents].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((event) => (
+              <Card key={event.name} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                <CardHeader>
+                  <CardTitle className="text-xl">{event.name}</CardTitle>
+                  <CardDescription className="text-primary">{new Date(event.date).toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'})}</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">Compete in various gaming competitions and show your skills.</p>
               </CardContent>
-            </Card>
-            <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-              <CardHeader>
-                <CardTitle className="text-xl">Leadership Workshop</CardTitle>
-                <CardDescription className="text-primary">16th Jun 2024</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Develop your leadership skills in this collaborative workshop with CETL.
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-              <CardHeader>
-                <CardTitle className="text-xl">Seminar on Research and Publication</CardTitle>
-                <CardDescription className="text-primary">17th May 2024</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Learn about research methodologies and how to get your work published.
-                </p>
-              </CardContent>
-            </Card>
+              </Card>
+            ))}
           </div>
-          <div className="flex justify-center mt-12">
+        </div>
+      </section>
+      <div className="flex justify-center mb-12">
             <Button asChild variant="outline" className="border-primary/20 hover:bg-primary/10">
               <Link href="/events">View All Events</Link>
             </Button>
           </div>
-        </div>
-      </section>
     </div>
   )
 }
