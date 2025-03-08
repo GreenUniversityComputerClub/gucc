@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy": "bunx vercel build --prod && bunx vercel deploy --prod --prebuilt"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.3",
