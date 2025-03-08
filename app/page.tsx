@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CalendarDays, Users, Award, BookOpen } from "lucide-react"
 import { AnimatedStat } from "./component"
 import eventsData from "@/data/events.json"
+import { EventCard } from "./events/page"
 
 const upcomingEvents = eventsData.filter((event) => new Date(event.date) > new Date());
 // Events of this year
@@ -165,17 +166,7 @@ export default function Home() {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-            {[...upcomingEvents, ...recentEvents].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((event) => (
-              <Card key={event.name} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                <CardHeader>
-                  <CardTitle className="text-xl">{event.name}</CardTitle>
-                  <CardDescription className="text-primary">{new Date(event.date).toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'})}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Compete in various gaming competitions and show your skills.</p>
-              </CardContent>
-              </Card>
-            ))}
+            {[...upcomingEvents, ...recentEvents].slice(0, 6).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((event, index) => (<EventCard key={index} event={event} index={index} />))}
           </div>
         </div>
       </section>
