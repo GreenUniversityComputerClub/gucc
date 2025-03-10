@@ -33,14 +33,24 @@ export function groupExecutivesByCategory(executives: Executive[]) {
       exec.position.includes(title),
     ),
   )
-  const leadership = executives.filter((exec) =>
-    ["President", "Vice President", "General Secretary", "Joint General Secretary"].some((title) =>
+  const president = executives.filter((exec) =>
+    ["President"].some((title) =>
       exec.position.includes(title),
     ),
   )
 
+  const general = executives.filter((exec) =>
+    ["General Secretary"].some((title) =>
+      exec.position.includes(title),
+    ),
+  )
+
+  const information = executives.filter((exec) =>
+    ["Information Secretary"].some((title) => exec.position.includes(title)),
+  )
+
   const technical = executives.filter((exec) =>
-    ["Programming", "Technical", "Development", "Information"].some((title) => exec.position.includes(title)),
+    ["Programming", "Technical", "Development"].some((title) => exec.position.includes(title)),
   )
 
   const treasurer = executives.filter((exec) =>
@@ -53,6 +63,6 @@ export function groupExecutivesByCategory(executives: Executive[]) {
     ),
   )
 
-  return { moderator,treasurer,leadership, technical,  cultural }
+  return { moderator,president,general, treasurer,information, technical,  cultural }
 }
 

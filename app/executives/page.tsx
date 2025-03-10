@@ -23,9 +23,15 @@ import {
   Save,
   UserCog,
   Users,
+  User,
+  Trophy,
   ZoomIn,
   ZoomOut,
   HandCoins,
+  FileText ,
+  ClipboardList,
+  Share2,
+  Palette ,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -394,15 +400,41 @@ function getRoleIcon(position: string) {
     return <GraduationCap className="h-5 w-5 text-primary" />;
   if (positionLower.includes("president"))
     return <Crown className="h-5 w-5 text-primary" />;
+  if (positionLower.includes("general"))
+    return <UserCog className="h-5 w-5 text-primary" />;
   if (positionLower.includes("treasurer"))
     return <HandCoins  className="h-5 w-5 text-primary" />;
   if (positionLower.includes("programming"))
     return <Code2 className="h-5 w-5 text-primary" />;
+  if (positionLower.includes("information"))
+    return <FileText className="h-5 w-5 text-primary" />;
   if (
-    positionLower.includes("organizational") ||
-    positionLower.includes("coordinator")
+    positionLower.includes("organizing") ||
+    positionLower.includes("event")
   )
-    return <Users className="h-5 w-5 text-primary" />;
+    return <ClipboardList className="h-5 w-5 text-primary" />;
+    if (
+      positionLower.includes("cultural")
+    )
+      return <Palette className="h-5 w-5 text-primary" />;
+    if (
+      positionLower.includes("publication")
+    )
+      return <BookOpen className="h-5 w-5 text-primary" />;
+      if (
+        positionLower.includes("outreach")
+      )
+        return <Share2 className="h-5 w-5 text-primary" />;
+
+        if (
+          positionLower.includes("sports")
+        )
+          return <Trophy className="h-5 w-5 text-primary" />;
+
+        if (
+          positionLower.includes("member")
+        )
+          return <User className="h-5 w-5 text-primary" />;
   if (positionLower.includes("cultural") || positionLower.includes("media") || positionLower.includes("photo"))
     return <Camera className="h-5 w-5 text-primary" />;
   if (positionLower.includes("academic"))
