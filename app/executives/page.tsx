@@ -25,6 +25,7 @@ import {
   Users,
   ZoomIn,
   ZoomOut,
+  HandCoins,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -393,6 +394,8 @@ function getRoleIcon(position: string) {
     return <GraduationCap className="h-5 w-5 text-primary" />;
   if (positionLower.includes("president"))
     return <Crown className="h-5 w-5 text-primary" />;
+  if (positionLower.includes("treasurer"))
+    return <HandCoins  className="h-5 w-5 text-primary" />;
   if (positionLower.includes("programming"))
     return <Code2 className="h-5 w-5 text-primary" />;
   if (

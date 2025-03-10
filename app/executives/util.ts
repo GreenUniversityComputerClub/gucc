@@ -43,8 +43,8 @@ export function groupExecutivesByCategory(executives: Executive[]) {
     ["Programming", "Technical", "Development", "Information"].some((title) => exec.position.includes(title)),
   )
 
-  const organizational = executives.filter((exec) =>
-    ["Organizing", "Event", "Treasurer", "Outreach", "Publication"].some((title) => exec.position.includes(title)),
+  const treasurer = executives.filter((exec) =>
+    ["Treasurer", "Joint Treasurer"].some((title) => exec.position.includes(title)),
   )
 
   const cultural = executives.filter((exec) =>
@@ -53,6 +53,6 @@ export function groupExecutivesByCategory(executives: Executive[]) {
     ),
   )
 
-  return { leadership, technical, organizational, cultural }
+  return { moderator,treasurer,leadership, technical,  cultural }
 }
 
