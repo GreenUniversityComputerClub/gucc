@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Facebook, Linkedin, Mail, ChevronRight } from "lucide-react"
 import Image from "next/image"
+import { Contributors } from "./contributors"
 
 export function Footer() {
   return (
@@ -32,60 +33,14 @@ export function Footer() {
                   Main Website
                 </Link>
               </li>
-              <li>
-                <Link href="https://bus.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
-                  <ChevronRight className="h-4 w-4 mr-1" />
-                  Business Administration
-                </Link>
-              </li>
+              
               <li>
                 <Link href="https://cse.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
                   <ChevronRight className="h-4 w-4 mr-1" />
                   Computer Science and Engineering
                 </Link>
-              </li>
-              <li>
-                <Link href="https://swe.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
-                  <ChevronRight className="h-4 w-4 mr-1" />
-                  Software Engineering
-                </Link>
-              </li>
-              <li>
-                <Link href="https://eee.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
-                  <ChevronRight className="h-4 w-4 mr-1" />
-                  Electrical and Electronic Engineering
-                </Link>
-              </li>
-              <li>
-                <Link href="https://eng.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
-                  <ChevronRight className="h-4 w-4 mr-1" />
-                  English
-                </Link>
-              </li>
-              <li>
-                <Link href="https://jmc.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
-                  <ChevronRight className="h-4 w-4 mr-1" />
-                  Journalism and Media Communication
-                </Link>
-              </li>
-              <li>
-                <Link href="https://law.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
-                  <ChevronRight className="h-4 w-4 mr-1" />
-                  Law
-                </Link>
-              </li>
-              <li>
-                <Link href="https://soc.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
-                  <ChevronRight className="h-4 w-4 mr-1" />
-                  Sociology and Anthropology
-                </Link>
-              </li>
-              <li>
-                <Link href="https://tex.green.edu.bd" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
-                  <ChevronRight className="h-4 w-4 mr-1" />
-                  Textile Engineering
-                </Link>
-              </li>
+              </li>    
+              
             </ul>
           </div>
           <div>
@@ -127,6 +82,12 @@ export function Footer() {
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Green University Computer Club. All rights reserved.
           </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Built with ❤️ by the following GUCC Members
+          </p>
+          <div className="mt-4 flex justify-center">
+            <Contributors />
+          </div>
         </div>
       </div>
     </footer>
