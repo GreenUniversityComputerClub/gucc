@@ -389,6 +389,8 @@ function ExecutiveCard({
 
 function getRoleIcon(position: string) {
   const positionLower = position.toLowerCase();
+  if (positionLower.includes("moderator"))
+    return <GraduationCap className="h-5 w-5 text-primary" />;
   if (positionLower.includes("president"))
     return <Crown className="h-5 w-5 text-primary" />;
   if (positionLower.includes("programming"))

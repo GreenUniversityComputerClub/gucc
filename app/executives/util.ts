@@ -28,6 +28,11 @@ export function getAvailableYears(): string[] {
 
 // Helper function to group student executives by category
 export function groupExecutivesByCategory(executives: Executive[]) {
+  const moderator = executives.filter((exec) =>
+    ["Moderator", "Deputy Moderator"].some((title) =>
+      exec.position.includes(title),
+    ),
+  )
   const leadership = executives.filter((exec) =>
     ["President", "Vice President", "General Secretary", "Joint General Secretary"].some((title) =>
       exec.position.includes(title),
