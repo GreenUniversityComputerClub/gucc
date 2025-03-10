@@ -77,7 +77,7 @@ export default function Home() {
                   professional skills of the CSE students of the Green University of Bangladesh.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid sm:grid-cols-2 gap-6">
                 <Card className="hover:shadow-lg transition-shadow duration-300">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg flex items-center">
