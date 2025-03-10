@@ -835,7 +835,12 @@
           "x": -7,
           "y": -11
         },
-        "avatarScale": 0.9
+        "avatarScale": 0.9,
+        "linkedin": "YOUR_LINKEDIN_URL",
+        "github": "YOUR_GITHUB_URL",
+        "twitter": "YOUR_TWITTER_URL",
+        "facebook": "YOUR_FACEBOOK_URL",
+        "mail": "mailto::tanveer.cse69@gmail.com"
       },
       {
         "position": "Vice President (Activity)",
@@ -846,7 +851,12 @@
           "x": 0,
           "y": -10
         },
-        "avatarScale": 0.9
+        "avatarScale": 0.9,
+        "linkedin": "https://www.linkedin.com/in/shanta-islam-17b224218?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
+        "github": "YOUR_GITHUB_URL",
+        "twitter": "YOUR_TWITTER_URL",
+        "facebook": "YOUR_FACEBOOK_URL",
+        "mail": "mailto::shantaislamgucc@gmail.com"
       },
       {
         "position": "Vice President (Technical)",

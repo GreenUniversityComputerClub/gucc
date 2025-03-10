@@ -25,6 +25,11 @@ import {
   Users,
   ZoomIn,
   ZoomOut,
+  Linkedin,
+  Github,
+  Twitter,
+  Facebook,
+  Mail,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -87,8 +92,7 @@ export default function ExecutivesPage() {
     } catch (error) {
       console.error("Error saving changes:", error);
       alert(
-        `Error saving changes: ${
-          error instanceof Error ? error.message : "Unknown error"
+        `Error saving changes: ${error instanceof Error ? error.message : "Unknown error"
         }`
       );
     } finally {
@@ -230,6 +234,15 @@ function ExecutiveCard({
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const imageRef = useRef<HTMLDivElement>(null);
+  // const [isSocialMenuVisible, setIsSocialMenuVisible] = useState(false);
+
+  // const handleMouseEnter = () => {
+  //   setIsSocialMenuVisible(true);
+  // };
+
+  // const handleMouseLeave = () => {
+  //   setIsSocialMenuVisible(false);
+  // };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!isResizeMode) return;
@@ -281,8 +294,7 @@ function ExecutiveCard({
     } catch (error) {
       console.error("Error saving avatar settings:", error);
       alert(
-        `Error saving avatar settings: ${
-          error instanceof Error ? error.message : "Unknown error"
+        `Error saving avatar settings: ${error instanceof Error ? error.message : "Unknown error"
         }`
       );
     }
@@ -300,21 +312,21 @@ function ExecutiveCard({
     }
   }, [isDragging, startPos, isResizeMode]);
 
+  // Card Hover Effect for Social Media Icons
   return (
-    <div>
-      <Card className="relative overflow-hidden overflow-top-block group min-h-[7.5rem] h-auto">
-        <div className="absolute inset-0" />
+    <div className="relative group">
+      {/* Executive Card */}
+      <Card className="overflow-hidden min-h-[7.5rem] h-auto relative">
         <div className="relative">
           <CardHeader className="flex flex-row items-center gap-4 relative">
+            {/* Avatar */}
             <div
               ref={imageRef}
-              className={`absolute -right-8 -top-4 w-40 h-40 opacity-100 group-hover:opacity-100 transition-opacity ${
-                isResizeMode ? "cursor-move" : ""
-              }`}
+              className={`absolute -right-8 -top-4 w-40 h-40 opacity-100 transition-opacity ${isResizeMode ? "cursor-move" : ""
+                }`}
               style={{
                 transform: `translate(${position.x}px, ${position.y}px)`,
               }}
-              onMouseDown={handleMouseDown}
             >
               {executive.avatarUrl && (
                 <Image
@@ -346,10 +358,14 @@ function ExecutiveCard({
                 />
               )}
             </div>
+
+            {/* Name & Role */}
             <div className="relative z-10 max-w-[calc(100%-80px)] pr-4">
               <CardTitle className="text-lg flex items-center gap-2">
                 {getRoleIcon(executive.position)}
-                <span className="line-clamp-2 overflow-hidden text-ellipsis">{executive.name}</span>
+                <span className="line-clamp-2 overflow-hidden text-ellipsis">
+                  {executive.name}
+                </span>
               </CardTitle>
               <CardDescription className="line-clamp-1 overflow-hidden text-ellipsis">
                 {getRoleName(executive.position)}
@@ -358,6 +374,31 @@ function ExecutiveCard({
           </CardHeader>
         </div>
       </Card>
+      
+      {/* Social Media Links - Hidden by Default, Shown on Hover */}
+      <div className="absolute bottom-2 left-2 bg-white p-2 rounded-sm shadow-sm flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        {executive.linkedin && (
+          <a href={executive.linkedin} target="_blank" rel="noopener noreferrer">
+            <Linkedin className="h-4 w-4 text-gray-700" />
+          </a>
+        )}
+        {executive.github && (
+          <a href={executive.github} target="_blank" rel="noopener noreferrer">
+            <Github className="h-4 w-4 text-gray-700" />
+          </a>
+        )}
+        {executive.facebook && (
+          <a href={executive.facebook} target="_blank" rel="noopener noreferrer">
+            <Facebook className="h-4 w-4 text-gray-700" />
+          </a>
+        )}
+        {executive.mail && (
+          <a href={executive.mail} target="_blank" rel="noopener noreferrer">
+            <Mail className="h-4 w-4 text-gray-700" />
+          </a>
+        )}
+      </div>
+
       {isResizeMode && (
         <div className="p-4 bg-muted/20 rounded-b-lg">
           <div className="flex items-center gap-2 mb-2">

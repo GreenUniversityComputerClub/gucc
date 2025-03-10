@@ -7,6 +7,11 @@ export interface Executive {
   avatarUrl?: string
   avatarPosition?: { x: number, y: number }
   avatarScale?: number
+  linkedin?: string;
+  github?: string;
+  twitter?: string;
+  facebook?: string;
+  mail?: string;
 }
 
 export interface ExecutiveYear {
