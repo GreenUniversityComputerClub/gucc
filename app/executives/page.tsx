@@ -379,22 +379,22 @@ function ExecutiveCard({
       <div className="absolute bottom-2 left-2 bg-white p-2 rounded-sm shadow-sm flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         {executive.linkedin && (
           <a href={executive.linkedin} target="_blank" rel="noopener noreferrer">
-            <Linkedin className="h-4 w-4 text-gray-700" />
+            <Linkedin className="h-4 w-4 text-gray-700 hover:text-primary transition-colors" />
           </a>
         )}
         {executive.github && (
           <a href={executive.github} target="_blank" rel="noopener noreferrer">
-            <Github className="h-4 w-4 text-gray-700" />
+            <Github className="h-4 w-4 text-gray-700 hover:text-primary transition-colors" />
           </a>
         )}
         {executive.facebook && (
           <a href={executive.facebook} target="_blank" rel="noopener noreferrer">
-            <Facebook className="h-4 w-4 text-gray-700" />
+            <Facebook className="h-4 w-4 text-gray-700 hover:text-primary transition-colors" />
           </a>
         )}
         {executive.mail && (
           <a href={executive.mail} target="_blank" rel="noopener noreferrer">
-            <Mail className="h-4 w-4 text-gray-700" />
+            <Mail className="h-4 w-4 text-gray-700 hover:text-primary transition-colors" />
           </a>
         )}
       </div>
