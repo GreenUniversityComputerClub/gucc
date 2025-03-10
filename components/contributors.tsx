@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { Github } from "lucide-react"
 import Image from "next/image"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 export interface Contributor {
   login: string
@@ -11,7 +11,6 @@ export interface Contributor {
   contributions: number
 }
 
-// Client component for contributor card with hover effect
 export function ContributorCard({ contributor }: { contributor: Contributor }) {
   const [isHovering, setIsHovering] = useState(false);
   
@@ -91,23 +90,23 @@ export function ContributorsWrapper({ contributors }: { contributors: Contributo
   );
 }
 
-// Server component to fetch contributors
-export async function Contributors() {
-  let contributors: Contributor[] = []
-  
-  try {
-    const response = await fetch(
-      "https://api.github.com/repos/green-university-computer-club/gucc/contributors",
-      { next: { revalidate: 3600 } } // Revalidate every hour
-    )
-    
-    if (response.ok) {
-      const data = await response.json()
-      contributors = data.slice(0, 8) // Limit to top 8 contributors
+export  function Contributors() {
+  const [contributors, setContributors] = useState<Contributor[]>([])
+  useEffect(() => {
+    if (contributors.length === 0) {
+      getContributors().then(setContributors)
     }
-  } catch (error) {
-    console.error("Error fetching contributors:", error)
-  }
+  }, [])
+
+
+
 
   return <ContributorsWrapper contributors={contributors} />
 } 
+
+async function getContributors() {
+  const response = await fetch("https://api.github.com/repos/green-university-computer-club/gucc/contributors")
+  const data = await response.json() as Contributor[]
+
+  return data.slice(0, 8)
+}
