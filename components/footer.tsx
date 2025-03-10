@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Facebook, Linkedin, Mail, ChevronRight } from "lucide-react"
 import Image from "next/image"
+import { Contributors } from "./contributors"
 
 export function Footer() {
   return (
@@ -81,6 +82,12 @@ export function Footer() {
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Green University Computer Club. All rights reserved.
           </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Built with ❤️ by the following GUCC Members
+          </p>
+          <div className="mt-4 flex justify-center">
+            <Contributors />
+          </div>
         </div>
       </div>
     </footer>

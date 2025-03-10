@@ -3,7 +3,7 @@ import { useParams, useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import eventsData from "@/data/events.json";
-import Date from "@/components/svgIcon/Date";
+import DateIcon from "@/components/svgIcon/Date";
 import Time from "@/components/svgIcon/Time";
 import Location from "@/components/svgIcon/Location";
 import JoinEvent from "@/components/JoinEvent";
@@ -17,7 +17,14 @@ export default function EventDetailsPage() {
   const event = events.find(
     (e) =>
       e.name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]+/g, "") === slug
-  );
+  ) as typeof events[number] & {
+    category: string;
+    organizer: string;
+    description: string;
+    location: string;
+    participants: number;
+    ticket_info: string;
+  };
 
   if (!event) {
     return notFound();
@@ -33,6 +40,7 @@ export default function EventDetailsPage() {
       const [title, ...nameParts] = guest.split(": ");
       return { title: title.trim(), name: nameParts.join(": ").trim() };
     });
+
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center py-10">
@@ -100,15 +108,15 @@ export default function EventDetailsPage() {
           <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
               <div className="flex items-center">
-                <Date className="mr-3 text-primary" />
+                <DateIcon />
                 <span className="text-lg text-gray-700">{event.date}</span>
               </div>
               <div className="flex items-center">
-                <Time className="mr-3 text-primary" />
+                <Time />
                 <span className="text-lg text-gray-700">{event.time}</span>
               </div>
               <div className="flex items-center">
-                <Location className="mr-3 text-primary" />
+                <Location />
                 <span className="text-lg text-gray-700">
                   {event.location || "Green University, Multi-Purpose Hall"}
                 </span>
@@ -132,7 +140,7 @@ export default function EventDetailsPage() {
         {/* Join Event Section */}
         <div className="mt-12 flex justify-center">
           {event.ticket_info ||
-            (new Date(event.date) < new Date() && <JoinEvent event={event} />)}
+            (new Date(event.date) > new Date() && <JoinEvent event={event} />)}
         </div>
       </div>
     </div>

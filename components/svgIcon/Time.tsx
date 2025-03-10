@@ -1,9 +1,9 @@
 import React from "react";
-
-export default function Time() {
+import { cn } from "@/lib/utils";
+export default function Time({ className }: { className?: string }) {
   return (
     <svg
-      className="w-6 h-6 text-gray-400 mr-3"
+      className={cn("w-6 h-6 text-gray-400 mr-3", className)}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
