@@ -1,26 +1,12 @@
 import executivesData from "../../data/executives.json";
 
 export interface Executive {
-<<<<<<< HEAD
-  position: string
-  name: string
-  studentId?: string
-  avatarUrl?: string
-  avatarPosition?: { x: number, y: number }
-  avatarScale?: number
-  linkedin?: string;
-  github?: string;
-  twitter?: string;
-  facebook?: string;
-  mail?: string;
-=======
   position: string;
   name: string;
   studentId?: string;
   avatarUrl?: string;
   avatarPosition?: { x: number; y: number };
   avatarScale?: number;
->>>>>>> 9d11aa4e99011b8231665cdd5a84389c9b7a60fa
 }
 
 export interface ExecutiveYear {

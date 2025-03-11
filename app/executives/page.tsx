@@ -27,19 +27,11 @@ import {
   Trophy,
   ZoomIn,
   ZoomOut,
-<<<<<<< HEAD
-  Linkedin,
-  Github,
-  Twitter,
-  Facebook,
-  Mail,
-=======
   HandCoins,
   FileText,
   ClipboardList,
   Share2,
   Palette,
->>>>>>> 9d11aa4e99011b8231665cdd5a84389c9b7a60fa
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -102,14 +94,9 @@ export default function ExecutivesPage() {
     } catch (error) {
       console.error("Error saving changes:", error);
       alert(
-<<<<<<< HEAD
-        `Error saving changes: ${error instanceof Error ? error.message : "Unknown error"
-        }`
-=======
         `Error saving changes: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
->>>>>>> 9d11aa4e99011b8231665cdd5a84389c9b7a60fa
       );
     } finally {
       setIsSaving(false);
@@ -393,7 +380,7 @@ function ExecutiveCard({
       </Card>
       
       {/* Social Media Links - Hidden by Default, Shown on Hover */}
-      <div className="absolute bottom-2 left-2 bg-white p-2 rounded-sm shadow-sm flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      {/* <div className="absolute bottom-2 left-2 bg-white p-2 rounded-sm shadow-sm flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         {executive.linkedin && (
           <a href={executive.linkedin} target="_blank" rel="noopener noreferrer">
             <Linkedin className="h-4 w-4 text-gray-700 hover:text-primary transition-colors" />
@@ -414,7 +401,7 @@ function ExecutiveCard({
             <Mail className="h-4 w-4 text-gray-700 hover:text-primary transition-colors" />
           </a>
         )}
-      </div>
+      </div> */}
 
       {isResizeMode && (
         <div className="p-4 bg-muted/20 rounded-b-lg">
