@@ -310,14 +310,9 @@ function ExecutiveCard({
     } catch (error) {
       console.error("Error saving avatar settings:", error);
       alert(
-<<<<<<< HEAD
-        `Error saving avatar settings: ${error instanceof Error ? error.message : "Unknown error"
-        }`
-=======
         `Error saving avatar settings: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
->>>>>>> 9d11aa4e99011b8231665cdd5a84389c9b7a60fa
       );
     }
   };
