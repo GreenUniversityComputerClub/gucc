@@ -1,21 +1,21 @@
-"use client"
-import Link from "next/link"
-import { Github } from "lucide-react"
-import Image from "next/image"
-import { useEffect, useState } from "react"
+"use client";
+import Link from "next/link";
+import { Github } from "lucide-react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export interface Contributor {
-  login: string
-  avatar_url: string
-  html_url: string
-  contributions: number
+  login: string;
+  avatar_url: string;
+  html_url: string;
+  contributions: number;
 }
 
 export function ContributorCard({ contributor }: { contributor: Contributor }) {
   const [isHovering, setIsHovering] = useState(false);
-  
+
   return (
-    <div 
+    <div
       className="relative group"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
@@ -33,7 +33,7 @@ export function ContributorCard({ contributor }: { contributor: Contributor }) {
           className="rounded-full transition-transform group-hover:scale-110"
         />
       </Link>
-      
+
       {isHovering && (
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-popover shadow-md rounded-md p-2 text-left z-50 border border-border">
           <div className="flex items-center gap-2 mb-1">
@@ -44,13 +44,15 @@ export function ContributorCard({ contributor }: { contributor: Contributor }) {
               height={20}
               className="rounded-full"
             />
-            <span className="font-medium text-sm truncate">{contributor.login}</span>
+            <span className="font-medium text-sm truncate">
+              {contributor.login}
+            </span>
           </div>
           <div className="text-xs text-muted-foreground">
             <p className="flex items-center gap-1">
               <span>Contributions: {contributor.contributions}</span>
             </p>
-            <Link 
+            <Link
               href={contributor.html_url}
               target="_blank"
               rel="noopener noreferrer"
@@ -67,13 +69,20 @@ export function ContributorCard({ contributor }: { contributor: Contributor }) {
   );
 }
 
-export function ContributorsWrapper({ contributors }: { contributors: Contributor[] }) {
+export function ContributorsWrapper({
+  contributors,
+}: {
+  contributors: Contributor[];
+}) {
   return (
     <div className="text-center">
       {contributors.length > 0 ? (
         <div className="flex flex-wrap justify-center gap-2">
           {contributors.map((contributor) => (
-            <ContributorCard key={contributor.login} contributor={contributor} />
+            <ContributorCard
+              key={contributor.login}
+              contributor={contributor}
+            />
           ))}
           <Link
             href="https://github.com/green-university-computer-club/gucc/graphs/contributors"
@@ -90,23 +99,22 @@ export function ContributorsWrapper({ contributors }: { contributors: Contributo
   );
 }
 
-export  function Contributors() {
-  const [contributors, setContributors] = useState<Contributor[]>([])
+export function Contributors() {
+  const [contributors, setContributors] = useState<Contributor[]>([]);
   useEffect(() => {
     if (contributors.length === 0) {
-      getContributors().then(setContributors)
+      getContributors().then(setContributors);
     }
-  }, [])
+  }, []);
 
-
-
-
-  return <ContributorsWrapper contributors={contributors} />
-} 
+  return <ContributorsWrapper contributors={contributors} />;
+}
 
 async function getContributors() {
-  const response = await fetch("https://api.github.com/repos/green-university-computer-club/gucc/contributors")
-  const data = await response.json() as Contributor[]
+  const response = await fetch(
+    "https://api.github.com/repos/green-university-computer-club/gucc/contributors",
+  );
+  const data = (await response.json()) as Contributor[];
 
-  return data.slice(0, 8)
+  return data.slice(0, 8);
 }

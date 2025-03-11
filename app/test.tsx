@@ -19,7 +19,7 @@ export default function EventDetailsPage({
       e.name
         .toLowerCase()
         .replace(/\s+/g, "-")
-        .replace(/[^\w-]+/g, "") === params.slug
+        .replace(/[^\w-]+/g, "") === params.slug,
   );
 
   if (!event) {
