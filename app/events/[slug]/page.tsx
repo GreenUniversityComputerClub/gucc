@@ -7,6 +7,7 @@ import DateIcon from "@/components/svgIcon/Date";
 import Time from "@/components/svgIcon/Time";
 import Location from "@/components/svgIcon/Location";
 import JoinEvent from "@/components/JoinEvent";
+import { User } from "lucide-react";
 
 const events = eventsData;
 
@@ -61,7 +62,9 @@ export default function EventDetailsPage() {
             <span className="inline-block px-4 py-1 rounded-full bg-primary text-white text-sm font-medium mb-4">
               {event.category}
             </span>
-            <h1 className="text-5xl font-bold text-white mb-2">{event.name}</h1>
+            <h1 className="text-3xl md:text-5xl font-bold text-white mb-2 max-w-[90%]">
+              {event.name}
+            </h1>
             <p className="text-gray-200 text-xl font-medium">
               {event.organizer}
             </p>
@@ -73,7 +76,7 @@ export default function EventDetailsPage() {
           {/* Main Details */}
           <div className="md:col-span-2 space-y-6">
             <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h2 className="text-3xl font-semibold text-gray-900 mb-4">
+              <h2 className="text-3xl font-semibold text-gray-900">
                 About the Event
               </h2>
               {event.description && (
@@ -85,82 +88,87 @@ export default function EventDetailsPage() {
 
             {/* Guests Section */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-4 border-b pb-2">
-                Honorable Guests
-              </h3>
-              <div className="space-y-6">
-                {chiefGuest && (
-                  <div className="p-4 bg-gray-100 rounded-lg">
-                    <h4 className="text-lg font-semibold text-primary mb-1">
-                      Chief Guest
-                    </h4>
-                    <p className="text-gray-700 font-medium">{chiefGuest}</p>
-                  </div>
-                )}
-                {otherGuests.length > 0 && (
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                      Other Guests
-                    </h4>
-                    <ul className="space-y-2">
-                      {otherGuests.map((guest, index) => (
-                        <li key={index} className="flex flex-col">
+              <div className="flex items-center mb-4 border-b pb-2">
+                <User className="h-6 w-6 mr-2 text-primary" />
+                <h3 className="text-2xl font-semibold text-gray-900">
+                  Honorable Guests
+                </h3>
+            </div>
+            <div className="space-y-6">
+              {chiefGuest && (
+                <div className="p-4 bg-gray-100 rounded-lg">
+                  <h4 className="text-lg font-semibold text-primary mb-1">
+                    Chief Guest
+                  </h4>
+                  <p className="text-gray-700 font-medium">{chiefGuest}</p>
+                </div>
+              )}
+              {otherGuests.length > 0 && (
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                    Other Guests
+                  </h4>
+                  <ul className="space-y-2">
+                    {otherGuests.map((guest, index) => (
+                      <li key={index} className="flex flex-col">
+                        <div className="flex flex-col">
                           <span className="text-gray-900 font-semibold">
                             {guest.title}
                           </span>
                           <span className="text-gray-700">{guest.name}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
+        </div>
 
-          {/* Event Info Sidebar */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+        {/* Event Info Sidebar */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+            <div className="flex items-center">
+              <DateIcon />
+              <span className="text-lg text-gray-700">{event.date}</span>
+            </div>
+            <div className="flex items-center">
+              <Time />
+              <span className="text-lg text-gray-700">{event.time}</span>
+            </div>
+            <div className="flex items-center">
+              <Location />
+              <span className="text-lg text-gray-700">
+                {event.location || "Green University, Multi-Purpose Hall"}
+              </span>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                Participants
+              </h4>
               <div className="flex items-center">
-                <DateIcon />
-                <span className="text-lg text-gray-700">{event.date}</span>
-              </div>
-              <div className="flex items-center">
-                <Time />
-                <span className="text-lg text-gray-700">{event.time}</span>
-              </div>
-              <div className="flex items-center">
-                <Location />
-                <span className="text-lg text-gray-700">
-                  {event.location || "Green University, Multi-Purpose Hall"}
+                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full"
+                    style={{ width: `${(event.participants / 500) * 100}%` }}
+                  />
+                </div>
+                <span className="ml-4 text-sm text-gray-700">
+                  {event.participants} / 500
                 </span>
               </div>
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                  Participants
-                </h4>
-                <div className="flex items-center">
-                  <div className="flex-1 bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-primary h-2 rounded-full"
-                      style={{ width: `${(event.participants / 500) * 100}%` }}
-                    />
-                  </div>
-                  <span className="ml-4 text-sm text-gray-700">
-                    {event.participants} / 500
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Join Event Section */}
-        <div className="mt-12 flex justify-center">
-          {event.ticket_info ||
-            (new Date(event.date) > new Date() && <JoinEvent event={event} />)}
-        </div>
+      {/* Join Event Section */}
+      <div className="mt-12 flex justify-center">
+        {event.ticket_info ||
+          (new Date(event.date) > new Date() && <JoinEvent event={event} />)}
       </div>
     </div>
+    </div >
   );
 }
