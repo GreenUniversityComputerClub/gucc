@@ -23,20 +23,30 @@ import {
   Save,
   UserCog,
   Users,
+  User,
+  Trophy,
   ZoomIn,
   ZoomOut,
+<<<<<<< HEAD
   Linkedin,
   Github,
   Twitter,
   Facebook,
   Mail,
+=======
+  HandCoins,
+  FileText,
+  ClipboardList,
+  Share2,
+  Palette,
+>>>>>>> 9d11aa4e99011b8231665cdd5a84389c9b7a60fa
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 export default function ExecutivesPage() {
   const availableYears = getAvailableYears().sort(
-    (a, b) => Number.parseInt(b) - Number.parseInt(a)
+    (a, b) => Number.parseInt(b) - Number.parseInt(a),
   );
   const [activeYear, setActiveYear] = useState(availableYears[0]);
   const [isResizeMode, setIsResizeMode] = useState(RESIZE_AVATAR);
@@ -44,7 +54,7 @@ export default function ExecutivesPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const currentYearData = executivesData.find(
-    (exec) => exec.year === activeYear
+    (exec) => exec.year === activeYear,
   );
 
   // Simple admin check - in a real app, this would use authentication
@@ -92,8 +102,14 @@ export default function ExecutivesPage() {
     } catch (error) {
       console.error("Error saving changes:", error);
       alert(
+<<<<<<< HEAD
         `Error saving changes: ${error instanceof Error ? error.message : "Unknown error"
         }`
+=======
+        `Error saving changes: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+>>>>>>> 9d11aa4e99011b8231665cdd5a84389c9b7a60fa
       );
     } finally {
       setIsSaving(false);
@@ -208,7 +224,7 @@ export default function ExecutivesPage() {
                         executive={executive}
                         isResizeMode={isResizeMode}
                       />
-                    )
+                    ),
                   )}
                 </div>
               </section>
@@ -228,7 +244,7 @@ function ExecutiveCard({
   isResizeMode: boolean;
 }) {
   const [position, setPosition] = useState(
-    executive.avatarPosition || { x: 0, y: 0 }
+    executive.avatarPosition || { x: 0, y: 0 },
   );
   const [scale, setScale] = useState(executive.avatarScale || 1);
   const [isDragging, setIsDragging] = useState(false);
@@ -294,8 +310,14 @@ function ExecutiveCard({
     } catch (error) {
       console.error("Error saving avatar settings:", error);
       alert(
+<<<<<<< HEAD
         `Error saving avatar settings: ${error instanceof Error ? error.message : "Unknown error"
         }`
+=======
+        `Error saving avatar settings: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+>>>>>>> 9d11aa4e99011b8231665cdd5a84389c9b7a60fa
       );
     }
   };
@@ -434,14 +456,33 @@ function getRoleIcon(position: string) {
     return <GraduationCap className="h-5 w-5 text-primary" />;
   if (positionLower.includes("president"))
     return <Crown className="h-5 w-5 text-primary" />;
+  if (positionLower.includes("general"))
+    return <UserCog className="h-5 w-5 text-primary" />;
+  if (positionLower.includes("treasurer"))
+    return <HandCoins className="h-5 w-5 text-primary" />;
   if (positionLower.includes("programming"))
     return <Code2 className="h-5 w-5 text-primary" />;
+  if (positionLower.includes("information"))
+    return <FileText className="h-5 w-5 text-primary" />;
+  if (positionLower.includes("organizing") || positionLower.includes("event"))
+    return <ClipboardList className="h-5 w-5 text-primary" />;
+  if (positionLower.includes("cultural"))
+    return <Palette className="h-5 w-5 text-primary" />;
+  if (positionLower.includes("publication"))
+    return <BookOpen className="h-5 w-5 text-primary" />;
+  if (positionLower.includes("outreach"))
+    return <Share2 className="h-5 w-5 text-primary" />;
+
+  if (positionLower.includes("sports"))
+    return <Trophy className="h-5 w-5 text-primary" />;
+
+  if (positionLower.includes("member"))
+    return <User className="h-5 w-5 text-primary" />;
   if (
-    positionLower.includes("organizational") ||
-    positionLower.includes("coordinator")
+    positionLower.includes("cultural") ||
+    positionLower.includes("media") ||
+    positionLower.includes("photo")
   )
-    return <Users className="h-5 w-5 text-primary" />;
-  if (positionLower.includes("cultural") || positionLower.includes("media") || positionLower.includes("photo"))
     return <Camera className="h-5 w-5 text-primary" />;
   if (positionLower.includes("academic"))
     return <BookOpen className="h-5 w-5 text-primary" />;

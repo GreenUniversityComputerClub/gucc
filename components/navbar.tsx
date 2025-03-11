@@ -1,19 +1,19 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Menu, X } from "lucide-react"
-import Image from "next/image"
-import { usePathname } from 'next/navigation';
+import Link from "next/link";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Menu, X } from "lucide-react";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 export function Navbar() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
 
   const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen)
-  }
+    setIsMenuOpen(!isMenuOpen);
+  };
 
   const isActive = (path: string) => {
     return pathname === path;
@@ -37,19 +37,19 @@ export function Navbar() {
         <nav className="hidden md:flex items-center gap-6">
           <Link
             href="/"
-            className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/') ? 'text-primary' : ''}`}
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/") ? "text-primary" : ""}`}
           >
             Home
           </Link>
           <Link
             href="/events"
-            className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/events') ? 'text-primary' : ''}`}
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/events") ? "text-primary" : ""}`}
           >
             Events
           </Link>
           <Link
             href="/executives"
-            className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/executives') ? 'text-primary' : ''}`}
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/executives") ? "text-primary" : ""}`}
           >
             Executives
           </Link>
@@ -61,8 +61,17 @@ export function Navbar() {
         </nav>
 
         {/* Mobile Menu Button */}
-        <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleMenu}>
-          {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={toggleMenu}
+        >
+          {isMenuOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <Menu className="h-6 w-6" />
+          )}
         </Button>
       </div>
 
@@ -72,21 +81,21 @@ export function Navbar() {
           <nav className="flex flex-col space-y-4">
             <Link
               href="/"
-              className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/') ? 'text-primary' : ''}`}
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/") ? "text-primary" : ""}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Home
             </Link>
             <Link
               href="/events"
-              className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/events') ? 'text-primary' : ''}`}
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/events") ? "text-primary" : ""}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Events
             </Link>
             <Link
               href="/executives"
-              className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/executives') ? 'text-primary' : ''}`}
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/executives") ? "text-primary" : ""}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Executives
@@ -105,6 +114,5 @@ export function Navbar() {
         </div>
       )}
     </header>
-  )
+  );
 }
-

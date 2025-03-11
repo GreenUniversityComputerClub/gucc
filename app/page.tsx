@@ -1,12 +1,20 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarDays, Users, Award, BookOpen } from "lucide-react"
-import { AnimatedStat } from "./component"
-import eventsData from "@/data/events.json"
-import { EventCard } from "./events/page"
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { CalendarDays, Users, Award, BookOpen } from "lucide-react";
+import { AnimatedStat } from "./component";
+import eventsData from "@/data/events.json";
+import { EventCard } from "./events/page";
 
-const upcomingEvents = eventsData.filter((event) => new Date(event.date) > new Date());
+const upcomingEvents = eventsData.filter(
+  (event) => new Date(event.date) > new Date(),
+);
 // Events of this year
 const recentEvents = eventsData.filter((event) => {
   const eventDate = new Date(event.date);
@@ -52,20 +60,29 @@ export default function Home() {
         <div className="container px-4 md:px-6">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
             <div className="space-y-6">
-              <div className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium">About Us</div>
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">Who We Are</h2>
+              <div className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium">
+                About Us
+              </div>
+              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">
+                Who We Are
+              </h2>
               <div className="space-y-4 text-muted-foreground md:text-lg">
                 <p>
-                  Welcome to the Green University Computer Club (GUCC), a dynamic and student-driven non-profit and
-                  non-political organization operating in collaboration with the Department of Computer Science and
-                  Engineering (CSE) at the esteemed Green University of Bangladesh. As the flagship club of the
-                  university, GUCC boasts a thriving community of over 7000+ members.
+                  Welcome to the Green University Computer Club (GUCC), a
+                  dynamic and student-driven non-profit and non-political
+                  organization operating in collaboration with the Department of
+                  Computer Science and Engineering (CSE) at the esteemed Green
+                  University of Bangladesh. As the flagship club of the
+                  university, GUCC boasts a thriving community of over 7000+
+                  members.
                 </p>
                 <p>
-                  Our primary objective is to empower and guide students within the Department of CSE on their journey to
-                  carve out successful careers in the ever-evolving realms of modern computer science and engineering.
-                  Under the vigilant supervision of the department, GUCC serves as a catalyst for excellence, fostering
-                  development and leadership among its members.
+                  Our primary objective is to empower and guide students within
+                  the Department of CSE on their journey to carve out successful
+                  careers in the ever-evolving realms of modern computer science
+                  and engineering. Under the vigilant supervision of the
+                  department, GUCC serves as a catalyst for excellence,
+                  fostering development and leadership among its members.
                 </p>
               </div>
             </div>
@@ -73,11 +90,12 @@ export default function Home() {
               <div className="space-y-4">
                 <h3 className="text-2xl font-bold">Our Vision</h3>
                 <p className="text-muted-foreground md:text-lg">
-                  The vision of the Green University Computer Club is to increase the leadership and develop the
-                  professional skills of the CSE students of the Green University of Bangladesh.
+                  The vision of the Green University Computer Club is to
+                  increase the leadership and develop the professional skills of
+                  the CSE students of the Green University of Bangladesh.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid sm:grid-cols-2 gap-6">
                 <Card className="hover:shadow-lg transition-shadow duration-300">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg flex items-center">
@@ -86,7 +104,9 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">Building a vibrant community of tech enthusiasts</p>
+                    <p className="text-sm text-muted-foreground">
+                      Building a vibrant community of tech enthusiasts
+                    </p>
                   </CardContent>
                 </Card>
                 <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -97,7 +117,9 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">Striving for excellence in all our endeavors</p>
+                    <p className="text-sm text-muted-foreground">
+                      Striving for excellence in all our endeavors
+                    </p>
                   </CardContent>
                 </Card>
                 <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -108,7 +130,9 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">Promoting continuous learning and growth</p>
+                    <p className="text-sm text-muted-foreground">
+                      Promoting continuous learning and growth
+                    </p>
                   </CardContent>
                 </Card>
                 <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -119,7 +143,9 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">Organizing impactful events and workshops</p>
+                    <p className="text-sm text-muted-foreground">
+                      Organizing impactful events and workshops
+                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -132,27 +158,51 @@ export default function Home() {
       <section className="w-full py-16 md:py-24 lg:py-32 bg-gradient-to-b from-background to-primary/5">
         <div className="container px-4 md:px-6">
           <div className="text-center space-y-6">
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">GUCC in Numbers</h2>
+            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">
+              GUCC in Numbers
+            </h2>
             <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
               Our impact in the university and beyond
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
             <div className="text-center p-6 rounded-lg bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-colors duration-300">
-              <AnimatedStat end={7000} suffix="+" className="text-4xl md:text-5xl font-bold text-primary" />
+              <AnimatedStat
+                end={7000}
+                suffix="+"
+                className="text-4xl md:text-5xl font-bold text-primary"
+              />
               <div className="text-sm text-muted-foreground mt-3">Members</div>
             </div>
             <div className="text-center p-6 rounded-lg bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-colors duration-300">
-              <AnimatedStat end={50} suffix="+" className="text-4xl md:text-5xl font-bold text-primary" />
-              <div className="text-sm text-muted-foreground mt-3">Events Per Year</div>
+              <AnimatedStat
+                end={50}
+                suffix="+"
+                className="text-4xl md:text-5xl font-bold text-primary"
+              />
+              <div className="text-sm text-muted-foreground mt-3">
+                Events Per Year
+              </div>
             </div>
             <div className="text-center p-6 rounded-lg bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-colors duration-300">
-              <AnimatedStat end={20} suffix="+" className="text-4xl md:text-5xl font-bold text-primary" />
-              <div className="text-sm text-muted-foreground mt-3">Workshops</div>
+              <AnimatedStat
+                end={20}
+                suffix="+"
+                className="text-4xl md:text-5xl font-bold text-primary"
+              />
+              <div className="text-sm text-muted-foreground mt-3">
+                Workshops
+              </div>
             </div>
             <div className="text-center p-6 rounded-lg bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-colors duration-300">
-              <AnimatedStat end={10} suffix="+" className="text-4xl md:text-5xl font-bold text-primary" />
-              <div className="text-sm text-muted-foreground mt-3">Years of Excellence</div>
+              <AnimatedStat
+                end={10}
+                suffix="+"
+                className="text-4xl md:text-5xl font-bold text-primary"
+              />
+              <div className="text-sm text-muted-foreground mt-3">
+                Years of Excellence
+              </div>
             </div>
           </div>
         </div>
@@ -163,21 +213,33 @@ export default function Home() {
         <div className="container px-6">
           <div className="flex flex-col items-center justify-center space-y-6 text-center">
             <div className="space-y-4">
-              <h2 className="text-3xl mt-12 font-bold tracking-tighter md:text-4xl lg:text-5xl">Recent and Upcoming Events</h2>
-          
+              <h2 className="text-3xl mt-12 font-bold tracking-tighter md:text-4xl lg:text-5xl">
+                Recent and Upcoming Events
+              </h2>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-            {[...upcomingEvents, ...recentEvents].slice(0, 6).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((event, index) => (<EventCard key={index} event={event} index={index} />))}
+            {[...upcomingEvents, ...recentEvents]
+              .slice(0, 6)
+              .sort(
+                (a, b) =>
+                  new Date(b.date).getTime() - new Date(a.date).getTime(),
+              )
+              .map((event, index) => (
+                <EventCard key={index} event={event} index={index} />
+              ))}
           </div>
         </div>
       </section>
       <div className="flex justify-center m-12">
-            <Button asChild variant="outline" className="border-primary/20 hover:bg-primary/10">
-              <Link href="/events">View All Events</Link>
-            </Button>
-          </div>
+        <Button
+          asChild
+          variant="outline"
+          className="border-primary/20 hover:bg-primary/10"
+        >
+          <Link href="/events">View All Events</Link>
+        </Button>
+      </div>
     </div>
-  )
+  );
 }
-
