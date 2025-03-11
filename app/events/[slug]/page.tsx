@@ -7,7 +7,7 @@ import DateIcon from "@/components/svgIcon/Date";
 import Time from "@/components/svgIcon/Time";
 import Location from "@/components/svgIcon/Location";
 import JoinEvent from "@/components/JoinEvent";
-import { User } from "lucide-react";
+import { User, ArrowLeft } from "lucide-react";
 
 const events = eventsData;
 
@@ -48,6 +48,15 @@ export default function EventDetailsPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center py-10">
       <div className="max-w-5xl w-full px-6">
+        {/* Back Button */}
+        <button
+          onClick={() => router.back()}
+          className="mb-6 flex items-center gap-2 px-4 py-2"
+        >
+          <ArrowLeft className="h-5 w-5 text-primary " />
+          <span className="text-sm font-medium text-gray-700 hover:text-primary transition-colors duration-200">Back to event page</span>
+        </button>
+
         {/* Hero Section */}
         <div className="relative h-[450px] rounded-3xl overflow-hidden shadow-md mb-10">
           <Image
@@ -93,82 +102,82 @@ export default function EventDetailsPage() {
                 <h3 className="text-2xl font-semibold text-gray-900">
                   Honorable Guests
                 </h3>
-            </div>
-            <div className="space-y-6">
-              {chiefGuest && (
-                <div className="p-4 bg-gray-100 rounded-lg">
-                  <h4 className="text-lg font-semibold text-primary mb-1">
-                    Chief Guest
-                  </h4>
-                  <p className="text-gray-700 font-medium">{chiefGuest}</p>
-                </div>
-              )}
-              {otherGuests.length > 0 && (
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                    Other Guests
-                  </h4>
-                  <ul className="space-y-2">
-                    {otherGuests.map((guest, index) => (
-                      <li key={index} className="flex flex-col">
-                        <div className="flex flex-col">
-                          <span className="text-gray-900 font-semibold">
-                            {guest.title}
-                          </span>
-                          <span className="text-gray-700">{guest.name}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              </div>
+              <div className="space-y-6">
+                {chiefGuest && (
+                  <div className="p-4 bg-gray-100 rounded-lg">
+                    <h4 className="text-lg font-semibold text-primary mb-1">
+                      Chief Guest
+                    </h4>
+                    <p className="text-gray-700 font-medium">{chiefGuest}</p>
+                  </div>
+                )}
+                {otherGuests.length > 0 && (
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                      Other Guests
+                    </h4>
+                    <ul className="space-y-2">
+                      {otherGuests.map((guest, index) => (
+                        <li key={index} className="flex flex-col">
+                          <div className="flex flex-col">
+                            <span className="text-gray-900 font-semibold">
+                              {guest.title}
+                            </span>
+                            <span className="text-gray-700">{guest.name}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Event Info Sidebar */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
-            <div className="flex items-center">
-              <DateIcon />
-              <span className="text-lg text-gray-700">{event.date}</span>
-            </div>
-            <div className="flex items-center">
-              <Time />
-              <span className="text-lg text-gray-700">{event.time}</span>
-            </div>
-            <div className="flex items-center">
-              <Location />
-              <span className="text-lg text-gray-700">
-                {event.location || "Green University, Multi-Purpose Hall"}
-              </span>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-                Participants
-              </h4>
+          {/* Event Info Sidebar */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
               <div className="flex items-center">
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-primary h-2 rounded-full"
-                    style={{ width: `${(event.participants / 500) * 100}%` }}
-                  />
-                </div>
-                <span className="ml-4 text-sm text-gray-700">
-                  {event.participants} / 500
+                <DateIcon />
+                <span className="text-lg text-gray-700">{event.date}</span>
+              </div>
+              <div className="flex items-center">
+                <Time />
+                <span className="text-lg text-gray-700">{event.time}</span>
+              </div>
+              <div className="flex items-center">
+                <Location />
+                <span className="text-lg text-gray-700">
+                  {event.location || "Green University, Multi-Purpose Hall"}
                 </span>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  Participants
+                </h4>
+                <div className="flex items-center">
+                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-primary h-2 rounded-full"
+                      style={{ width: `${(event.participants / 500) * 100}%` }}
+                    />
+                  </div>
+                  <span className="ml-4 text-sm text-gray-700">
+                    {event.participants} / 500
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Join Event Section */}
-      <div className="mt-12 flex justify-center">
-        {event.ticket_info ||
-          (new Date(event.date) > new Date() && <JoinEvent event={event} />)}
+        {/* Join Event Section */}
+        <div className="mt-12 flex justify-center">
+          {event.ticket_info ||
+            (new Date(event.date) > new Date() && <JoinEvent event={event} />)}
+        </div>
       </div>
-    </div>
     </div >
   );
 }
