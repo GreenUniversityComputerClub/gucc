@@ -18,7 +18,7 @@ export default function EventsPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {events
           .sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
           )
           .map((event, index) => (
             <EventCard key={index} event={event} index={index} />

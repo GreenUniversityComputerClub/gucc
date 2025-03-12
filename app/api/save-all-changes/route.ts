@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     if (!year) {
       return NextResponse.json(
         { error: "Missing required year field" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     console.error("Error saving all changes:", error);
     return NextResponse.json(
       { error: "Failed to save all changes" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

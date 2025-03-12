@@ -16,8 +16,11 @@ export default function EventDetailsPage() {
 
   const event = events.find(
     (e) =>
-      e.name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]+/g, "") === slug
-  ) as typeof events[number] & {
+      e.name
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^\w-]+/g, "") === slug,
+  ) as (typeof events)[number] & {
     category: string;
     organizer: string;
     description: string;
@@ -41,7 +44,6 @@ export default function EventDetailsPage() {
       return { title: title.trim(), name: nameParts.join(": ").trim() };
     });
 
-
   return (
     <div className="min-h-screen bg-background flex flex-col items-center py-10">
       <div className="max-w-5xl w-full px-6">
@@ -60,7 +62,9 @@ export default function EventDetailsPage() {
               {event.category}
             </span>
             <h1 className="text-5xl font-bold text-white mb-2">{event.name}</h1>
-            <p className="text-gray-200 text-xl font-medium">{event.organizer}</p>
+            <p className="text-gray-200 text-xl font-medium">
+              {event.organizer}
+            </p>
           </div>
         </div>
 
@@ -69,9 +73,13 @@ export default function EventDetailsPage() {
           {/* Main Details */}
           <div className="md:col-span-2 space-y-6">
             <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h2 className="text-3xl font-semibold text-gray-900 mb-4">About the Event</h2>
+              <h2 className="text-3xl font-semibold text-gray-900 mb-4">
+                About the Event
+              </h2>
               {event.description && (
-                <p className="text-muted-foreground leading-relaxed">{event.description}</p>
+                <p className="text-muted-foreground leading-relaxed">
+                  {event.description}
+                </p>
               )}
             </div>
 
@@ -83,17 +91,23 @@ export default function EventDetailsPage() {
               <div className="space-y-6">
                 {chiefGuest && (
                   <div className="p-4 bg-gray-100 rounded-lg">
-                    <h4 className="text-lg font-semibold text-primary mb-1">Chief Guest</h4>
+                    <h4 className="text-lg font-semibold text-primary mb-1">
+                      Chief Guest
+                    </h4>
                     <p className="text-gray-700 font-medium">{chiefGuest}</p>
                   </div>
                 )}
                 {otherGuests.length > 0 && (
                   <div className="p-4 bg-gray-50 rounded-lg">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-2">Other Guests</h4>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                      Other Guests
+                    </h4>
                     <ul className="space-y-2">
                       {otherGuests.map((guest, index) => (
                         <li key={index} className="flex flex-col">
-                          <span className="text-gray-900 font-semibold">{guest.title}</span>
+                          <span className="text-gray-900 font-semibold">
+                            {guest.title}
+                          </span>
                           <span className="text-gray-700">{guest.name}</span>
                         </li>
                       ))}
@@ -122,7 +136,9 @@ export default function EventDetailsPage() {
                 </span>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Participants</h4>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  Participants
+                </h4>
                 <div className="flex items-center">
                   <div className="flex-1 bg-gray-200 rounded-full h-2">
                     <div
@@ -130,7 +146,9 @@ export default function EventDetailsPage() {
                       style={{ width: `${(event.participants / 500) * 100}%` }}
                     />
                   </div>
-                  <span className="ml-4 text-sm text-gray-700">{event.participants} / 500</span>
+                  <span className="ml-4 text-sm text-gray-700">
+                    {event.participants} / 500
+                  </span>
                 </div>
               </div>
             </div>
