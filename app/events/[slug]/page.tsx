@@ -7,7 +7,7 @@ import DateIcon from "@/components/svgIcon/Date";
 import Time from "@/components/svgIcon/Time";
 import Location from "@/components/svgIcon/Location";
 import JoinEvent from "@/components/JoinEvent";
-import { User, ArrowLeft } from "lucide-react";
+import { User, ArrowLeft, Building2 } from "lucide-react";
 
 const events = eventsData;
 
@@ -23,7 +23,7 @@ export default function EventDetailsPage() {
         .replace(/[^\w-]+/g, "") === slug,
   ) as (typeof events)[number] & {
     category: string;
-    organizer: string;
+    organizer?: string;
     description: string;
     location: string;
     participants: number;
@@ -58,25 +58,30 @@ export default function EventDetailsPage() {
         </button>
 
         {/* Hero Section */}
-        <div className="relative h-[450px] rounded-3xl overflow-hidden shadow-md mb-10">
-          <Image
-            src={`/events/${event.sl}.jpg`}
-            alt={event.name}
-            fill
-            className="w-full h-full object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-          <div className="absolute bottom-0 left-0 p-8 w-full">
-            <span className="inline-block px-4 py-1 rounded-full bg-primary text-white text-sm font-medium mb-4">
+        <div className="mb-10">
+          <div className="mb-4">
+            <span className="inline-block px-4 py-1 rounded-full bg-primary text-white text-sm font-medium mb-2">
               {event.category}
             </span>
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-2 max-w-[90%]">
+            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-2 max-w-[90%]">
               {event.name}
             </h1>
-            <p className="text-gray-200 text-xl font-medium">
-              {event.organizer}
-            </p>
+            <div className="flex items-center">
+              <Building2 className="h-5 w-5 mr-2 text-gray-600" />
+              <p className="text-gray-700 text-xl font-medium">
+                {event.organizer}
+              </p>
+            </div>
+          </div>
+          <div className="relative h-[450px] rounded-3xl overflow-hidden shadow-md">
+            <Image
+              src={`/events/${event.sl}.jpg`}
+              alt={event.name}
+              fill
+              className="w-full h-full object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
           </div>
         </div>
 
