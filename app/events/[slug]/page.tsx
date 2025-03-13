@@ -51,7 +51,7 @@ export default function EventDetailsPage() {
         {/* Back Button */}
         <button
           onClick={() => router.back()}
-          className="mb-6 flex items-center gap-2 px-4 py-2"
+          className="mb-6 flex items-center gap-2 py-2"
         >
           <ArrowLeft className="h-5 w-5 text-primary " />
           <span className="text-sm font-medium text-gray-700 hover:text-primary transition-colors duration-200">Back to event page</span>
