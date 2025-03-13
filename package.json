@@ -9,7 +9,7 @@
     "lint": "next lint",
     "fmt": "prettier --write .",
     "deploy": "bunx vercel build --prod && bunx vercel deploy --prod --prebuilt",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.3",
