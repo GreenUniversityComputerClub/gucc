@@ -836,10 +836,10 @@
           "y": -11
         },
         "avatarScale": 0.9,
-        "linkedin": "YOUR_LINKEDIN_URL",
-        "github": "YOUR_GITHUB_URL",
-        "twitter": "YOUR_TWITTER_URL",
-        "facebook": "YOUR_FACEBOOK_URL",
+        "linkedin": null,
+        "github": "https://github.com/idontbyte69",
+        "twitter": null,
+        "facebook": null,
         "mail": "mailto::tanveer.cse69@gmail.com"
       },
       {
@@ -853,9 +853,9 @@
         },
         "avatarScale": 0.9,
         "linkedin": "https://www.linkedin.com/in/shanta-islam-17b224218?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
-        "github": "YOUR_GITHUB_URL",
-        "twitter": "YOUR_TWITTER_URL",
-        "facebook": "YOUR_FACEBOOK_URL",
+        "github": null,
+        "twitter": null,
+        "facebook": null,
         "mail": "mailto::shantaislamgucc@gmail.com"
       },
       {
