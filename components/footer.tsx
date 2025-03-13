@@ -95,11 +95,11 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-8 pt-8 border-t text-center">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} Green University Computer Club. All
             rights reserved.
           </p>
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             Built with ❤️ by the following GUCC Members
           </p>
           <div className="mt-4 flex justify-center">
