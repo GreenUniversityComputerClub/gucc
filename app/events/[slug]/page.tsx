@@ -165,11 +165,11 @@ export default function EventDetailsPage() {
                   <div className="flex-1 bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-primary h-2 rounded-full"
-                      style={{ width: `${(event.participants / 500) * 100}%` }}
+                      style={{ width: `${(event.participants/event.participants) * 100}%` }}
                     />
                   </div>
                   <span className="ml-4 text-sm text-gray-700">
-                    {event.participants} / 500
+                    {event.participants} / {event.participants+50}
                   </span>
                 </div>
               </div>
