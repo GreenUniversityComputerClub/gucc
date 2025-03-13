@@ -6,7 +6,8 @@
     "time": "7:00 PM - 9:00 PM Online",
     "participants": 120,
     "guest": "Chief Guest: Prof. Dr. Md. Abdur Razzaque, SMIEEE, Chairmen, Dept. of CSE, University of Dhaka\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB",
-    "year": 2022
+    "year": 2022,
+    "organizer": ""
   },
   {
     "sl": 2,
@@ -15,7 +16,8 @@
     "time": "6:00 PM - 8:00 PM Online",
     "participants": 100,
     "guest": "Chief Guest: Prof. Dr. Md. Abdur Razzaque, SMIEEE, Chairmen, Dept. of CSE, University of Dhaka\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB",
-    "year": 2022
+    "year": 2022,
+    "organizer": ""
   },
   {
     "sl": 3,
@@ -24,7 +26,8 @@
     "time": "5:00 PM - 7:00 PM Online",
     "participants": 123,
     "guest": "Chief Guest: Prof. Dr. Md. Abdur Razzaque, SMIEEE, Chairmen, Dept. of CSE, University of Dhaka\n\nSpecial Guest & Session Chair: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB",
-    "year": 2022
+    "year": 2022,
+    "organizer": ""
   },
   {
     "sl": 4,
@@ -33,7 +36,8 @@
     "time": "Day long",
     "participants": 325,
     "guest": "All Faculty Members and Students",
-    "year": 2022
+    "year": 2022,
+    "organizer": ""
   },
   {
     "sl": 5,
@@ -42,7 +46,8 @@
     "time": "3:00 PM - 7:00 PM",
     "participants": 230,
     "guest": "Chief Guest: Prof. Dr. Md. Golam Samdani Fakir, Distinguished Professor, GBS, Former VC, GUB\n\nSpecial Guest: Prof. Dr. Md. Abdur Razzaque, SMIEEE, Chairmen, Dept. of CSE, University of Dhaka\n\nSession Chair: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB",
-    "year": 2022
+    "year": 2022,
+    "organizer": ""
   },
   {
     "sl": 6,
@@ -51,7 +56,8 @@
     "time": "12:00 PM - 4:00 PM",
     "participants": 150,
     "guest": "Chief Guest: Prof. Dr. Md. Abdur Razzaque, SMIEEE, Chairmen, Dept. of CSE, University of Dhaka\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB",
-    "year": 2022
+    "year": 2022,
+    "organizer": ""
   },
   {
     "sl": 7,
@@ -60,7 +66,8 @@
     "time": "10:00 AM - 1:00 PM",
     "participants": 70,
     "guest": "Faculty Members and Students",
-    "year": 2022
+    "year": 2022,
+    "organizer": ""
   },
   {
     "sl": 8,
@@ -69,7 +76,8 @@
     "time": "8:30 PM - 10:30 PM Online",
     "participants": 80,
     "guest": "Faculty Members and Students",
-    "year": 2022
+    "year": 2022,
+    "organizer": ""
   },
   {
     "sl": 9,
@@ -78,7 +86,8 @@
     "time": "12:00 PM - 4:00 PM",
     "participants": 150,
     "guest": "Chief Guest: Prof. Dr. Md. Golam Samdani Fakir, Distinguished Professor, GBS, Former VC, GUB\n\nSession Chair: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB",
-    "year": 2022
+    "year": 2022,
+    "organizer": ""
   },
   {
     "sl": 10,
@@ -87,7 +96,8 @@
     "time": "2:30 PM - 4.30 PM",
     "participants": 100,
     "guest": "Chief Guest: Prof. Dr. Md. Golam Samdani Fakir, Distinguished Professor, GBS, Former VC, GUB\n\nSpecial Guest: Syed Ahsanul Kabir, Associate Professor Dept of CSE, GUB\n\nSession Chair: Dr. Faiz Al Faisal, Associate Professor Dept of CSE, GUB",
-    "year": 2022
+    "year": 2022,
+    "organizer": ""
   },
   {
     "sl": 11,
@@ -96,7 +106,8 @@
     "time": "9:30 PM - 11:30 PM Online",
     "participants": 55,
     "guest": "Faculty Members and Students",
-    "year": 2023
+    "year": 2023,
+    "organizer": ""
   },
   {
     "sl": 12,
@@ -105,7 +116,8 @@
     "time": "2:00 PM - 4:00 PM",
     "participants": 200,
     "guest": "Chief Guest: Prof. Dr. Md. Golam Samdani Fakir, Distinguished Professor, GBS, Former VC, GUB\n\nSession Chair: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB",
-    "year": 2023
+    "year": 2023,
+    "organizer": ""
   },
   {
     "sl": 13,
@@ -114,7 +126,8 @@
     "time": "Day Long",
     "participants": 130,
     "guest": "Faculty Members and Students",
-    "year": 2023
+    "year": 2023,
+    "organizer": ""
   },
   {
     "sl": 14,
@@ -123,7 +136,8 @@
     "time": "4:00 PM",
     "participants": 160,
     "guest": "Chief Guest: Prof. Dr. Md. Golam Samdani Fakir, Distinguished Professor, GBS, Former VC, GUB\n\nSession Chair: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB",
-    "year": 2023
+    "year": 2023,
+    "organizer": ""
   },
   {
     "sl": 15,
@@ -132,7 +146,8 @@
     "time": "1:30 PM - 4:00 PM",
     "participants": 180,
     "guest": "Chief Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSpecial Guest: Dr. Faiz Al Faisal, Associate Professor Dept of CSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2023
+    "year": 2023,
+    "organizer": ""
   },
   {
     "sl": 16,
@@ -141,7 +156,8 @@
     "time": "8:00 PM Every Friday",
     "participants": 68,
     "guest": "",
-    "year": 2023
+    "year": 2023,
+    "organizer": ""
   },
   {
     "sl": 17,
@@ -150,7 +166,8 @@
     "time": "08:00 PM - 10:00 PM Online",
     "participants": null,
     "guest": "Club Moderators & Department Head",
-    "year": 2023
+    "year": 2023,
+    "organizer": ""
   },
   {
     "sl": 18,
@@ -159,7 +176,8 @@
     "time": "2:00 PM - 4:00 PM",
     "participants": 400,
     "guest": "Chief Guest: Prof. Dr. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2023
+    "year": 2023,
+    "organizer": ""
   },
   {
     "sl": 19,
@@ -168,7 +186,8 @@
     "time": "2:00 PM - 4:00 PM",
     "participants": 90,
     "guest": "Chief Guest: Prof. Dr. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2023
+    "year": 2023,
+    "organizer": ""
   },
   {
     "sl": 20,
@@ -177,7 +196,9 @@
     "time": "01:30PM-03:30PM",
     "participants": 300,
     "guest": "Chief Guest: Prof. Dr. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 21,
@@ -186,7 +207,9 @@
     "time": "02:00PM-03:15PM",
     "participants": 250,
     "guest": "Chief Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSpecial Guest: Prof. Dr. MD. Ahsan Habib, Professor, Dept of CSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 22,
@@ -196,7 +219,9 @@
     "time": "Day long",
     "participants": 300,
     "guest": "Chief Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSpecial Guest: Prof. Dr. MD. Ahsan Habib, Professor, Dept of CSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB\n\nOther Faculty Members",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 23,
@@ -205,7 +230,9 @@
     "time": "Day long",
     "participants": 500,
     "guest": "All Faculty Members and Students",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 24,
@@ -214,7 +241,9 @@
     "time": "09:00AM-10:30AM",
     "participants": 150,
     "guest": "Chief Guest: Prof. Dr. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 25,
@@ -223,7 +252,9 @@
     "time": "03:30PM-06:45PM",
     "participants": 350,
     "guest": "Special Guest: ASM Shihavuddin, Former Chairperson, Dept of EEE, GUB\n\nSpecial Guest: Dr. Abul Hossain, Chairperson, Dept of SOC, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 26,
@@ -232,7 +263,9 @@
     "time": "5:00 PM - 8:00 PM",
     "participants": 26,
     "guest": "Chief Guest: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB\n\nSpecial Guest: Syed Ahsanul Kabir, Associate Professor Dept of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 27,
@@ -241,7 +274,9 @@
     "time": "8:00 PM - 10:00 PM",
     "participants": 50,
     "guest": "Guest Speakers: Shakib Imtiaz, Vice President(Technical) GUCC\n\nGuest Speakers: Al Amin, Joint General Secretary(Technical) GUCC\n\nSpecial Guest: Md. Rahul Reza, Former General Secretary, GUCC",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 28,
@@ -250,7 +285,9 @@
     "time": "--",
     "participants": null,
     "guest": "Club Moderator & Department Head",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 29,
@@ -259,7 +296,9 @@
     "time": "9:30 AM - 1:00 PM",
     "participants": 150,
     "guest": "Chief Guest: Prof. Dr. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nKeynote Speaker: Kazi Safaet Mahmud Auvi, General Manager, bKash\n\nResource Person: Md. Masudur Rahman, Managing Director, QAHarbor\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 30,
@@ -268,7 +307,9 @@
     "time": "10:00 AM - 12:00 PM",
     "participants": 200,
     "guest": "Keynote Speaker: Anisul Islam, Full Stack Trainer, Integrify, Finland\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 31,
@@ -277,7 +318,9 @@
     "time": "",
     "participants": null,
     "guest": "",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 32,
@@ -286,7 +329,9 @@
     "time": "10:00 AM - 11:00 AM",
     "participants": 450,
     "guest": "Chief Guest: Prof. Dr. Muhammad Shorif Uddin, Vice Chancellor, GUB\n\nGuest of honour: Prof. Dr. Md. Golam Samdani Fakir, Distinguished Professor, GBS, Former VC, GUB\n\nSpecial Guest: Nizam Khan, Head of Tech Management and Innovation, Samsung R&D Institute Bangladesh\n\nProf. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nKenote Speaker: Muhammad Raisuddin Ahmed, PhD, Associate Professor, Military Technology College in Muscat, Oman\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 33,
@@ -295,7 +340,9 @@
     "time": "11:00 AM-12:30 PM",
     "participants": 100,
     "guest": "Senior Faculty members of Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 34,
@@ -304,7 +351,9 @@
     "time": "11:00 AM-12:30 PM",
     "participants": 200,
     "guest": "Senior Faculty members of Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 35,
@@ -313,7 +362,9 @@
     "time": "2:00 PM - 4:00 PM",
     "participants": 100,
     "guest": "Cheif Guest: Colonel Md. Masun Rana, PSC, PhD, Chairman, Dept. of CSE, Bangladesh University of Professionals\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nKeynote Speaker: Dr. Shamsuzzoha, Deputy Director, BTRC\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 36,
@@ -322,7 +373,9 @@
     "time": "2:00 PM - 4:00 PM",
     "participants": 90,
     "guest": "Senior Faculty members of Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Carnival"
   },
   {
     "sl": 37,
@@ -331,7 +384,9 @@
     "time": "10:00 AM - 12:30 PM",
     "participants": 500,
     "guest": "All Faculty Members and Students",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Carnival"
   },
   {
     "sl": 38,
@@ -340,7 +395,9 @@
     "time": "2:00 PM - 4:00 PM",
     "participants": 80,
     "guest": "Special Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSenior Faculty members of Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Carnival"
   },
   {
     "sl": 39,
@@ -349,7 +406,9 @@
     "time": "2:00 PM - 3:30 PM",
     "participants": 150,
     "guest": "Keynote Speakers: Kazi Safaet Mahmud Auvi, General manager, Product & Technology bKash Ltd\n\nMd. Faisal Hossain, Chief Technology Officer, Bangladesh Finance Ltd\n\nZeseya Sharmin, PhD, Researcherm DUPR Scholar, School of IT, Deakin University, Australia\n\nCheif Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Carnival"
   },
   {
     "sl": 40,
@@ -358,7 +417,9 @@
     "time": "10:00 AM - 11:30 AM",
     "participants": 90,
     "guest": "Senior Faculty members of Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Carnival"
   },
   {
     "sl": 41,
@@ -367,7 +428,9 @@
     "time": "10:00 AM - 11:30 AM",
     "participants": 70,
     "guest": "Panelists: Prof. Dr. Muhammad Shorif Uddin, Vice Chancellor, GUB\n\nProf. Dr. Md. Golam Samdani Fakir, Distinguished Professor, GBS, Former VC, GUB\n\nProf. Dr. Md. Abdur Razzaque, SMIEEE, Chairmen, Dept. of CSE, University of Dhaka\n\nAjmat Iqbal, Director, Reve Group\n\nSajib Sikder, Sr. Software Engineer, Shikho, Ex-ShopUp, Ex-Shohoz, Ex-Grameen DH\n\nMd. Rijwan Hossain, Founder, Mount Stack\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Carnival"
   },
   {
     "sl": 42,
@@ -376,7 +439,9 @@
     "time": "11:30 AM - 12:45 PM",
     "participants": 80,
     "guest": "Keynote Speaker: Dr. Saifuddin Md. Tareeq, Professor, Dept. of CSE, Director, Robotics Lab, University of Dhaka\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Carnival"
   },
   {
     "sl": 43,
@@ -385,7 +450,9 @@
     "time": "2:00 PM - 8:30 PM",
     "participants": 550,
     "guest": "Senior Faculty members of Dept. of CSE, GUB & Students",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 44,
@@ -394,7 +461,9 @@
     "time": "01:30 PM - 4:00 PM",
     "participants": 130,
     "guest": "Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nDr. Md. Mustafijur Rahman, Chairperson, Dept. of SWE, GUB\n\nDr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 45,
@@ -403,7 +472,9 @@
     "time": "12:00 PM - 01:00 PM",
     "participants": 60,
     "guest": "Faculty Member & Students",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 46,
@@ -412,7 +483,9 @@
     "time": "2:00 PM - 4:00 PM",
     "participants": 70,
     "guest": "Special Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 47,
@@ -421,7 +494,9 @@
     "time": "8:00 PM - 10:00 PM",
     "participants": 150,
     "guest": "Keynote Speaker: Md. Nure Alam Siddiq, Co-Founder & CEO, bongoDev, Software Engineering Manager, Optimizely\n\nAll Faculty Members and Students",
-    "year": 2024
+    "year": 2024,
+    "organizer": "",
+    "category": "Seminar"
   },
   {
     "sl": 48,
@@ -430,7 +505,9 @@
     "time": "2:00 PM - 4:00 PM",
     "participants": 250,
     "guest": "Chief Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSpecial Guest: Prof. Dr. MD. Ahsan Habib, Professor, Dept of CSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2025
+    "year": 2025,
+    "organizer": "GUCC",
+    "category": "Orientation"
   },
   {
     "sl": 49,
@@ -439,7 +516,9 @@
     "time": "2:00 PM - 4:00 PM",
     "participants": 130,
     "guest": "Keynote Speaker: Md. Nure Alam Siddiq, Co-Founder & CEO, bongoDev, Software Engineering Manager, Optimizely\n\nKamrul Hasan, Mentor, bongoDev, Software Engineer, Optimizely\n\nChief Guest: Prof. Dr. MD. Ahsan Habib, Immediate Past Chair, IEEE CS BDC\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2025
+    "year": 2025,
+    "organizer": "GUCC",
+    "category": "Seminar"
   },
   {
     "sl": 50,
@@ -449,7 +528,9 @@
     "time": "Day Long",
     "participants": 500,
     "guest": "Keynote Speaker: Ananya Zaman, Editor in Chief, PC Builder Bangladesh\n\nCheif Guest: Prof. Dr. Muhammad Shorif Uddin, Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nKhaza Md Anas Khan, Country Manager, GIGA-BYTE Technology CO. LTD\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-    "year": 2025
+    "year": 2025,
+    "organizer": "GUB Gaming Society",
+    "category": "Competition"
   },
   {
     "sl": 51,
@@ -459,6 +540,8 @@
     "time": "Day Long",
     "participants": 80,
     "guest": "Chief Guest: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB\n\nSpecial Guest: Dr. Md. Mostafijur Rahman, Chairperson, Dept. of SWE, GUB,\n\nSession Chair: Mr. Md. Monirul Islam, Assistant Professor, Dept. of CSE, GUB",
-    "year": 2025
+    "year": 2025,
+    "organizer": "GUCC",
+    "category": "Competition"
   }
 ]
