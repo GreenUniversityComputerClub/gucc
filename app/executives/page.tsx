@@ -385,7 +385,7 @@ function ExecutiveCard({
       </Card>
       
       {/* Social Media Links - Hidden by Default, Shown on Hover */}
-      <div className="absolute bottom-2 left-2 bg-white p-2 rounded-sm shadow-sm flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      <div className="absolute bottom-2 left-2 ml-3 bg-white p-2 rounded-sm flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         {executive.linkedin && (
           <a href={executive.linkedin} target="_blank" rel="noopener noreferrer">
             <Linkedin className="h-4 w-4 text-gray-700 hover:text-primary transition-colors" />
