@@ -1,26 +1,56 @@
 [
     {
-        "sl": 50,
-        "name": "Inter Department Gaming Competition",
-        "date": "2025-02-24",
-        "endDate": "2025-02-26",
-        "time": "Day Long",
-        "participants": 500,
-        "guest": "Keynote Speaker: Ananya Zaman, Editor in Chief, PC Builder Bangladesh\n\nCheif Guest: Prof. Dr. Muhammad Shorif Uddin, Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nKhaza Md Anas Khan, Country Manager, GIGA-BYTE Technology CO. LTD\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
-        "year": 2025,
-        "organizer": "GUB Gaming Society",
-        "category": "Competition"
-    },
-    {
         "sl": 51,
-        "name": "GUB Logic Battle 2025 (Beginner IDPC & IDMO)",
-        "date": "2025-03-09",
-        "endDate": "2025-03-10",
-        "time": "Day Long",
-        "participants": 80,
-        "guest": "Chief Guest: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB\n\nSpecial Guest: Dr. Md. Mostafijur Rahman, Chairperson, Dept. of SWE, GUB,\n\nSession Chair: Mr. Md. Monirul Islam, Assistant Professor, Dept. of CSE, GUB",
-        "year": 2025,
-        "organizer": "GUB Programming Arena",
-        "category": "Competition"
+        "timeline": [
+            {
+                "time": "09:00 AM",
+                "title": "Registration & Welcome",
+                "description": "Participants check-in and receive event kits.",
+                "status": "completed"
+            },
+            {
+                "time": "10:00 AM",
+                "title": "Opening Ceremony",
+                "description": "Inauguration by Chief Guest and Special Guests.",
+                "status": "completed"
+            },
+            {
+                "time": "10:30 AM",
+                "title": "Round 1: Logic Battle",
+                "description": "Individual problem-solving round.",
+                "status": "completed"
+                
+            },
+            {
+                "time": "12:00 PM",
+                "title": "Break & Refreshments",
+                "description": "Snacks and networking opportunity.",
+                "status": "completed"
+            },
+            {
+                "time": "01:00 PM",
+                "title": "Round 2: Team IDPC",
+                "description": "Team programming challenge begins.",
+                "status": "ongoing"
+            },
+            {
+                "time": "03:00 PM",
+                "title": "IDMO Math Round",
+                "description": "Individual Math Olympiad starts.",
+                "status": "upcoming"
+            },
+            {
+                "time": "04:30 PM",
+                "title": "Break",
+                "description": "Short break before final activities.",
+                "status": "upcoming"
+            },
+            {
+                "time": "05:00 PM",
+                "title": "Prize Giving & Closing Ceremony",
+                "description": "Winners announced and certificates distributed.",
+                "status": "upcoming"
+            }
+        ]
     }
 ]

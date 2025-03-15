@@ -43,7 +43,7 @@ export function Navbar() {
           </Link>
           <Link
             href="/events"
-            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/events") ? "text-primary" : ""}`}
+            className={`text-sm font-medium transition-colors hover:text-primary ${pathname?.startsWith("/events") ? "text-primary" : ""}`}
           >
             Events
           </Link>
@@ -88,7 +88,7 @@ export function Navbar() {
             </Link>
             <Link
               href="/events"
-              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/events") ? "text-primary" : ""}`}
+              className={`text-sm font-medium transition-colors hover:text-primary ${pathname?.startsWith("/events") ? "text-primary" : ""}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Events

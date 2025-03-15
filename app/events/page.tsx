@@ -7,7 +7,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import eventsData from "@/data/events.json";
-import upcomingEventsData from "@/data/upcoming-events.json";
 import { CalendarIcon, UserIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,13 +15,15 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { UpcomingEventCard } from "@/components/ui/UpcomingEventCard";
 
-const events = eventsData;
-const upcomingEvents = upcomingEventsData;
+const allEvents = eventsData;
 
 export default function EventsPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftButton, setShowLeftButton] = useState(false);
-  const [showRightButton, setShowRightButton] = useState(true);
+  const [showRightButton, setShowRightButton] = useState(false);
+
+  const upcomingEvents = allEvents.filter((event) => event.isUpcoming);
+  const pastEvents = allEvents.filter((event) => !event.isUpcoming);
   const hasUpcomingEvents = upcomingEvents.length > 0;
 
   useEffect(() => {
@@ -90,7 +91,14 @@ export default function EventsPage() {
                   key={index}
                   className="inline-block w-80 shrink-0 mr-6 last:mr-0"
                 >
-                  <UpcomingEventCard event={event} index={index} />
+                  <UpcomingEventCard
+                    event={{
+                      ...event,
+                      endDate: event.endDate || "",
+                      category: event.category || "",
+                    }}
+                    index={index}
+                  />
                 </div>
               ))}
             </div>
@@ -112,11 +120,12 @@ export default function EventsPage() {
 
       {/* All Events Section */}
       <section>
-        <h2 className="text-2xl font-semibold mb-4">All Events</h2>
+        <h2 className="text-2xl font-semibold mb-4">Recent Events</h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {events
+          {pastEvents
             .sort(
-              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+              (a, b) =>
+                new Date(b.date).getTime() - new Date(a.date).getTime(),
             )
             .map((event, index) => (
               <EventCard key={index} event={event} index={index} />
@@ -126,6 +135,7 @@ export default function EventsPage() {
     </div>
   );
 }
+
 export function EventCard({
   event,
   index,

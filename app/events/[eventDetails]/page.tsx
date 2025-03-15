@@ -2,48 +2,35 @@
 import { useParams, useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import eventsData from "@/data/events.json";
 import DateIcon from "@/components/svgIcon/Date";
 import Time from "@/components/svgIcon/Time";
 import Location from "@/components/svgIcon/Location";
 import JoinEvent from "@/components/JoinEvent";
+import upcomingEventsData from "@/data/upcoming-events.json";
+import UpcomingEventsTimeline from "@/components/ui/UpcomingEventsTimeline";
 import { User, ArrowLeft, Building2 } from "lucide-react";
+import { getAllEvents, parseGuests } from "@/app/events/[eventDetails]/utils";
 
-const events = eventsData;
 
 export default function EventDetailsPage() {
-  const { slug } = useParams();
+  const { eventDetails } = useParams();
   const router = useRouter();
+  const allEvents = getAllEvents();
 
-  const event = events.find(
+  const event = allEvents.find(
     (e) =>
-      e.name
-        .toLowerCase()
-        .replace(/\s+/g, "-")
-        .replace(/[^\w-]+/g, "") === slug,
-  ) as (typeof events)[number] & {
-    category: string;
-    organizer?: string;
-    description: string;
-    location: string;
-    participants: number;
-    ticket_info: string;
-  };
+      e.name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]+/g, "") ===
+      eventDetails,
+  );
 
   if (!event) {
     return notFound();
   }
 
-  const guestText = event.guest || "";
-  const chiefGuestMatch = guestText.match(/Chief Guest: ([^\n]+)/);
-  const chiefGuest = chiefGuestMatch ? chiefGuestMatch[1] : null;
-  const otherGuests = guestText
-    .split("\n")
-    .filter((guest) => guest && !guest.includes("Chief Guest:"))
-    .map((guest) => {
-      const [title, ...nameParts] = guest.split(": ");
-      return { title: title.trim(), name: nameParts.join(": ").trim() };
-    });
+  // Find the timeline data for the current event based on sl number
+  const upcomingEventData = upcomingEventsData.find((e) => e.sl === event.sl);
+
+  const { chiefGuest, otherGuests } = parseGuests(event.guest);
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center py-10">
@@ -87,58 +74,65 @@ export default function EventDetailsPage() {
 
         {/* Event Details Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Main Details */}
-          <div className="md:col-span-2 space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h2 className="text-3xl font-semibold text-gray-900">
-                About the Event
-              </h2>
-              {event.description && (
-                <p className="text-muted-foreground leading-relaxed">
-                  {event.description}
-                </p>
-              )}
-            </div>
+          {event.isUpcoming && upcomingEventData?.timeline ? (
+            <div className="md:col-span-2 space-y-6">
+              {/* UI elements specific to upcoming events */}
+              <UpcomingEventsTimeline timeline={upcomingEventData.timeline} />
 
-            {/* Guests Section */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <div className="flex items-center mb-4 border-b pb-2">
-                <User className="h-6 w-6 mr-2 text-primary" />
-                <h3 className="text-2xl font-semibold text-gray-900">
-                  Honorable Guests
-                </h3>
+            </div>
+          ) : (
+            <div className="md:col-span-2 space-y-6">
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <h2 className="text-3xl font-semibold text-gray-900">
+                  About the Event
+                </h2>
+                {event.description && (
+                  <p className="text-muted-foreground leading-relaxed">
+                    {event.description}
+                  </p>
+                )}
               </div>
-              <div className="space-y-6">
-                {chiefGuest && (
-                  <div className="p-4 bg-gray-100 rounded-lg">
-                    <h4 className="text-lg font-semibold text-primary mb-1">
-                      Chief Guest
-                    </h4>
-                    <p className="text-gray-700 font-medium">{chiefGuest}</p>
-                  </div>
-                )}
-                {otherGuests.length > 0 && (
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                      Other Guests
-                    </h4>
-                    <ul className="space-y-2">
-                      {otherGuests.map((guest, index) => (
-                        <li key={index} className="flex flex-col">
-                          <div className="flex flex-col">
-                            <span className="text-gray-900 font-semibold">
-                              {guest.title}
-                            </span>
-                            <span className="text-gray-700">{guest.name}</span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+
+              {/* Guests Section */}
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <div className="flex items-center mb-4 border-b pb-2">
+                  <User className="h-6 w-6 mr-2 text-primary" />
+                  <h3 className="text-2xl font-semibold text-gray-900">
+                    Honorable Guests
+                  </h3>
+                </div>
+                <div className="space-y-6">
+                  {chiefGuest && (
+                    <div className="p-4 bg-gray-100 rounded-lg">
+                      <h4 className="text-lg font-semibold text-primary mb-1">
+                        Chief Guest
+                      </h4>
+                      <p className="text-gray-700 font-medium">{chiefGuest}</p>
+                    </div>
+                  )}
+                  {otherGuests.length > 0 && (
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                        Other Guests
+                      </h4>
+                      <ul className="space-y-2">
+                        {otherGuests.map((guest, index) => (
+                          <li key={index} className="flex flex-col">
+                            <div className="flex flex-col">
+                              <span className="text-gray-900 font-semibold">
+                                {guest.title}
+                              </span>
+                              <span className="text-gray-700">{guest.name}</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Event Info Sidebar */}
           <div className="space-y-6">
@@ -165,11 +159,16 @@ export default function EventDetailsPage() {
                   <div className="flex-1 bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-primary h-2 rounded-full"
-                      style={{ width: `${(event.participants/event.participants) * 100}%` }}
+                      style={{
+                        width: `${event.participants && event.participants > 0
+                          ? (event.participants / (event.participants + 50)) * 100
+                          : 0
+                          }%`,
+                      }}
                     />
                   </div>
                   <span className="ml-4 text-sm text-gray-700">
-                    {event.participants} / {event.participants+50}
+                    {event.participants ?? 0} / {(event.participants ?? 0) + 50}
                   </span>
                 </div>
               </div>
@@ -183,6 +182,6 @@ export default function EventDetailsPage() {
             (new Date(event.date) > new Date() && <JoinEvent event={event} />)}
         </div>
       </div>
-    </div >
+    </div>
   );
 }
