@@ -496,7 +496,8 @@
     "guest": "Keynote Speaker: Md. Nure Alam Siddiq, Co-Founder & CEO, bongoDev, Software Engineering Manager, Optimizely\n\nAll Faculty Members and Students",
     "year": 2024,
     "organizer": "",
-    "category": "Seminar"
+    "category": "Seminar",
+    "isUpcoming": false
   },
   {
     "sl": 48,
@@ -507,7 +508,8 @@
     "guest": "Chief Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSpecial Guest: Prof. Dr. MD. Ahsan Habib, Professor, Dept of CSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2025,
     "organizer": "GUCC",
-    "category": "Orientation"
+    "category": "Orientation",
+    "isUpcoming": true
   },
   {
     "sl": 49,
@@ -518,7 +520,8 @@
     "guest": "Keynote Speaker: Md. Nure Alam Siddiq, Co-Founder & CEO, bongoDev, Software Engineering Manager, Optimizely\n\nKamrul Hasan, Mentor, bongoDev, Software Engineer, Optimizely\n\nChief Guest: Prof. Dr. MD. Ahsan Habib, Immediate Past Chair, IEEE CS BDC\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2025,
     "organizer": "GUCC",
-    "category": "Seminar"
+    "category": "Seminar",
+    "isUpcoming": true
   },
   {
     "sl": 50,
@@ -531,7 +534,7 @@
     "year": 2025,
     "organizer": "GUB Gaming Society",
     "category": "Competition",
-    "isUpcoming": false
+    "isUpcoming": true
   },
   {
     "sl": 51,
