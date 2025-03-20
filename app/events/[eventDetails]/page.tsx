@@ -68,7 +68,7 @@ export default function EventDetailsPage() {
               className="w-full h-full object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent" />
           </div>
         </div>
 
