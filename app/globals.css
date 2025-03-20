@@ -1,9 +1,10 @@
 @import "tailwindcss";
-
 @plugin 'tailwindcss-animate';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @custom-variant dark (&:is(.dark *));
-
 @theme {
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
@@ -66,6 +67,26 @@
   @media (width >= 1400px) {
     max-width: 1400px;
   }
+}
+
+/* 🌙 Dark Mode Custom Styling */
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+}
+
+.dark {
+  --background: #121212;
+  --foreground: #ffffff;
+}
+
+/* Apply background and text color */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  transition:
+    background-color 0.3s,
+    color 0.3s;
 }
 
 /*

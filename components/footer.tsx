@@ -45,7 +45,7 @@ export function Footer() {
 
               <li>
                 <Link
-                  href="https://cse.green.edu.bd"
+                  href="https://archive-cse.green.edu.bd/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center"
