@@ -532,8 +532,17 @@
     "organizer": "GUB Gaming Society",
     "category": "Competition"
   },
+
   {
     "sl": 51,
+    "name": "Announcement of GUCC Executive Committee 2025",
+    "date": "2025-03-03",
+    "guest": "Club Moderator, Department Head & Other Guests",
+    "year": 2025
+  },
+
+  {
+    "sl": 52,
     "name": "GUB Logic Battle 2025 (Beginner IDPC & IDMO)",
     "date": "2025-03-09",
     "endDate": "2025-03-10",
@@ -544,4 +553,6 @@
     "organizer": "GUCC",
     "category": "Competition"
   }
+
+
 ]
