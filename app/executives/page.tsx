@@ -172,7 +172,11 @@ export default function ExecutivesPage() {
         <div className="flex justify-center mb-4">
           <TabsList>
             {availableYears.map((year) => (
-              <TabsTrigger key={year} value={year}>
+              <TabsTrigger 
+                key={year} 
+                value={year}
+                data-state={year === activeYear ? "active" : "inactive"}
+              >
                 {year}
               </TabsTrigger>
             ))}
