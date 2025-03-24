@@ -225,7 +225,7 @@
   },
   {
     "sl": 23,
-    "name": "CSE Annual Picnic",
+    "name": "CSE Annual Picnic 2024",
     "date": "2024-03-03",
     "time": "Day long",
     "participants": 500,
@@ -280,8 +280,8 @@
   },
   {
     "sl": 28,
-    "name": "Announcement of Reformed Executive committee",
-    "date": "2024-05-20",
+    "name": "Announcement of Reformed Executive Committee 2023-2024",
+    "date": "2024-05-02",
     "time": "--",
     "participants": null,
     "guest": "Club Moderator & Department Head",
@@ -335,7 +335,7 @@
   },
   {
     "sl": 33,
-    "name": "GUB CSE Carnival 2024: Idea Shocasing",
+    "name": "GUB CSE Carnival 2024: Idea Showcasing",
     "date": "2024-10-02",
     "time": "11:00 AM-12:30 PM",
     "participants": 100,
@@ -346,7 +346,7 @@
   },
   {
     "sl": 34,
-    "name": "GUB CSE Carnival 2024: Talent hunt",
+    "name": "GUB CSE Carnival 2024: Talent Hunt",
     "date": "2024-10-02",
     "time": "11:00 AM-12:30 PM",
     "participants": 200,
@@ -357,7 +357,7 @@
   },
   {
     "sl": 35,
-    "name": "GUB CSE Carnival 2024: Securing the Interner: Importance of DNSSEC & Other Techniques",
+    "name": "GUB CSE Carnival 2024: Securing the Internet: Importance of DNSSEC & Other Techniques",
     "date": "2024-10-02",
     "time": "2:00 PM - 4:00 PM",
     "participants": 100,
@@ -390,7 +390,7 @@
   },
   {
     "sl": 38,
-    "name": "GUB CSE Carnival 2024: Final Round: Tech base debate contest",
+    "name": "GUB CSE Carnival 2024: Final Round: Tech-Based Debate Contest",
     "date": "2024-10-03",
     "time": "2:00 PM - 4:00 PM",
     "participants": 80,
@@ -401,7 +401,7 @@
   },
   {
     "sl": 39,
-    "name": "GUB CSE Carnival 2024: Path to Develop a proficient Technological Career",
+    "name": "GUB CSE Carnival 2024: Path to Develop a Proficient Technological Career",
     "date": "2024-10-03",
     "time": "2:00 PM - 3:30 PM",
     "participants": 150,
@@ -452,7 +452,7 @@
     "guest": "Senior Faculty members of Dept. of CSE, GUB & Students",
     "year": 2024,
     "organizer": "",
-    "category": "Seminar"
+    "category": "Carnival"
   },
   {
     "sl": 44,
@@ -467,13 +467,13 @@
   },
   {
     "sl": 45,
-    "name": "Devfest: Explore Generative Ai with the Vertex AI With Google Developer Group Sonargaon",
+    "name": "Devfest: Explore Generative AI with the Vertex AI With Google Developer Group Sonargaon",
     "date": "2024-11-13",
     "time": "12:00 PM - 01:00 PM",
     "participants": 60,
     "guest": "Faculty Member & Students",
     "year": 2024,
-    "organizer": "",
+    "organizer": "GUCC and GDG Sonargaon",
     "category": "Seminar"
   },
   {
