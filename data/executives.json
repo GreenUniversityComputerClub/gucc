@@ -5,12 +5,14 @@
       {
         "position": "Moderator",
         "name": "Ahmed Iqbal Pritom",
-        "designation": "Senior Lecturer"
+        "designation": "Senior Lecturer",
+        "avatarUrl": "/executives/iqbal.cse.png"
       },
       {
         "position": "Deputy Moderator",
         "name": "Sultana Umme Habiba",
-        "designation": "Lecturer"
+        "designation": "Lecturer",
+        "avatarUrl": "/executives/sultana.cse.png"
       }
     ],
     "studentExecutives": [
@@ -112,29 +114,31 @@
       {
         "position": "Moderator",
         "name": "Ahmed Iqbal Pritom",
-        "designation": "Senior Lecturer"
+        "designation": "Senior Lecturer",
+        "avatarUrl": "/executives/iqbal.cse.png"
       },
       {
         "position": "Deputy Moderator",
         "name": "Sultana Umme Habiba",
-        "designation": "Lecturer"
+        "designation": "Lecturer",
+        "avatarUrl": "/executives/sultana.cse.png"
       }
     ],
     "studentExecutives": [
       {
         "position": "President",
         "name": "Najmus Sakib Sizan",
-        "studentId": "183002xxx"
+        "studentId": "181002115"
       },
       {
         "position": "Vice President",
         "name": "Md. Ariful Hoque Yash",
-        "studentId": "183002xxx"
+        "studentId": "182002038"
       },
       {
         "position": "General Secretary",
         "name": "Sajib Miah",
-        "studentId": "183002xxx"
+        "studentId": "181002053"
       },
       {
         "position": "Joint General Secretary",
@@ -144,12 +148,12 @@
       {
         "position": "Treasurer",
         "name": "Diganta Dey",
-        "studentId": "183002xxx"
+        "studentId": "181002123"
       },
       {
         "position": "Joint Treasurer",
         "name": "Mahabub Sajid Habib",
-        "studentId": "183002xxx"
+        "studentId": "182002023"
       },
       {
         "position": "Organizing Secretary",
@@ -164,12 +168,12 @@
       {
         "position": "Programming Secretary",
         "name": "MD. Nasir Hossain Hridoy",
-        "studentId": "183002xxx"
+        "studentId": "173002044"
       },
       {
         "position": "Joint Programming Secretary",
         "name": "K M Farhat Snigdah",
-        "studentId": "183002xxx"
+        "studentId": "191002124"
       },
       {
         "position": "Information Secretary",
@@ -184,12 +188,12 @@
       {
         "position": "Cultural Secretary",
         "name": "Bithy Roy",
-        "studentId": "183002xxx"
+        "studentId": "182002004"
       },
       {
         "position": "Joint Cultural Secretary",
         "name": "Sabikun Nahar Sharna",
-        "studentId": "183002xxx"
+        "studentId": "182002013"
       },
       {
         "position": "Office Secretary & Graphic Designer",
@@ -199,12 +203,12 @@
       {
         "position": "Sports Secretary",
         "name": "Neamul Nasir Jony",
-        "studentId": "183002xxx"
+        "studentId": "181002040"
       },
       {
         "position": "Joint Sports Secretary",
         "name": "Shahriar Mahmud",
-        "studentId": "183002xxx"
+        "studentId": "183015050"
       },
       {
         "position": "Publication Secretary",
@@ -224,12 +228,14 @@
       {
         "position": "Moderator",
         "name": "Mr. Ahmed Iqbal Pritom",
-        "designation": "Sr. Lecturer"
+        "designation": "Sr. Lecturer",
+        "avatarUrl": "/executives/iqbal.cse.png"
       },
       {
         "position": "Deputy Moderator",
         "name": "Ms. Sultana Umme Habiba",
-        "designation": "Lecturer"
+        "designation": "Lecturer",
+        "avatarUrl": "/executives/sultana.cse.png"
       }
     ],
     "studentExecutives": [
@@ -352,12 +358,14 @@
       {
         "position": "Deputy Moderator",
         "name": "Tanoy Debnath",
-        "designation": "Lecturer"
+        "designation": "Lecturer",
+        "avatarUrl" :"/executives/tanoy.cse.png"
       },
       {
         "position": "Deputy Moderator",
         "name": "Md. Abu Rumman Refat",
-        "designation": "Lecturer"
+        "designation": "Lecturer",
+        "avatarUrl": "/executives/refat.cse.png"
       }
     ],
     "studentExecutives": [
