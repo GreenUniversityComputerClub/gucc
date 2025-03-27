@@ -176,13 +176,16 @@ export default function ExecutivesPage() {
         onValueChange={setActiveYear}
       >
         <div className="flex justify-center mb-4">
-          <TabsList>
-            {availableYears.map((year) => (
-              <TabsTrigger key={year} value={year}>
-                {year}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="max-w-full overflow-x-auto">
+            <TabsList className="w-full min-w-max">
+              {availableYears.map((year) => (
+                <TabsTrigger key={year} value={year}>
+                  <span className="hidden md:inline">{year}</span>
+                  <span className="md:hidden">{year.slice(-2)}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
         </div>
 
         {availableYears.map((year) => {
