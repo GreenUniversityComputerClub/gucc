@@ -49,10 +49,13 @@ export default function ExecutivesPage() {
   const [isResizeMode, setIsResizeMode] = useState(RESIZE_AVATAR);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeCampus, setActiveCampus] = useState("permanent");
 
   const currentYearData = executivesData.find(
     (exec) => exec.year === activeYear,
   );
+
+  const campusData = currentYearData?.campuses?.[activeCampus as keyof typeof currentYearData.campuses];
 
   // Simple admin check - in a real app, this would use authentication
   const checkAdminStatus = () => {
@@ -181,7 +184,35 @@ export default function ExecutivesPage() {
 
         {availableYears.map((year) => {
           const yearData = executivesData.find((exec) => exec.year === year);
+          
+          // Check if the year has campus structure
+          if (yearData?.campuses) {
+            return (
+              <TabsContent key={year} value={year}>
+                <Tabs defaultValue={year === "2023" ? "merged" : "city"} onValueChange={setActiveCampus}>
+                  <div className="flex justify-center mb-8">
+                    <TabsList>
+                      <TabsTrigger value={year === "2023" ? "merged" : "city"}>
+                        {year === "2023" ? "Merged Campus" : "City Campus"}
+                      </TabsTrigger>
+                      <TabsTrigger value="permanent">Permanent Campus</TabsTrigger>
+                    </TabsList>
+                  </div>
+                  
+                  <TabsContent value="permanent">
+                    {renderCampusContent(yearData.campuses.permanent, isResizeMode)}
+                  </TabsContent>
+                  <TabsContent value={year === "2023" ? "merged" : "city"}>
+                    {renderCampusContent(yearData.campuses[year === "2023" ? "merged" : "city"], isResizeMode)}
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
+            );
+          }
+
+          // For years without campus structure, use the old format
           const facultyMembers = yearData?.facultyMembers || [];
+          const studentExecutives = yearData?.studentExecutives || [];
 
           return (
             <TabsContent key={year} value={year}>
@@ -203,23 +234,23 @@ export default function ExecutivesPage() {
                 </section>
               )}
 
-              <section>
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                  <Users className="h-6 w-6 text-primary" />
-                  Student Executives
-                </h2>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {(yearData?.studentExecutives || []).map(
-                    (executive, index) => (
+              {studentExecutives.length > 0 && (
+                <section>
+                  <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                    <Users className="h-6 w-6 text-primary" />
+                    Student Executives
+                  </h2>
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {studentExecutives.map((executive, index) => (
                       <ExecutiveCard
                         key={index}
                         executive={executive}
                         isResizeMode={isResizeMode}
                       />
-                    ),
-                  )}
-                </div>
-              </section>
+                    ))}
+                  </div>
+                </section>
+              )}
             </TabsContent>
           );
         })}
@@ -481,4 +512,42 @@ function getRoleIcon(position: string) {
 
 function getRoleName(position: string) {
   return position.replace("Development", "Dev");
+}
+
+function renderCampusContent(campus: any, isResizeMode: boolean) {
+  return (
+    <>
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <GraduationCap className="h-6 w-6 text-primary" />
+          Faculty Advisors
+        </h2>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {campus.facultyMembers.map((faculty: any, index: number) => (
+            <ExecutiveCard
+              key={index}
+              executive={faculty}
+              isResizeMode={isResizeMode}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <Users className="h-6 w-6 text-primary" />
+          Student Executives
+        </h2>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {campus.studentExecutives.map((executive: any, index: number) => (
+            <ExecutiveCard
+              key={index}
+              executive={executive}
+              isResizeMode={isResizeMode}
+            />
+          ))}
+        </div>
+      </section>
+    </>
+  );
 }
