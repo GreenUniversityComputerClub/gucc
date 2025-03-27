@@ -1,0 +1,37 @@
+{
+    "clubName": "Green University Computer Club",
+    "shortForm": "GUCC",
+    "tagline": "Empowering students to excel in the world of technology",
+    "aboutUs": {
+      "title": "About Us",
+      "sections": [
+        {
+          "subtitle": "Who We Are",
+          "description": "Welcome to the Green University Computer Club (GUCC), a dynamic and student-driven organization in collaboration with the Department of Computer Science and Engineering (CSE) at the Green University of Bangladesh. GUCC has over 7000+ members. Our goal is to empower CSE students and guide them on their path to successful careers in computer science and engineering."
+        }
+      ]
+    },
+    "vision": {
+      "title": "Our Vision",
+      "description": "Our vision is to enhance the leadership and professional skills of CSE students at Green University of Bangladesh."
+    },
+    "values": [
+      {
+        "name": "Community",
+        "description": "Building a vibrant community of tech enthusiasts."
+      },
+      {
+        "name": "Excellence",
+        "description": "Striving for excellence in all our endeavors."
+      },
+      {
+        "name": "Learning",
+        "description": "Promoting continuous learning and growth."
+      }
+    ],
+    "events": {
+      "title": "Events",
+      "description": "Organizing impactful events and workshops to foster learning and innovation."
+    }
+  }
+  
