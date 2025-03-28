@@ -356,13 +356,15 @@
         "position": "Moderator",
         "name": "Ahmed Iqbal Pritom",
         "designation": "Senior Lecturer",
-        "avatarUrl": "/executives/iqbal.cse.png"
+        "avatarUrl": "/executives/iqbal.cse.png",
+        "avatarScale": 0.8
       },
       {
         "position": "Deputy Moderator",
         "name": "Sultana Umme Habiba",
         "designation": "Lecturer",
-        "avatarUrl": "/executives/sultana.cse.png"
+        "avatarUrl": "/executives/sultana.cse.png",
+        "avatarScale": 0.8
       }
     ],
     "studentExecutives": [
@@ -465,13 +467,15 @@
         "position": "Moderator",
         "name": "Ahmed Iqbal Pritom",
         "designation": "Senior Lecturer",
-        "avatarUrl": "/executives/iqbal.cse.png"
+        "avatarUrl": "/executives/iqbal.cse.png",
+        "avatarScale": 0.8
       },
       {
         "position": "Deputy Moderator",
         "name": "Sultana Umme Habiba",
         "designation": "Lecturer",
-        "avatarUrl": "/executives/sultana.cse.png"
+        "avatarUrl": "/executives/sultana.cse.png",
+        "avatarScale": 0.8
       }
     ],
     "studentExecutives": [
@@ -580,12 +584,16 @@
           {
             "position": "Moderator",
             "name": "Md. Solaiman Mia",
-            "designation": "Lecturer"
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/solaiman.cse.png",
+            "avatarScale": 0.8
           },
           {
             "position": "Deputy Moderator",
             "name": "Monoshi Kumar Roy",
-            "designation": "Lecturer"
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/monoshi.cse.png",
+            "avatarScale": 0.8
           }
         ],
         "studentExecutives": [
@@ -681,12 +689,16 @@
           {
             "position": "Moderator",
             "name": "Ahmed Iqbal Pritom",
-            "designation": "Sr. Lecturer"
+            "designation": "Sr. Lecturer",
+            "avatarUrl": "/executives/iqbal.cse.png",
+            "avatarScale": 0.8
           },
           {
             "position": "Deputy Moderator",
             "name": "Ms. Sultana Umme Habiba",
-            "designation": "Lecturer"
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/sultana.cse.png",
+            "avatarScale": 0.8
           }
         ],
         "studentExecutives": [
@@ -803,13 +815,21 @@
             "position": "Moderator",
             "name": "Md. Abu Rumman Refat",
             "designation": "Lecturer, CSE",
-            "campus": "Permanent Campus"
+            "campus": "Permanent Campus",
+            "avatarUrl": "/executives/refat.cse.png",
+            "avatarScale": 0.8
           },
           {
             "position": "Deputy Moderator",
             "name": "Md. Parvez Hossain",
             "designation": "Lecturer & PC, CSE",
-            "campus": "Permanent Campus"
+            "campus": "Permanent Campus", 
+            "avatarUrl": "/executives/parvez.cse.png", 
+            "avatarPosition": {
+              "x": 0,
+              "y": 4
+            },
+            "avatarScale": 0.9
           }
         ],
         "studentExecutives": [
@@ -925,7 +945,8 @@
             "position": "Executive Member – 1",
             "name": "Rufaida Jaman Rayta",
             "studentId": "221902020",
-            "mail": "rufaidajaman15@gmail.com"
+            "mail": "rufaidajaman15@gmail.com",
+            "avatarScale": 0.7
           },
           {
             "position": "Executive Member – 2",
@@ -952,12 +973,16 @@
             "position": "Deputy Moderator",
             "name": "Tanoy Debnath",
             "designation": "Lecturer",
-            "avatarUrl": "/executives/tonoy.cse.png"
+            "avatarUrl": "/executives/tanoy.cse.png",
+            "avatarScale": 0.8
+            
           },
           {
             "position": "Deputy Moderator",
             "name": "Md. Abu Rumman Refat",
-            "designation": "Lecturer"
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/refat.cse.png",
+            "avatarScale": 0.8
           }
         ],
         "studentExecutives": [
@@ -1169,7 +1194,7 @@
           {
             "position": "E-Sports Gaming Secretary",
             "name": "Md Rezanur Bin Shamim",
-            "studentId": "22190230S"
+            "studentId": "221902305"
           },
           {
             "position": "Graphics and Multimedia Secretary",
@@ -1243,12 +1268,7 @@
       {
         "position": "President",
         "name": "Md. Montasir Rahman",
-        "studentId": "202002003",
-        "avatarPosition": {
-          "x": -6,
-          "y": 2
-        },
-        "avatarScale": 0.9
+        "studentId": "202002003"
       },
       {
         "position": "Vice President",
