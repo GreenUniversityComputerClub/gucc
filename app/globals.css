@@ -142,8 +142,8 @@
   }
 }
 
-@tailwind base;
-@tailwind components;
+/* @tailwind base;
+@tailwind components; */
 @tailwind utilities;
 
 /* 🌙 Dark Mode Custom Styling */

@@ -43,16 +43,22 @@ import { useEffect, useRef, useState } from "react";
 
 export default function ExecutivesPage() {
   const availableYears = getAvailableYears().sort(
-    (a, b) => Number.parseInt(b) - Number.parseInt(a),
+    (a, b) => Number.parseInt(b) - Number.parseInt(a)
   );
   const [activeYear, setActiveYear] = useState(availableYears[0]);
   const [isResizeMode, setIsResizeMode] = useState(RESIZE_AVATAR);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeCampus, setActiveCampus] = useState("permanent");
 
   const currentYearData = executivesData.find(
-    (exec) => exec.year === activeYear,
+    (exec) => exec.year === activeYear
   );
+
+  const campusData =
+    currentYearData?.campuses?.[
+      activeCampus as keyof typeof currentYearData.campuses
+    ];
 
   // Simple admin check - in a real app, this would use authentication
   const checkAdminStatus = () => {
@@ -101,7 +107,7 @@ export default function ExecutivesPage() {
       alert(
         `Error saving changes: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`,
+        }`
       );
     } finally {
       setIsSaving(false);
@@ -170,18 +176,83 @@ export default function ExecutivesPage() {
         onValueChange={setActiveYear}
       >
         <div className="flex justify-center mb-4">
-          <TabsList>
-            {availableYears.map((year) => (
-              <TabsTrigger key={year} value={year}>
-                {year}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="max-w-full overflow-x-auto">
+            <TabsList className="w-full min-w-max">
+              {availableYears.map((year) => (
+                <TabsTrigger key={year} value={year}>
+                  <span className="hidden md:inline">{year}</span>
+                  <span className="md:hidden">{year.slice(-2)}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
         </div>
 
         {availableYears.map((year) => {
           const yearData = executivesData.find((exec) => exec.year === year);
+
+          // Check if the year has campus structure
+          if (yearData?.campuses) {
+            return (
+              <TabsContent key={year} value={year}>
+                <Tabs
+                  defaultValue={year === "2023" ? "merged" : "city"}
+                  onValueChange={setActiveCampus}
+                >
+                  <div className="flex justify-center mb-8">
+                    <TabsList>
+                      <TabsTrigger value={year === "2023" ? "merged" : "city"}>
+                        {year === "2023" ? "Merged Campus" : "City Campus"}
+                      </TabsTrigger>
+                      <TabsTrigger value="permanent">
+                        Permanent Campus
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <TabsContent value="permanent">
+                    {renderCampusContent(
+                      yearData.campuses.permanent,
+                      isResizeMode
+                    )}
+                  </TabsContent>
+                  <TabsContent value={year === "2023" ? "merged" : "city"}>
+                    {renderCampusContent(
+                      yearData.campuses[year === "2023" ? "merged" : "city"],
+                      isResizeMode
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
+            );
+          }
+
+          // Check if the year has campus structure
+          if (yearData?.wings) {
+            return (
+              <TabsContent key={year} value={year}>
+                <Tabs defaultValue={"gucc"} onValueChange={setActiveCampus}>
+                  <div className="flex justify-center mb-8">
+                    <TabsList>
+                      <TabsTrigger value={"gucc"}>GUCC</TabsTrigger>
+                      <TabsTrigger value="vgs">VGS</TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <TabsContent value="gucc">
+                    {renderCampusContent(yearData, isResizeMode)}
+                  </TabsContent>
+                  <TabsContent value="vgs">
+                    {renderCampusContent(yearData.wings.vgs, isResizeMode)}
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
+            );
+          }
+
+          // For years without campus structure, use the old format
           const facultyMembers = yearData?.facultyMembers || [];
+          const studentExecutives = yearData?.studentExecutives || [];
 
           return (
             <TabsContent key={year} value={year}>
@@ -203,23 +274,23 @@ export default function ExecutivesPage() {
                 </section>
               )}
 
-              <section>
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                  <Users className="h-6 w-6 text-primary" />
-                  Student Executives
-                </h2>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {(yearData?.studentExecutives || []).map(
-                    (executive, index) => (
+              {studentExecutives.length > 0 && (
+                <section>
+                  <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                    <Users className="h-6 w-6 text-primary" />
+                    Student Executives
+                  </h2>
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {studentExecutives.map((executive, index) => (
                       <ExecutiveCard
                         key={index}
                         executive={executive}
                         isResizeMode={isResizeMode}
                       />
-                    ),
-                  )}
-                </div>
-              </section>
+                    ))}
+                  </div>
+                </section>
+              )}
             </TabsContent>
           );
         })}
@@ -236,7 +307,7 @@ function ExecutiveCard({
   isResizeMode: boolean;
 }) {
   const [position, setPosition] = useState(
-    executive.avatarPosition || { x: 0, y: 0 },
+    executive.avatarPosition || { x: 0, y: 0 }
   );
   const [scale, setScale] = useState(executive.avatarScale || 1);
   const [isDragging, setIsDragging] = useState(false);
@@ -304,7 +375,7 @@ function ExecutiveCard({
       alert(
         `Error saving avatar settings: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`,
+        }`
       );
     }
   };
@@ -331,8 +402,9 @@ function ExecutiveCard({
             {/* Avatar */}
             <div
               ref={imageRef}
-              className={`absolute -right-8 -top-4 w-40 h-40 opacity-100 transition-opacity ${isResizeMode ? "cursor-move" : ""
-                }`}
+              className={`absolute -right-8 -top-4 w-40 h-40 opacity-100 transition-opacity ${
+                isResizeMode ? "cursor-move" : ""
+              }`}
               style={{
                 transform: `translate(${position.x}px, ${position.y}px)`,
               }}
@@ -383,11 +455,15 @@ function ExecutiveCard({
           </CardHeader>
         </div>
       </Card>
-      
+
       {/* Social Media Links - Hidden by Default, Shown on Hover */}
       <div className="absolute bottom-2 left-2 ml-3 bg-white p-2 rounded-sm flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         {executive.linkedin && (
-          <a href={executive.linkedin} target="_blank" rel="noopener noreferrer">
+          <a
+            href={executive.linkedin}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <Linkedin className="h-4 w-4 text-gray-700 hover:text-primary transition-colors" />
           </a>
         )}
@@ -397,7 +473,11 @@ function ExecutiveCard({
           </a>
         )}
         {executive.facebook && (
-          <a href={executive.facebook} target="_blank" rel="noopener noreferrer">
+          <a
+            href={executive.facebook}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <Facebook className="h-4 w-4 text-gray-700 hover:text-primary transition-colors" />
           </a>
         )}
@@ -481,4 +561,42 @@ function getRoleIcon(position: string) {
 
 function getRoleName(position: string) {
   return position.replace("Development", "Dev");
+}
+
+function renderCampusContent(campus: any, isResizeMode: boolean) {
+  return (
+    <>
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <GraduationCap className="h-6 w-6 text-primary" />
+          Faculty Advisors
+        </h2>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {campus.facultyMembers.map((faculty: any, index: number) => (
+            <ExecutiveCard
+              key={index}
+              executive={faculty}
+              isResizeMode={isResizeMode}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <Users className="h-6 w-6 text-primary" />
+          Student Executives
+        </h2>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {campus.studentExecutives.map((executive: any, index: number) => (
+            <ExecutiveCard
+              key={index}
+              executive={executive}
+              isResizeMode={isResizeMode}
+            />
+          ))}
+        </div>
+      </section>
+    </>
+  );
 }
