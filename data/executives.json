@@ -1149,82 +1149,133 @@
           {
             "position": "Chair",
             "name": "Faysal Hossain Tomal",
-            "studentId": "221002220"
+            "studentId": "221002220",
+            "mail": "faysaltomal02@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/faysaltomal/",
+            "github": "https://github.com/FaysalHT",
+            "facebook": "https://www.facebook.com/FaysalHT02"
           },
           {
             "position": "Vice-Chair",
             "name": "M. Tahsinur Rahiman",
-            "studentId": "222002062"
+            "studentId": "222002062",
+            "mail": "ariyanrahman1713@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/m-tahsinur-rahman62",
+            "github": "https://github.com/Aruuu62",
+            "facebook": "https://m.facebook.com/iqbal.abdullah.3572/"
           },
           {
             "position": "General Secretary",
             "name": "K M Monoarul Islam Shovon",
-            "studentId": "221002213"
+            "studentId": "221002213",
+            "mail": "shovon2565@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/k-m-shovon/",
+            "github": "https://github.com/Shovon2565?",
+            "facebook": "https://www.facebook.com/km.shovon3"
           },
           {
             "position": "Joint General Secretary",
             "name": "Muaz Ibn Kamal",
-            "studentId": "232002109"
+            "studentId": "232002109",
+            "mail": "muazibnkamal8@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/muaz-ibn-kamal-26252735a/",
+            "github": "https://github.com/MuazibnKamal",
+            "facebook": "https://www.facebook.com/muazibnkamal.alif.18"
           },
           {
             "position": "Treasurer",
             "name": "Hasibul Hassan",
-            "studentId": "221002546"
+            "studentId": "221002546",
+            "mail": "hasibulgreen@gmail.com",
+            "facebook": "https://www.facebook.com/share/1BdLjDHS88/"
           },
           {
             "position": "Joint Treasurer",
             "name": "Dip Barman",
-            "studentId": "222002118"
+            "studentId": "222002118",
+            "mail": "dipbarman1212@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/dipbarman",
+            "facebook": "https://www.facebook.com/share/1BdLjDHS88/"
           },
           {
             "position": "Organizing Secretary",
             "name": "Heaven Bawm",
-            "studentId": "221902015"
+            "studentId": "221902015",
+            "mail": "heavenbawm77@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/heaven-bawm-4a79a1295",
+            "github": "https://github.com/MrB0T15",
+            "facebook": "https://www.facebook.com/share/1G7uEH4JYD/"
           },
           {
             "position": "Joint Organizing Secretary",
             "name": "Nahian Reza Shafin",
-            "studentId": "221002576"
+            "studentId": "221002576",
+            "mail": "shafinnahian01@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/nahian-shafin-8a655b272",
+            "github": "https://github.com/Shafin2576",
+            "facebook": "https://www.facebook.com/prince.shafin.50/"
           },
           {
             "position": "Outreach Secretary",
             "name": "Pronoy Sarker Amit",
-            "studentId": "222002082"
+            "studentId": "222002082",
+            "mail": "pronoysarkeramit@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/pronoy-sarker-amit/",
+            "github": "https://github.com/PSarker108",
+            "facebook": "https://www.facebook.com/pronoy.sarker.479806"
           },
           {
             "position": "E-Sports Gaming Secretary",
             "name": "Md Rezanur Bin Shamim",
-            "studentId": "221902305"
+            "studentId": "221902305",
+            "mail": "rezanurbinshamim@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/mrezanur/",
+            "github": "https://github.com/Rnrezanur",
+            "facebook": "https://www.facebook.com/Rnrezanur/"
           },
           {
             "position": "Graphics and Multimedia Secretary",
             "name": "Ryan Hasan Sunny",
-            "studentId": "213002183"
+            "studentId": "213002183",
+            "mail": "ryanhasansunny31@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/ryan-hasan-sunny-190a65245/",
+            "github": "https://github.com/RyanHasanSunny",
+            "facebook": "https://www.facebook.com/ryanhasan.sunny7"
           },
           {
             "position": "Graphics and Multimedia Secretary",
             "name": "Ashraf Zaman",
-            "studentId": "232002174"
+            "studentId": "232002174",
+            "mail": "ashraf636bd@gmail.com",
+            "facebook": "https://www.facebook.com/share/1Dmi3Cafmr/"
           },
           {
             "position": "Graphics and Multimedia Secretary",
             "name": "Julqarnaeen Ahmed Jihad",
-            "studentId": "241002046"
+            "studentId": "241002046",
+            "mail": "julqarnaeen2003@gmail.com",
+            "facebook": "https://www.facebook.com/zulqarnaeen.9?mibextid=ZbWKwL"
           },
           {
             "position": "Executive Member",
             "name": "MD. Sazib",
-            "studentId": "23190200S"
+            "studentId": "23190200S",
+            "mail": "mdsazib.cse@gmail.com"
           },
           {
             "position": "Executive Member",
             "name": "Afiya Humaira",
-            "studentId": "222002112"
+            "studentId": "222002112",
+            "mail": "afiyahumaira999@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/afiya-humaira-13a396285",
+            "facebook": "https://www.facebook.com/share/1A8KwRUow2/"
           },
           {
             "position": "Executive Member",
             "name": "Humayra Nur",
-            "studentId": "231002012"
+            "studentId": "231002012",
+            "mail": "anannaanu974@gmail.com",
+            "facebook": "https://www.facebook.com/anannaanu974"
           }
         ]
       }
@@ -1506,7 +1557,7 @@
         },
         "avatarScale": 0.9,
         "linkedin": "https://www.linkedin.com/in/srtanveer",
-        "github": null,
+        "github": "https://github.com/idontbyte69",
         "twitter": null,
         "facebook": "https://www.facebook.com/tanveer.vaiya01/",
         "mail": "mailto::tanveer.cse69@gmail.com"
