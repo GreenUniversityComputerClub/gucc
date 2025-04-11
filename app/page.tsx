@@ -12,6 +12,7 @@ import { AnimatedStat } from "./component";
 import eventsData from "@/data/events.json";
 import { EventCard } from "./events/page";
 import { CollaborationScroll } from "./components/collaboration-scroll";
+import PohelaBoishakhGreeting from "@/components/PohelaBoishakhGreeting";
 
 const upcomingEvents = eventsData.filter(
   (event) => new Date(event.date) > new Date(),
@@ -27,6 +28,8 @@ const recentEvents = eventsData.filter((event) => {
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
+
+            {new Date().getMonth() === 3 && new Date().getDate() === 14 && <PohelaBoishakhGreeting />}
       {/* Hero Section */}
       <section className="w-full py-16 md:py-24 lg:py-32 bg-gradient-to-b from-primary/20 via-primary/10 to-background relative overflow-hidden">
         {/* <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" /> */}
@@ -36,10 +39,12 @@ export default function Home() {
               <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
                 Green University Computer Club
               </h1>
+              
               <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl text-lg">
                 Empowering students to excel in the world of technology
               </p>
             </div>
+
 
             {/* Hero Section Buttons */}
             {/* <div className="space-x-4">

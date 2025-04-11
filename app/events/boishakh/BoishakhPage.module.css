@@ -2,8 +2,11 @@
   position: relative;
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, #fff5e6 0%, #ffe0cc 100%);
-  overflow: hidden;
+  background: linear-gradient(135deg, #fff8f0 0%, #ffe8d6 100%);
+  overflow-x: hidden;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 }
 
 .canvas {
@@ -18,55 +21,76 @@
 .content {
   position: relative;
   z-index: 2;
-  padding: 2rem;
+  padding: 3rem 2rem;
   color: #333;
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 2rem auto;
+  /* background-color: rgba(255, 255, 255, 0.85); */
+  border-radius: 15px;
+  /* box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); */
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
 }
 
 .title {
-  font-size: 4rem;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
   text-align: center;
   margin-bottom: 0.5rem;
-  color: #d32f2f;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  color: #e53935;
+  font-weight: 700;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .subtitle {
-  font-size: 2rem;
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
   text-align: center;
   margin-bottom: 3rem;
-  color: #666;
+  color: #555;
+  font-weight: 400;
 }
 
 .festivalInfo {
   margin-bottom: 4rem;
+  text-align: center;
+}
+
+.festivalInfo .card {
+  display: inline-block;
+  max-width: 800px;
+  text-align: left;
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 15px;
-  padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
-  transition: transform 0.3s ease;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+  border: 1px solid rgba(229, 9, 20, 0.1);
 }
 
 .card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
 .card h3 {
-  color: #d32f2f;
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  border-bottom: 2px solid #ffccbc;
+  color: #e53935;
+  font-size: 1.4rem;
+  margin-bottom: 0.8rem;
+  font-weight: 600;
+  border-bottom: 2px solid rgba(229, 9, 20, 0.2);
   padding-bottom: 0.5rem;
 }
 
 .card p {
-  line-height: 1.6;
+  line-height: 1.7;
   color: #444;
+  font-size: 1rem;
 }
 
 /* Cultural Elements */
@@ -76,64 +100,74 @@
 
 .culturalElements h2 {
   text-align: center;
-  color: #d32f2f;
-  font-size: 2rem;
-  margin-bottom: 2rem;
+  color: #e53935;
+  font-size: 2.2rem;
+  margin-bottom: 2.5rem;
+  font-weight: 600;
 }
 
 .elementsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
 }
 
 .elementCard {
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 15px;
-  padding: 2rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 1.5rem;
   text-align: center;
-  transition: transform 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(229, 9, 20, 0.1);
 }
 
 .elementCard:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
 .elementIcon {
-  font-size: 3rem;
+  font-size: 3.5rem;
   margin-bottom: 1rem;
   display: block;
+  color: #e53935;
 }
 
 .elementCard h3 {
-  color: #d32f2f;
+  color: #e53935;
   margin-bottom: 1rem;
-  font-size: 1.3rem;
+  font-size: 1.25rem;
 }
 
 .elementCard p {
   color: #444;
-  line-height: 1.5;
+  line-height: 1.7;
+  font-size: 1rem;
 }
 
 /* Timeline Styles */
 .timelineSection {
-  margin-top: 4rem;
+  margin-top: 5rem;
   padding: 2rem 0;
 }
 
 .timelineTitle {
   text-align: center;
   font-size: 2.5rem;
-  color: #d32f2f;
-  margin-bottom: 3rem;
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+  color: #e53935;
+  margin-bottom: 3.5rem;
+  font-weight: 600;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .timeline {
   position: relative;
-  max-width: 1000px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 2rem 0;
 }
@@ -141,13 +175,14 @@
 .timeline::after {
   content: "";
   position: absolute;
-  width: 6px;
-  background: #d32f2f;
+  width: 4px;
+  background: #e53935;
   top: 0;
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  border-radius: 3px;
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(229, 57, 53, 0.5);
 }
 
 .timelineItem {
@@ -155,58 +190,72 @@
   position: relative;
   width: 50%;
   box-sizing: border-box;
+  margin-bottom: 30px;
+}
+
+.timelineItem:last-child {
+  margin-bottom: 0;
 }
 
 .timelineContent {
   padding: 20px;
   background: rgba(255, 255, 255, 0.95);
-  border-radius: 15px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
   position: relative;
   transition: transform 0.3s ease;
 }
 
 .timelineContent:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
 .timelineDot {
-  width: 20px;
-  height: 20px;
-  background: #d32f2f;
-  border: 4px solid #fff;
+  width: 22px;
+  height: 22px;
+  background: #e53935;
+  border: 5px solid #fff8f0;
   border-radius: 50%;
   position: absolute;
   top: 50%;
-  right: -50px;
   transform: translateY(-50%);
   z-index: 1;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 10px rgba(229, 57, 53, 0.7);
+}
+
+.left .timelineDot {
+  right: -11px;
+  transform: translate(50%, -50%);
 }
 
 .right .timelineDot {
-  left: -50px;
+  left: -11px;
+  transform: translate(-50%, -50%);
 }
 
 .timelineYear {
   display: inline-block;
-  padding: 5px 15px;
-  background: #d32f2f;
+  padding: 6px 18px;
+  background: #e53935;
   color: white;
-  border-radius: 20px;
-  font-weight: bold;
-  margin-bottom: 10px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .timelineEventTitle {
-  color: #d32f2f;
+  color: #e53935;
   margin: 10px 0;
   font-size: 1.3rem;
 }
 
 .timelineDescription {
   color: #444;
-  line-height: 1.6;
+  line-height: 1.7;
+  font-size: 0.95rem;
 }
 
 .left {
@@ -217,56 +266,192 @@
   left: 50%;
 }
 
+.timelineContent::before {
+  content: " ";
+  height: 0;
+  position: absolute;
+  top: 50%;
+  width: 0;
+  z-index: 1;
+  border: medium solid rgba(255, 255, 255, 0.95);
+  transform: translateY(-50%);
+}
+
+.left .timelineContent::before {
+  right: -15px;
+  border-width: 10px 0 10px 15px;
+  border-color: transparent transparent transparent rgba(255, 255, 255, 0.95);
+}
+
+.right .timelineContent::before {
+  left: -15px;
+  border-width: 10px 15px 10px 0;
+  border-color: transparent rgba(255, 255, 255, 0.95) transparent transparent;
+}
+
 /* Modern Celebrations Section */
 .celebrations {
-  margin: 4rem 0;
+  margin-top: 5rem;
+  padding: 2rem 0;
 }
 
 .celebrations h2 {
   text-align: center;
-  color: #d32f2f;
-  font-size: 2rem;
-  margin-bottom: 2rem;
+  color: #e53935;
+  font-size: 2.2rem;
+  margin-bottom: 2.5rem;
+  font-weight: 600;
 }
 
 .celebrationCards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
 }
 
 .celebrationCard {
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 15px;
-  padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+  border: 1px solid rgba(229, 9, 20, 0.1);
 }
 
 .celebrationCard:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
 .celebrationCard h3 {
-  color: #d32f2f;
-  font-size: 1.4rem;
+  color: #e53935;
+  font-size: 1.3rem;
   margin-bottom: 1rem;
-  border-bottom: 2px solid #ffccbc;
+  border-bottom: 2px solid rgba(229, 9, 20, 0.2);
   padding-bottom: 0.5rem;
 }
 
 .celebrationCard p {
   color: #444;
+  line-height: 1.7;
+  font-size: 1rem;
+}
+
+/* --- GUCC Section --- */
+.guccSection {
+  margin-top: 5rem;
+  padding: 2rem 0;
+}
+
+.guccSection h2 {
+  text-align: center;
+  color: #1b5e20; /* GUCC Green color - adjust if needed */
+  font-size: 2.2rem;
+  margin-bottom: 2rem;
+  font-weight: 600;
+}
+
+.guccCard {
+  background: linear-gradient(
+    135deg,
+    #e8f5e9,
+    #c8e6c9
+  ); /* Light green gradient */
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+  border: 1px solid rgba(27, 94, 32, 0.2);
+}
+
+.guccCard p {
+  color: #2e7d32; /* Darker green text */
+  line-height: 1.7;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.guccCard p:last-child {
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: #e53935; /* Red for Shubho Noboborsho */
+  margin-bottom: 0;
+}
+
+/* --- Tech & Tradition Section --- */
+.techTraditionSection {
+  margin-top: 5rem;
+  padding: 2rem 0;
+}
+
+.techTraditionSection h2 {
+  text-align: center;
+  color: #e53935;
+  font-size: 2.2rem;
+  margin-bottom: 2.5rem;
+  font-weight: 600;
+}
+
+.techCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.techCard {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(229, 9, 20, 0.1);
+}
+
+.techCard:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.techIcon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  display: block;
+  color: #e53935;
+}
+
+.techCard h3 {
+  color: #e53935;
+  font-size: 1.2rem;
+  margin-bottom: 0.8rem;
+  font-weight: 600;
+}
+
+.techCard p {
+  color: #444;
   line-height: 1.6;
+  font-size: 0.95rem;
 }
 
 @media (max-width: 768px) {
+  .content {
+    padding: 2rem 1rem;
+    margin: 1rem;
+  }
+
   .title {
-    font-size: 3rem;
+    font-size: 2.8rem;
   }
 
   .subtitle {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
+    margin-bottom: 2rem;
   }
 
   .timeline::after {
@@ -276,23 +461,59 @@
   .timelineItem {
     width: 100%;
     padding-left: 70px;
-    padding-right: 25px;
+    padding-right: 15px;
   }
 
+  .left,
   .right {
-    left: 0;
+    left: 0%;
   }
 
   .timelineDot {
-    left: 15px;
+    left: 20px;
+    transform: translate(-50%, -50%);
+  }
+
+  .left .timelineContent::before,
+  .right .timelineContent::before {
+    left: -15px;
+    border-width: 10px 15px 10px 0;
+    border-color: transparent rgba(255, 255, 255, 0.95) transparent transparent;
     right: auto;
   }
 
-  .elementsGrid {
-    grid-template-columns: 1fr;
+  .guccCard {
+    padding: 1.5rem;
   }
 
+  .guccCard p {
+    font-size: 1rem;
+  }
+
+  .guccCard p:last-child {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 2.2rem;
+  }
+  .subtitle {
+    font-size: 1.1rem;
+  }
+  .elementsGrid,
   .celebrationCards {
+    grid-template-columns: 1fr;
+  }
+  .timelineTitle,
+  .culturalElements h2,
+  .celebrations h2,
+  .guccSection h2,
+  .techTraditionSection h2 {
+    font-size: 1.8rem;
+  }
+  .techCards {
     grid-template-columns: 1fr;
   }
 }

@@ -56,75 +56,142 @@ const culturalElements = [
   }
 ];
 
+// Type definition for the shape data
+interface ShapeData {
+  mesh: THREE.Mesh;
+  rotationSpeed: number;
+  rotationAxis: THREE.Vector3;
+}
+
 export default function PohelaBoishakh() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    // Three.js setup
+    // --- Three.js Setup ---
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
 
-    // Create animated alpona pattern
-    const alponaGeometry = new THREE.TorusKnotGeometry(2, 0.5, 100, 16);
-    const alponaMaterial = new THREE.MeshPhongMaterial({ 
-      color: 0xff3333,
-      emissive: 0x440000,
-      specular: 0xffffff,
-    });
-    const alpona = new THREE.Mesh(alponaGeometry, alponaMaterial);
-    scene.add(alpona);
+    // --- Festive Shapes ---
+    const shapesGroup = new THREE.Group();
+    const shapeGeometrySphere = new THREE.SphereGeometry(0.5, 32, 16);
+    const shapeGeometryCone = new THREE.ConeGeometry(0.5, 1, 32); // Suggests kites or decorative elements
 
-    // Add lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const redMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.5, metalness: 0.3 });
+    const whiteMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, metalness: 0.3 });
+
+    const shapes: ShapeData[] = []; // Explicitly type the array
+    const shapeCount = 15; // Number of shapes
+
+    for (let i = 0; i < shapeCount; i++) {
+      const isSphere = Math.random() > 0.5;
+      const geometry = isSphere ? shapeGeometrySphere : shapeGeometryCone;
+      const material = Math.random() > 0.4 ? redMaterial : whiteMaterial; // More red than white
+      const mesh = new THREE.Mesh(geometry, material);
+
+      // Random positions within a sphere
+      const phi = Math.acos(-1 + (2 * i) / shapeCount);
+      const theta = Math.sqrt(shapeCount * Math.PI) * phi;
+
+      mesh.position.setFromSphericalCoords(
+          3 + Math.random() * 2, // Radius from center
+          phi,
+          theta
+      );
+
+       // Random initial rotation
+      mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+
+      // Random rotation speed and axis
+      const rotationSpeed = 0.005 + Math.random() * 0.01;
+      const rotationAxis = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+
+      shapes.push({ mesh, rotationSpeed, rotationAxis });
+      shapesGroup.add(mesh);
+    }
+    scene.add(shapesGroup);
+
+
+    // --- Lighting ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // Brighter ambient
     scene.add(ambientLight);
-    
-    const pointLight = new THREE.PointLight(0xffffff, 1);
-    pointLight.position.set(5, 5, 5);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(5, 10, 7.5);
+    scene.add(directionalLight);
+
+    const pointLight = new THREE.PointLight(0xffccaa, 0.5); // Warmer point light
+    pointLight.position.set(-5, -5, -5);
     scene.add(pointLight);
 
-    camera.position.z = 5;
+    camera.position.z = 8; // Move camera back slightly
 
+    // --- Controls ---
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+    controls.enableZoom = false; // Optional: disable zoom for a cleaner look
+    controls.minDistance = 5;
+    controls.maxDistance = 15;
+    controls.autoRotate = true; // Auto-rotate the scene
+    controls.autoRotateSpeed = 0.5; // Adjust rotation speed
 
+
+    // --- Animation Loop ---
     const animate = () => {
       requestAnimationFrame(animate);
-      alpona.rotation.x += 0.01;
-      alpona.rotation.y += 0.01;
-      controls.update();
+
+      // Animate individual shapes
+      shapes.forEach(shape => {
+         shape.mesh.rotateOnAxis(shape.rotationAxis, shape.rotationSpeed);
+      });
+
+      // Rotate the whole group slowly (optional)
+      // shapesGroup.rotation.y += 0.001;
+
+      controls.update(); // Required if controls.enableDamping or controls.autoRotate are set
       renderer.render(scene, camera);
     };
 
     animate();
 
+    // --- Handle Resize ---
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
+      renderer.setPixelRatio(window.devicePixelRatio);
     };
 
     window.addEventListener('resize', handleResize);
 
+    // --- Cleanup ---
     return () => {
       window.removeEventListener('resize', handleResize);
+      // Dispose geometries and materials if needed for larger scenes
+       scene.remove(shapesGroup);
+       redMaterial.dispose();
+       whiteMaterial.dispose();
+       shapeGeometrySphere.dispose();
+       shapeGeometryCone.dispose();
+      // Consider disposing renderer context if component unmounts frequently
     };
   }, []);
 
   return (
     <div className={styles.container}>
       <canvas ref={canvasRef} className={styles.canvas} />
-      
+
       <div className={styles.content}>
         <h1 className={styles.title}>পহেলা বৈশাখ</h1>
         <h2 className={styles.subtitle}>Bengali New Year Celebration</h2>
-        
+
         <div className={styles.festivalInfo}>
           <div className={styles.card}>
             <h3>About the Festival</h3>
@@ -193,6 +260,42 @@ export default function PohelaBoishakh() {
             </div>
           </div>
         </section>
+
+        {/* --- GUCC Section Start --- */}
+        <section className={styles.guccSection}>
+          <h2>GUCC Celebrates Pohela Boishakh</h2>
+          <div className={styles.guccCard}>
+            <p>
+              The Green University Computer Club (GUCC) extends its warmest wishes to everyone on this joyous occasion of Pohela Boishakh! As technology enthusiasts, we cherish the rich tapestry of our Bengali culture and believe in the power of innovation to connect us with our roots. Let this New Year inspire creativity, collaboration, and a celebration of both our heritage and our future.
+            </p>
+            <p>শুভ নববর্ষ ১৪৩১!</p> {/* Update year if needed */} 
+          </div>
+        </section>
+        {/* --- GUCC Section End --- */}
+
+        {/* --- Tech & Tradition Section Start --- */}
+        <section className={styles.techTraditionSection}>
+          <h2>Technology Meets Tradition</h2>
+          <div className={styles.techCards}>
+            <div className={styles.techCard}>
+              <span className={styles.techIcon}>🎨</span>
+              <h3>Digital Art & Creativity</h3>
+              <p>Exploring traditional motifs like Alpona through digital mediums allows for new forms of expression and preservation.</p>
+            </div>
+            <div className={styles.techCard}>
+              <span className={styles.techIcon}>🌐</span>
+              <h3>Connecting Communities</h3>
+              <p>Technology bridges distances, enabling Bengalis worldwide to share celebrations and cultural experiences online.</p>
+            </div>
+             <div className={styles.techCard}>
+               <span className={styles.techIcon}>💡</span>
+               <h3>Digital Alpona Concept</h3>
+               <p>Imagine interactive digital Alpona installations or apps allowing users to create and share their own festive patterns. A fusion of code and culture!</p>
+             </div>
+          </div>
+        </section>
+        {/* --- Tech & Tradition Section End --- */}
+
       </div>
     </div>
   );
