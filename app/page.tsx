@@ -11,7 +11,7 @@ import { CalendarDays, Users, Award, BookOpen } from "lucide-react";
 import { AnimatedStat } from "./component";
 import eventsData from "@/data/events.json";
 import { EventCard } from "./events/page";
-import { CollaborationScroll } from "./components/CollaborationScroll";
+import { CollaborationScroll } from "./components/collaboration-scroll";
 
 const upcomingEvents = eventsData.filter(
   (event) => new Date(event.date) > new Date(),
