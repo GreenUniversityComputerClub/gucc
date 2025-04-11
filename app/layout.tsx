@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
+import FloatingChatbot from "@/components/chatbot/floating-chatbot";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,7 +25,8 @@ export default function RootLayout({
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />
-        </div>
+          <FloatingChatbot />
+         </div>
       </body>
     </html>
   );

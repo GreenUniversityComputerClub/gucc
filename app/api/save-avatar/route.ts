@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     // Find the executive in the data
     let found = false;
     const updatedData = executivesData.map((yearData) => {
-      const updatedExecutives = yearData.studentExecutives.map((executive) => {
+      const updatedExecutives = yearData?.studentExecutives?.map((executive) => {
         if (executive.studentId === studentId) {
           found = true;
           return {

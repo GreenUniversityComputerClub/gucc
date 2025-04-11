@@ -1,0 +1,61 @@
+.greetingContainer {
+  position: relative;
+  width: 100%; /* Already takes full width */
+  height: 280px;
+  /* Removed aspect-ratio, background, shadow, border-radius */
+  overflow: hidden;
+  /* Removed cursor and transition related to hover effect */
+}
+
+.canvasContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* Ensure canvas inherits size correctly */
+.canvasContainer canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.textOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+  text-align: center;
+  padding: 1.5rem;
+  /* Removed background gradient */
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+.greetingText {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 700;
+  margin: 0;
+  color: #e53935;
+  /* Removed text-shadow */
+}
+
+.subText {
+  font-size: clamp(0.9rem, 2.5vw, 1.3rem);
+  font-weight: 500;
+  margin: 0.3rem 0 0 0;
+  color: #c62828;
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.4); /* Keeping this subtle shadow for subtext readability */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

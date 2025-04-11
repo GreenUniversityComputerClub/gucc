@@ -1,18 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sun, Moon } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const pathname = usePathname();
+
+  // useEffect(() => {
+   
+  //   if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+  //     setIsDarkMode(true);
+  //     document.documentElement.classList.add("dark");
+  //   }
+  // }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    if (!isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
   };
 
   const isActive = (path: string) => {
@@ -48,8 +66,8 @@ export function Navbar() {
             Events
           </Link>
           <Link
-            href="/executives"
-            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/executives") ? "text-primary" : ""}`}
+            href="/executives/2025"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/executives/2025") ? "text-primary" : ""}`}
           >
             Executives
           </Link>
@@ -60,19 +78,18 @@ export function Navbar() {
           </Button> */}
         </nav>
 
-        {/* Mobile Menu Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          onClick={toggleMenu}
-        >
-          {isMenuOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
-        </Button>
+        {/* Dark Mode & Mobile Menu Button */}
+        <div className="flex items-center space-x-3">
+          {/* 🌙 Dark Mode Toggle */}
+          <Button variant="ghost" size="icon" onClick={toggleDarkMode}>
+            {isDarkMode ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+          </Button>
+
+          {/* ☰ Mobile Menu Button */}
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleMenu}>
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </Button>
+        </div>
       </div>
 
       {/* Mobile Navigation */}
@@ -94,7 +111,7 @@ export function Navbar() {
               Events
             </Link>
             <Link
-              href="/executives"
+              href="/executives/2025"
               className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/executives") ? "text-primary" : ""}`}
               onClick={() => setIsMenuOpen(false)}
             >
