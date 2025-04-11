@@ -165,3 +165,30 @@ body {
     background-color 0.3s,
     color 0.3s;
 }
+
+/* Marquee animations for collaboration scroll */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.33%);
+  }
+}
+
+@keyframes marquee2 {
+  0% {
+    transform: translateX(33.33%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
+
+.animate-marquee2 {
+  animation: marquee2 20s linear infinite;
+}

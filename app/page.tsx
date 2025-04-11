@@ -11,6 +11,7 @@ import { CalendarDays, Users, Award, BookOpen } from "lucide-react";
 import { AnimatedStat } from "./component";
 import eventsData from "@/data/events.json";
 import { EventCard } from "./events/page";
+import { CollaborationScroll } from "./components/CollaborationScroll";
 
 const upcomingEvents = eventsData.filter(
   (event) => new Date(event.date) > new Date(),
@@ -208,6 +209,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Club Collaborations Scroll Section */}
+      <CollaborationScroll />
+
       {/* Featured Events Section */}
       <section className="w-full">
         <div className="container px-6">
@@ -230,6 +234,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      
       <div className="flex justify-center m-12">
         <Button
           asChild
