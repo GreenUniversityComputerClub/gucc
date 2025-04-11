@@ -1,0 +1,298 @@
+.container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fff5e6 0%, #ffe0cc 100%);
+  overflow: hidden;
+}
+
+.canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  padding: 2rem;
+  color: #333;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 4rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  color: #d32f2f;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.subtitle {
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 3rem;
+  color: #666;
+}
+
+.festivalInfo {
+  margin-bottom: 4rem;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.card h3 {
+  color: #d32f2f;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #ffccbc;
+  padding-bottom: 0.5rem;
+}
+
+.card p {
+  line-height: 1.6;
+  color: #444;
+}
+
+/* Cultural Elements */
+.culturalElements {
+  margin: 4rem 0;
+}
+
+.culturalElements h2 {
+  text-align: center;
+  color: #d32f2f;
+  font-size: 2rem;
+  margin-bottom: 2rem;
+}
+
+.elementsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.elementCard {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 15px;
+  padding: 2rem;
+  text-align: center;
+  transition: transform 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.elementCard:hover {
+  transform: translateY(-5px);
+}
+
+.elementIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.elementCard h3 {
+  color: #d32f2f;
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+}
+
+.elementCard p {
+  color: #444;
+  line-height: 1.5;
+}
+
+/* Timeline Styles */
+.timelineSection {
+  margin-top: 4rem;
+  padding: 2rem 0;
+}
+
+.timelineTitle {
+  text-align: center;
+  font-size: 2.5rem;
+  color: #d32f2f;
+  margin-bottom: 3rem;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.timeline {
+  position: relative;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+.timeline::after {
+  content: "";
+  position: absolute;
+  width: 6px;
+  background: #d32f2f;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 3px;
+}
+
+.timelineItem {
+  padding: 10px 40px;
+  position: relative;
+  width: 50%;
+  box-sizing: border-box;
+}
+
+.timelineContent {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.timelineContent:hover {
+  transform: translateY(-5px);
+}
+
+.timelineDot {
+  width: 20px;
+  height: 20px;
+  background: #d32f2f;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  right: -50px;
+  transform: translateY(-50%);
+  z-index: 1;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.right .timelineDot {
+  left: -50px;
+}
+
+.timelineYear {
+  display: inline-block;
+  padding: 5px 15px;
+  background: #d32f2f;
+  color: white;
+  border-radius: 20px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.timelineEventTitle {
+  color: #d32f2f;
+  margin: 10px 0;
+  font-size: 1.3rem;
+}
+
+.timelineDescription {
+  color: #444;
+  line-height: 1.6;
+}
+
+.left {
+  left: 0;
+}
+
+.right {
+  left: 50%;
+}
+
+/* Modern Celebrations Section */
+.celebrations {
+  margin: 4rem 0;
+}
+
+.celebrations h2 {
+  text-align: center;
+  color: #d32f2f;
+  font-size: 2rem;
+  margin-bottom: 2rem;
+}
+
+.celebrationCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.celebrationCard {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.celebrationCard:hover {
+  transform: translateY(-5px);
+}
+
+.celebrationCard h3 {
+  color: #d32f2f;
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #ffccbc;
+  padding-bottom: 0.5rem;
+}
+
+.celebrationCard p {
+  color: #444;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 3rem;
+  }
+
+  .subtitle {
+    font-size: 1.5rem;
+  }
+
+  .timeline::after {
+    left: 31px;
+  }
+
+  .timelineItem {
+    width: 100%;
+    padding-left: 70px;
+    padding-right: 25px;
+  }
+
+  .right {
+    left: 0;
+  }
+
+  .timelineDot {
+    left: 15px;
+    right: auto;
+  }
+
+  .elementsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .celebrationCards {
+    grid-template-columns: 1fr;
+  }
+}
