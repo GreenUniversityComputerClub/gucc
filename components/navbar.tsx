@@ -66,8 +66,8 @@ export function Navbar() {
             Events
           </Link>
           <Link
-            href="/executives"
-            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/executives") ? "text-primary" : ""}`}
+            href="/executives/2025"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/executives/2025") ? "text-primary" : ""}`}
           >
             Executives
           </Link>
@@ -111,7 +111,7 @@ export function Navbar() {
               Events
             </Link>
             <Link
-              href="/executives"
+              href="/executives/2025"
               className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/executives") ? "text-primary" : ""}`}
               onClick={() => setIsMenuOpen(false)}
             >
