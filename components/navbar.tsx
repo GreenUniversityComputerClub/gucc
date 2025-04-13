@@ -12,13 +12,13 @@ export function Navbar() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const pathname = usePathname();
 
-  // useEffect(() => {
+  useEffect(() => {
    
-  //   if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-  //     setIsDarkMode(true);
-  //     document.documentElement.classList.add("dark");
-  //   }
-  // }, []);
+    if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      setIsDarkMode(true);
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -61,7 +61,7 @@ export function Navbar() {
           </Link>
           <Link
             href="/events"
-            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/events") ? "text-primary" : ""}`}
+            className={`text-sm font-medium transition-colors hover:text-primary ${pathname?.startsWith("/events") ? "text-primary" : ""}`}
           >
             Events
           </Link>
@@ -105,7 +105,7 @@ export function Navbar() {
             </Link>
             <Link
               href="/events"
-              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/events") ? "text-primary" : ""}`}
+              className={`text-sm font-medium transition-colors hover:text-primary ${pathname?.startsWith("/events") ? "text-primary" : ""}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Events

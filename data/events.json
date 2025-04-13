@@ -515,7 +515,8 @@
     "guest": "Keynote Speaker: Md. Nure Alam Siddiq, Co-Founder & CEO, bongoDev, Software Engineering Manager, Optimizely\n\nAll Faculty Members and Students",
     "year": 2024,
     "organizer": "GUCC & bongoDev",
-    "category": "Webinar"
+    "category": "Webinar",
+    "isUpcoming": false
   },
   {
     "sl": 48,
@@ -526,7 +527,8 @@
     "guest": "Chief Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSpecial Guest: Prof. Dr. MD. Ahsan Habib, Professor, Dept of CSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2025,
     "organizer": "GUCC",
-    "category": "Orientation"
+    "category": "Orientation",
+    "isUpcoming": true
   },
   {
     "sl": 49,
@@ -537,7 +539,8 @@
     "guest": "Keynote Speaker: Md. Nure Alam Siddiq, Co-Founder & CEO, bongoDev, Software Engineering Manager, Optimizely\n\nKamrul Hasan, Mentor, bongoDev, Software Engineer, Optimizely\n\nChief Guest: Prof. Dr. MD. Ahsan Habib, Immediate Past Chair, IEEE CS BDC\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2025,
     "organizer": "GUCC & bongoDev",
-    "category": "Seminar"
+    "category": "Seminar",
+    "isUpcoming": true
   },
   {
     "sl": 50,
@@ -549,7 +552,8 @@
     "guest": "Keynote Speaker: Ananya Zaman, Editor in Chief, PC Builder Bangladesh\n\nCheif Guest: Prof. Dr. Muhammad Shorif Uddin, Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nKhaza Md Anas Khan, Country Manager, GIGA-BYTE Technology CO. LTD\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2025,
     "organizer": "GUCC & GUCC Virtual Gaming Society",
-    "category": "Competition"
+    "category": "Competition",
+    "isUpcoming": true
   },
 
   {
@@ -569,8 +573,9 @@
     "participants": 80,
     "guest": "Chief Guest: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB\n\nSpecial Guest: Dr. Md. Mostafijur Rahman, Chairperson, Dept. of SWE, GUB,\n\nSession Chair: Mr. Md. Monirul Islam, Assistant Professor, Dept. of CSE, GUB",
     "year": 2025,
-    "organizer": "GUCC & GUB Competitive Programming Arena",
-    "category": "Competition"
+    "organizer": "GUB Programming Arena & GUB Competitive Programming Arena",
+    "category": "Competition",
+    "isUpcoming": false
   }
 
 
