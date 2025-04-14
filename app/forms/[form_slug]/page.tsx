@@ -2,14 +2,16 @@ import { notFound } from "next/navigation";
 import Head from "next/head";
 import formsData from "@/data/forms.json";
 
+// Change the type so that params is a Promise that resolves to an object with form_slug
 type Params = { 
-  params: { 
+  params: Promise<{ 
     form_slug: string; 
-  }; 
+  }>; 
 };
 
 export default async function FormPage({ params }: Params) {
-  const { form_slug } = await Promise.resolve(params);
+  // Await params directly (no need for Promise.resolve)
+  const { form_slug } = await params;
   const form = formsData.find((f) => f.slug === form_slug);
 
   if (!form) {
