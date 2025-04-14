@@ -69,14 +69,13 @@ function ContestTableRow({ contest }: { contest: Contest }) {
         </div>
       </TableCell>
       <TableCell>{bestPerformance.rank}</TableCell>
-      <TableCell>{bestPerformance.solved}</TableCell>
     </TableRow>
   );
 }
 
 export default function ContestsPage() {
   // Only show contests where GUBIAN participated (has teams)
-  const contests = (contestsData.contests as Contest[]).filter(
+  const contests = (contestsData.contests as unknown as Contest[]).filter(
     (contest) => contest.teams?.length > 0
   );
 
@@ -99,7 +98,6 @@ export default function ContestsPage() {
               <TableHead>Contest</TableHead>
               <TableHead>Teams</TableHead>
               <TableHead>Best Rank</TableHead>
-              <TableHead>Best Solved</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

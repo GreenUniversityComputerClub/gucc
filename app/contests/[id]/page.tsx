@@ -35,7 +35,7 @@ interface Contest {
 
 export default async function ContestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const contest = (contestsData.contests as Contest[]).find(
+  const contest = (contestsData.contests as unknown as Contest[]).find(
     (c) => c.id === parseInt(id)
   );
 

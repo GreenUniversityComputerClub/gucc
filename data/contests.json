@@ -1,96 +1,28 @@
 {
   "contests": [
     {
-      "id": 50,
-      "type": "IUPC",
-      "timestamp": "February 22, 2025",
-      "title": "MTB Presents AUST Inter University Programming Contest 2025",
+      "id": 1,
+      "type": "CodeSamurai",
+      "timestamp": "May 14, 2024",
+      "title": "CodeSamurai 2024 at University of Dhaka",
       "teams": [
         {
-          "name": "GUBIAN_Voyagers",
-          "members": ["John Doe", "Jane Smith", "Bob Wilson"],
-          "rank": 15,
-          "solved": 7
+          "name": "Green Thunder",
+          "members": [
+            "Suaeb Ahmed",
+            "Nurul Huda",
+            "Zahin Afsar"
+          ],
+          "rank": 9,
+          "achievement": "Winner Team"
         }
       ],
-      "images": ["/contests/50/team-photo.jpg"],
-      "contestLink": "#",
+      "contestLink": "https://www.facebook.com/share/p/1B5UDSP6BZ/",
       "problemsetLink": "#",
       "standingsLink": "#",
       "editorialLink": "#",
-      "practiceLink": "#",
-      "teamRatings": "#",
-      "authors": "BCS"
-    },
-    {
-      "id": 49,
-      "type": "IUPC",
-      "timestamp": "January 18, 2025",
-      "title": "UIU INTER-UNIVERSITY PROGRAMMING CONTEST 2025",
-      "teams": [
-        {
-          "name": "GUBIAN_Explorers",
-          "members": ["Alice Johnson", "Charlie Brown", "David Lee"],
-          "rank": 12,
-          "solved": 8
-        },
-        {
-          "name": "GUBIAN_Pioneers",
-          "members": ["Eva Green", "Frank White", "Grace Taylor"],
-          "rank": 20,
-          "solved": 6
-        }
-      ],
-      "images": ["/contests/49/team-photo.jpg", "/contests/49/award-ceremony.jpg"],
-      "contestLink": "#",
-      "problemsetLink": "#",
-      "standingsLink": "#",
-      "editorialLink": "#",
-      "authors": "BAPS"
-    },
-    {
-      "id": 48,
-      "type": "IUPC",
-      "timestamp": "January 4, 2025",
-      "title": "MAKI PRESENTS KUET IUPC ONSITE 2025",
-      "contestLink": "#",
-      "problemsetLink": "#",
-      "standingsLink": "#",
-      "editorialLink": "#",
-      "authors": "BAPS"
-    },
-    {
-      "id": 47,
-      "type": "ICPC",
-      "timestamp": "December 7, 2024",
-      "title": "ICPC Dhaka Regional Site 2024",
-      "contestLink": "#",
-      "problemsetLink": "#",
-      "standingsLink": "#",
-      "editorialLink": "#",
-      "authors": "BAPS"
-    },
-    {
-      "id": 46,
-      "type": "ICPC",
-      "timestamp": "November 9, 2024",
-      "title": "ICPC PRELIMINARY DHAKA SITE 2024",
-      "contestLink": "#",
-      "problemsetLink": "#",
-      "standingsLink": "#",
-      "editorialLink": "#",
-      "authors": "BAPS"
-    },
-    {
-      "id": 45,
-      "type": "IUPC",
-      "timestamp": "November 1, 2024",
-      "title": "Inter University Programming Contest | United Group Presents BUET CSE Fest 2024",
-      "contestLink": "#",
-      "problemsetLink": "#",
-      "standingsLink": "#",
-      "practiceLink": "#",
-      "authors": "BUET"
+      "authors": "University of Dhaka",
+      "images": ["/contests/1/primary.jpg"]
     }
   ]
 } 
