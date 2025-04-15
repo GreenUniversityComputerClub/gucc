@@ -1,0 +1,90 @@
+[
+    {
+        "sl": 51,
+        "timeline": [
+            {
+                "time": "09:00 AM",
+                "title": "Registration & Welcome",
+                "description": "Participants check-in and receive event kits.",
+                "status": "completed"
+            },
+            {
+                "time": "10:00 AM",
+                "title": "Opening Ceremony",
+                "description": "Inauguration by Chief Guest and Special Guests.",
+                "status": "completed"
+            },
+            {
+                "time": "10:30 AM",
+                "title": "Round 1: Logic Battle",
+                "description": "Individual problem-solving round.",
+                "status": "completed"
+            },
+            {
+                "time": "12:00 PM",
+                "title": "Break & Refreshments",
+                "description": "Snacks and networking opportunity.",
+                "status": "canceled"
+            },
+            {
+                "time": "01:00 PM",
+                "title": "Round 2: Team IDPC",
+                "description": "Team programming challenge begins.",
+                "status": "ongoing"
+            },
+            {
+                "time": "03:00 PM",
+                "title": "IDMO Math Round",
+                "description": "Individual Math Olympiad starts.",
+                "status": "upcoming"
+            },
+            {
+                "time": "04:30 PM",
+                "title": "Break",
+                "description": "Short break before final activities.",
+                "status": "upcoming"
+            },
+            {
+                "time": "05:00 PM",
+                "title": "Prize Giving & Closing Ceremony",
+                "description": "Winners announced and certificates distributed.",
+                "status": "upcoming"
+            }
+        ]
+    },
+    {
+        "sl": 52,
+        "timeline": [
+            {
+                "time": "08:30 AM",
+                "title": "Early Bird Registration",
+                "description": "Early registration for VIP guests.",
+                "status": "completed"
+            },
+            {
+                "time": "09:30 AM",
+                "title": "Keynote Speech",
+                "description": "Inspirational speech by industry leader.",
+                "status": "completed"
+            },
+            {
+                "time": "11:00 AM",
+                "title": "Workshop: AI Trends",
+                "description": "Hands-on workshop on AI advancements.",
+                "status": "completed"
+            },
+            {
+                "time": "12:30 PM",
+                "title": "Lunch Break",
+                "description": "Networking lunch with participants.",
+                "status": "completed"
+            },
+            {
+                "time": "02:00 PM",
+                "title": "Panel Discussion",
+                "description": "Expert panel discussing future tech.",
+                "status": "upcoming"
+            }
+        ]
+    }
+]
