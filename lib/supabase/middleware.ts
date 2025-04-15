@@ -41,9 +41,7 @@ export async function updateSession(request: NextRequest) {
 
   if (
     !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    !isPublicPath(request.nextUrl.pathname)
+    isProtectedPath(request.nextUrl.pathname)
   ) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
@@ -67,10 +65,13 @@ export async function updateSession(request: NextRequest) {
   return supabaseResponse
 }
 
-const PUBLIC_PATHS = ['/executives.*', '/contests.*', '/events.*', '/collaborations.*', '^/$'];
+const PROTECTED_PATHS = [
+  // '/executives.*', '/contests.*', '/events.*', '/collaborations.*', '/forms.*', '^/$'
+  '/admin.*'
+];
 
-function isPublicPath(path: string) {
-  return PUBLIC_PATHS.some((p) => {
+function isProtectedPath(path: string) {
+  return PROTECTED_PATHS.some((p) => {
     // Match wildcard paths
     const regex = new RegExp(p)
     return regex.test(path)
