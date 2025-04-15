@@ -10,7 +10,7 @@ import {
 import { CalendarDays, Users, Award, BookOpen } from "lucide-react";
 import { AnimatedStat } from "./component";
 import eventsData from "@/data/events.json";
-import { EventCard } from "./events/page";
+import { EventCard } from "@/components/ui/event-card";
 import { CollaborationScroll } from "./components/collaboration-scroll";
 import PohelaBoishakhGreeting from "@/components/PohelaBoishakhGreeting";
 

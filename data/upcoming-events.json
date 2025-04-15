@@ -53,7 +53,7 @@
         ]
     },
     {
-        "sl": 50,
+        "sl": 52,
         "timeline": [
             {
                 "time": "08:30 AM",
@@ -83,76 +83,6 @@
                 "time": "02:00 PM",
                 "title": "Panel Discussion",
                 "description": "Expert panel discussing future tech.",
-                "status": "upcoming"
-            }
-        ]
-    },
-    {
-        "sl": 49,
-        "timeline": [
-            {
-                "time": "10:00 AM",
-                "title": "Startup Pitch Session",
-                "description": "Startups pitching their innovative ideas.",
-                "status": "completed"
-            },
-            {
-                "time": "11:30 AM",
-                "title": "Networking Coffee",
-                "description": "Casual networking session.",
-                "status": "completed"
-            },
-            {
-                "time": "01:00 PM",
-                "title": "Product Demo",
-                "description": "Live demonstration of new products.",
-                "status": "completed"
-            },
-            {
-                "time": "02:30 PM",
-                "title": "Q&A Session",
-                "description": "Audience questions and answers.",
-                "status": "canceled"
-            },
-            {
-                "time": "04:00 PM",
-                "title": "Closing Remarks",
-                "description": "Final words and thank you.",
-                "status": "upcoming"
-            }
-        ]
-    },
-    {
-        "sl": 48,
-        "timeline": [
-            {
-                "time": "09:00 AM",
-                "title": "Welcome Address",
-                "description": "Opening welcome and agenda overview.",
-                "status": "completed"
-            },
-            {
-                "time": "10:30 AM",
-                "title": "Tech Talk",
-                "description": "Deep dive into emerging technologies.",
-                "status": "completed"
-            },
-            {
-                "time": "12:00 PM",
-                "title": "Interactive Session",
-                "description": "Hands-on interactive activities.",
-                "status": "completed"
-            },
-            {
-                "time": "01:30 PM",
-                "title": "Breakout Session",
-                "description": "Small group discussions.",
-                "status": "upcoming"
-            },
-            {
-                "time": "03:00 PM",
-                "title": "Final Presentation",
-                "description": "Summary and key takeaways.",
                 "status": "upcoming"
             }
         ]

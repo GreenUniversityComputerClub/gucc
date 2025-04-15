@@ -21,10 +21,10 @@ interface Event {
  * Retrieves all events by combining data from eventsData and upcomingEventsData.
  * @returns An array of Event objects.
  */
-export function getAllEvents(): Event[] {
-    const allEvents: Event[] = [...eventsData, ...upcomingEventsData];
-    return allEvents;
-}
+// export function getAllEvents(): Event[] {
+//     const allEvents: Event[] = [...eventsData, ...upcomingEventsData];
+//     return allEvents;
+// }
 
 /**
  * Parses guest information from a text string.

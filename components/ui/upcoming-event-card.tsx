@@ -18,8 +18,8 @@ export function UpcomingEventCard({
         name: string;
         date: string;
         endDate: string;
-        time: string;
-        participants: number | null;
+        time?: string;
+        participants?: number | null;
         guest: string;
         year: number;
         organizer: string;
