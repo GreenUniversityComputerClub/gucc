@@ -5,8 +5,13 @@
     "url": "https://docs.google.com/forms/d/e/1FAIpQLSfBZ3p_n202V8KNAZuOkjdVi17mJVuz4kZbNvq673fub8XEtw/viewform?embedded=true"
   },
   {
-    "slug": "idea",
-    "title": "Alumni Survey Forms",
+    "slug": "alumni-survey-forms",
+    "title": "Alumni Survey Form",
     "url": "https://docs.google.com/forms/d/e/1FAIpQLSf0NeFqEHdQvjYYXWvr40r2O53e_XY4uoVJdHQbokyt-5uFPw/viewform"
+  },
+  {
+    "slug": "bengali-culture-quiz",
+    "title": "Bengali Culture Quiz",
+    "url": "https://forms.gle/FeGQTQx4qLwG88Ef6"
   }
 ]
