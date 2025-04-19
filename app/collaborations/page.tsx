@@ -85,7 +85,7 @@ export default function CollaborationsPage() {
               We're always open to new partnerships that align with our mission of empowering students in technology.
             </p>
             <Button asChild size="lg">
-              <a href="mailto:contact@gucc.org">Get in Touch</a>
+              <a href="mailto:gucc@green.edu.bd">Get in Touch</a>
             </Button>
           </div>
         </div>
