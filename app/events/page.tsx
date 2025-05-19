@@ -9,30 +9,19 @@ import eventsData from "@/data/events.json";
 import { CalendarIcon, UserIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { EventsFilter } from "./EventsFilter";
 
-const events = eventsData;
+export type EventType = typeof eventsData[number];
 
 export default function EventsPage() {
-  return (
-    <div className="container mt-8 mb-12">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {events
-          .sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-          )
-          .map((event, index) => (
-            <EventCard key={index} event={event} index={index} />
-          ))}
-      </div>
-    </div>
-  );
+  return <EventsFilter events={eventsData} />;
 }
 
 export function EventCard({
   event,
   index,
 }: {
-  event: (typeof eventsData)[number];
+  event: EventType;
   index: number;
 }) {
   const slug = event.name
