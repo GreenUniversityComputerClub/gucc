@@ -51,10 +51,10 @@ export default function EventDetailsPage() {
         {/* Back Button */}
         <button
           onClick={() => router.back()}
-          className="mb-6 flex items-center gap-2 py-2"
+          className="mb-6 flex items-center gap-2 py-2 cursor-pointer"
         >
           <ArrowLeft className="h-5 w-5 text-primary " />
-          <span className="text-sm font-medium text-gray-700 hover:text-primary transition-colors duration-200">Back to event page</span>
+          <span className="text-sm font-medium text-gray-700 hover:text-primary transition-colors duration-200 cursor-pointer">Back to event page</span>
         </button>
 
         {/* Hero Section */}
@@ -63,12 +63,12 @@ export default function EventDetailsPage() {
             <span className="inline-block px-4 py-1 rounded-full bg-primary text-white text-sm font-medium mb-2">
               {event.category}
             </span>
-            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-2 max-w-[90%]">
+            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-2 max-w-[90%]">
               {event.name}
             </h1>
             <div className="flex items-center">
               <Building2 className="h-5 w-5 mr-2 text-gray-600" />
-              <p className="text-gray-700 text-xl font-medium">
+              <p className="text-gray-700 dark:text-gray-100 text-xl font-medium">
                 {event.organizer}
               </p>
             </div>
