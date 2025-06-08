@@ -13,9 +13,10 @@ import eventsData from "@/data/events.json";
 import { EventCard } from "./events/page";
 import { CollaborationScroll } from "./components/collaboration-scroll";
 import PohelaBoishakhGreeting from "@/components/PohelaBoishakhGreeting";
+import { HeroSection } from "@/components/hero";
 
 const upcomingEvents = eventsData.filter(
-  (event) => new Date(event.date) > new Date(),
+  (event) => new Date(event.date) > new Date()
 );
 // Events of this year
 const recentEvents = eventsData.filter((event) => {
@@ -28,38 +29,11 @@ const recentEvents = eventsData.filter((event) => {
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-
-            {new Date().getMonth() === 3 && new Date().getDate() === 14 && <PohelaBoishakhGreeting />}
+      {new Date().getMonth() === 3 && new Date().getDate() === 14 && (
+        <PohelaBoishakhGreeting />
+      )}
       {/* Hero Section */}
-      <section className="w-full py-16 md:py-24 lg:py-32 bg-gradient-to-b from-primary/20 via-primary/10 to-background relative overflow-hidden">
-        {/* <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" /> */}
-        <div className="container relative px-4 md:px-6">
-          <div className="flex flex-col items-center space-y-6 text-center">
-            <div className="space-y-4">
-              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-                Green University Computer Club
-              </h1>
-              
-              <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl text-lg">
-                Empowering students to excel in the world of technology
-              </p>
-            </div>
-
-
-            {/* Hero Section Buttons */}
-            {/* <div className="space-x-4">
-              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 hover:scale-95 transition-all duration-300">
-                <Link href="/events">Explore Events</Link>
-              </Button>
-              <Button variant="outline" size="lg" asChild className="border-primary/20 hover:bg-primary/10 hover:scale-95 transition-all duration-300">
-                <Link href="https://forms.gle/example" target="_blank" rel="noopener noreferrer">
-                  Join Us
-                </Link>
-              </Button>
-            </div> */}
-          </div>
-        </div>
-      </section>
+      <HeroSection />
 
       {/* About Section */}
       <section className="w-full py-16 md:py-24 lg:py-32">
@@ -231,15 +205,16 @@ export default function Home() {
             {eventsData
               .sort(
                 (a, b) =>
-                  new Date(b.date).getTime() - new Date(a.date).getTime(),
-              ).slice(0, 6)
+                  new Date(b.date).getTime() - new Date(a.date).getTime()
+              )
+              .slice(0, 6)
               .map((event, index) => (
                 <EventCard key={index} event={event} index={index} />
               ))}
           </div>
         </div>
       </section>
-      
+
       <div className="flex justify-center m-12">
         <Button
           asChild

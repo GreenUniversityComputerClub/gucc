@@ -12,14 +12,6 @@ export function Navbar() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const pathname = usePathname();
 
-  // useEffect(() => {
-   
-  //   if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-  //     setIsDarkMode(true);
-  //     document.documentElement.classList.add("dark");
-  //   }
-  // }, []);
-
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -42,13 +34,19 @@ export function Navbar() {
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center space-x-2">
           <Image
-            src="/gucc-logo.png"
+            src="/android-chrome-192x192.png"
             alt="GUCC Logo"
-            width={220}
-            height={40}
-            // className="h-10 w-auto"
+            width={45}
+            height={45}
           />
-          {/* <span className="hidden font-bold sm:inline-block">Green University Computer Club</span> */}
+          <div className="hidden sm:block">
+            <div className="text-xl font-bold">
+              <p className="text-lg text-green-600 leading-[18px]">GREEN UNIVERSITY</p>
+              <p className="text-sm text-black dark:text-blue-100">
+                COMPUTER CLUB
+              </p>
+            </div>
+          </div>
         </Link>
 
         {/* Desktop Navigation */}
@@ -82,12 +80,25 @@ export function Navbar() {
         <div className="flex items-center space-x-3">
           {/* 🌙 Dark Mode Toggle */}
           <Button variant="ghost" size="icon" onClick={toggleDarkMode}>
-            {isDarkMode ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+            {isDarkMode ? (
+              <Sun className="h-6 w-6" />
+            ) : (
+              <Moon className="h-6 w-6" />
+            )}
           </Button>
 
           {/* ☰ Mobile Menu Button */}
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleMenu}>
-            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={toggleMenu}
+          >
+            {isMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
           </Button>
         </div>
       </div>
