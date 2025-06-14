@@ -17,7 +17,7 @@ const socials = [
   },
   {
     label: 'LinkedIn',
-    url: 'https://www.linkedin.com/company/greenuniversitycomputerclub',
+    url: 'https://www.linkedin.com/company/green-university-computer-club-gucc/',
     color: '#0077B5',
     icon: Linkedin,
   },
