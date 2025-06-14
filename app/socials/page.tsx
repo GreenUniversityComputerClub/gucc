@@ -11,13 +11,13 @@ const socials = [
   },
   {
     label: 'Facebook Group',
-    url: 'https://www.facebook.com/groups/gucc.green.edu.bd',
+    url: 'https://www.facebook.com/groups/1455061688068622',
     color: '#1877F3',
     icon: Users,
   },
   {
     label: 'LinkedIn',
-    url: 'https://www.linkedin.com/company/green-university-computer-club-gucc/',
+    url: 'https://www.linkedin.com/company/greenuniversitycomputerclub',
     color: '#0077B5',
     icon: Linkedin,
   },
