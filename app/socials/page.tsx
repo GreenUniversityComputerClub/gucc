@@ -11,7 +11,7 @@ const socials = [
   },
   {
     label: 'Facebook Group',
-    url: 'https://www.facebook.com/groups/gucc.green.edu.bd',
+    url: 'https://www.facebook.com/groups/1455061688068622',
     color: '#1877F3',
     icon: Users,
   },
