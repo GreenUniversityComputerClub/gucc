@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Facebook, Linkedin, Mail, ChevronRight } from "lucide-react";
+import { Facebook, Linkedin, Mail, ChevronRight, Youtube, Instagram } from "lucide-react";
 import Image from "next/image";
 import { Contributors } from "./contributors";
 
@@ -90,6 +90,18 @@ export function Footer() {
                 >
                   <Mail size={20} />
                 </Link>
+                <Link
+                  href="https://www.instagram.com/gucc__official/"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Instagram size={20} />
+                </Link>
+                <Link
+                  href="https://www.youtube.com/@GUB.ComputerClub"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Youtube size={20} />
+                </Link>                               
               </div>
             </div>
           </div>
