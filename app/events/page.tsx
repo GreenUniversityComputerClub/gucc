@@ -72,7 +72,7 @@ export default function EventsPage() {
   );
 }
 
-function EventCard({
+export function EventCard({
   event,
   index,
 }: {
