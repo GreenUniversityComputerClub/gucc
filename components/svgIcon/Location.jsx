@@ -3,7 +3,7 @@ import React from "react";
 export default function Location() {
   return (
     <svg
-      className="w-6 h-6 text-gray-400 mr-3"
+      className="w-6 h-6 text-muted-foreground mr-3"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
