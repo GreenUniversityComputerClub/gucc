@@ -23,7 +23,7 @@ interface Team {
 
 interface Contest {
   id: number;
-  type: "IUPC" | "ICPC" | "NCPC";
+  type: "IUPC" | "ICPC" | "NCPC" | "IDPC";
   timestamp: string;
   title: string;
   teams: Team[];
