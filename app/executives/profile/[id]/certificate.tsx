@@ -1,6 +1,6 @@
 import * as React from "react";
 
-const SvgIcon = (props: { name: string; position: string}) => (
+const SvgIcon = (props: { name: string; position: string }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="842"
@@ -2816,10 +2816,11 @@ const SvgIcon = (props: { name: string; position: string}) => (
       fontFamily="Pinyon Script"
       fontSize="60"
       letterSpacing="0em"
-       x={(300 - props.name.length * 7)} y="309.87"
-      style={{ whiteSpace: "pre" }}
+      x="50%"
+      y="309.87"
+      style={{ whiteSpace: "pre", textAnchor: "middle" }}
     >
-        {props.name}
+      {props.name}
     </text>
     <path
       fill="#5D3006"
@@ -2900,11 +2901,12 @@ const SvgIcon = (props: { name: string; position: string}) => (
       fontSize="14.5"
       fontWeight="bold"
       letterSpacing="0em"
-      style={{ whiteSpace: "pre" }}
-       x="349.664" y="368.198"
+      style={{ whiteSpace: "pre", textAnchor: "middle" }}
+      x="50%"
+      y="368.198"
     >
       {/* <tspan> */}
-        {props.position}
+      {props.position}
       {/* </tspan> */}
     </text>
     <path
