@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 export default function Time({ className }: { className?: string }) {
   return (
     <svg
-      className={cn("w-6 h-6 text-gray-400 mr-3", className)}
+      className={cn("w-6 h-6 text-muted-foreground mr-3", className)}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"

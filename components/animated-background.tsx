@@ -20,21 +20,24 @@ export const AnimatedBackground = () => {
 
     // Create particles
     const particlesGeometry = new THREE.BufferGeometry();
-    const particlesCount = 2000;
+    const particlesCount = 2500; // Increased particle count
     const posArray = new Float32Array(particlesCount * 3);
 
     for (let i = 0; i < particlesCount * 3; i++) {
-      posArray[i] = (Math.random() - 0.5) * 3;
+      posArray[i] = (Math.random() - 0.5) * 4; // Slightly larger spread
     }
 
     particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
 
-    // Material
+    // Check if dark mode is active
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    
+    // Material with theme-aware colors
     const particlesMaterial = new THREE.PointsMaterial({
-      size: 0.005,
-      color: '#15803d',
+      size: 0.006, // Slightly larger particles
+      color: isDarkMode ? '#22c55e' : '#15803d', // Brighter green in dark mode
       transparent: true,
-      opacity: 0.9,
+      opacity: isDarkMode ? 0.8 : 0.9,
       blending: THREE.AdditiveBlending,
       sizeAttenuation: true,
     });
@@ -42,6 +45,28 @@ export const AnimatedBackground = () => {
     // Mesh
     const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
     scene.add(particlesMesh);
+
+    // Add a second layer of particles for more depth
+    const particlesGeometry2 = new THREE.BufferGeometry();
+    const posArray2 = new Float32Array(particlesCount * 3);
+
+    for (let i = 0; i < particlesCount * 3; i++) {
+      posArray2[i] = (Math.random() - 0.5) * 6; // Larger spread for background layer
+    }
+
+    particlesGeometry2.setAttribute('position', new THREE.BufferAttribute(posArray2, 3));
+
+    const particlesMaterial2 = new THREE.PointsMaterial({
+      size: 0.004,
+      color: isDarkMode ? '#16a34a' : '#166534', // Different shade for depth
+      transparent: true,
+      opacity: isDarkMode ? 0.4 : 0.6,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true,
+    });
+
+    const particlesMesh2 = new THREE.Points(particlesGeometry2, particlesMaterial2);
+    scene.add(particlesMesh2);
 
     // Position camera
     camera.position.z = 2;
@@ -61,12 +86,17 @@ export const AnimatedBackground = () => {
     const animate = () => {
       requestAnimationFrame(animate);
 
-      particlesMesh.rotation.x += 0.0005;
-      particlesMesh.rotation.y += 0.0005;
+      // Animate both particle layers with different speeds
+      particlesMesh.rotation.x += 0.0003;
+      particlesMesh.rotation.y += 0.0004;
+      particlesMesh2.rotation.x += 0.0002;
+      particlesMesh2.rotation.y += 0.0003;
 
-      // Smooth mouse movement
-      particlesMesh.rotation.x += (mouseY * 0.5 - particlesMesh.rotation.x) * 0.05;
-      particlesMesh.rotation.y += (mouseX * 0.5 - particlesMesh.rotation.y) * 0.05;
+      // Smooth mouse movement for both layers
+      particlesMesh.rotation.x += (mouseY * 0.3 - particlesMesh.rotation.x) * 0.03;
+      particlesMesh.rotation.y += (mouseX * 0.3 - particlesMesh.rotation.y) * 0.03;
+      particlesMesh2.rotation.x += (mouseY * 0.2 - particlesMesh2.rotation.x) * 0.02;
+      particlesMesh2.rotation.y += (mouseX * 0.2 - particlesMesh2.rotation.y) * 0.02;
 
       renderer.render(scene, camera);
     };
@@ -82,14 +112,31 @@ export const AnimatedBackground = () => {
 
     window.addEventListener('resize', handleResize);
 
+    // Handle theme changes
+    const handleThemeChange = () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      particlesMaterial.color.setHex(isDark ? 0x22c55e : 0x15803d);
+      particlesMaterial.opacity = isDark ? 0.8 : 0.9;
+      particlesMaterial2.color.setHex(isDark ? 0x16a34a : 0x166534);
+      particlesMaterial2.opacity = isDark ? 0.4 : 0.6;
+    };
+
+    // Listen for theme changes
+    const observer = new MutationObserver(handleThemeChange);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
     // Cleanup
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
+      observer.disconnect();
       containerRef.current?.removeChild(renderer.domElement);
       scene.remove(particlesMesh);
+      scene.remove(particlesMesh2);
       particlesGeometry.dispose();
+      particlesGeometry2.dispose();
       particlesMaterial.dispose();
+      particlesMaterial2.dispose();
       renderer.dispose();
     };
   }, []);
