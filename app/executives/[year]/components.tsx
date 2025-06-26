@@ -192,25 +192,25 @@ export function ExecutiveCard({
         
         {/* Social Media Indicator */}
         {hasSocialLinks && (
-          <div className="absolute top-2 right-2 opacity-60 group-hover:opacity-0 transition-opacity duration-300">
-            <Share2 className="h-3 w-3 text-muted-foreground" />
+          <div className="absolute top-3 right-3 opacity-70 group-hover:opacity-0 transition-opacity duration-300">
+            <Share2 className="h-4 w-4 text-muted-foreground" />
           </div>
         )}
       </Card>
 
       {/* Social Media Links - Enhanced for Dark Mode */}
       {hasSocialLinks && (
-        <div className="absolute bottom-2 left-2 ml-3 bg-card/95 backdrop-blur-sm border border-border/50 p-2 rounded-lg flex space-x-2 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg hover:shadow-xl transform group-hover:scale-105">
+        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 bg-card/95 backdrop-blur-sm border border-border/50 px-3 py-2 rounded-full flex space-x-1 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg hover:shadow-xl transform group-hover:scale-105 z-10">
           {executive.linkedin && (
             <a
               href={executive.linkedin}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 rounded-md hover:bg-accent transition-all duration-200 group/link hover:scale-110"
+              className="p-1.5 rounded-full hover:bg-accent transition-all duration-200 group/link hover:scale-110"
               title="LinkedIn Profile"
               aria-label={`${executive.name}'s LinkedIn Profile`}
             >
-              <Linkedin className="h-4 w-4 text-muted-foreground group-hover/link:text-[#0077b5] transition-colors" />
+              <Linkedin className="h-3.5 w-3.5 text-muted-foreground group-hover/link:text-[#0077b5] transition-colors" />
             </a>
           )}
           {executive.github && (
@@ -218,11 +218,11 @@ export function ExecutiveCard({
               href={executive.github} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="p-1.5 rounded-md hover:bg-accent transition-all duration-200 group/link hover:scale-110"
+              className="p-1.5 rounded-full hover:bg-accent transition-all duration-200 group/link hover:scale-110"
               title="GitHub Profile"
               aria-label={`${executive.name}'s GitHub Profile`}
             >
-              <Github className="h-4 w-4 text-muted-foreground group-hover/link:text-[#333] dark:group-hover/link:text-[#f0f6fc] transition-colors" />
+              <Github className="h-3.5 w-3.5 text-muted-foreground group-hover/link:text-[#333] dark:group-hover/link:text-[#f0f6fc] transition-colors" />
             </a>
           )}
           {executive.facebook && (
@@ -230,11 +230,11 @@ export function ExecutiveCard({
               href={executive.facebook}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 rounded-md hover:bg-accent transition-all duration-200 group/link hover:scale-110"
+              className="p-1.5 rounded-full hover:bg-accent transition-all duration-200 group/link hover:scale-110"
               title="Facebook Profile"
               aria-label={`${executive.name}'s Facebook Profile`}
             >
-              <Facebook className="h-4 w-4 text-muted-foreground group-hover/link:text-[#1877f2] transition-colors" />
+              <Facebook className="h-3.5 w-3.5 text-muted-foreground group-hover/link:text-[#1877f2] transition-colors" />
             </a>
           )}
           {executive.twitter && (
@@ -242,11 +242,11 @@ export function ExecutiveCard({
               href={executive.twitter}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 rounded-md hover:bg-accent transition-all duration-200 group/link hover:scale-110"
+              className="p-1.5 rounded-full hover:bg-accent transition-all duration-200 group/link hover:scale-110"
               title="Twitter/X Profile"
               aria-label={`${executive.name}'s Twitter/X Profile`}
             >
-              <Twitter className="h-4 w-4 text-muted-foreground group-hover/link:text-[#1da1f2] transition-colors" />
+              <Twitter className="h-3.5 w-3.5 text-muted-foreground group-hover/link:text-[#1da1f2] transition-colors" />
             </a>
           )}
           {executive.mail && (
@@ -254,11 +254,11 @@ export function ExecutiveCard({
               href={`mailto:${executive.mail}`} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="p-1.5 rounded-md hover:bg-accent transition-all duration-200 group/link hover:scale-110"
+              className="p-1.5 rounded-full hover:bg-accent transition-all duration-200 group/link hover:scale-110"
               title="Send Email"
               aria-label={`Send email to ${executive.name}`}
             >
-              <Mail className="h-4 w-4 text-muted-foreground group-hover/link:text-primary transition-colors" />
+              <Mail className="h-3.5 w-3.5 text-muted-foreground group-hover/link:text-primary transition-colors" />
             </a>
           )}
         </div>
