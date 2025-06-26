@@ -4722,7 +4722,7 @@ const Certificate = async (props: {
         />
         <rect
           x={406}
-          y={427}
+          y={415}
           width={64}
           height={64}
           fill="url(#pattern0_3_276)"

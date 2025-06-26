@@ -1,5 +1,16 @@
 import { getExecutivesByYear } from "../../util";
 import Certificate from "./certificate";
+import { Montserrat, Pinyon_Script } from "next/font/google";
+
+const montserrat = Montserrat({
+    subsets: ['latin'],
+    weight: ['400', '500', '600', '700'],
+});
+
+const pinyon_script = Pinyon_Script({
+    subsets: ['latin'],
+    weight: ['400'],
+});
 
 const executives = getExecutivesByYear("2025");
 
