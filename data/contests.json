@@ -23,6 +23,31 @@
       "editorialLink": "#",
       "authors": "University of Dhaka",
       "images": ["/contests/1/primary.jpg"]
+    },
+    {
+      "id": 2,
+      "type": "Hackathon",
+      "timestamp": "Feb 12, 2025",
+      "title": "WebXtreme Hackathon at North South University (NSU)",
+      "teams": [
+        {
+          "name": "Green Thunder",
+          "members": [
+            "Abdur Rahim Sarker (221902011)",
+            "Nurul Huda (221902012)",
+            "Jubayer Al Mamun (221902013)",
+            "Zahin Afsar (221902014)"
+          ],
+          "rank": 2,
+          "achievement": "1st Runner Up"
+        }
+      ],
+      "contestLink": "#",
+      "problemsetLink": "#",
+      "standingsLink": "#",
+      "editorialLink": "#",
+      "authors": "North South University",
+      "images": []
     }
   ]
 } 
