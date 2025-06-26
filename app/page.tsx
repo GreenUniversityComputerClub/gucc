@@ -1,19 +1,18 @@
-import Link from "next/link";
+import PohelaBoishakhGreeting from "@/components/PohelaBoishakhGreeting";
+import { HeroSection } from "@/components/hero";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
+  CardTitle
 } from "@/components/ui/card";
-import { CalendarDays, Users, Award, BookOpen } from "lucide-react";
-import { AnimatedStat } from "./component";
 import eventsData from "@/data/events.json";
-import { EventCard } from "./events/page";
+import { Award, BookOpen, CalendarDays, Users } from "lucide-react";
+import Link from "next/link";
+import { AnimatedStat } from "./component";
 import { CollaborationScroll } from "./components/collaboration-scroll";
-import PohelaBoishakhGreeting from "@/components/PohelaBoishakhGreeting";
-import { HeroSection } from "@/components/hero";
+import { EventCard } from "./events/components";
 
 const upcomingEvents = eventsData.filter(
   (event) => new Date(event.date) > new Date()

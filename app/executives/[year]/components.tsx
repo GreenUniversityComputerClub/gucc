@@ -190,12 +190,6 @@ export function ExecutiveCard({
           </CardHeader>
         </div>
         
-        {/* Social Media Indicator */}
-        {hasSocialLinks && (
-          <div className="absolute top-3 right-3 opacity-70 group-hover:opacity-0 transition-opacity duration-300">
-            <Share2 className="h-4 w-4 text-muted-foreground" />
-          </div>
-        )}
       </Card>
 
       {/* Social Media Links - Enhanced for Dark Mode */}
@@ -580,5 +574,183 @@ export function getRoleIcon(position: string) {
 }
 
 export function getRoleName(position: string) {
-  return position.replace("Development", "Dev");
+  const normalizedPosition = position.toLowerCase();
+  
+  // For presentation purposes, capitalize first letter of each word
+  return position
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+// New component for displaying executive profiles
+export function ExecutiveProfile({ executives }: { executives: import("@/app/executives/util").ExecutiveWithYear[] }) {
+  const [isResizeMode, setIsResizeMode] = useState(false);
+
+  const sortedExecutives = executives.sort((a, b) => {
+    // Sort by year descending (most recent first)
+    return parseInt(b.year) - parseInt(a.year);
+  });
+
+  return (
+    <div className="container py-4 md:py-8">
+      {/* Header with executive's main info */}
+      <div className="mb-8">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="relative">
+            {sortedExecutives[0].avatarUrl ? (
+              <Image
+                src={sortedExecutives[0].avatarUrl}
+                alt={sortedExecutives[0].name}
+                width={120}
+                height={120}
+                className="rounded-full object-cover border-4 border-primary/20"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none";
+                }}
+              />
+            ) : sortedExecutives[0].studentId ? (
+              <Image
+                src={`/executives/${sortedExecutives[0].studentId}.png`}
+                alt={sortedExecutives[0].name}
+                width={120}
+                height={120}
+                className="rounded-full object-cover border-4 border-primary/20"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none";
+                }}
+              />
+            ) : (
+              <div className="w-30 h-30 bg-muted rounded-full flex items-center justify-center border-4 border-primary/20">
+                <User className="h-12 w-12 text-muted-foreground" />
+              </div>
+            )}
+          </div>
+          
+          <div>
+            <h1 className="text-3xl font-bold mb-2">{sortedExecutives[0].name}</h1>
+            <p className="text-xl text-muted-foreground mb-2">
+              Student ID: {sortedExecutives[0].studentId}
+            </p>
+            
+            {/* Social Media Links */}
+            <div className="flex gap-3">
+              {sortedExecutives[0].linkedin && (
+                <a 
+                  href={sortedExecutives[0].linkedin} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  <Linkedin className="h-5 w-5" />
+                </a>
+              )}
+              {sortedExecutives[0].github && (
+                <a 
+                  href={sortedExecutives[0].github} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-800 hover:text-gray-600 transition-colors"
+                >
+                  <Github className="h-5 w-5" />
+                </a>
+              )}
+              {sortedExecutives[0].facebook && (
+                <a 
+                  href={sortedExecutives[0].facebook} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  <Facebook className="h-5 w-5" />
+                </a>
+              )}
+              {sortedExecutives[0].twitter && (
+                <a 
+                  href={sortedExecutives[0].twitter} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-600 transition-colors"
+                >
+                  <Twitter className="h-5 w-5" />
+                </a>
+              )}
+              {sortedExecutives[0].mail && (
+                <a 
+                  href={sortedExecutives[0].mail} 
+                  className="text-red-600 hover:text-red-800 transition-colors"
+                >
+                  <Mail className="h-5 w-5" />
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Executive Positions Timeline */}
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold mb-4">Executive Positions</h2>
+        
+        {sortedExecutives.map((executive, index) => (
+          <Card key={`${executive.year}-${index}`} className="relative">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-xl flex items-center gap-2 mb-2">
+                    {getRoleIcon(executive.position)}
+                    {executive.position}
+                  </CardTitle>
+                  <CardDescription className="text-lg">
+                    <span className="font-semibold">Year:</span> {executive.year}
+                    {executive.campus && (
+                      <span className="ml-4">
+                        <span className="font-semibold">Campus:</span> {executive.campus}
+                      </span>
+                    )}
+                  </CardDescription>
+                </div>
+                
+                {/* Timeline indicator */}
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-primary rounded-full"></div>
+                  <span className="text-sm font-medium">{executive.year}</span>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        ))}
+      </div>
+
+      {/* Statistics */}
+      <div className="mt-8 grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">{executives.length}</CardTitle>
+            <CardDescription>Total Positions Held</CardDescription>
+          </CardHeader>
+        </Card>
+        
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">
+              {Math.max(...executives.map(e => parseInt(e.year))) - Math.min(...executives.map(e => parseInt(e.year))) + 1}
+            </CardTitle>
+            <CardDescription>Years Active</CardDescription>
+          </CardHeader>
+        </Card>
+        
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">
+              {new Set(executives.map(e => e.position.split(' ')[0])).size}
+            </CardTitle>
+            <CardDescription>Different Role Types</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    </div>
+  );
 } 

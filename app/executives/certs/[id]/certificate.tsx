@@ -1,17 +1,34 @@
+'use client'
 import * as React from "react";
 import qrCode from "qrcode";
+import { useEffect, useState } from "react";
 
-const Certificate = async (props: {
+const Certificate =  (props: {
   name: string;
   position: string;
   profileLink: string;
 }) => {
-  const url = await qrCode.toDataURL(props.profileLink, {
-    margin: 2,
-    color: {
-      light: "#0000",
-    },
-  });
+  const [qrCodeSvg, setQrCodeSvg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const generateQrCode = async () => {
+      const svgString = await qrCode.toString(props.profileLink, {
+        type: 'svg',
+        margin: 2,
+        scale: 8,
+        color: {
+          light: '#0000', // Transparent background
+          dark: '#000000' // Black foreground
+        },
+        errorCorrectionLevel: 'H' // High error correction for better readability
+      });
+      
+      setQrCodeSvg(svgString);
+    };
+    generateQrCode();
+  }, [props.profileLink]);
+
+  if (!qrCodeSvg) return null;
 
   return (
     <div>
@@ -4720,22 +4737,11 @@ const Certificate = async (props: {
           d="M632.542 484.151C632.467 484.156 632.392 484.156 632.317 484.161C632.242 484.316 632.132 484.466 632.092 484.636C631.872 485.641 631.652 486.651 631.457 487.661C631.307 488.446 631.447 488.591 632.247 488.671C632.592 488.706 632.742 488.581 632.742 488.261C632.742 487.121 632.747 485.981 632.722 484.841C632.717 484.611 632.607 484.381 632.542 484.151Z"
           fill="black"
         />
-        <rect
-          x={406}
-          y={415}
-          width={64}
-          height={64}
-          fill="url(#pattern0_3_276)"
-        />
+        {/* QR Code as direct SVG - positioned at x=406, y=415, scaled to 64x64 */}
+        <g transform="translate(406, 415) scale(1.8)">
+          <g dangerouslySetInnerHTML={{ __html: qrCodeSvg.replace('<svg', '<g').replace('</svg>', '</g>').replace(/width="[^"]*"/g, '').replace(/height="[^"]*"/g, '').replace(/viewBox="[^"]*"/g, '') }} />
+        </g>
         <defs>
-          <pattern
-            id="pattern0_3_276"
-            patternContentUnits="objectBoundingBox"
-            width={1}
-            height={1}
-          >
-            <use xlinkHref="#image0_3_276" transform="scale(0.002)" />
-          </pattern>
           <linearGradient
             id="paint0_linear_3_276"
             x1={379.182}
@@ -4857,13 +4863,7 @@ const Certificate = async (props: {
             <stop stopColor="#FAE625" />
             <stop offset={1} stopColor="#00844A" />
           </linearGradient>
-          <image
-            id="image0_3_276"
-            width={500}
-            height={500}
-            preserveAspectRatio="none"
-            xlinkHref={url}
-          />
+
         </defs>
       </svg>
     </div>
