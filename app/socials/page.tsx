@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Facebook, Linkedin, Instagram, Mail, Users, ExternalLink, Youtube, Globe } from 'lucide-react';
+import { Facebook, Linkedin, Instagram, Mail, Users, ExternalLink, Youtube, Globe, Github } from 'lucide-react';
 
 const socials = [
   {
@@ -17,21 +17,27 @@ const socials = [
   },
   {
     label: 'LinkedIn',
-    url: 'https://www.linkedin.com/company/green-university-computer-club-gucc/',
+    url: 'https://www.linkedin.com/company/greenuniversitycomputerclub/',
     color: '#0077B5',
     icon: Linkedin,
   },
   {
     label: 'Instagram',
-    url: 'https://www.instagram.com/gucc__official/',
+    url: 'https://www.instagram.com/GreenUniversityComputerClub/',
     color: 'linear-gradient(45deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%)',
     icon: Instagram,
   },
   {
     label: 'YouTube',
-    url: 'https://www.youtube.com/@GUB.ComputerClub',
+    url: 'https://www.youtube.com/@GreenUniversityComputerClub',
     color: '#FF0000',
     icon: Youtube,
+  },
+  {
+    label: 'GitHub',
+    url: 'https://github.com/GreenUniversityComputerClub',
+    color: '#333333',
+    icon: Github,
   },
   {
     label: 'Website',
