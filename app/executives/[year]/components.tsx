@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { RESIZE_AVATAR } from "@/app/config";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -47,6 +48,7 @@ export function ExecutiveCard({
   executive: Executive;
   isResizeMode: boolean;
 }) {
+  const router = useRouter();
   const [position, setPosition] = useState(
     executive.avatarPosition || { x: 0, y: 0 }
   );
@@ -77,6 +79,19 @@ export function ExecutiveCard({
 
   const handleMouseUp = () => {
     setIsDragging(false);
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Only navigate if not in resize mode and executive has a student ID
+    if (!isResizeMode && executive.studentId && executive.studentId.length === 9) {
+      // Prevent navigation if clicking on social media links or resize controls
+      const target = e.target as HTMLElement;
+      if (target.closest('a') || target.closest('button') || target.closest('.resize-controls')) {
+        return;
+      }
+      
+      router.push(`/executives/${executive.studentId}`);
+    }
   };
 
   const saveAvatarSettings = async () => {
@@ -130,7 +145,14 @@ export function ExecutiveCard({
   return (
     <div className="relative group">
       {/* Executive Card */}
-      <Card className="overflow-hidden min-h-[7.5rem] h-auto relative hover:shadow-lg transition-shadow duration-300">
+      <Card 
+        className={`overflow-hidden min-h-[7.5rem] h-auto relative hover:shadow-lg transition-shadow duration-300 ${
+          !isResizeMode && executive.studentId && executive.studentId.length === 9 
+            ? 'cursor-pointer hover:shadow-xl' 
+            : ''
+        }`}
+        onClick={handleCardClick}
+      >
         <div className="relative">
           <CardHeader className="flex flex-row items-center gap-4 relative">
             {/* Avatar */}
@@ -259,7 +281,7 @@ export function ExecutiveCard({
       )}
 
       {isResizeMode && (
-        <div className="p-4 bg-muted/20 rounded-b-lg">
+        <div className="p-4 bg-muted/20 rounded-b-lg resize-controls">
           <div className="flex items-center gap-2 mb-2">
             <ZoomOut className="h-4 w-4" />
             <Slider
