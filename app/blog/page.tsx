@@ -19,60 +19,142 @@ export default async function Blog() {
   const postsData = posts.data.publication.posts.edges;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
+      <div className="container mx-auto px-4 py-16 max-w-4xl">
         {/* Header Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent mb-4 p-2">
-            Blog
+        <div className="text-center mb-20">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl mb-8 shadow-lg">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <h1 className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-green-600 via-emerald-600 to-green-500 bg-clip-text text-transparent mb-6 tracking-tight">
+            Our Blog
           </h1>
-          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-            Explore our latest articles, insights, and stories from the Green
-            University Computer Club
+          <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
+            Discover insights, tutorials, and stories from the Green University Computer Club community. 
+            Stay updated with the latest in technology, programming, and innovation.
           </p>
+          <div className="mt-8 h-1 w-24 bg-gradient-to-r from-green-500 to-emerald-500 mx-auto rounded-full"></div>
         </div>
 
-        {/* Blog Posts Grid */}
-        <div className="space-y-8">
-          {postsData.map((post) => (
-            <article key={post.node.id} className="group">
-              <Link href={`/blog/${post.node.slug}`} className="block">
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-slate-200 dark:border-slate-700 hover:border-green-300 dark:hover:border-green-600">
-                  <div className="flex justify-between items-start mb-4">
-                    <ViewTransition name={`post-title-${post.node.id}`}>
-                      <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-300 leading-tight">
-                        {post.node.title}
-                      </h2>
-                    </ViewTransition>
+        {/* Blog Posts List */}
+        {postsData.length > 0 ? (
+          <div className="space-y-12">
+            {postsData.map((post, index) => (
+              <article key={post.node.id} className="group">
+                <Link href={`/blog/${post.node.slug}`} className="block">
+                  <div className="bg-white/80 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-200/60 dark:border-slate-700/40 hover:border-green-300/60 dark:hover:border-green-600/40 transition-all duration-300 overflow-hidden hover:shadow-lg hover:shadow-green-500/5">
+                    
+                    {/* Cover Image */}
+                    {post.node.coverImage && (
+                      <div className="relative overflow-hidden">
+                        <div className="aspect-[2/1] sm:aspect-[3/1] relative">
+                          <img
+                            src={post.node.coverImage.url}
+                            alt={post.node.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                            loading={index < 3 ? "eager" : "lazy"}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent"></div>
+                          
+                          {/* Reading Time Badge */}
+                          <div className="absolute top-6 right-6">
+                            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/95 dark:bg-slate-800/95 text-slate-700 dark:text-slate-300 backdrop-blur-sm shadow-lg">
+                              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              {post.node.readTimeInMinutes} min read
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Content */}
+                    <div className="p-8 lg:p-10">
+                      {/* Meta Information */}
+                      <div className="flex items-center gap-4 mb-4">
+                        {post.node.publishedAt && (
+                          <time
+                            dateTime={post.node.publishedAt}
+                            className="text-sm font-medium text-green-600 dark:text-green-400 uppercase tracking-wide"
+                          >
+                            {new Date(post.node.publishedAt).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </time>
+                        )}
+                        
+                        {!post.node.coverImage && (
+                          <>
+                            <span className="text-slate-300 dark:text-slate-600">•</span>
+                            <div className="flex items-center text-sm text-slate-500 dark:text-slate-400">
+                              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span className="font-medium">{post.node.readTimeInMinutes} min read</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Title */}
+                      <ViewTransition name={`post-title-${post.node.id}`}>
+                        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-300 leading-tight mb-4">
+                          {post.node.title}
+                        </h2>
+                      </ViewTransition>
+
+                      {/* Subtitle or Brief */}
+                      <ViewTransition name={`post-${post.node.subtitle ? "subtitle" : "content"}-${post.node.id}`}>
+                        <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-6 line-clamp-3">
+                          {post.node.subtitle || post.node.brief}
+                        </p>
+                      </ViewTransition>
+
+                      {/* Read More Link */}
+                      <div className="flex items-center text-green-600 dark:text-green-400 font-semibold group-hover:gap-2 transition-all duration-300">
+                        <span>Continue Reading</span>
+                        <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
+                </Link>
 
-                  <ViewTransition
-                    name={`post-${post.node.subtitle ? "subtitle" : "content"}-${post.node.id}`}
-                  >
-                    <p className="text-slate-600 dark:text-slate-300 mb-6 line-clamp-3 text-lg leading-relaxed">
-                      {post.node.subtitle || post.node.brief}
-                    </p>
-                  </ViewTransition>
-
-                  <div className="flex items-center justify-between">
-                    <BlogPostMeta post={post} />
+                {/* Separator Line */}
+                {index < postsData.length - 1 && (
+                  <div className="mt-12 flex justify-center">
+                    <div className="w-24 h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-600 to-transparent"></div>
                   </div>
-                </div>
-              </Link>
-            </article>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {postsData.length === 0 && (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">📝</div>
-            <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2">
-              No posts yet
+                )}
+              </article>
+            ))}
+          </div>
+        ) : (
+          /* Enhanced Empty State */
+          <div className="text-center py-24">
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-3xl mb-8 shadow-lg">
+              <svg className="w-12 h-12 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+              No Posts Yet
             </h3>
-            <p className="text-slate-600 dark:text-slate-400">
-              Check back soon for new content!
+            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              We're working on bringing you amazing content. Check back soon for insightful articles and tutorials!
             </p>
+            <div className="mt-8">
+              <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>New content coming soon</span>
+              </div>
+            </div>
           </div>
         )}
       </div>
