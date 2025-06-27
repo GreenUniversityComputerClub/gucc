@@ -17,13 +17,13 @@ import contestsData from "@/data/contests.json";
 interface Team {
   name: string;
   members: string[];
-  rank: number;
-  solved: number;
+  rank: number | null;
+  achievement: string;
 }
 
 interface Contest {
   id: number;
-  type: "IUPC" | "ICPC" | "NCPC" | "IDPC";
+  type: "IUPC" | "ICPC" | "NCPC" | "IDPC" | "Hackathon" | "CodeSamurai" | "CP";
   timestamp: string;
   title: string;
   teams: Team[];
@@ -33,16 +33,17 @@ interface Contest {
   standingsLink: string;
   editorialLink?: string;
   practiceLink?: string;
+  authors?: string;
+  platform?: string;
 }
 
 function ContestTableRow({ contest }: { contest: Contest }) {
   const router = useRouter();
   const bestPerformance = contest.teams.reduce(
     (best, team) => ({
-      rank: Math.min(best.rank, team.rank),
-      solved: Math.max(best.solved, team.solved),
+      rank: team.rank !== null && (best.rank === null || team.rank < best.rank) ? team.rank : best.rank,
     }),
-    { rank: Infinity, solved: 0 }
+    { rank: null as number | null }
   );
 
   return (
@@ -68,7 +69,7 @@ function ContestTableRow({ contest }: { contest: Contest }) {
           ))}
         </div>
       </TableCell>
-      <TableCell>{bestPerformance.rank}</TableCell>
+      <TableCell>{bestPerformance.rank || "N/A"}</TableCell>
     </TableRow>
   );
 }
@@ -78,6 +79,13 @@ export default function ContestsPage() {
   const contests = (contestsData.contests as unknown as Contest[]).filter(
     (contest) => contest.teams?.length > 0
   );
+
+  // Sort contests by date in descending order (latest first)
+  const sortedContests = contests.sort((a, b) => {
+    const dateA = new Date(a.timestamp);
+    const dateB = new Date(b.timestamp);
+    return dateB.getTime() - dateA.getTime();
+  });
 
   return (
     <div className="container mx-auto py-10">
@@ -101,7 +109,7 @@ export default function ContestsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {contests.map((contest) => (
+            {sortedContests.map((contest) => (
               <ContestTableRow key={contest.id} contest={contest} />
             ))}
           </TableBody>
