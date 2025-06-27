@@ -1124,12 +1124,12 @@
               },
               {
                 "position": "Deputy Moderator",
-                "name": "Jarin Tasnim Tonvi",
+                "name": "Feroza Naznin",
                 "designation": "Lecturer",
-                "avatarUrl": "/executives/tonvi.cse.png",
+                "avatarUrl": "/executives/feroza.png",
                 "avatarPosition": {
                   "x": 0,
-                  "y": 0
+                  "y": -8
                 },
                 "avatarScale": 0.8
               },
@@ -1524,12 +1524,12 @@
       },
       {
         "position": "Deputy Moderator",
-        "name": "Jarin Tasnim Tonvi",
+        "name": "Feroza Naznin",
         "designation": "Lecturer",
-        "avatarUrl": "/executives/tonvi.cse.png",
+        "avatarUrl": "/executives/feroza.png",
         "avatarPosition": {
           "x": 0,
-          "y": 0
+          "y": -8
         },
         "avatarScale": 0.8
       },

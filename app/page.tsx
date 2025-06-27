@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import eventsData from "@/data/events.json";
 import { Award, BookOpen, CalendarDays, Users } from "lucide-react";
 import Link from "next/link";
@@ -183,6 +184,107 @@ export default function Home() {
                 Years of Excellence
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+
+      {/* Messages from Our Chairperson Section */}
+      <section className="w-full py-12 md:py-16 lg:py-20">
+        <div className="container px-4 md:px-6">
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">
+              Messages from Our Chairperson
+            </h2>
+            <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
+              A message from the Chairperson of the Department of CSE
+            </p>
+          </div>
+          <div className="flex justify-center mt-10">
+            <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10 max-w-xl w-full">
+              <CardContent className="p-5 flex flex-col items-center text-center space-y-3">
+                <Avatar className="w-20 h-20">
+                  <AvatarImage src="/executives/aminur.cse.png" alt="DR. MUHAMMAD AMINUR RAHAMAN" />
+                  <AvatarFallback>AR</AvatarFallback>
+                </Avatar>
+                <div className="space-y-1">
+                  <h3 className="font-semibold text-lg">DR. MUHAMMAD AMINUR RAHAMAN</h3>
+                  <p className="text-sm text-muted-foreground">Chairperson, Department of CSE</p>
+                </div>
+                <blockquote className="text-sm text-muted-foreground italic leading-relaxed">
+                  "It gives me great pride to see the Green University Computer Club (GUCC) flourishing as a platform for student innovation, leadership, and collaboration. GUCC is more than just a club — it's a space where ideas come to life, where students learn by doing, and where futures are shaped through teamwork and creativity. I wholeheartedly support the club's mission and encourage every student to take part in this journey of growth and excellence."
+                </blockquote>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Messages from Our Moderators Section */}
+      <section className="w-full py-12 md:py-16 lg:py-20">
+        <div className="container px-4 md:px-6">
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">
+              Messages from Our Moderators
+            </h2>
+            <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
+              Inspiring messages from our faculty moderators who guide and shape our journey
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
+            <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10">
+              <CardContent className="p-5">
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <Avatar className="w-16 h-16">
+                    <AvatarImage src="/executives/monirul.cse.png" alt="Md. Monirul Islam" />
+                    <AvatarFallback>MI</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold">Md. Monirul Islam</h3>
+                    <p className="text-xs text-muted-foreground">Assistant Professor & Moderator, GUCC</p>
+                  </div>
+                  <blockquote className="text-xs text-muted-foreground italic leading-relaxed">
+                    "At GUCC, we witness remarkable growth in our CSE students — not just in technical expertise, but also in leadership and teamwork. This platform has become a cornerstone for empowering the next generation of tech leaders."
+                  </blockquote>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10">
+              <CardContent className="p-5">
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <Avatar className="w-16 h-16">
+                    <AvatarImage src="/executives/feroza.png" alt="Feroza Naznin" />
+                    <AvatarFallback>FN</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold">Feroza Naznin</h3>
+                    <p className="text-xs text-muted-foreground">Deputy Moderator, GUCC</p>
+                  </div>
+                  <blockquote className="text-xs text-muted-foreground italic leading-relaxed">
+                    "The energy and dedication our members bring to GUCC is truly inspiring. By bridging academic knowledge with real-world innovation, this club continues to nurture creativity, confidence, and community."
+                  </blockquote>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10">
+              <CardContent className="p-5">
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <Avatar className="w-16 h-16">
+                    <AvatarImage src="/executives/montaser.cse.png" alt="Montaser Abdul Quader" />
+                    <AvatarFallback>MQ</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold">Montaser Abdul Quader</h3>
+                    <p className="text-xs text-muted-foreground">Deputy Moderator, GUCC</p>
+                  </div>
+                  <blockquote className="text-xs text-muted-foreground italic leading-relaxed">
+                    "GUCC embodies the spirit of collaboration and continuous improvement. It's a pleasure to watch our students take on challenges and transform them into meaningful impact, building a stronger tech future."
+                  </blockquote>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>

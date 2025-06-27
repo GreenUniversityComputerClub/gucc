@@ -594,6 +594,7 @@
     },
     {
       "id": 21,
+
       "type": "Hackathon",
       "timestamp": "March 22, 2025",
       "title": "NEOFETCH Hackathon at Military Institute of Science and Technology (MIST)",
@@ -643,17 +644,24 @@
     },
    
     {
+
       "id": 23,
       "type": "IUPC",
       "timestamp": "Jun 21, 2025",
       "title": "Uttara University Inter-University Programming Contest 2025",
+
+      "id": 22,
+      "type": "IUPC",
+      "timestamp": "Jun 21, 2025",
+      "title": "Uttara University Inter-University Programming Contest 2025 at Uttara University (UU)",
+
       "teams": [
         {
           "name": "GreenU_TripleQ",
           "members": [
-            "MD Hosain Rahman Noyon.",
-            "Ismatul Islam Pranto.",
-            "Muhammad Din Islam."
+            "MD Hosain Rahman Noyon. [221902370]",
+            "Ismatul Islam Pranto. [221902232]",
+            "Muhammad Din Islam. [221002475]"
           ],
           "rank": 63,
           "achievement": ""
