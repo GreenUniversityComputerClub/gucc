@@ -79,12 +79,3 @@ export default async function Blog() {
     </div>
   );
 }
-
-export async function generateStaticParams() {
-  const host = process.env.HASHNODE_HOST || "gucc.hashnode.dev";
-  const response = await gqlClient(queries.getPosts(host))();
-  const posts = response as PostsResponse;
-  return posts.data.publication.posts.edges.map((post) => ({
-    slug: post.node.slug,
-  }));
-}
