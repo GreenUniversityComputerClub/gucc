@@ -3,32 +3,17 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Sun, Moon } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const pathname = usePathname();
-
-  // Initialize dark mode state on mount
-  useEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
-    setIsDarkMode(isDark);
-  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
-  };
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    if (!isDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
   };
 
   const isActive = (path: string) => {
@@ -94,13 +79,7 @@ export function Navbar() {
         {/* Dark Mode & Mobile Menu Button */}
         <div className="flex items-center space-x-3">
           {/* 🌙 Dark Mode Toggle */}
-          <Button variant="ghost" size="icon" onClick={toggleDarkMode}>
-            {isDarkMode ? (
-              <Sun className="h-6 w-6" />
-            ) : (
-              <Moon className="h-6 w-6" />
-            )}
-          </Button>
+          <ThemeToggle />
 
           {/* ☰ Mobile Menu Button */}
           <Button
