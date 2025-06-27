@@ -3,6 +3,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import Link from "next/link";
 import { AnimatedBackground } from "./animated-background";
+import { TiltShapes } from "./tilt-shapes";
 
 export const HeroSection = () => {
   return (
@@ -20,13 +21,8 @@ export const HeroSection = () => {
         <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-purple-500/5 rounded-full blur-2xl animate-pulse delay-1500" />
       </div>
 
-      {/* Floating geometric shapes for extra visual interest */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/6 w-2 h-2 bg-primary/30 rounded-full animate-bounce delay-300" />
-        <div className="absolute top-1/3 right-1/5 w-1 h-1 bg-primary/40 rounded-full animate-bounce delay-700" />
-        <div className="absolute bottom-1/4 left-1/3 w-1.5 h-1.5 bg-primary/25 rounded-full animate-bounce delay-1000" />
-        <div className="absolute bottom-1/3 right-1/6 w-1 h-1 bg-primary/35 rounded-full animate-bounce delay-500" />
-      </div>
+      {/* Floating geometric shapes with tilt effect */}
+      <TiltShapes />
 
       <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="max-w-4xl mx-auto space-y-8">
