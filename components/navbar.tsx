@@ -32,6 +32,9 @@ export function Navbar() {
   };
 
   const isActive = (path: string) => {
+    if (path === "/executives/2025") {
+      return pathname.startsWith("/executives");
+    }
     return pathname === path;
   };
 
@@ -47,10 +50,10 @@ export function Navbar() {
           />
           <div className="hidden sm:block">
             <div className="text-xl font-bold">
-              <p className="text-lg text-primary leading-[18px]">GREEN UNIVERSITY</p>
-              <p className="text-sm text-foreground">
-                COMPUTER CLUB
+              <p className="text-lg text-primary leading-[18px]">
+                GREEN UNIVERSITY
               </p>
+              <p className="text-sm text-foreground">COMPUTER CLUB</p>
             </div>
           </div>
         </Link>
@@ -68,6 +71,12 @@ export function Navbar() {
             className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/events") ? "text-primary" : "text-muted-foreground"}`}
           >
             Events
+          </Link>
+          <Link
+            href="/blog"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/blog") ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Blog
           </Link>
           <Link
             href="/executives/2025"
@@ -128,8 +137,15 @@ export function Navbar() {
               Events
             </Link>
             <Link
+              href="/blog"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/blog") ? "text-primary" : "text-muted-foreground"}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Blog
+            </Link>
+            <Link
               href="/executives/2025"
-              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/executives") ? "text-primary" : "text-muted-foreground"}`}
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/executives/2025") ? "text-primary" : "text-muted-foreground"}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Executives
