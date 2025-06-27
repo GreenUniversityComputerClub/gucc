@@ -188,6 +188,38 @@ export default function Home() {
         </div>
       </section>
 
+
+      {/* Messages from Our Chairperson Section */}
+      <section className="w-full py-16 md:py-24 lg:py-32">
+        <div className="container px-4 md:px-6">
+          <div className="text-center space-y-6">
+            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">
+              Messages from Our Chairperson
+            </h2>
+            <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
+              A message from the Chairperson of the Department of CSE
+            </p>
+          </div>
+          <div className="flex justify-center mt-16">
+            <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10 max-w-xl w-full">
+              <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
+                <Avatar className="w-24 h-24">
+                  <AvatarImage src="/executives/aminur.cse.png" alt="DR. MUHAMMAD AMINUR RAHAMAN" />
+                  <AvatarFallback>AR</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="font-semibold text-lg">DR. MUHAMMAD AMINUR RAHAMAN</h3>
+                  <p className="text-sm text-muted-foreground">Chairperson, Department of CSE</p>
+                </div>
+                <blockquote className="text-sm text-muted-foreground italic">
+                  "It gives me great pride to see the Green University Computer Club (GUCC) flourishing as a platform for student innovation, leadership, and collaboration. GUCC is more than just a club — it's a space where ideas come to life, where students learn by doing, and where futures are shaped through teamwork and creativity. I wholeheartedly support the club's mission and encourage every student to take part in this journey of growth and excellence."
+                </blockquote>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* Words from Our Moderators Section */}
       <section className="w-full py-16 md:py-24 lg:py-32">
         <div className="container px-4 md:px-6">
@@ -209,10 +241,10 @@ export default function Home() {
                   </Avatar>
                   <div>
                     <h3 className="font-semibold text-lg">Md. Monirul Islam</h3>
-                    <p className="text-sm text-muted-foreground">Assistant Professor</p>
+                    <p className="text-sm text-muted-foreground">Assistant Professor & Moderator, GUCC</p>
                   </div>
                   <blockquote className="text-sm text-muted-foreground italic">
-                    "GUCC has been a cornerstone in shaping the future of our CSE students. Through this platform, we witness remarkable growth in leadership, technical skills, and collaborative spirit among our members."
+                    "At GUCC, we witness remarkable growth in our CSE students — not just in technical expertise, but also in leadership and teamwork. This platform has become a cornerstone for empowering the next generation of tech leaders."
                   </blockquote>
                 </div>
               </CardContent>
@@ -227,10 +259,10 @@ export default function Home() {
                   </Avatar>
                   <div>
                     <h3 className="font-semibold text-lg">Feroza Naznin</h3>
-                    <p className="text-sm text-muted-foreground">Deputy Moderator</p>
+                    <p className="text-sm text-muted-foreground">Deputy Moderator, GUCC</p>
                   </div>
                   <blockquote className="text-sm text-muted-foreground italic">
-                    "The dedication and enthusiasm of GUCC members never ceases to amaze me. This club serves as a bridge between academic learning and real-world application, fostering innovation and creativity."
+                    "The energy and dedication our members bring to GUCC is truly inspiring. By bridging academic knowledge with real-world innovation, this club continues to nurture creativity, confidence, and community."
                   </blockquote>
                 </div>
               </CardContent>
@@ -245,10 +277,10 @@ export default function Home() {
                   </Avatar>
                   <div>
                     <h3 className="font-semibold text-lg">Montaser Abdul Quader</h3>
-                    <p className="text-sm text-muted-foreground">Deputy Moderator</p>
+                    <p className="text-sm text-muted-foreground">Deputy Moderator, GUCC</p>
                   </div>
                   <blockquote className="text-sm text-muted-foreground italic">
-                    "GUCC represents the spirit of excellence and collaboration. It's inspiring to see how our students transform challenges into opportunities, building a stronger tech community for tomorrow."
+                    "GUCC embodies the spirit of collaboration and continuous improvement. It's a pleasure to watch our students take on challenges and transform them into meaningful impact, building a stronger tech future."
                   </blockquote>
                 </div>
               </CardContent>
