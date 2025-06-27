@@ -11,10 +11,13 @@ export const gqlClient =
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ query: queryStr, variables }),
+      cache: 'force-cache', // Cache the response
+      next: { revalidate: 300 } // Revalidate every 5 minutes
     });
 
     // Handle response
     if (!response.ok) {
+      throw new Error(`GraphQL request failed: ${response.status}`);
     }
     const data = (await response.json()) as T;
     return data;
