@@ -604,6 +604,17 @@
     "year": 2025,
     "organizer": "GUCC",
     "category": "Orientation"
+  },
+  {
+    "sl": 56,
+    "name": "CodeCraft 101 – Beginner Programming Session with Kaykobad Sir",
+    "date": "2025-06-28",
+    "time": "9:00 AM - 10:30 AM",
+    "participants": 100,
+    "guest": "Keynote Speaker: Prof. Dr. Mohammad Kaykobad Distinguished Professor, Dept. of CSE BRAC University\n\nhief Guest: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB\n\nGuest: Mr. Syed Ahsanul Kabir, Associate Professor Dept of CSE, GUB",
+    "year": 2025,
+    "organizer": "GUCC",
+    "category": "Programming Session"
   }
 
 
