@@ -594,6 +594,32 @@
     },
     {
       "id": 21,
+
+      "type": "Hackathon",
+      "timestamp": "March 22, 2025",
+      "title": "NEOFETCH Hackathon at Military Institute of Science and Technology (MIST)",
+      "teams": [
+        {
+          "name": "Green Thunder",
+          "members": [
+            "Abdur Rahim Sarker.",
+            "Nurul Huda.",
+            "Jubayer Al Mamun.",
+            "Zahin Afsar."
+          ],
+          "rank": 3,
+          "achievement": "2nd Runner Up"
+        }
+      ],
+      "contestLink": "#",
+      "problemsetLink": "#",
+      "standingsLink": "https://www.facebook.com/photo/?fbid=1133129342157787&set=a.472289101575151",
+      "editorialLink": "#",
+      "authors": "MIST Innovation Club",
+      "images": []
+    },
+    {
+      "id": 22,
       "type": "IUPC",
       "timestamp": "May 10, 2025",
       "title": "Betopia Group Presents DUET Inter University Programming Contest (IUPC) 2025",
@@ -618,10 +644,17 @@
     },
    
     {
+
+      "id": 23,
+      "type": "IUPC",
+      "timestamp": "Jun 21, 2025",
+      "title": "Uttara University Inter-University Programming Contest 2025",
+
       "id": 22,
       "type": "IUPC",
       "timestamp": "Jun 21, 2025",
       "title": "Uttara University Inter-University Programming Contest 2025 at Uttara University (UU)",
+
       "teams": [
         {
           "name": "GreenU_TripleQ",
