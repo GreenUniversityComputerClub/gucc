@@ -58,17 +58,16 @@ export function Navbar() {
             Events
           </Link>
           <Link
-
             href="/contests"
             className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contests") ? "text-primary" : "text-muted-foreground"}`}
           >
             Contests
-
+          </Link>
+          <Link
             href="/blog"
             className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/blog") ? "text-primary" : "text-muted-foreground"}`}
           >
             Blog
-
           </Link>
           <Link
             href="/executives/2025"
@@ -123,19 +122,18 @@ export function Navbar() {
               Events
             </Link>
             <Link
-
               href="/contests"
               className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contests") ? "text-primary" : "text-muted-foreground"}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Contests
-
+            </Link>
+            <Link
               href="/blog"
               className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/blog") ? "text-primary" : "text-muted-foreground"}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Blog
-
             </Link>
             <Link
               href="/executives/2025"
