@@ -204,11 +204,11 @@ export default function Home() {
             <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10 max-w-xl w-full">
               <CardContent className="p-5 flex flex-col items-center text-center space-y-3">
                 <Avatar className="w-20 h-20">
-                  <AvatarImage src="/executives/aminur.cse.png" alt="DR. MUHAMMAD AMINUR RAHAMAN" />
+                  <AvatarImage src="/executives/mahabib.cse.png" alt="Professor Dr. Md. Ahsan Habib" />
                   <AvatarFallback>AR</AvatarFallback>
                 </Avatar>
                 <div className="space-y-1">
-                  <h3 className="font-semibold text-lg">DR. MUHAMMAD AMINUR RAHAMAN</h3>
+                  <h3 className="font-semibold text-lg">Professor Dr. Md. Ahsan Habib</h3>
                   <p className="text-sm text-muted-foreground">Chairperson, Department of CSE</p>
                 </div>
                 <blockquote className="text-sm text-muted-foreground italic leading-relaxed">
