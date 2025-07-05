@@ -28,6 +28,7 @@ export default function EventDetailsPage() {
     location: string;
     participants: number;
     ticket_info: string;
+    link?: string;
   };
 
   if (!event) {
@@ -155,9 +156,7 @@ export default function EventDetailsPage() {
               </div>
               <div className="flex items-center">
                 <Location />
-                <span className="text-lg text-muted-foreground">
-                  {event.location || "Green University, Multi-Purpose Hall"}
-                </span>
+                <span className="text-lg text-muted-foreground">{event.location}</span>
               </div>
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">
@@ -175,6 +174,17 @@ export default function EventDetailsPage() {
                   </span>
                 </div>
               </div>
+              {/* Facebook Post Link */}
+              {event.link && (
+                <a
+                  href={event.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+                >
+                  View Facebook Post
+                </a>
+              )}
             </div>
           </div>
         </div>
