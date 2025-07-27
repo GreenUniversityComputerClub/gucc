@@ -692,6 +692,13 @@
     "date": "2025-06-22",
     "time": "12:00 AM - 01:30 PM",
     "location": "GUB, Multi-Purpose Hall",
+    "category": "Competition"
+  },
+    {
+    "sl": 53,
+    "name": "CSE Fresher's Orientation Spring 2025",
+    "date": "2025-06-22",
+    "time": "12:00 AM - 01:30 PM",
     "participants": 155,
     "guest": "Chief Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSpecial Guest: Prof. Dr. MD. Ahsan Habib, Professor, Dept of CSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2025,
@@ -738,6 +745,5 @@
     "category": "Webinar",
     "link": "https://www.facebook.com/share/p/1BkWr3fQLL/"
   }
-
 
 ]
