@@ -9,11 +9,12 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import eventsData from "@/data/events.json";
-import { Award, BookOpen, CalendarDays, Users } from "lucide-react";
+import { Award, BookOpen, CalendarDays, Users, Clock, Trophy, Zap, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { AnimatedStat } from "./component";
 import { CollaborationScroll } from "./components/collaboration-scroll";
 import { EventCard } from "./events/components";
+import HackathonActions from "@/components/HackathonActions";
 
 const upcomingEvents = eventsData.filter(
   (event) => new Date(event.date) > new Date()
@@ -34,6 +35,142 @@ export default function Home() {
       )}
       {/* Hero Section */}
       <HeroSection />
+
+      {/* Hackathon Announcement Section */}
+      <section className="w-full py-16 md:py-24 lg:py-32 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-950/20 dark:via-emerald-950/20 dark:to-teal-950/20">
+        <div className="container px-4 md:px-6">
+          <div className="text-center space-y-6 mb-12">
+            <div className="inline-flex items-center gap-2 rounded-full bg-green-100 dark:bg-green-900/50 px-4 py-2 text-sm font-medium text-green-700 dark:text-green-300">
+              <Trophy className="h-4 w-4" />
+              Organized by GUCC
+            </div>
+            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl text-green-800 dark:text-green-200">
+              🚀 Hack The AI - Inter University Hackathon
+            </h2>
+            <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
+              Join us in this exciting hackathon organized by Green University Computer Club. 
+              Build innovative AI solutions and compete with the brightest minds from universities across the country!
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Announcement Card */}
+            <div className="lg:col-span-2">
+              <Card className="h-full bg-gradient-to-br from-green-600 to-emerald-600 text-white border-0 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-1">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+                      <Zap className="h-8 w-8" />
+                      Deadline Extended!
+                    </CardTitle>
+                    <div className="bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-semibold">
+                      NEW
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-lg">
+                      <Clock className="h-6 w-6 text-green-200" />
+                      <span className="font-semibold">
+                        Registration extended to September 13th, 2025 at 8:00 PM
+                      </span>
+                    </div>
+                    <p className="text-green-100 leading-relaxed">
+                      We've extended the deadline to give more talented students the opportunity to participate in this 
+                      prestigious hackathon. Don't miss your chance to showcase your AI skills and win amazing prizes!
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                    <Button
+                      asChild
+                      className="flex-1 bg-white text-green-600 hover:bg-green-50 font-semibold py-3 shadow-lg hover:shadow-xl transition-all duration-200"
+                    >
+                      <Link 
+                        href="https://forms.gle/QvzXYQ3hdAHPkkWVA" 
+                        target="_blank"
+                        className="flex items-center justify-center gap-2"
+                      >
+                        Register Now
+                        <ExternalLink className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <HackathonActions />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Side Information Cards */}
+            <div className="space-y-6">
+              {/* Event Details Card */}
+              <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg font-bold text-green-700 dark:text-green-300 flex items-center gap-2">
+                    <CalendarDays className="h-5 w-5" />
+                    Event Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Event Type:</span>
+                      <span className="font-semibold">AI Hackathon</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Scope:</span>
+                      <span className="font-semibold">Inter University</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Organized by:</span>
+                      <span className="font-semibold text-green-600 dark:text-green-400">GUCC</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Registration:</span>
+                      <span className="font-semibold text-orange-600">Till Sept 13, 8PM</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Why Participate Card */}
+              <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg font-bold text-green-700 dark:text-green-300 flex items-center gap-2">
+                    <Trophy className="h-5 w-5" />
+                    Why Participate?
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                      <span>Compete with top universities</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                      <span>Build innovative AI solutions</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                      <span>Win amazing prizes</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                      <span>Network with industry experts</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                      <span>Gain valuable experience</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* About Section */}
       <section className="w-full py-16 md:py-24 lg:py-32">
