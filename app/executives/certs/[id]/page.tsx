@@ -2,20 +2,13 @@
 
 import executivesData from "../../../../data/executives.json";
 import Certificate from "./certificate";
-import { Montserrat, Pinyon_Script } from "next/font/google";
 import localFont from "next/font/local";
 import { useRef, useState } from "react";
 import styles from "./certificates.module.css";
 
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const pinyon_script = Pinyon_Script({
-  subsets: ["latin"],
-  weight: ["400"],
-});
+// Use system fonts instead of Google Fonts to avoid network requests
+const systemSansClassName = "font-sans";
+const systemSerifClassName = "font-serif";
 
 const engravers_old_english = localFont({
   src: [
@@ -133,11 +126,11 @@ export default function ProfilePage() {
             
             /* Font family classes to ensure fonts are applied */
             .montserrat {
-              font-family: 'Montserrat', sans-serif;
+              font-family: var(--font-sans);
             }
             
             .pinyon-script {
-              font-family: 'Pinyon Script', cursive;
+              font-family: var(--font-serif);
             }
             
             .engravers-old-english {

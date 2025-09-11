@@ -1,14 +1,11 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import FloatingChatbot from "@/components/chatbot/floating-chatbot";
 import { ThemeProvider } from "@/components/theme-provider";
 import DeadlinePopup from "@/components/DeadlinePopup";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Green University Computer Club",
@@ -22,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={inter.className}>
+      <body style={{ fontFamily: 'var(--font-sans)' }}>{/* Using system font fallback */}
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
