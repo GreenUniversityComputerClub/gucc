@@ -51,7 +51,7 @@ export default function DeadlinePopup() {
   // Handler for "Join Discord" button - placeholder for now
   const handleJoinDiscord = () => {
     // Placeholder link - organizers will update this
-    alert('Discord link will be provided by organizers soon!')
+    window.open('https://discord.com/channels/1053043587278983168/1410043819457777726', '_blank')
     setIsOpen(false)
   }
 
