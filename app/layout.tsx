@@ -6,6 +6,7 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import FloatingChatbot from "@/components/chatbot/floating-chatbot";
 import { ThemeProvider } from "@/components/theme-provider";
+import DeadlinePopup from "@/components/DeadlinePopup";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -33,6 +34,7 @@ export default function RootLayout({
             <main className="flex-1">{children}</main>
             <Footer />
             <FloatingChatbot />
+            <DeadlinePopup />
           </div>
         </ThemeProvider>
       </body>
