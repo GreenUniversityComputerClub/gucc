@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import HackathonActions from "@/components/HackathonActions"
+import { HACKATHON, HACKATHON_SCHEDULE, TIMEZONE } from "@/app/config"
 
 /**
  * 🚀 HackTheAI - Professional Hackathon Announcement Component
@@ -32,21 +33,9 @@ import HackathonActions from "@/components/HackathonActions"
  * - TypeScript support with proper error handling
  */
 
-// Configuration
-const REGISTRATION_DEADLINE = new Date('2025-09-13T20:00:00+06:00')
-const EVENT_SCHEDULE = {
-  registrationDeadline: REGISTRATION_DEADLINE,
-  prelimStart: new Date('2025-09-14T00:00:00+06:00'),
-  prelimEnd: new Date('2025-09-15T23:59:59+06:00'),
-  finalOnlineStart: new Date('2025-09-22T00:00:00+06:00'),
-  finalOnlineEnd: new Date('2025-09-24T23:59:59+06:00'),
-  finalOnsiteStart: new Date('2025-09-25T09:00:00+06:00'),
-  finalOnsiteEnd: new Date('2025-09-25T18:00:00+06:00'),
-} as const
-
 // Bangladesh timezone helpers
-const BD_TZ = 'Asia/Dhaka'
-const BD_TZ_LABEL = 'BST'
+const BD_TZ = TIMEZONE.tz
+const BD_TZ_LABEL = TIMEZONE.label
 
 const formatDateTimeBD = (date: Date, includeTZ = true) => {
   const formatted = new Intl.DateTimeFormat('en-GB', {
@@ -115,13 +104,13 @@ export default function HackathonAnnouncement() {
   })
   const [stageState, setStageState] = useState<StageState>({
     stage: 'REG_OPEN',
-    nextAt: EVENT_SCHEDULE.registrationDeadline,
+  nextAt: HACKATHON_SCHEDULE.registrationDeadline,
     nextLabel: 'Registration closes in',
     live: false,
   })
 
   const computeStage = (now: Date): StageState => {
-    const s = EVENT_SCHEDULE
+  const s = HACKATHON_SCHEDULE
     if (now < s.registrationDeadline) {
       return { stage: 'REG_OPEN', nextAt: s.registrationDeadline, nextLabel: 'Registration closes in', live: false }
     }
@@ -221,7 +210,7 @@ export default function HackathonAnnouncement() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 px-4 py-2 border border-green-200/50 dark:border-green-700/50 shadow-lg">
               <Crown className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-              <span className="text-sm font-bold text-green-700 dark:text-green-300">Organized by GUCC</span>
+              <span className="text-sm font-bold text-green-700 dark:text-green-300">Organized by {HACKATHON.organizer}</span>
               <div className="flex items-center gap-0.5">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="h-2.5 w-2.5 text-yellow-500 fill-current" />
@@ -244,7 +233,7 @@ export default function HackathonAnnouncement() {
           <div className="space-y-4">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight">
               <span className="block bg-gradient-to-r from-green-600 via-emerald-500 to-blue-600 bg-clip-text text-transparent mb-2">
-                🚀 HackTheAI
+                🚀 {HACKATHON.name}
               </span>
               <span className="block text-xl sm:text-2xl md:text-3xl lg:text-4xl text-gray-900 dark:text-white font-extrabold">
                 Inter University AI Hackathon
@@ -257,10 +246,10 @@ export default function HackathonAnnouncement() {
 
           {/* Enhanced Description */}
           <p className="mx-auto max-w-4xl text-base md:text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-            Join <span className="font-bold text-green-600 dark:text-green-400">800+ brilliant minds</span> from{' '}
-            <span className="font-bold text-blue-600 dark:text-blue-400">50+ universities</span> in Bangladesh's most prestigious AI hackathon.
-            Compete for <span className="font-bold text-yellow-600 dark:text-yellow-400">$600 USD prizes</span>,{' '}
-            <span className="font-bold text-purple-600 dark:text-purple-400">5 remote job opportunities</span>, and premium AI enablement{' '}
+            Join <span className="font-bold text-green-600 dark:text-green-400">{`${HACKATHON.participantsExpected}+`} brilliant minds</span> from{' '}
+            <span className="font-bold text-blue-600 dark:text-blue-400">{`${HACKATHON.universitiesCount}+`} universities</span> in Bangladesh's most prestigious AI hackathon.
+            Compete for <span className="font-bold text-yellow-600 dark:text-yellow-400">${HACKATHON.prizePoolUSD} USD prizes</span>,{' '}
+            <span className="font-bold text-purple-600 dark:text-purple-400">{HACKATHON.jobOffers} remote job opportunities</span>, and premium AI enablement{' '}
             <span className="font-bold text-emerald-600 dark:text-emerald-400">powered by SmythOS</span>.
           </p>
 
@@ -296,7 +285,12 @@ export default function HackathonAnnouncement() {
             </Badge>
 
             {stageState.nextAt && (
-              <div className="flex items-center gap-2 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900/30 dark:to-gray-900/30 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div
+                className="flex items-center gap-2 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900/30 dark:to-gray-900/30 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700"
+                aria-live="polite"
+                aria-atomic="true"
+                title={formatDateTimeBD(stageState.nextAt)}
+              >
                 <Clock className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                 <span className="text-sm font-bold text-gray-700 dark:text-gray-200">
                   {stageState.nextLabel}: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s
@@ -304,7 +298,7 @@ export default function HackathonAnnouncement() {
               </div>
             )}
             <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 sm:mt-0">
-              All times in Bangladesh Time (BST)
+              All times in Bangladesh Time ({BD_TZ_LABEL})
             </span>
           </div>
         </div>
@@ -343,11 +337,11 @@ export default function HackathonAnnouncement() {
                   ))}
                 </div>
                 <div className="mt-4 pt-3 border-t border-blue-200/50 dark:border-blue-700/50 text-center bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-3">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 animate-pulse">800+</div>
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 animate-pulse">{`${HACKATHON.participantsExpected}+`}</div>
                   <div className="text-xs text-blue-500 dark:text-blue-400 font-medium">Expected Participants</div>
                   <div className="text-[10px] text-blue-500 dark:text-blue-400 mt-1 flex items-center justify-center gap-1">
                     <span>🏫</span>
-                    <span>From 50+ Universities</span>
+                    <span>{`From ${HACKATHON.universitiesCount}+ Universities`}</span>
                   </div>
                 </div>
               </CardContent>
@@ -401,7 +395,7 @@ export default function HackathonAnnouncement() {
                     <div className="flex-1">
                       <h3 className="text-base font-bold mb-1 group-hover/info:text-green-100 transition-colors duration-300">New Registration Deadline</h3>
                       <p className="text-sm text-green-100 font-semibold group-hover/info:text-white transition-colors duration-300">
-                        {formatDateTimeBD(EVENT_SCHEDULE.registrationDeadline)}
+                        {formatDateTimeBD(HACKATHON_SCHEDULE.registrationDeadline)}
                       </p>
                       <p className="text-green-100/80 text-xs mt-0.5 group-hover/info:text-green-100 transition-colors duration-300">
                         More time to prepare your innovative ideas!
@@ -465,7 +459,7 @@ export default function HackathonAnnouncement() {
           { label: "Type:", value: "AI Hackathon", bg: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
           { label: "Scope:", value: "Inter University", bg: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
           { label: "Organizer:", value: "GUCC", bg: "bg-gradient-to-r from-green-500 to-emerald-500 text-white" },
-          { label: isRegistrationOpen ? "Deadline:" : "Registration:", value: isRegistrationOpen ? `${formatShortDateBD(EVENT_SCHEDULE.registrationDeadline)}, ${formatTimeBD(EVENT_SCHEDULE.registrationDeadline)}` : "Closed", bg: isRegistrationOpen ? "bg-gradient-to-r from-orange-500 to-red-500 text-white animate-pulse motion-reduce:animate-none" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" }
+          { label: isRegistrationOpen ? "Deadline:" : "Registration:", value: isRegistrationOpen ? `${formatShortDateBD(HACKATHON_SCHEDULE.registrationDeadline)}, ${formatTimeBD(HACKATHON_SCHEDULE.registrationDeadline)}` : "Closed", bg: isRegistrationOpen ? "bg-gradient-to-r from-orange-500 to-red-500 text-white animate-pulse motion-reduce:animate-none" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" }
                   ].map((item, index) => (
                     <div key={index} className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/80 dark:hover:bg-green-900/20 transition-all duration-300 group/item">
                       <span className="text-muted-foreground font-medium group-hover/item:text-green-600 dark:group-hover/item:text-green-400 transition-colors">{item.label}</span>
@@ -535,8 +529,7 @@ export default function HackathonAnnouncement() {
                   <div className="text-xs space-y-1">
                     {[
                       "SmythOS Premium",
-                      "AI Agents training", 
-                      "SaaS founder guidance"
+                      "AI Agents training"
                     ].map((item, index) => (
                       <div key={index} className="flex items-center gap-1.5 hover:scale-105 transition-transform duration-200 group/item">
                         <span className="w-1.5 h-1.5 bg-purple-400 rounded-full group-hover/item:animate-ping"></span>
@@ -572,7 +565,7 @@ export default function HackathonAnnouncement() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto relative z-10">
             {/* Registration Deadline */}
             <Card className="relative bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border-red-200/50 dark:border-red-800/30 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 hover:rotate-2 group overflow-hidden">
-              {isRegistrationOpen && (
+              {isRegistrationOpen && HACKATHON.showExtendedRibbon && (
                 <div className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-bounce">
                   EXTENDED
                 </div>
@@ -589,7 +582,7 @@ export default function HackathonAnnouncement() {
                   </Badge>
                 </div>
                 <CardTitle className="text-base font-bold text-red-700 dark:text-red-300 group-hover:text-red-600 dark:group-hover:text-red-200 transition-colors duration-300">
-                  {formatShortDateBD(EVENT_SCHEDULE.registrationDeadline)}
+                  {formatShortDateBD(HACKATHON_SCHEDULE.registrationDeadline)}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pb-4 relative z-10">
@@ -598,13 +591,13 @@ export default function HackathonAnnouncement() {
                   Last day to register for the hackathon
                 </p>
                 <p className="text-xs font-bold text-red-700 dark:text-red-300 mt-1 bg-red-100/50 dark:bg-red-900/30 rounded px-2 py-1">
-                  ⏰ {isRegistrationOpen ? `Closes ${formatTimeBD(EVENT_SCHEDULE.registrationDeadline)} ${BD_TZ_LABEL}` : 'Closed'}
+                  ⏰ {isRegistrationOpen ? `Closes ${formatTimeBD(HACKATHON_SCHEDULE.registrationDeadline)} ${BD_TZ_LABEL}` : 'Closed'}
                 </p>
               </CardContent>
             </Card>
 
             {/* Preliminary Round */}
-            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200/50 dark:border-blue-800/30 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 hover:-rotate-1 group overflow-hidden">
+            <Card className={`bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200/50 dark:border-blue-800/30 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 hover:-rotate-1 group overflow-hidden ${getPhaseStatus('prelim') === 'LIVE' ? 'ring-2 ring-blue-400/60 dark:ring-blue-500/60' : ''}`}>
               <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 to-indigo-400/5 group-hover:from-blue-400/10 group-hover:to-indigo-400/10 transition-all duration-500"></div>
               
               <CardHeader className="pb-2 relative z-10">
@@ -617,7 +610,7 @@ export default function HackathonAnnouncement() {
                   </Badge>
                 </div>
                 <CardTitle className="text-base font-bold text-blue-700 dark:text-blue-300 group-hover:text-blue-600 dark:group-hover:text-blue-200 transition-colors duration-300">
-                  {formatDayRangeBD(EVENT_SCHEDULE.prelimStart, EVENT_SCHEDULE.prelimEnd)}
+                  {formatDayRangeBD(HACKATHON_SCHEDULE.prelimStart, HACKATHON_SCHEDULE.prelimEnd)}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pb-4 relative z-10">
@@ -633,7 +626,7 @@ export default function HackathonAnnouncement() {
             </Card>
 
             {/* Final Round Online */}
-            <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200/50 dark:border-purple-800/30 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 hover:rotate-1 group overflow-hidden">
+            <Card className={`bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200/50 dark:border-purple-800/30 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 hover:rotate-1 group overflow-hidden ${getPhaseStatus('finalOnline') === 'LIVE' ? 'ring-2 ring-purple-400/60 dark:ring-purple-500/60' : ''}`}>
               <div className="absolute inset-0 bg-gradient-to-br from-purple-400/5 to-pink-400/5 group-hover:from-purple-400/10 group-hover:to-pink-400/10 transition-all duration-500"></div>
               
               <CardHeader className="pb-2 relative z-10">
@@ -646,7 +639,7 @@ export default function HackathonAnnouncement() {
                   </Badge>
                 </div>
                 <CardTitle className="text-base font-bold text-purple-700 dark:text-purple-300 group-hover:text-purple-600 dark:group-hover:text-purple-200 transition-colors duration-300">
-                  {formatDayRangeBD(EVENT_SCHEDULE.finalOnlineStart, EVENT_SCHEDULE.finalOnlineEnd)}
+                  {formatDayRangeBD(HACKATHON_SCHEDULE.finalOnlineStart, HACKATHON_SCHEDULE.finalOnlineEnd)}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pb-4 relative z-10">
@@ -662,7 +655,7 @@ export default function HackathonAnnouncement() {
             </Card>
 
             {/* Final Round Onsite */}
-            <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200/50 dark:border-green-800/30 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 hover:-rotate-2 group overflow-hidden">
+            <Card className={`bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200/50 dark:border-green-800/30 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 hover:-rotate-2 group overflow-hidden ${getPhaseStatus('finalOnsite') === 'LIVE' ? 'ring-2 ring-emerald-400/60 dark:ring-emerald-500/60' : ''}`}>
               <div className="absolute inset-0 bg-gradient-to-br from-green-400/5 to-emerald-400/5 group-hover:from-green-400/10 group-hover:to-emerald-400/10 transition-all duration-500"></div>
               
               <CardHeader className="pb-2 relative z-10">
@@ -675,7 +668,7 @@ export default function HackathonAnnouncement() {
                   </Badge>
                 </div>
                 <CardTitle className="text-base font-bold text-green-700 dark:text-green-300 group-hover:text-green-600 dark:group-hover:text-green-200 transition-colors duration-300">
-                  {formatShortDateBD(EVENT_SCHEDULE.finalOnsiteStart)}
+                  {formatShortDateBD(HACKATHON_SCHEDULE.finalOnsiteStart)}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pb-4 relative z-10">
@@ -751,10 +744,10 @@ export default function HackathonAnnouncement() {
               {/* Stats Row */}
               <div className="flex justify-center items-center gap-8 mt-6 pt-6 border-t border-green-200/50 dark:border-green-700/50">
                 {[
-                  { icon: "👥", value: "800+", label: "Participants" },
-                  { icon: "🏫", value: "50+", label: "Universities" },
-                  { icon: "💰", value: "$600+", label: "Prize Pool" },
-                  { icon: "🏆", value: "5", label: "Job Offers" }
+                  { icon: "👥", value: `${HACKATHON.participantsExpected}+`, label: "Participants" },
+                  { icon: "🏫", value: `${HACKATHON.universitiesCount}+`, label: "Universities" },
+                  { icon: "💰", value: `$${HACKATHON.prizePoolUSD}+`, label: "Prize Pool" },
+                  { icon: "🏆", value: `${HACKATHON.jobOffers}`, label: "Job Offers" }
                 ].map((stat, index) => (
                   <div key={index} className="text-center group/stat hover:scale-110 transition-transform duration-300">
                     <div className="text-lg group-hover/stat:animate-bounce">{stat.icon}</div>
