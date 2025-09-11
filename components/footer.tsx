@@ -1,9 +1,5 @@
 import Link from "next/link";
-<<<<<<< HEAD
 import { Facebook, Linkedin, Mail, ChevronRight, Youtube, Instagram, Github } from "lucide-react";
-=======
-import { Facebook, Linkedin, Mail, ChevronRight, Youtube, Instagram } from "lucide-react";
->>>>>>> 10ca449c86614759cf0805d5d5184a82c8b0f000
 import Image from "next/image";
 import { Contributors } from "./contributors";
 
@@ -95,17 +91,12 @@ export function Footer() {
                   <Mail size={20} />
                 </Link>
                 <Link
-<<<<<<< HEAD
-                  href="https://www.instagram.com/GreenUniversityComputerClub/"
-=======
                   href="https://www.instagram.com/gucc__official/"
->>>>>>> 10ca449c86614759cf0805d5d5184a82c8b0f000
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   <Instagram size={20} />
                 </Link>
                 <Link
-<<<<<<< HEAD
                   href="https://www.youtube.com/@GreenUniversityComputerClub"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -119,13 +110,6 @@ export function Footer() {
                 >
                   <Github size={20} />
                 </Link>
-=======
-                  href="https://www.youtube.com/@GUB.ComputerClub"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                >
-                  <Youtube size={20} />
-                </Link>                               
->>>>>>> 10ca449c86614759cf0805d5d5184a82c8b0f000
               </div>
             </div>
           </div>
