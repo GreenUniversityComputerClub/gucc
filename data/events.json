@@ -744,6 +744,59 @@
     "organizer": "GUCC & Erasmus Mundus Association – Bangladesh",
     "category": "Webinar",
     "link": "https://www.facebook.com/share/p/1BkWr3fQLL/"
+  },
+  {
+    "sl": 59,
+    "name": "University Outreach for HackTheAI Promotion",
+    "date": "2025-09-09",
+    "time": "08:00 AM – 04:00 PM",
+    "location": "All Universities in Bangladesh",
+    "participants": 9,
+    "guest": "Faculty Member & Students",
+    "year": 2025,
+    "organizer": "GUCC",
+    "category": "Promotions",
+    "link": "https://www.facebook.com/share/p/1BHc4XHkRQ/"
+  },
+  {
+    "sl": 60,
+    "name": "Hackathon 101: What, Why & How",
+    "date": "2025-09-11",
+    "time": "08:00 PM – 10:00 PM",
+    "location": "Online (Zoom)",
+    "participants": 180,
+    "guest": "Jahangir Hossain – Software Engineer, Maxit Inc | Champion, BUET CSE Fest 2024 | Champion, NASA Space Apps Dhaka 2024\n\nShawon Majid – Software Engineer, Voyage Mobile Inc | Champion, Code Samurai 2024 | 1st Runner-up, Visasoff AI Hackathon 2025\n\nMd. Mehrajul Islam – Software Engineer, app-concept.com GmbH | Champion, Code Samurai 2024 | 1st Runner-up, Collaborative AI Hackathon 2024",
+    "year": 2025,
+    "organizer": "GUCC & SmythOS",
+    "category": "Webinar",
+    "link": "https://www.facebook.com/share/p/1AxGVfNmB8/"
+  },
+  {
+    "sl": 61,
+    "name": "HackTheAI Training Session with SmythOS - Day 01",
+    "date": "2025-09-12",
+    "time": "09:00 PM – 10:00 PM",
+    "location": "Online (Zoom)",
+    "participants": 170,
+    "guest": "Raul Parihuana -QA Engineer, SmythOS",
+    "year": 2025,
+    "organizer": "GUCC & SmythOS",
+    "category": "Workshop",
+    "link": "https://www.facebook.com/share/p/15vy89KHD7/"
+  },
+  {
+    "sl": 62,
+    "name": "HackTheAI Training Session with GUCC - Day 02",
+    "date": "2025-09-13",
+    "time": "09:00 PM – 10:00 PM",
+    "location": "Online (Zoom)",
+    "participants": 150,
+    "guest": " Nurul Huda --Programming and Development Secretary, GUCC",
+    "year": 2025,
+    "organizer": "GUCC & SmythOS",
+    "category": "Workshop",
+    "link": "https://www.facebook.com/share/p/1Zp3ticcZD/"
   }
+
 
 ]
