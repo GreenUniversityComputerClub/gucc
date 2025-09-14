@@ -11,18 +11,6 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 
-/**
- * DeadlinePopup Component
- * 
- * A modal popup that appears 2 seconds after page load to announce
- * the deadline extension for the Hack The AI - Inter University Hackathon.
- * 
- * Features:
- * - Auto-opens 2 seconds after page load
- * - Responsive design for all screen sizes
- * - Three action buttons: Register Now, Join Discord, Got It
- * - Clean, centered design that doesn't affect other components
- */
 export default function DeadlinePopup() {
   // State to control dialog visibility
   const [isOpen, setIsOpen] = useState(false)
@@ -30,7 +18,7 @@ export default function DeadlinePopup() {
   // Auto-open the popup 2 seconds after component mounts (page load)
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsOpen(true)
+      setIsOpen(false)
     }, 2000) // 2 seconds delay
 
     // Cleanup timer on component unmount
