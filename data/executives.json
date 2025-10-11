@@ -1510,6 +1510,178 @@
   },
   {
     "year": "2025",
+    "wings": {
+      "vgs": {
+        "year": "2025",
+        "facultyMembers": [
+          {
+            "position": "Moderator",
+            "name": "Md. Monirul Islam",
+            "designation": "Assistant Professor",
+            "avatarUrl": "/executives/monirul.cse.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Feroza Naznin",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/feroza.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": -8
+            },
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Montaser Abdul Quader",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/montaser.cse.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 0.8
+          }
+        ],
+        "studentExecutives": [
+          {
+            "position": "Chair",
+            "name": "M. Tahsinur Rahman",
+            "studentId": "222002062",
+            "avatarUrl": "/executives/222002062.png",
+            "mail": "ariyanrahman1713@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": ""
+          },
+          {
+            "position": "Vice-Chair",
+            "name": "Heaven Bawm",
+            "studentId": "221902015",
+            "avatarUrl": "/executives/221902015.png",
+            "mail": "heavenbawm77@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": ""
+          },
+          {
+            "position": "General Secretary",
+            "name": "MD. Sazib ",
+            "studentId": "231902305",
+            "avatarUrl": "/executives/23190200S.png",
+            "mail": "mdsazib.cse@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": ""
+          },
+          {
+            "position": "Treasurer",
+            "name": "Kawser Miah",
+            "studentId": "223002063",
+            "avatarUrl": "/executives/223002063.png",
+            "mail": "kawsermiah658@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": ""
+          },
+          {
+            "position": "Organizing Secretary",
+            "name": "Simran Yesmin Sweety",
+            "studentId": "231002019",
+            "avatarUrl": "/executives/231002019.png",
+            "mail": "simran01hossain@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": ""
+          },
+          {
+            "position": "Outreach Secretary",
+            "name": "Afiya Humaira",
+            "studentId": "222002112",
+            "avatarUrl": "/executives/222002112.png",
+            "mail": "afiyahumaira999@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": ""
+          },
+          {
+            "position": "Publication & Publicity Secretary",
+            "name": "Jannatul Mawa",
+            "studentId": "231002007",
+            "avatarUrl": "/executives/231002007.png",
+            "mail": "jannatul6322@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": ""
+          },
+          {
+            "position": "Esports Secretary",
+            "name": "Dipon Barman",
+            "studentId": "242002177",
+            "avatarUrl": "/executives/242002177.png",
+            "mail": "diponbarman9@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": ""
+          },
+          {
+            "position": "Graphics and Multimedia Coordinators",
+            "name": "Md. Maruf Ahmmed",
+            "studentId": "221002299",
+            "avatarUrl": "/executives/221002299.png",
+            "mail": "hellomarufahmmed@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": ""
+          },
+          {
+            "position": "Graphics and Multimedia Coordinators",
+            "name": "Gazi Md. Faysal Hossain Raju",
+            "studentId": "242002089",
+            "avatarUrl": "/executives/242002089.png",
+            "mail": "arahinjubayar33@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": ""
+          },
+          {
+            "position": "Graphics and Multimedia Coordinators",
+            "name": "Jubayar Alam",
+            "studentId": "242002155",
+            "avatarUrl": "/executives/242002155.png",
+            "mail": "rahinjubayar33@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": ""
+          },
+          {
+            "position": "Executive Member",
+            "name": "Eva Kazi",
+            "studentId": "231902003",
+            "avatarUrl": "/executives/231902003.png",
+            "mail": "evak80156@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": ""
+          },
+          {
+            "position": "Executive Member",
+            "name": "Abu Bakkar Bhuiyan",
+            "studentId": "242002107",
+            "avatarUrl": "/executives/242002107.png",
+            "mail": "abubakkarr050@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": ""
+          }
+        ]
+      }
+    },
     "facultyMembers": [
       {
         "position": "Moderator",
