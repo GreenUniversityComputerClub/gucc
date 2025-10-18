@@ -15,6 +15,7 @@ import Link from "next/link";
 import { AnimatedStat } from "./component";
 import { CollaborationScroll } from "./components/collaboration-scroll";
 import { EventCard } from "./events/components";
+import HackathonAnnouncement from "@/components/HackathonAnnouncement";
 
 const upcomingEvents = eventsData.filter(
   (event) => new Date(event.date) > new Date()
@@ -38,6 +39,9 @@ export default function Home() {
       )}
       {/* Hero Section */}
       <HeroSection />
+
+      {/* Enhanced Hackathon Announcement Section */}
+      <HackathonAnnouncement />
 
       {/* About Section */}
       <section className="w-full py-16 md:py-24 lg:py-32">
