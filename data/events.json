@@ -800,6 +800,7 @@
   {
     "sl": 63,
     "name": "HackTheAI Training Session with SmythOS - Day 03",
+    "date": "2025-09-20",
     "date": "2025-09-14",
     "time": "09:00 PM – 10:30 PM",
     "location": "Online (Zoom)",
@@ -809,6 +810,46 @@
     "organizer": "GUCC & SmythOS",
     "category": "Workshop",
     "link": "https://www.facebook.com/share/v/15mmLbvL4g/"
+  },
+  {
+    "sl": 64,
+    "name": "Inauguration Ceremony of HackTheAI powered by SmythOS",
+    "date": "2025-09-22",
+    "time": "09:00 PM – 10:30 PM",
+    "location": "Online (Zoom)",
+    "participants": 140,
+    "guest": "Guest Speakers: Alexander De Ridder - Co-Founder & CTO, SmythOS\n\nAmber Graner - Head of Community, SmythOS\n\nDr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB\n\nSession Chair: Prof. Dr. Md. Ahsan Habib, Chairperson, Dept. of CSE, GUB",
+    "year": 2025,
+    "organizer": "GUCC & SmythOS",
+    "category": "Workshop",
+    "link": "https://www.facebook.com/share/v/1EiL1aaprE/"
+  },
+  {
+    "sl": 65,
+    "name": "CSE Fresher's Orientation Fall 2025",
+    "date": "2025-10-05",
+    "time": "11:30 AM - 12:30 PM",
+    "location":"Green University, Multi-Purpose Hall",
+    "participants": 147,
+    "guest": "Chief Guest: Engr. Mohammad Ziaur Rahman - Additional Director, UGC Project Director, BDSET Project. High-Tech Park Authority Bangladesh Ministry of Posts, Telecommunication and information technology\n\nKeynote Speaker: Monjur Mohammad Shahriar - Project Director, (DEIED) Project Bangladesh Hi-Tech Park Authority (BHTPA) Information and Communication Technology (ICT) Division Ministry of Post, Telecommunication\n\nSession Chair: Prof. Dr. Md. Ahsan Habib (Tareq), Chairperson, Dept. of CSE, GUB",
+    "year": 2025,
+    "organizer": "GUCC",
+    "category": "Orientation",
+    "link": "https://www.facebook.com/share/p/17UWZHcEbB/"  
+  },
+  {
+    "sl": 66,
+    "name": "HackTheAI Finale & Award Ceremony",
+    "date": "2025-09-25",
+    "time": "8:00 AM - 8:00 PM",
+    "location": "Green University, Multi-Purpose Hall",
+    "participants": 150,
+    "Judge": "Judge: Prof. Dr. Forhad Rabbi -Professor,\nDepartment of CSE, SUST\n\nArif Istiaque Sunny - Senior Artificial Intelligence Engineer,\nBrain Station 23\n\nSazzad Hossain - Machine Learning Engineer,\nICT Ministry\n\nYeasir Afsar - Associate Software Engineer,\nDynamic Solution Innovators Ltd\n\nMd. Ataullha - Lecturer,\nDept of CSE, GUB\n\nFcorhad Hossain -Software Engineer,\nSmythOS",
+    "guest": "Chief Guest: Prof. Dr. Md. Shorif Uddin, Vice Chancellor, GUB\n\nGuest of honour: Prof. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Forhad Rabbi -Professor,\nDepartment of CSE, SUST\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
+    "year": 2025,
+    "organizer": "Dept. of CSE & GUCC",
+    "category": "Award Ceremony",
+    "link": "https://www.facebook.com/share/p/19n9jVApfi/"
   }
 
 
