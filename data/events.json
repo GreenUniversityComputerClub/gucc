@@ -800,7 +800,7 @@
   {
     "sl": 63,
     "name": "HackTheAI Training Session with SmythOS - Day 03",
-    "date": "2025-09-14",
+    "date": "2025-09-20",
     "time": "09:00 PM – 10:30 PM",
     "location": "Online (Zoom)",
     "participants": 160,
@@ -809,6 +809,19 @@
     "organizer": "GUCC & SmythOS",
     "category": "Workshop",
     "link": "https://www.facebook.com/share/v/15mmLbvL4g/"
+  },
+  {
+    "sl": 64,
+    "name": "Inauguration Ceremony of HackTheAI powered by SmythOS",
+    "date": "2025-09-22",
+    "time": "09:00 PM – 10:30 PM",
+    "location": "Online (Zoom)",
+    "participants": 140,
+    "guest": "Guest Speakers: Alexander De Ridder - Co-Founder & CTO, SmythOS\n\nAmber Graner - Head of Community, SmythOS\n\nDr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB\n\nSession Chair: Prof. Dr. Md. Ahsan Habib, Chairperson, Dept. of CSE, GUB",
+    "year": 2025,
+    "organizer": "GUCC & SmythOS",
+    "category": "Workshop",
+    "link": "https://www.facebook.com/share/p/1Cq6o3f3oE/"
   }
 
 
