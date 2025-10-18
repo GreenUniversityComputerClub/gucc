@@ -1,4 +1,5 @@
 import PohelaBoishakhGreeting from "@/components/PohelaBoishakhGreeting";
+import GUCCDayGreeting from "@/components/GUCCDayGreeting";
 import { HeroSection } from "@/components/hero";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +33,9 @@ export default function Home() {
     <div className="flex flex-col min-h-screen">
       {new Date().getMonth() === 3 && new Date().getDate() === 14 && (
         <PohelaBoishakhGreeting />
+      )}
+      {new Date().getMonth() === 9 && new Date().getDate() === 19 && (
+        <GUCCDayGreeting />
       )}
       {/* Hero Section */}
       <HeroSection />
