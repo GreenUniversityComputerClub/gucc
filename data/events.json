@@ -844,7 +844,7 @@
     "location": "Green University, Multi-Purpose Hall",
     "participants": 150,
     "Judge": "Judge: Prof. Dr. Forhad Rabbi -Professor,\nDepartment of CSE, SUST\n\nArif Istiaque Sunny - Senior Artificial Intelligence Engineer,\nBrain Station 23\n\nSazzad Hossain - Machine Learning Engineer,\nICT Ministry\n\nYeasir Afsar - Associate Software Engineer,\nDynamic Solution Innovators Ltd\n\nMd. Ataullha - Lecturer,\nDept of CSE, GUB\n\nFcorhad Hossain -Software Engineer,\nSmythOS",
-    "guest": "Chief Guest: Prof. Dr. Md. Shorif Uddin, Vice Chancellor, GUB\n\nGuest of honour: Prof. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Forhad Rabbi -Professor,\nDepartment of CSE, SUST\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
+    "guest": "Chief Guest: Prof. Dr. Md. Shorif Uddin, Vice Chancellor, GUB\n\nGuest of honour: Prof. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Forhad Rabbi -Professor,\nDepartment of CSE, SUST\n\nSession Chair: Prof. Dr. Md. Ahsan Habib, Chairperson, Dept. of CSE, GUB",
     "year": 2025,
     "organizer": "Dept. of CSE & GUCC",
     "category": "Award Ceremony",
@@ -857,11 +857,25 @@
     "time": "10:00 AM - 01:00 PM",
     "location": "Room A-409(Syndicate Room)",
     "participants": 200,
-    "guest": "Keynote Speaker: \n\nSpecial Guest: Prof. Dr. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSession Chair: Prof. Dr. Md. Ahsan Habib, Chairperson, Dept. of CSE, GUB",
+    "guest": "Keynote Speaker: Siddartha Goushami - Sr. Consultant, Operation Specialist,iDea Project.\n\nAshraf Hossain Sachin - Founder & CEO, Kinso Stores\n\nSpecial Guest: Prof. Dr. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSession Chair: Prof. Dr. Md. Ahsan Habib, Chairperson, Dept. of CSE, GUB",
     "year": 2025,
     "organizer": "DEA Project (Innovation Design and Entrepreneurship Academy) & Dept. of CSE, GUB",
+    "Co-organizer": "GUCC, IEEE Student Branch GUB ",
     "category": "Seminar",
-    "link":"https://www.facebook.com/share/p/16ZRh6uhZU/"
+    "link":"https://www.facebook.com/share/p/1FP3Truvrv/"
+  },
+  {
+    "sl": 68,
+    "name": "GUCC 12th Anniversary Celebrattion",
+    "date": "2025-10-19",
+    "time": "02:30 PM - 04:00 PM",
+    "location":"Room A-409(Syndicate Room)",
+    "participants": 45,
+    "guest": "Chief Guest: Prof. Dr. Md. Ahsan Habib, Chairperson, Dept. of CSE, GUB\n\n Session Chair: Monirul Islam, Assistant Professor and Moderator - GUCC, Dept. of CSE, GUB",
+    "year": 2025,
+    "organizer": "GUCC & bongoDev",
+    "category": "Webinar",
+    "link": "https://www.facebook.com/share/p/16BMnCU8Po/"
   }
 
 
