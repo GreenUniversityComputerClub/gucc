@@ -1,4 +1,4 @@
-import { unstable_ViewTransition as ViewTransition } from "react";
+import { ViewTransition } from "react";
 import Link from "next/link";
 import { gqlClient } from "@/lib/blog";
 import { queries } from "@/lib/blog";

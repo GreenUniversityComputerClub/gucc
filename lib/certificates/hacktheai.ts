@@ -22,25 +22,31 @@ interface TeamData {
   'Full Name'?: string
   'Gender'?: string
   'Email'?: string
-  'Contact Number'?: string
+  'Contact Number'?: string | number
   'Full Name__1'?: string
   'Gender__1'?: string
   'Email__1'?: string
-  'Contact Number__1'?: string
+  'Contact Number__1'?: string | number
   'Do you have a 3rd member?'?: string
   'Full Name__2'?: string
   'Gender__2'?: string
   'Email__2'?: string
-  'Contact Number__2'?: string
+  'Contact Number__2'?: string | number
 }
 
 function normalizeData(teamData: TeamData): Participant {
+  // Helper function to convert contact number to string
+  const toString = (value: string | number | undefined): string => {
+    if (value === undefined || value === null) return ''
+    return String(value)
+  }
+
   const members: TeamMember[] = [
     {
       fullName: teamData['Full Name'] || '',
       gender: teamData['Gender'] || '',
       email: teamData['Email'] || '',
-      contactNumber: teamData['Contact Number'] || '',
+      contactNumber: toString(teamData['Contact Number']),
     },
   ]
 
@@ -50,7 +56,7 @@ function normalizeData(teamData: TeamData): Participant {
       fullName: teamData['Full Name__1'],
       gender: teamData['Gender__1'] || '',
       email: teamData['Email__1'] || '',
-      contactNumber: teamData['Contact Number__1'] || '',
+      contactNumber: toString(teamData['Contact Number__1']),
     })
   }
 
@@ -60,7 +66,7 @@ function normalizeData(teamData: TeamData): Participant {
       fullName: teamData['Full Name__2'],
       gender: teamData['Gender__2'] || '',
       email: teamData['Email__2'] || '',
-      contactNumber: teamData['Contact Number__2'] || '',
+      contactNumber: toString(teamData['Contact Number__2']),
     })
   }
 

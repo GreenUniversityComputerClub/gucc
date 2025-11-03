@@ -1,7 +1,7 @@
 "use client";
 
 import { PostEdge } from "./types";
-import { unstable_ViewTransition as ViewTransition } from "react";
+import { ViewTransition } from "react";
 import Link from "next/link";
 import ReadingProgress from "@/components/reading-progress";
 

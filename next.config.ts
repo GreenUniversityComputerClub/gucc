@@ -1,8 +1,6 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    viewTransition: true,
-  },
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
