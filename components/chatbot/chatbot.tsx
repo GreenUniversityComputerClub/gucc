@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { MessageModal } from "./message-modal"
 
-// RAG API endpoint from environment variable
-const RAG_API_URL = process.env.NEXT_PUBLIC_RAG_API_URL
+// RAG API endpoint
+const RAG_API_URL = "https://andrewvelox-gucc-rag-agent.hf.space"
 
 interface Message {
   text: string
@@ -282,30 +282,25 @@ export default function Chatbot() {
         let ragResponse = null
         let ragError = null
         
-        // Only query RAG API if URL is configured
-        if (RAG_API_URL) {
-          try {
-            const ragApiResponse = await fetch(`${RAG_API_URL}/rag/queries/ask/`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                question: messageToSend,
-              }),
-            })
+        try {
+          const ragApiResponse = await fetch(`${RAG_API_URL}/rag/queries/ask/`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              question: messageToSend,
+            }),
+          })
 
-            if (ragApiResponse.ok) {
-              ragResponse = await ragApiResponse.json()
-            } else {
-              ragError = "RAG API unavailable"
-            }
-          } catch (err) {
-            ragError = "RAG API connection failed"
-            console.log("RAG API error:", err)
+          if (ragApiResponse.ok) {
+            ragResponse = await ragApiResponse.json()
+          } else {
+            ragError = "RAG API unavailable"
           }
-        } else {
-          ragError = "RAG API not configured"
+        } catch (err) {
+          ragError = "RAG API connection failed"
+          console.log("RAG API error:", err)
         }
 
         // If RAG API returned a valid answer, use it
