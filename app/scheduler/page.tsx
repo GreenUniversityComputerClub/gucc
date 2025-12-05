@@ -307,7 +307,7 @@ export default function Page() {
   return (
     <div className="min-h-screen green-university-bg">
       <main className="py-8 space-y-4">
-        <p className="text-lg green-subtitle">Find optimal class combinations with conflict-free schedules</p>
+        <p className="text-lg green-subtitle">Find optimal class combinations with conflict-free schedules for <span className="text-lg green-title">Fall 2025</span></p>
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
             <Card className="white-card" data-tour="search-filters">

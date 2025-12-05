@@ -135,9 +135,12 @@ export default function CourseList({
           })
         }
 
+        // Cache typed teacher entries so TS knows section arrays
+        const teacherEntries = Object.entries(sectionsByTeacher) as [string, string[]][]
+
         // For each teacher, check if all their sections are selected
         const teacherSelectionState: Record<string, boolean | "indeterminate"> = {}
-        Object.entries(sectionsByTeacher).forEach(([teacher, sections]) => {
+        teacherEntries.forEach(([teacher, sections]) => {
           const selectedCount = sections.filter((section) => selectedSections.includes(section)).length
 
           if (selectedCount === 0) {
@@ -213,7 +216,9 @@ export default function CourseList({
                     <Button
                       variant="outline"
                       role="combobox"
-                      className="w-full justify-between bg-white"
+                      aria-invalid={!selectedBatch}
+                      title={selectedBatch ? undefined : "Select a batch to choose sections"}
+                      className={`w-full justify-between ${selectedBatch ? "bg-white" : "bg-destructive/10 text-destructive border-destructive/60 disabled:opacity-100"}`}
                       disabled={!selectedBatch}
                     >
                       {selectedBatch
@@ -269,7 +274,7 @@ export default function CourseList({
 
                             <CommandSeparator />
 
-                            {Object.entries(sectionsByTeacher).map(([teacher, sections]) => {
+                            {teacherEntries.map(([teacher, sections]: [string, string[]]) => {
                               const teacherState = teacherSelectionState[teacher]
                               const teacherId = `teacher-${course.formalCode}-${teacher}`
 
@@ -329,7 +334,7 @@ export default function CourseList({
                                   </CommandItem>
 
                                   {/* Individual sections for this teacher */}
-                                  {sections.map((section) => {
+                                  {sections.map((section: string) => {
                                     const sectionInfo = course.sections.find((s) => s.section === section)
                                     if (!sectionInfo) return null
 
