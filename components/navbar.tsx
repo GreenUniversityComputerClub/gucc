@@ -1,15 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProjectsMobileOpen, setIsProjectsMobileOpen] = useState(false);
   const pathname = usePathname();
 
   const toggleMenu = () => {
@@ -22,6 +29,8 @@ export function Navbar() {
     }
     return pathname === path;
   };
+
+  const isProjectsPath = pathname.startsWith("/scheduler");
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60">
@@ -75,12 +84,22 @@ export function Navbar() {
           >
             Executives
           </Link>
-          <Link
-            href="/scheduler"
-            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/scheduler") ? "text-primary" : "text-muted-foreground"}`}
-          >
-            Scheduler
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={`group inline-flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary ${isProjectsPath ? "text-primary" : "text-muted-foreground"}`}
+              >
+                Projects
+                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={8}>
+              <DropdownMenuItem asChild>
+                <Link href="/scheduler">Scheduler</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {/* <Button asChild>
             <Link href="https://forms.gle/example" target="_blank" rel="noopener noreferrer">
               Join Us
@@ -148,6 +167,32 @@ export function Navbar() {
             >
               Executives
             </Link>
+            <div className="space-y-2">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between text-sm font-medium text-muted-foreground"
+                onClick={() => setIsProjectsMobileOpen((prev) => !prev)}
+              >
+                Projects
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${isProjectsMobileOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {isProjectsMobileOpen && (
+                <div className="flex flex-col space-y-2 pl-2">
+                  <Link
+                    href="/scheduler"
+                    className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/scheduler") ? "text-primary" : "text-muted-foreground"}`}
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsProjectsMobileOpen(false);
+                    }}
+                  >
+                    Scheduler
+                  </Link>
+                </div>
+              )}
+            </div>
             {/* <Button asChild>
               <Link
                 href="https://forms.gle/example"
