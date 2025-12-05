@@ -75,6 +75,12 @@ export function Navbar() {
           >
             Executives
           </Link>
+          <Link
+            href="/scheduler"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/scheduler") ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Scheduler
+          </Link>
           {/* <Button asChild>
             <Link href="https://forms.gle/example" target="_blank" rel="noopener noreferrer">
               Join Us
