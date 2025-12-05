@@ -326,7 +326,7 @@ export default function Page() {
                       value={selectedBatch || ""}
                       onValueChange={(value) => handleFilterChange(value === "reset" ? null : value || null)}
                     >
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full bg-white">
                         <SelectValue placeholder="Select batch" />
                       </SelectTrigger>
                       <SelectContent>
@@ -363,7 +363,7 @@ export default function Page() {
                       <label className="text-sm font-medium green-title">Exact Days</label>
                     </div>
                     <Select value={maxDays.toString()} onValueChange={(value) => setMaxDays(Number.parseInt(value))}>
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full bg-white">
                         <SelectValue placeholder="Exact days">
                           Exactly {maxDays} day{maxDays !== 1 ? "s" : ""}
                         </SelectValue>

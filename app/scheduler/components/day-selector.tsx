@@ -63,7 +63,7 @@ export function DaySelector({ selectedDays, onChange }: DaySelectorProps) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between h-10 px-3 py-2 text-sm"
+          className="w-full justify-between h-10 px-3 py-2 text-sm bg-white"
         >
           <span className="truncate">{getDisplayText()}</span>
           <svg

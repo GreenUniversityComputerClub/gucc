@@ -14,7 +14,7 @@ export default function CourseSearch({ onSearch }: CourseSearchProps) {
       <Input
         placeholder="Search by course title or code..."
         onChange={(e) => onSearch(e.target.value)}
-        className="pl-9 border-gray-200"
+        className="pl-9 border-gray-200 bg-white"
       />
     </div>
   )

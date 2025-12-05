@@ -213,7 +213,7 @@ export default function CourseList({
                     <Button
                       variant="outline"
                       role="combobox"
-                      className="w-full justify-between"
+                      className="w-full justify-between bg-white"
                       disabled={!selectedBatch}
                     >
                       {selectedBatch
