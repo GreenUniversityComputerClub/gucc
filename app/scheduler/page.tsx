@@ -306,23 +306,14 @@ export default function Page() {
 
   return (
     <div className="min-h-screen green-university-bg">
-      <main className="py-8 space-y-8">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold tracking-tight md:text-5xl green-university-title">
-              Green University Course Scheduler
-            </h1>
-            <p className="text-lg green-subtitle">Find optimal class combinations with conflict-free schedules</p>
-          </div>
-          <Separator className="bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20" />
-        </div>
-
+      <main className="py-8 space-y-4">
+        <p className="text-lg green-subtitle">Find optimal class combinations with conflict-free schedules</p>
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
             <Card className="white-card" data-tour="search-filters">
               <CardHeader>
                 <CardTitle className="green-title">Search Courses</CardTitle>
-              </CardHeader>
+              </CardHeader>  
               <CardContent className="space-y-4">
                 <CourseSearch onSearch={handleSearch} />
 

@@ -102,11 +102,11 @@ export default function ContributorSection() {
   }, [])
 
   return (
-    <Card className="white-card h-fit" style={{ backgroundColor: "#EAF6EE" }}>
-      <CardHeader className="px-3 sm:px-6 py-3 sm:py-4">
+    <Card className="white-card h-fit !gap-3 !py-4" style={{ backgroundColor: "#EAF6EE" }}>
+      <CardHeader className="px-3 sm:px-6">
         <CardTitle className="green-title text-base sm:text-lg">Contributors</CardTitle>
       </CardHeader>
-      <CardContent className="px-3 sm:px-6 py-2 sm:py-4">
+      <CardContent className="px-3 sm:px-6">
         <div className="flex flex-col space-y-3 sm:space-y-4">
           {contributors.map((contributor) => (
             <Contributor key={contributor.name} {...contributor} />

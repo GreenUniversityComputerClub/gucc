@@ -1,7 +1,3 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Remove the dark mode theme configuration */
 @layer base {
   :root {
@@ -35,6 +31,9 @@
     --ring: 142 76% 36%;
 
     --radius: 0.75rem;
+
+    /* Keep scheduler locked to light mode */
+    color-scheme: light;
   }
 
   /* Force the scheduler to stay on the light theme even when the parent
@@ -69,6 +68,9 @@
     --ring: 142 76% 36%;
 
     --radius: 0.75rem;
+
+    /* Prevent dark mode styles from taking effect within scheduler */
+    color-scheme: light;
   }
 }
 
