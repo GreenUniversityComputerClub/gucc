@@ -229,8 +229,9 @@ export const generateCombinations = (
     // Initialize result array
     const combinations: SectionWithCourse[][] = []
 
-    // Convert preferred days array to a Set for faster lookups
-    const preferredDaysSet = new Set(preferredDays)
+    // Normalize preferred days to match the dataset's uppercase day codes
+    const normalizedPreferredDays = preferredDays.map((day) => day.toUpperCase())
+    const preferredDaysSet = new Set(normalizedPreferredDays)
 
     // Generate combinations recursively
     generateCombinationsRecursive(coursesWithShuffledSections, 0, [], combinations, maxDays, preferredDaysSet)

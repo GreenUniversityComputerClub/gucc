@@ -19,12 +19,15 @@ interface SelectedCoursesListProps {
   onRemoveAll?: () => void
 }
 
+// Keep day codes aligned with the dataset and the day selector component
 const DAYS = [
-  { value: "M", label: "Mon" },
-  { value: "T", label: "Tue" },
-  { value: "W", label: "Wed" },
-  { value: "Th", label: "Thu" },
-  { value: "F", label: "Fri" },
+  { value: "SAT", label: "Sat" },
+  { value: "SUN", label: "Sun" },
+  { value: "MON", label: "Mon" },
+  { value: "TUE", label: "Tue" },
+  { value: "WED", label: "Wed" },
+  { value: "THU", label: "Thu" },
+  { value: "FRI", label: "Fri" },
 ]
 
 // Update the component to include the new props with default values

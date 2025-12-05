@@ -7,14 +7,15 @@ import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 
+// Use uppercase day codes to match the dataset (e.g., "SAT" in schedules)
 const DAYS = [
-  { value: "Sat", label: "Saturday" },
-  { value: "Sun", label: "Sunday" },
-  { value: "Mon", label: "Monday" },
-  { value: "Tue", label: "Tuesday" },
-  { value: "Wed", label: "Wednesday" },
-  { value: "Thu", label: "Thursday" },
-  { value: "Fri", label: "Friday" },
+  { value: "SAT", label: "Saturday" },
+  { value: "SUN", label: "Sunday" },
+  { value: "MON", label: "Monday" },
+  { value: "TUE", label: "Tuesday" },
+  { value: "WED", label: "Wednesday" },
+  { value: "THU", label: "Thursday" },
+  { value: "FRI", label: "Friday" },
 ]
 
 interface DaySelectorProps {
