@@ -48,12 +48,12 @@ export default function SelectedCoursesList({
         <div className="flex items-center justify-between">
           <CardTitle className="green-title">Selected Courses</CardTitle>
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{selectedCourses.size}</Badge>
+            <Badge variant="outline" className="bg-white">{selectedCourses.size}</Badge>
             {selectedCourses.size > 0 && (
               <Button
                 variant="outline"
                 size="sm"
-                className="text-xs h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="text-xs h-7 text-destructive bg-white hover:text-destructive hover:bg-destructive/10"
                 onClick={onRemoveAll}
               >
                 Remove All
