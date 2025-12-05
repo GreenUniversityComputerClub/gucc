@@ -170,7 +170,7 @@ export default function CourseList({
             key={uniqueKey}
             className={`${isSelected ? "border-primary shadow-md" : ""} overflow-hidden transition-all duration-300 hover:shadow-lg ${getDepartmentBgColor(course.formalCode)}`}
           >
-            <CardHeader className={isSelected ? "bg-primary/10 rounded-t-lg" : ""}>
+            <CardHeader>
               <div className="space-y-1.5">
                 <div className="flex items-start justify-between gap-4">
                   <CardTitle
@@ -210,7 +210,7 @@ export default function CourseList({
                 </div>
               )}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Select Sections</label>
+                <label className="text-sm font-medium ">Select Sections</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
