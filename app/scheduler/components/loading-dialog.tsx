@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface LoadingDialogProps {
   open: boolean
@@ -53,12 +53,15 @@ export default function LoadingDialog({ open, message = "Generating combinations
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent className="sm:max-w-[425px] text-center">
-        <div className="flex flex-col items-center justify-center gap-6 py-8">
-          <div className="relative">
-            <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent loading-spinner" />
+        <DialogHeader>
+          <DialogTitle className="sr-only">Generating combinations</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col items-center justify-center gap-6 py-4">
+          <div className="relative mt-2">
+            <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent loading-spinner" aria-hidden="true" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-medium">{message}</h3>
+            <DialogTitle className="text-lg font-medium">{message}</DialogTitle>
             <p className="text-sm text-muted-foreground">
               This may take a moment depending on the number of courses and sections.
             </p>

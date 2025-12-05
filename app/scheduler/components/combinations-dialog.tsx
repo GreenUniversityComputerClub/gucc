@@ -94,12 +94,15 @@ export default function CombinationsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={`max-w-[95vw] w-full md:w-[1400px] max-h-[90vh] overflow-hidden flex flex-col ${className}`}
+        className={`max-w-[95vw] w-full md:w-[1400px] max-h-[90vh] overflow-hidden flex flex-col bg-white text-foreground dark:bg-slate-950 ${className}`}
         aria-labelledby="combinations-dialog-title"
       >
+        <DialogTitle id="combinations-dialog-title" className="sr-only">
+          Schedule View
+        </DialogTitle>
         <DialogHeader className="flex flex-col space-y-1.5 text-center sm:text-left">
           <div className="flex items-center justify-between">
-            <DialogTitle id="combinations-dialog-title" className="flex items-center gap-4">
+            <DialogTitle className="flex items-center gap-4">
               Schedule View
               <span className="text-sm font-normal text-muted-foreground">
                 Combination {combinations.length > 0 ? currentIndex + 1 : 0} of {combinations.length}
@@ -109,7 +112,7 @@ export default function CombinationsDialog({
         </DialogHeader>
 
         <div className="space-y-6 flex-1 overflow-auto">
-          <div className="grid gap-4 lg:grid-cols-[300px,1fr] h-full">
+          <div className="grid gap-4 lg:grid-cols-[300px_1fr] h-full">
             <div className={`order-2 lg:order-1 border rounded-md ${coursesExpanded ? "" : "h-auto"}`}>
               <div
                 className="p-3 border-b flex items-center justify-between cursor-pointer bg-muted/30"
