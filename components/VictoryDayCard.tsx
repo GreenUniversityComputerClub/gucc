@@ -286,6 +286,7 @@ export default function VictoryDayCard() {
           <div className="absolute bottom-12 right-8 animate-pulse z-10" style={{ animationDelay: '1.5s' }}>
             <Star className="w-5 h-5 text-yellow-400 fill-yellow-400 drop-shadow-lg" />
           </div>
+          </div>
         </div>
       </div>
     </>
