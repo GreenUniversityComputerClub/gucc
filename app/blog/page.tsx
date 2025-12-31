@@ -2,7 +2,7 @@ import { unstable_ViewTransition as ViewTransition } from "react";
 import Link from "next/link";
 import { gqlClient } from "@/lib/blog";
 import { queries } from "@/lib/blog";
-import { PostsResponse } from "./types";
+import { PostsResponse, PostEdge } from "./types";
 import { BlogPostMeta } from "./component";
 import { Metadata } from "next";
 
@@ -19,7 +19,7 @@ export default async function Blog() {
     const posts = response as PostsResponse;
     
     // Safely access the posts data with validation
-    let postsData = [];
+    let postsData: PostEdge[] = [];
     if (posts?.data?.publication?.posts?.edges && Array.isArray(posts.data.publication.posts.edges)) {
       postsData = posts.data.publication.posts.edges;
     }
