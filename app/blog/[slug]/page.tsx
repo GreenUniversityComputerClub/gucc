@@ -12,11 +12,14 @@ export async function generateStaticParams() {
     const host = process.env.HASHNODE_HOST || "gucc.hashnode.dev";
     const response = await gqlClient(queries.getPosts(host))();
     const posts = response as {
-      data: { publication: { posts: { edges: { node: { slug: string } }[] } } };
+      data: { publication: { posts: { edges: { node: { slug: string; content?: { markdown?: string } } }[] } } };
     };
-    return posts.data.publication.posts.edges.map((post) => ({
-      slug: post.node.slug,
-    }));
+    // Only return posts that have content with markdown
+    return posts.data.publication.posts.edges
+      .filter((post) => post.node.content?.markdown)
+      .map((post) => ({
+        slug: post.node.slug,
+      }));
   } catch (error) {
     console.warn('Failed to fetch blog posts from Hashnode API:', error);
     // Return empty array as fallback when API is not accessible
@@ -98,7 +101,8 @@ export default async function BlogPost({
     });
     const post = response.data.publication.post;
 
-    if (!post || !post.content) {
+    if (!post || !post.content || !post.content.markdown) {
+      console.warn(`No content found for post slug: ${slug}`);
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
           <div className="container mx-auto px-4 py-12 max-w-4xl">
@@ -116,6 +120,25 @@ export default async function BlogPost({
     }
 
     const mdx = await mdxToHtml(post.content.markdown);
+
+    // Handle null return from mdxToHtml
+    if (!mdx) {
+      console.warn(`Failed to compile MDX for post slug: ${slug}`);
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+          <div className="container mx-auto px-4 py-12 max-w-4xl">
+            <div className="w-full max-w-2xl mx-auto space-y-8">
+              <h1 className="text-4xl font-bold mb-4 text-black dark:text-white">
+                Post Not Found
+              </h1>
+              <p className="text-lg text-neutral-600 dark:text-neutral-400">
+                The post you're looking for doesn't exist.
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
