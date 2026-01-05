@@ -1,5 +1,7 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+
   experimental: {
     viewTransition: true,
   },
@@ -11,8 +13,15 @@ const nextConfig = {
       {
         hostname: "avatars.githubusercontent.com",
       },
+      {
+        hostname: "github.com",
+      },
     ],
   },
+  // Performance optimizations
+  compress: true,
+  poweredByHeader: false,
+  reactStrictMode: true,
 };
 
 export default nextConfig;

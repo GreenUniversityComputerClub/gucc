@@ -19,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body style={{ fontFamily: 'var(--font-sans)' }}>{/* Using system font fallback */}
+      <body style={{ fontFamily: 'var(--font-sans)' }} suppressHydrationWarning>{/* Using system font fallback */}
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

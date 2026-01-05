@@ -10,10 +10,14 @@ import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { MessageModal } from "./message-modal"
 
+// RAG API endpoint
+const RAG_API_URL = "https://andrewvelox-gucc-rag-agent.hf.space"
+
 interface Message {
   text: string
   role: "user" | "model"
   timestamp: Date
+  sources?: string[]
 }
 
 interface PredefinedQuestion {
@@ -34,6 +38,52 @@ export default function Chatbot() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Load messages from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const savedMessages = sessionStorage.getItem('gucc-chat-messages')
+      const savedSessionId = sessionStorage.getItem('gucc-chat-session')
+      
+      if (savedMessages) {
+        const parsed = JSON.parse(savedMessages)
+        // Convert timestamp strings back to Date objects
+        const messagesWithDates = parsed.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }))
+        setMessages(messagesWithDates)
+      }
+      
+      if (savedSessionId) {
+        setSessionId(savedSessionId)
+      }
+    } catch (error) {
+      console.error('Failed to load chat history:', error)
+    }
+  }, [])
+
+  // Save messages to sessionStorage whenever they change
+  useEffect(() => {
+    try {
+      if (messages.length > 0) {
+        sessionStorage.setItem('gucc-chat-messages', JSON.stringify(messages))
+      }
+    } catch (error) {
+      console.error('Failed to save chat history:', error)
+    }
+  }, [messages])
+
+  // Save sessionId to sessionStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (sessionId) {
+        sessionStorage.setItem('gucc-chat-session', sessionId)
+      }
+    } catch (error) {
+      console.error('Failed to save session:', error)
+    }
+  }, [sessionId])
 
   // Define predefined questions and answers
   const predefinedQuestions: PredefinedQuestion[] = [
@@ -104,13 +154,26 @@ export default function Chatbot() {
         })
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
+          // If chat API fails, just create a dummy session ID
+          // The RAG API will still work
+          console.warn("Chat API unavailable, using RAG-only mode")
+          if (isMounted) {
+            setSessionId(Date.now().toString())
+            setIsLoading(false)
+          }
+          return
         }
 
         const data = await response.json()
 
         if (data.error) {
-          throw new Error(data.error)
+          // If there's an error, still allow using RAG API
+          console.warn("Chat API error, using RAG-only mode:", data.error)
+          if (isMounted) {
+            setSessionId(Date.now().toString())
+            setIsLoading(false)
+          }
+          return
         }
 
         if (isMounted) {
@@ -118,8 +181,10 @@ export default function Chatbot() {
           setIsLoading(false)
         }
       } catch (err: any) {
+        // If initialization fails, create a session ID anyway for RAG
+        console.warn("Chat initialization failed, using RAG-only mode:", err.message)
         if (isMounted) {
-          setError("Failed to initialize chat: " + err.message)
+          setSessionId(Date.now().toString())
           setIsLoading(false)
         }
       }
@@ -213,37 +278,85 @@ export default function Chatbot() {
       // For non-predefined questions, make the API call
       setIsLoading(true)
       try {
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: messageToSend,
-            sessionId: sessionId,
-          }),
-        })
+        // First, try to query the RAG API for document-based answers
+        let ragResponse = null
+        let ragError = null
+        
+        try {
+          const ragApiResponse = await fetch(`${RAG_API_URL}/rag/queries/ask/`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              question: messageToSend,
+            }),
+          })
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
+          if (ragApiResponse.ok) {
+            ragResponse = await ragApiResponse.json()
+          } else {
+            ragError = "RAG API unavailable"
+          }
+        } catch (err) {
+          ragError = "RAG API connection failed"
+          console.log("RAG API error:", err)
         }
 
-        const data = await response.json()
+        // If RAG API returned a valid answer, use it
+        if (ragResponse && ragResponse.answer && ragResponse.answer.trim()) {
+          const botMessage: Message = {
+            text: ragResponse.answer,
+            role: "model",
+            timestamp: new Date(),
+            sources: ragResponse.sources || [],
+          }
 
-        if (data.error) {
-          throw new Error(data.error)
+          setMessages((prevMessages) => [...prevMessages, botMessage])
+          setShowSuggestions(true)
+        } else {
+          // Fall back to the general chat API
+          try {
+            const response = await fetch("/api/chat", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                message: messageToSend,
+                sessionId: sessionId,
+              }),
+            })
+
+            if (!response.ok) {
+              throw new Error("Chat API unavailable. Please try uploading documents to the RAG system.")
+            }
+
+            const data = await response.json()
+
+            if (data.error) {
+              throw new Error(data.error)
+            }
+
+            const botMessage: Message = {
+              text: data.response,
+              role: "model",
+              timestamp: new Date(),
+            }
+
+            setMessages((prevMessages) => [...prevMessages, botMessage])
+            setShowSuggestions(true)
+          } catch (fallbackErr: any) {
+            // If both APIs fail, show helpful error
+            const errorMessage: Message = {
+              text: "I'm currently unable to answer that question. The document search system didn't find relevant information, and the general assistant is unavailable. Please try asking about uploaded documents or check back later.",
+              role: "model",
+              timestamp: new Date(),
+            }
+            setMessages((prevMessages) => [...prevMessages, errorMessage])
+            setShowSuggestions(true)
+          }
         }
-
-        const botMessage: Message = {
-          text: data.response,
-          role: "model",
-          timestamp: new Date(),
-        }
-
-        setMessages((prevMessages) => [...prevMessages, botMessage])
-
-        // Show suggestions again after receiving a response
-        setShowSuggestions(true)
       } catch (err: any) {
         setError("Failed to send message: " + err.message)
       } finally {
@@ -344,28 +457,16 @@ export default function Chatbot() {
                   <div
                     key={index}
                     className={cn(
-                      "flex flex-col rounded-lg cursor-pointer transition-all hover:opacity-90 hover:shadow-md",
+                      "flex flex-col rounded-lg",
                       "p-3 sm:p-4 md:p-5",
                       msg.role === "user" ? "ml-auto bg-green-600 text-white" : "mr-auto bg-green-100 text-green-900",
                       "max-w-[85%] sm:max-w-[80%] md:max-w-[75%] lg:max-w-[70%]",
                     )}
-                    onClick={() => handleMessageClick(msg)}
                   >
                     <div className="whitespace-pre-wrap text-sm sm:text-base md:text-lg">
-                      {msg.text.length > 150 ? `${msg.text.substring(0, 150)}...` : msg.text}
+                      {msg.text}
                     </div>
-                    <div className="flex items-center justify-between mt-1 sm:mt-2 md:mt-3">
-                      <span
-                        className={cn(
-                          "text-[10px] sm:text-xs md:text-sm",
-                          msg.role === "user" ? "text-green-100" : "text-green-700",
-                        )}
-                      >
-                        {msg.role === "model" && (
-                          <GraduationCap className="h-2 w-2 sm:h-3 sm:w-3 md:h-4 md:w-4 inline mr-1" />
-                        )}
-                        Click to expand
-                      </span>
+                    <div className="flex items-center justify-end mt-2">
                       <span
                         className={cn(
                           "text-[10px] sm:text-xs md:text-sm",
