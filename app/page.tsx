@@ -1,5 +1,4 @@
 import PohelaBoishakhGreeting from "@/components/PohelaBoishakhGreeting";
-import VictoryDayCard from "@/components/VictoryDayCard";
 import { HeroSection } from "@/components/hero";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,9 +32,7 @@ export default function Home() {
       {new Date().getMonth() === 3 && new Date().getDate() === 14 && (
         <PohelaBoishakhGreeting />
       )}
-      {new Date().getMonth() === 11 && new Date().getDate() === 16 && (
-        <VictoryDayCard />
-      )}
+      
       {/* Hero Section */}
       <HeroSection />
 
