@@ -409,7 +409,7 @@ export default function Chatbot() {
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
       {/* Fixed Header */}
-      <div className="bg-green-700 text-white py-2 px-3 sm:py-3 sm:px-6 md:py-4 md:px-8 border-b border-green-800 flex-shrink-0">
+      <div className="bg-green-700 text-white dark:bg-green-800 dark:text-white py-2 px-3 sm:py-3 sm:px-6 md:py-4 md:px-8 border-b border-green-800 dark:border-green-900 flex-shrink-0">
         <div className="flex items-center justify-between">
           <h2 className="text-xl sm:text-2xl md:text-3xl mx-auto font-bold text-center flex items-center gap-1 sm:gap-2 md:gap-3">
             <Computer className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7" />
@@ -427,7 +427,7 @@ export default function Chatbot() {
           </Alert>
         )}
 
-        <div className="h-full overflow-y-auto bg-green-50 pb-4">
+        <div className="h-full overflow-y-auto bg-green-50 dark:bg-slate-900 pb-4">
           <div className="p-3 sm:p-4 md:p-6 lg:p-8">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-3 sm:p-6 md:p-8 lg:p-10">
@@ -459,7 +459,9 @@ export default function Chatbot() {
                     className={cn(
                       "flex flex-col rounded-lg",
                       "p-3 sm:p-4 md:p-5",
-                      msg.role === "user" ? "ml-auto bg-green-600 text-white" : "mr-auto bg-green-100 text-green-900",
+                      msg.role === "user"
+                        ? "ml-auto bg-green-600 text-white dark:bg-green-500 dark:text-white"
+                        : "mr-auto bg-green-100 text-green-900 dark:bg-slate-800 dark:text-slate-100",
                       "max-w-[85%] sm:max-w-[80%] md:max-w-[75%] lg:max-w-[70%]",
                     )}
                   >
@@ -470,7 +472,7 @@ export default function Chatbot() {
                       <span
                         className={cn(
                           "text-[10px] sm:text-xs md:text-sm",
-                          msg.role === "user" ? "text-green-100" : "text-green-700",
+                          msg.role === "user" ? "text-green-100 dark:text-green-200" : "text-green-700 dark:text-green-300",
                         )}
                       >
                         {format(msg.timestamp, "h:mm a")}
@@ -480,7 +482,7 @@ export default function Chatbot() {
                 ))}
 
                 {isLoading && (
-                  <div className="flex flex-col max-w-[85%] sm:max-w-[80%] md:max-w-[75%] lg:max-w-[70%] rounded-lg p-3 sm:p-4 md:p-5 mr-auto bg-green-100 text-green-900">
+                  <div className="flex flex-col max-w-[85%] sm:max-w-[80%] md:max-w-[75%] lg:max-w-[70%] rounded-lg p-3 sm:p-4 md:p-5 mr-auto bg-green-100 text-green-900 dark:bg-slate-800 dark:text-slate-100">
                     <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
                       <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 animate-spin" />
                       <span className="text-sm sm:text-base md:text-lg">Thinking...</span>
@@ -490,7 +492,7 @@ export default function Chatbot() {
 
                 {/* Show remaining questions after each bot response */}
                 {showSuggestions && messages.length > 0 && messages[messages.length - 1].role === "model" && (
-                  <div className="my-3 sm:my-4 md:my-5 p-2 sm:p-3 md:p-4 bg-green-50 border border-green-200 rounded-lg max-w-4xl mx-auto">
+                  <div className="my-3 sm:my-4 md:my-5 p-2 sm:p-3 md:p-4 bg-green-50 dark:bg-slate-900 border border-green-200 dark:border-slate-700 rounded-lg max-w-4xl mx-auto">
                     <p className="text-xs sm:text-sm md:text-base lg:text-lg font-medium text-green-800 mb-1 sm:mb-2 md:mb-3">
                       You might also want to ask:
                     </p>
@@ -503,7 +505,7 @@ export default function Chatbot() {
                             variant="outline"
                             size="sm"
                             onClick={() => handlePredefinedQuestionClick(item.question)}
-                            className="bg-white hover:bg-green-100 text-green-800 border-green-200 w-full text-left justify-start text-xs sm:text-sm md:text-base py-1.5 px-2 md:py-2 md:px-3 h-auto min-h-[32px] md:min-h-[40px]"
+                            className="bg-white hover:bg-green-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-green-800 dark:text-slate-100 border-green-200 dark:border-slate-700 w-full text-left justify-start text-xs sm:text-sm md:text-base py-1.5 px-2 md:py-2 md:px-3 h-auto min-h-[32px] md:min-h-[40px]"
                           >
                             {item.question}
                           </Button>
@@ -520,7 +522,7 @@ export default function Chatbot() {
       </div>
 
       {/* Fixed Input Area */}
-      <div className="p-2 sm:p-3 md:p-4 lg:p-6 border-t border-green-200 bg-green-50 flex-shrink-0">
+      <div className="p-2 sm:p-3 md:p-4 lg:p-6 border-t border-green-200 bg-green-50 dark:bg-slate-900 dark:border-slate-700 flex-shrink-0">
         <div className="flex gap-1 sm:gap-2 md:gap-3 max-w-4xl mx-auto">
           <Input
             ref={inputRef}
@@ -529,13 +531,13 @@ export default function Chatbot() {
             onKeyDown={handleKeyDown}
             placeholder="Ask something about GUCC..."
             disabled={isLoading || !sessionId}
-            className="flex-1 border-green-300 focus-visible:ring-green-500 text-sm sm:text-base md:text-lg h-9 sm:h-10 md:h-12"
+            className="flex-1 border-green-300 focus-visible:ring-green-500 text-sm sm:text-base md:text-lg h-9 sm:h-10 md:h-12 bg-white/90 dark:bg-slate-800/70 text-slate-900 dark:text-slate-100 placeholder:text-muted-foreground dark:placeholder:text-muted-foreground"
           />
           <Button
             onClick={() => handleSendMessage()}
             disabled={isLoading || !userInput.trim() || !sessionId}
             size="icon"
-            className="bg-green-700 hover:bg-green-800 h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12"
+            className="bg-green-700 hover:bg-green-800 dark:bg-green-600 dark:hover:bg-green-500 h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12"
           >
             {isLoading ? (
               <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 animate-spin" />
