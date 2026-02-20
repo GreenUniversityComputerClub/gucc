@@ -100,11 +100,11 @@ export function Navbar() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {/* <Button asChild>
-            <Link href="https://forms.gle/example" target="_blank" rel="noopener noreferrer">
+          <Button asChild>
+            <Link href="/recruitment">
               Join Us
             </Link>
-          </Button> */}
+          </Button>
         </nav>
 
         {/* Dark Mode & Mobile Menu Button */}
@@ -193,16 +193,14 @@ export function Navbar() {
                 </div>
               )}
             </div>
-            {/* <Button asChild>
+            <Button asChild>
               <Link
-                href="https://forms.gle/example"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/recruitment"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Join Us
               </Link>
-            </Button> */}
+            </Button>
           </nav>
         </div>
       )}
