@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        const timeoutId = setTimeout(() => controller.abort(), 120000);
 
         response = await fetch(UPLOAD_API_URL, {
           method: "POST",

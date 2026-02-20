@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,9 @@ import {
   AlertCircle,
   Loader2,
   X,
+  RefreshCw,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -67,6 +70,11 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^(?:\+?880|0)?1[3-9]\d{8}$/;
 const STUDENT_ID_REGEX = /^\d{8,10}$/;
 
+const MAX_CV_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
+const CLIENT_UPLOAD_TIMEOUT = 120_000; // 2 minutes for slow mobile
+const CLIENT_MAX_RETRIES = 3;
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface FormData {
@@ -86,10 +94,19 @@ interface FileState {
   url: string;
   error: string;
   progress: number;
+  retryCount: number;
 }
 
 interface FormErrors {
   [key: string]: string;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -106,29 +123,48 @@ export default function RecruitmentPage() {
     positions: [],
   });
 
-  const [cv, setCv] = useState<FileState>({
+  const initialFileState: FileState = {
     file: null,
     uploading: false,
     url: "",
     error: "",
     progress: 0,
-  });
+    retryCount: 0,
+  };
 
-  const [photo, setPhoto] = useState<FileState>({
-    file: null,
-    uploading: false,
-    url: "",
-    error: "",
-    progress: 0,
-  });
-
+  const [cv, setCv] = useState<FileState>(initialFileState);
+  const [photo, setPhoto] = useState<FileState>(initialFileState);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [isOnline, setIsOnline] = useState(true);
 
   const cvInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ─── Online / offline detection ──────────────────────────────────────────
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    setIsOnline(navigator.onLine);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  // Cleanup progress timer
+  useEffect(() => {
+    return () => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    };
+  }, []);
 
   // ─── Validation ──────────────────────────────────────────────────────────
 
@@ -195,6 +231,18 @@ export default function RecruitmentPage() {
     if (!photo.url) newErrors.photo = "Photo upload is required";
 
     setErrors(newErrors);
+
+    // Scroll to first error on mobile
+    if (Object.keys(newErrors).length > 0) {
+      const firstErrorKey = Object.keys(newErrors)[0];
+      const el =
+        document.getElementById(firstErrorKey) ||
+        document.querySelector(`[data-field="${firstErrorKey}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+
     return Object.keys(newErrors).length === 0;
   }, [formData, cv.url, photo.url, validateField]);
 
@@ -229,7 +277,33 @@ export default function RecruitmentPage() {
     }
   };
 
-  // ─── File upload ─────────────────────────────────────────────────────────
+  // ─── Simulated progress animation ───────────────────────────────────────
+
+  const startProgressAnimation = (
+    setter: React.Dispatch<React.SetStateAction<FileState>>
+  ) => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    let current = 10;
+    progressTimerRef.current = setInterval(() => {
+      current += Math.random() * 3 + 0.5;
+      if (current >= 85) {
+        current = 85;
+        if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      }
+      setter((prev) =>
+        prev.uploading ? { ...prev, progress: Math.round(current) } : prev
+      );
+    }, 500);
+  };
+
+  const stopProgressAnimation = () => {
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+  };
+
+  // ─── File upload with client-side retry ──────────────────────────────────
 
   const uploadFile = async (
     file: File,
@@ -241,105 +315,174 @@ export default function RecruitmentPage() {
       file,
       uploading: true,
       error: "",
-      progress: 10,
+      progress: 5,
+      retryCount: 0,
     }));
 
-    // Clear any previous file error
     setErrors((prev) => {
       const copy = { ...prev };
       delete copy[type];
       return copy;
     });
 
-    try {
-      const formDataObj = new FormData();
-      formDataObj.append("file", file);
-      formDataObj.append("type", type);
+    startProgressAnimation(setter);
 
-      setter((prev) => ({ ...prev, progress: 40 }));
+    for (let attempt = 0; attempt < CLIENT_MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) {
+          setter((prev) => ({
+            ...prev,
+            progress: 5,
+            retryCount: attempt,
+          }));
+          await new Promise((r) => setTimeout(r, 1500 * attempt));
+          startProgressAnimation(setter);
+        }
 
-      const response = await fetch("/api/recruitment/upload", {
-        method: "POST",
-        body: formDataObj,
-      });
+        const formDataObj = new globalThis.FormData();
+        formDataObj.append("file", file);
+        formDataObj.append("type", type);
 
-      setter((prev) => ({ ...prev, progress: 80 }));
+        const controller = new AbortController();
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          CLIENT_UPLOAD_TIMEOUT
+        );
 
-      const result = await response.json();
+        const response = await fetch("/api/recruitment/upload", {
+          method: "POST",
+          body: formDataObj,
+          signal: controller.signal,
+        });
 
-      if (!response.ok) {
+        clearTimeout(timeoutId);
+        stopProgressAnimation();
+        setter((prev) => ({ ...prev, progress: 90 }));
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          if (response.status === 400) {
+            setter((prev) => ({
+              ...prev,
+              uploading: false,
+              error: result.error || "Upload failed",
+              progress: 0,
+              retryCount: 0,
+            }));
+            return;
+          }
+          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
+          setter((prev) => ({
+            ...prev,
+            uploading: false,
+            error: result.error || "Upload failed. Please try again.",
+            progress: 0,
+            retryCount: 0,
+          }));
+          return;
+        }
+
         setter((prev) => ({
           ...prev,
           uploading: false,
-          error: result.error || "Upload failed",
+          url: result.url,
+          error: "",
+          progress: 100,
+          retryCount: 0,
+        }));
+        return;
+      } catch (err: unknown) {
+        stopProgressAnimation();
+        const errName = err instanceof Error ? err.name : "";
+
+        if (errName === "AbortError") {
+          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
+          setter((prev) => ({
+            ...prev,
+            uploading: false,
+            error: "Upload timed out. Check your connection and try again.",
+            progress: 0,
+            retryCount: 0,
+          }));
+          return;
+        }
+
+        if (attempt < CLIENT_MAX_RETRIES - 1) continue;
+
+        setter((prev) => ({
+          ...prev,
+          uploading: false,
+          error: !navigator.onLine
+            ? "You are offline. Connect to the internet and try again."
+            : "Upload failed due to network issues. Please try again.",
           progress: 0,
+          retryCount: 0,
         }));
         return;
       }
-
-      setter((prev) => ({
-        ...prev,
-        uploading: false,
-        url: result.url,
-        progress: 100,
-      }));
-    } catch {
-      setter((prev) => ({
-        ...prev,
-        uploading: false,
-        error: "Network error. Please try again.",
-        progress: 0,
-      }));
     }
+  };
+
+  const handleFileSelect = (
+    file: File,
+    type: "cv" | "photo",
+    setter: React.Dispatch<React.SetStateAction<FileState>>
+  ) => {
+    const isCV = type === "cv";
+    const maxSize = isCV ? MAX_CV_SIZE : MAX_PHOTO_SIZE;
+    const allowedTypes = isCV
+      ? ["application/pdf"]
+      : ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.type)) {
+      setter((prev) => ({
+        ...prev,
+        error: isCV
+          ? "Only PDF files are allowed"
+          : "Only JPG, PNG, or WebP files are allowed",
+      }));
+      return;
+    }
+
+    if (file.size > maxSize) {
+      setter((prev) => ({
+        ...prev,
+        error: `File too large (${formatFileSize(file.size)}). Max ${formatFileSize(maxSize)}`,
+      }));
+      return;
+    }
+
+    uploadFile(file, type, setter);
   };
 
   const handleCvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.type !== "application/pdf") {
-      setCv((prev) => ({ ...prev, error: "Only PDF files are allowed" }));
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setCv((prev) => ({ ...prev, error: "Max file size is 10MB" }));
-      return;
-    }
-
-    uploadFile(file, "cv", setCv);
+    handleFileSelect(file, "cv", setCv);
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    handleFileSelect(file, "photo", setPhoto);
+  };
 
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setPhoto((prev) => ({
-        ...prev,
-        error: "Only JPG, PNG, or WebP files are allowed",
-      }));
-      return;
+  const retryUpload = (type: "cv" | "photo") => {
+    const state = type === "cv" ? cv : photo;
+    const setter = type === "cv" ? setCv : setPhoto;
+    if (state.file) {
+      uploadFile(state.file, type, setter);
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setPhoto((prev) => ({ ...prev, error: "Max file size is 5MB" }));
-      return;
-    }
-
-    uploadFile(file, "photo", setPhoto);
   };
 
   const clearFile = (type: "cv" | "photo") => {
+    stopProgressAnimation();
     if (type === "cv") {
-      setCv({ file: null, uploading: false, url: "", error: "", progress: 0 });
+      setCv({ ...initialFileState });
       if (cvInputRef.current) cvInputRef.current.value = "";
     } else {
-      setPhoto({
-        file: null,
-        uploading: false,
-        url: "",
-        error: "",
-        progress: 0,
-      });
+      setPhoto({ ...initialFileState });
       if (photoInputRef.current) photoInputRef.current.value = "";
     }
   };
@@ -350,11 +493,21 @@ export default function RecruitmentPage() {
     e.preventDefault();
     setSubmitError("");
 
+    if (!isOnline) {
+      setSubmitError(
+        "You are offline. Please connect to the internet and try again."
+      );
+      return;
+    }
+
     if (!validateAll()) return;
 
     setSubmitting(true);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60_000);
+
       const response = await fetch("/api/recruitment/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -370,7 +523,10 @@ export default function RecruitmentPage() {
           photoUrl: photo.url,
           positions: formData.positions,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const result = await response.json();
 
@@ -381,8 +537,19 @@ export default function RecruitmentPage() {
       }
 
       setShowSuccess(true);
-    } catch {
-      setSubmitError("Network error. Please check your connection and try again.");
+    } catch (err: unknown) {
+      const errName = err instanceof Error ? err.name : "";
+      if (errName === "AbortError") {
+        setSubmitError("Submission timed out. Please try again.");
+      } else if (!navigator.onLine) {
+        setSubmitError(
+          "You are offline. Please connect to the internet and try again."
+        );
+      } else {
+        setSubmitError(
+          "Network error. Please check your connection and try again."
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -409,15 +576,15 @@ export default function RecruitmentPage() {
     hint: string;
     icon: typeof FileText;
   }) => (
-    <div className="space-y-2">
-      <Label>{label} *</Label>
+    <div className="space-y-2" data-field={type}>
+      <Label className="text-sm font-medium">{label} *</Label>
       <div
-        className={`relative rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+        className={`relative min-h-[140px] rounded-xl border-2 border-dashed p-4 text-center transition-all duration-200 sm:p-6 ${
           state.url
             ? "border-primary/50 bg-primary/5"
             : state.error || errors[type]
               ? "border-destructive/50 bg-destructive/5"
-              : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50"
+              : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50 active:bg-muted/80"
         }`}
       >
         <input
@@ -430,28 +597,54 @@ export default function RecruitmentPage() {
         />
 
         {state.uploading ? (
-          <div className="space-y-3">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Uploading...</p>
-            <div className="mx-auto h-2 w-48 overflow-hidden rounded-full bg-muted">
+          <div className="flex flex-col items-center justify-center space-y-3 py-2">
+            <Loader2 className="h-8 w-8 animate-spin text-primary sm:h-10 sm:w-10" />
+            <p className="text-sm font-medium text-muted-foreground">
+              {state.retryCount > 0
+                ? `Retrying (${state.retryCount}/${CLIENT_MAX_RETRIES - 1})...`
+                : "Uploading..."}
+            </p>
+            {state.file && (
+              <p className="text-xs text-muted-foreground/70">
+                {state.file.name} ({formatFileSize(state.file.size)})
+              </p>
+            )}
+            <div className="h-2 w-full max-w-[200px] overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-primary transition-all duration-300"
+                className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
                 style={{ width: `${state.progress}%` }}
               />
             </div>
-          </div>
-        ) : state.url ? (
-          <div className="space-y-2">
-            <CheckCircle2 className="mx-auto h-8 w-8 text-primary" />
-            <p className="text-sm font-medium text-primary">
-              {state.file?.name || "Uploaded"}
+            <p className="text-xs tabular-nums text-muted-foreground/60">
+              {state.progress}%
             </p>
             <Button
               type="button"
               variant="ghost"
               size="sm"
               onClick={() => clearFile(type)}
-              className="text-muted-foreground hover:text-destructive"
+              className="mt-1 h-8 text-xs text-muted-foreground hover:text-destructive"
+            >
+              Cancel
+            </Button>
+          </div>
+        ) : state.url ? (
+          <div className="flex flex-col items-center justify-center space-y-2 py-2">
+            <CheckCircle2 className="h-8 w-8 text-primary sm:h-10 sm:w-10" />
+            <p className="max-w-full truncate text-sm font-medium text-primary">
+              {state.file?.name || "Uploaded"}
+            </p>
+            {state.file && (
+              <p className="text-xs text-muted-foreground/70">
+                {formatFileSize(state.file.size)}
+              </p>
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => clearFile(type)}
+              className="h-8 text-xs text-muted-foreground hover:text-destructive"
             >
               <X className="mr-1 h-3 w-3" />
               Remove
@@ -461,19 +654,39 @@ export default function RecruitmentPage() {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="w-full space-y-2"
+            className="flex w-full flex-col items-center justify-center space-y-2 py-2"
           >
-            <Icon className="mx-auto h-8 w-8 text-muted-foreground" />
-            <p className="text-sm font-medium">Click to upload</p>
+            <div className="rounded-full bg-muted p-3">
+              <Icon className="h-6 w-6 text-muted-foreground sm:h-7 sm:w-7" />
+            </div>
+            <p className="text-sm font-medium">
+              Tap to {type === "photo" ? "take or select photo" : "select file"}
+            </p>
             <p className="text-xs text-muted-foreground">{hint}</p>
           </button>
         )}
       </div>
-      {(state.error || errors[type]) && (
-        <p className="flex items-center gap-1 text-sm text-destructive">
-          <AlertCircle className="h-3 w-3" />
-          {state.error || errors[type]}
-        </p>
+
+      {/* Error with retry button */}
+      {(state.error || errors[type]) && !state.uploading && (
+        <div className="flex items-start gap-2">
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+          <div className="flex-1">
+            <p className="text-sm text-destructive">
+              {state.error || errors[type]}
+            </p>
+            {state.file && state.error && !errors[type] && (
+              <button
+                type="button"
+                onClick={() => retryUpload(type)}
+                className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Tap to retry
+              </button>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -481,65 +694,88 @@ export default function RecruitmentPage() {
   // ─── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8 sm:py-12">
+    <div className="container mx-auto max-w-2xl px-3 py-6 sm:px-4 sm:py-12">
+      {/* Offline banner */}
+      {!isOnline && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-700 dark:text-yellow-400">
+          <WifiOff className="h-4 w-4 shrink-0" />
+          <p>You are offline. Some features may not work.</p>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+      <div className="mb-6 text-center sm:mb-8">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">
           Join <span className="text-primary">GUCC</span>
         </h1>
-        <p className="mt-2 text-muted-foreground">
+        <p className="mt-1.5 text-sm text-muted-foreground sm:mt-2 sm:text-base">
           Apply to become a member of Green University Computer Club
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Application Form</CardTitle>
-          <CardDescription>
-            Fill out the form below to apply. All fields marked with * are
-            required.
+      <Card className="shadow-sm">
+        <CardHeader className="px-4 pb-4 pt-5 sm:px-6 sm:pb-6 sm:pt-6">
+          <CardTitle className="text-lg sm:text-xl">
+            Application Form
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Fill out the form below. All fields marked with * are required.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <CardContent className="px-4 pb-6 sm:px-6">
+          <form
+            ref={formRef}
+            onSubmit={handleSubmit}
+            className="space-y-6 sm:space-y-8"
+            noValidate
+          >
             {/* ─── Personal Info ─────────────────────────────────────── */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <fieldset className="space-y-4">
+              <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:text-sm">
                 Personal Information
-              </h3>
+              </legend>
 
               {/* Name */}
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-sm">
+                  Full Name *
+                </Label>
                 <Input
                   id="name"
                   placeholder="Enter your full name"
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
                   aria-invalid={!!errors.name}
+                  autoComplete="name"
+                  className="h-11 text-base sm:h-10 sm:text-sm"
                 />
                 {errors.name && (
-                  <p className="flex items-center gap-1 text-sm text-destructive">
-                    <AlertCircle className="h-3 w-3" />
+                  <p className="flex items-center gap-1 text-xs text-destructive sm:text-sm">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
                     {errors.name}
                   </p>
                 )}
               </div>
 
               {/* Email */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-sm">
+                  Email *
+                </Label>
                 <Input
                   id="email"
                   type="email"
+                  inputMode="email"
                   placeholder="your.email@example.com"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   aria-invalid={!!errors.email}
+                  autoComplete="email"
+                  className="h-11 text-base sm:h-10 sm:text-sm"
                 />
                 {errors.email && (
-                  <p className="flex items-center gap-1 text-sm text-destructive">
-                    <AlertCircle className="h-3 w-3" />
+                  <p className="flex items-center gap-1 text-xs text-destructive sm:text-sm">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
                     {errors.email}
                   </p>
                 )}
@@ -547,82 +783,103 @@ export default function RecruitmentPage() {
 
               {/* Student ID & Phone */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="studentId">Student ID *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="studentId" className="text-sm">
+                    Student ID *
+                  </Label>
                   <Input
                     id="studentId"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     placeholder="232002184"
                     value={formData.studentId}
                     onChange={(e) =>
                       handleInputChange("studentId", e.target.value)
                     }
                     aria-invalid={!!errors.studentId}
+                    className="h-11 text-base sm:h-10 sm:text-sm"
                   />
                   {errors.studentId && (
-                    <p className="flex items-center gap-1 text-sm text-destructive">
-                      <AlertCircle className="h-3 w-3" />
+                    <p className="flex items-center gap-1 text-xs text-destructive sm:text-sm">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
                       {errors.studentId}
                     </p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone" className="text-sm">
+                    Phone Number *
+                  </Label>
                   <Input
                     id="phone"
+                    type="tel"
+                    inputMode="tel"
                     placeholder="01XXXXXXXXX"
                     value={formData.phone}
                     onChange={(e) => handleInputChange("phone", e.target.value)}
                     aria-invalid={!!errors.phone}
+                    autoComplete="tel"
+                    className="h-11 text-base sm:h-10 sm:text-sm"
                   />
                   {errors.phone && (
-                    <p className="flex items-center gap-1 text-sm text-destructive">
-                      <AlertCircle className="h-3 w-3" />
+                    <p className="flex items-center gap-1 text-xs text-destructive sm:text-sm">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
                       {errors.phone}
                     </p>
                   )}
                 </div>
               </div>
-            </div>
+            </fieldset>
 
             {/* ─── Academic Info ──────────────────────────────────────── */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <fieldset className="space-y-4">
+              <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:text-sm">
                 Academic Information
-              </h3>
+              </legend>
 
               {/* Batch */}
-              <div className="space-y-2">
-                <Label>Batch *</Label>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Batch *</Label>
                 <Select
                   value={formData.batch}
                   onValueChange={(val) => handleInputChange("batch", val)}
                 >
-                  <SelectTrigger aria-invalid={!!errors.batch}>
+                  <SelectTrigger
+                    aria-invalid={!!errors.batch}
+                    className="h-11 text-base sm:h-10 sm:text-sm"
+                  >
                     <SelectValue placeholder="Select your batch" />
                   </SelectTrigger>
                   <SelectContent>
                     {BATCHES.map((batch) => (
-                      <SelectItem key={batch} value={batch}>
+                      <SelectItem
+                        key={batch}
+                        value={batch}
+                        className="text-base sm:text-sm"
+                      >
                         {batch} Batch
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 {errors.batch && (
-                  <p className="flex items-center gap-1 text-sm text-destructive">
-                    <AlertCircle className="h-3 w-3" />
+                  <p className="flex items-center gap-1 text-xs text-destructive sm:text-sm">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
                     {errors.batch}
                   </p>
                 )}
               </div>
 
-              {/* Credit & CGPA */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="completedCredit">Completed Credit *</Label>
+              {/* Credit & CGPA — always 2 cols */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="completedCredit" className="text-sm">
+                    Completed Credit *
+                  </Label>
                   <Input
                     id="completedCredit"
                     type="number"
+                    inputMode="numeric"
                     min="0"
                     max="200"
                     step="1"
@@ -632,19 +889,23 @@ export default function RecruitmentPage() {
                       handleInputChange("completedCredit", e.target.value)
                     }
                     aria-invalid={!!errors.completedCredit}
+                    className="h-11 text-base sm:h-10 sm:text-sm"
                   />
                   {errors.completedCredit && (
-                    <p className="flex items-center gap-1 text-sm text-destructive">
-                      <AlertCircle className="h-3 w-3" />
+                    <p className="flex items-center gap-1 text-xs text-destructive sm:text-sm">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
                       {errors.completedCredit}
                     </p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cgpa">CGPA *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="cgpa" className="text-sm">
+                    CGPA *
+                  </Label>
                   <Input
                     id="cgpa"
                     type="number"
+                    inputMode="decimal"
                     min="0"
                     max="4"
                     step="0.01"
@@ -652,22 +913,23 @@ export default function RecruitmentPage() {
                     value={formData.cgpa}
                     onChange={(e) => handleInputChange("cgpa", e.target.value)}
                     aria-invalid={!!errors.cgpa}
+                    className="h-11 text-base sm:h-10 sm:text-sm"
                   />
                   {errors.cgpa && (
-                    <p className="flex items-center gap-1 text-sm text-destructive">
-                      <AlertCircle className="h-3 w-3" />
+                    <p className="flex items-center gap-1 text-xs text-destructive sm:text-sm">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
                       {errors.cgpa}
                     </p>
                   )}
                 </div>
               </div>
-            </div>
+            </fieldset>
 
             {/* ─── File Uploads ──────────────────────────────────────── */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <fieldset className="space-y-4">
+              <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:text-sm">
                 Documents
-              </h3>
+              </legend>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FileUploadBox
@@ -675,9 +937,9 @@ export default function RecruitmentPage() {
                   state={cv}
                   inputRef={cvInputRef}
                   onChange={handleCvChange}
-                  accept=".pdf"
+                  accept=".pdf,application/pdf"
                   label="CV / Resume"
-                  hint="PDF only, max 10MB"
+                  hint="PDF only, max 10 MB"
                   icon={FileText}
                 />
                 <FileUploadBox
@@ -685,28 +947,28 @@ export default function RecruitmentPage() {
                   state={photo}
                   inputRef={photoInputRef}
                   onChange={handlePhotoChange}
-                  accept=".jpg,.jpeg,.png,.webp"
+                  accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                   label="Photo"
-                  hint="JPG, PNG or WebP, max 5MB"
+                  hint="JPG, PNG or WebP, max 5 MB"
                   icon={ImageIcon}
                 />
               </div>
-            </div>
+            </fieldset>
 
             {/* ─── Positions ─────────────────────────────────────────── */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <fieldset className="space-y-3 sm:space-y-4" data-field="positions">
+              <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:text-sm">
                 Preferred Position(s)
-              </h3>
-              <p className="text-sm text-muted-foreground">
+              </legend>
+              <p className="text-xs text-muted-foreground sm:text-sm">
                 Select one or more positions you&apos;re interested in.
               </p>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
                 {POSITIONS.map((position) => (
                   <label
                     key={position}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50 has-[button[data-state=checked]]:border-primary has-[button[data-state=checked]]:bg-primary/5"
+                    className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all duration-150 active:scale-[0.98] hover:bg-muted/50 has-[button[data-state=checked]]:border-primary has-[button[data-state=checked]]:bg-primary/5 sm:p-3.5"
                   >
                     <Checkbox
                       checked={formData.positions.includes(position)}
@@ -717,32 +979,41 @@ export default function RecruitmentPage() {
                 ))}
               </div>
               {errors.positions && (
-                <p className="flex items-center gap-1 text-sm text-destructive">
-                  <AlertCircle className="h-3 w-3" />
+                <p className="flex items-center gap-1 text-xs text-destructive sm:text-sm">
+                  <AlertCircle className="h-3 w-3 shrink-0" />
                   {errors.positions}
                 </p>
               )}
-            </div>
+            </fieldset>
 
             {/* ─── Submit Error ───────────────────────────────────────── */}
             {submitError && (
-              <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 sm:p-4">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                <p className="text-sm text-destructive">{submitError}</p>
+                <p className="text-xs text-destructive sm:text-sm">
+                  {submitError}
+                </p>
               </div>
             )}
 
             {/* ─── Submit Button ──────────────────────────────────────── */}
             <Button
               type="submit"
-              className="w-full"
+              className="h-12 w-full text-base font-medium sm:h-11 sm:text-sm"
               size="lg"
-              disabled={submitting || cv.uploading || photo.uploading}
+              disabled={
+                submitting || cv.uploading || photo.uploading || !isOnline
+              }
             >
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Submitting...
+                </>
+              ) : !isOnline ? (
+                <>
+                  <WifiOff className="mr-2 h-4 w-4" />
+                  Offline
                 </>
               ) : (
                 <>
@@ -751,26 +1022,37 @@ export default function RecruitmentPage() {
                 </>
               )}
             </Button>
+
+            {/* Connection indicator */}
+            {isOnline && (
+              <p className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground/50">
+                <Wifi className="h-3 w-3" />
+                Connected
+              </p>
+            )}
           </form>
         </CardContent>
       </Card>
 
       {/* ─── Success Dialog ────────────────────────────────────────────── */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent>
+        <DialogContent className="mx-4 max-w-sm sm:mx-auto sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-lg">
               <CheckCircle2 className="h-5 w-5 text-primary" />
               Application Submitted!
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               Thank you for applying to GUCC! We have received your application
               and will review it shortly. You&apos;ll receive an email
               notification about the status of your application.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end">
-            <Button onClick={() => (window.location.href = "/")}>
+          <div className="flex justify-end pt-2">
+            <Button
+              onClick={() => (window.location.href = "/")}
+              className="h-11 sm:h-10"
+            >
               Back to Home
             </Button>
           </div>
