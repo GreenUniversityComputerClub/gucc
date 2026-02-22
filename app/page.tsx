@@ -204,12 +204,12 @@ export default function Home() {
             <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10 max-w-xl w-full">
               <CardContent className="p-5 flex flex-col items-center text-center space-y-3">
                 <Avatar className="w-20 h-20">
-                  <AvatarImage src="/executives/mahabib.cse.png" alt="Professor Dr. Md. Ahsan Habib" />
-                  <AvatarFallback>AR</AvatarFallback>
+                  <AvatarImage src="/executives/kabir.cse.png" alt="Mr. Syed Ahsanul Kabir" />
+                  <AvatarFallback>SK</AvatarFallback>
                 </Avatar>
                 <div className="space-y-1">
-                  <h3 className="font-semibold text-lg">Professor Dr. Md. Ahsan Habib</h3>
-                  <p className="text-sm text-muted-foreground">Chairperson, Department of CSE</p>
+                  <h3 className="font-semibold text-lg">Mr. Syed Ahsanul Kabir</h3>
+                  <p className="text-sm text-muted-foreground"> Chairperson & Associate Professor</p>
                 </div>
                 <blockquote className="text-sm text-muted-foreground italic leading-relaxed">
                   "It gives me great pride to see the Green University Computer Club (GUCC) flourishing as a platform for student innovation, leadership, and collaboration. GUCC is more than just a club — it's a space where ideas come to life, where students learn by doing, and where futures are shaped through teamwork and creativity. I wholeheartedly support the club's mission and encourage every student to take part in this journey of growth and excellence."
