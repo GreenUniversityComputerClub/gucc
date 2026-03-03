@@ -1,201 +1,272 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Google Apps Script Form Submission Web App URL
-const SHEET_API_URL =
-  "https://script.google.com/macros/s/AKfycbxX1hkvNM9GlZr2huFvT1VMEBPC9OzZsQQnN4ZExR2-W_7GdBetZFm3uuk9bNA9K7g/exec";
+// ─── Configuration ────────────────────────────────────────────────────────────
 
-// Validation constants
+const SHEET_API_URL =
+  "https://script.google.com/macros/s/AKfycbxmyEnJrx_muHpBYhAnjDnboQACMaIeOkZ7s-0iKLMJuVqKJS6s2NlHnGTwkbXdHbPalw/exec";
+
 const VALID_POSITIONS = [
   "President",
-  "Vice President",
+  "Vice-President",
   "General Secretary",
+  "Joint General Secretary",
   "Treasurer",
-  "Joint Secretary",
   "Organizing Secretary",
+  "Joint Organizing Secretary",
+  "Event Coordinator",
+  "Programming Secretary",
+  "Information Secretary",
+  "Joint Information Secretary",
+  "Outreach Secretary",
   "Publication Secretary",
-  "Executive Member",
-  "Member",
+  "Joint Publication Secretary",
+  "Cultural Secretary",
+  "Graphics and Multimedia Coordinators",
+  "Photography Secretary",
+  "Photo and Video Editor",
+  "Sports Secretary",
+  "Executive Members",
 ];
+
+const VALID_SEMESTERS = [
+  "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "Others",
+];
+
+const VALID_GENDERS = ["Male", "Female"];
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^(?:\+?880|0)?1[3-9]\d{8}$/;
-const STUDENT_ID_REGEX = /^\d{8,10}$/;
+const STUDENT_ID_REGEX = /^\d{9}$/;
 
-interface RecruitmentFormData {
+const MAX_RETRIES = 4;
+const SUBMIT_TIMEOUT = 60_000; // 60 seconds
+const RETRY_BASE_DELAY = 1500;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface FormPayload {
   name: string;
-  email: string;
   studentId: string;
+  email: string;
   phone: string;
+  gender: string;
+  semester: string;
   batch: string;
-  completedCredit: number;
   cgpa: number;
+  completedCredit: number;
+  positions: string;
+  clubWork?: string;
   cvUrl: string;
   photoUrl: string;
-  positions: string[];
+  idCardUrl: string;
 }
 
-function validateFormData(data: RecruitmentFormData): string | null {
-  if (!data.name || typeof data.name !== "string" || data.name.trim().length < 2) {
-    return "Name must be at least 2 characters";
-  }
+// ─── Validation ───────────────────────────────────────────────────────────────
 
-  if (!data.email || !EMAIL_REGEX.test(data.email)) {
+function validate(d: FormPayload): string | null {
+  if (!d.name || typeof d.name !== "string" || d.name.trim().length < 2)
+    return "Full name must be at least 2 characters";
+  if (d.name.trim().length > 100)
+    return "Name is too long (max 100 characters)";
+
+  if (!d.studentId || typeof d.studentId !== "string" || !STUDENT_ID_REGEX.test(d.studentId.trim()))
+    return "Student ID must be exactly 9 digits";
+
+  if (!d.email || typeof d.email !== "string" || !EMAIL_REGEX.test(d.email.trim()))
     return "Invalid email address";
-  }
 
-  if (!data.studentId || !STUDENT_ID_REGEX.test(data.studentId)) {
-    return "Invalid Student ID (must be 8-10 digits, e.g., 232002184)";
-  }
+  if (!d.phone || typeof d.phone !== "string" || !PHONE_REGEX.test(d.phone.replace(/[\s-]/g, "")))
+    return "Invalid mobile number";
 
-  if (!data.phone || !PHONE_REGEX.test(data.phone.replace(/\s/g, ""))) {
-    return "Invalid phone number";
-  }
+  if (!d.gender || !VALID_GENDERS.includes(d.gender))
+    return "Gender is required";
 
-  if (!data.batch || typeof data.batch !== "string" || data.batch.trim().length === 0) {
+  if (!d.semester || !VALID_SEMESTERS.includes(d.semester))
+    return "Please select a valid semester";
+
+  if (!d.batch || typeof d.batch !== "string" || d.batch.trim().length === 0)
     return "Batch is required";
-  }
 
-  const credit = Number(data.completedCredit);
-  if (isNaN(credit) || credit < 0 || credit > 200) {
-    return "Completed credit must be between 0 and 200";
-  }
-
-  const cgpa = Number(data.cgpa);
-  if (isNaN(cgpa) || cgpa < 0 || cgpa > 4.0) {
+  const cgpa = Number(d.cgpa);
+  if (isNaN(cgpa) || cgpa < 0 || cgpa > 4.0)
     return "CGPA must be between 0.00 and 4.00";
-  }
 
-  if (!data.cvUrl || typeof data.cvUrl !== "string" || !data.cvUrl.startsWith("http")) {
+  const credits = Number(d.completedCredit);
+  if (isNaN(credits) || !Number.isInteger(credits) || credits < 0 || credits > 200)
+    return "Completed credits must be a whole number between 0 and 200";
+
+  if (!d.positions || !VALID_POSITIONS.includes(d.positions))
+    return "Please select a valid position";
+
+  if (!d.cvUrl || typeof d.cvUrl !== "string" || !d.cvUrl.startsWith("http"))
     return "CV upload is required";
-  }
-
-  if (!data.photoUrl || typeof data.photoUrl !== "string" || !data.photoUrl.startsWith("http")) {
+  if (!d.photoUrl || typeof d.photoUrl !== "string" || !d.photoUrl.startsWith("http"))
     return "Photo upload is required";
-  }
-
-  if (
-    !data.positions ||
-    !Array.isArray(data.positions) ||
-    data.positions.length === 0
-  ) {
-    return "At least one position must be selected";
-  }
-
-  for (const pos of data.positions) {
-    if (!VALID_POSITIONS.includes(pos)) {
-      return `Invalid position: ${pos}`;
-    }
-  }
+  if (!d.idCardUrl || typeof d.idCardUrl !== "string" || !d.idCardUrl.startsWith("http"))
+    return "Student ID card image is required";
 
   return null;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+// ─── Route Handler ────────────────────────────────────────────────────────────
+
 export async function POST(request: NextRequest) {
   try {
-    const data: RecruitmentFormData = await request.json();
-
-    // Server-side validation
-    const validationError = validateFormData(data);
-    if (validationError) {
-      return NextResponse.json({ error: validationError }, { status: 400 });
+    let data: FormPayload;
+    try {
+      data = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request body. Please try again." },
+        { status: 400 },
+      );
     }
 
-    // Sanitize data — field names must match GAS doPost expectations exactly
-    const sanitized = {
+    const error = validate(data);
+    if (error) {
+      return NextResponse.json({ error }, { status: 400 });
+    }
+
+    // Build payload matching GAS field names exactly
+    const sheetPayload = {
       name: data.name.trim(),
-      email: data.email.trim().toLowerCase(),
       studentId: data.studentId.trim(),
-      phone: data.phone.trim().replace(/\s/g, "").replace(/^\+?880/, "0"),
+      email: data.email.trim().toLowerCase(),
+      phone: data.phone.trim(),
+      gender: data.gender,
+      semester: data.semester,
       batch: data.batch.trim(),
-      completedCredit: Number(data.completedCredit),
       cgpa: Number(data.cgpa),
-      cv: data.cvUrl.trim(),
-      photo: data.photoUrl.trim(),
+      completedCredit: Number(data.completedCredit),
       positions: data.positions,
-      source: "website",
+      clubWork: (data.clubWork || "").trim(),
+      cvUrl: data.cvUrl.trim(),
+      photoUrl: data.photoUrl.trim(),
+      idCardUrl: data.idCardUrl.trim(),
     };
 
-    // Submit to Google Apps Script Sheet API with retry
-    const jsonBody = JSON.stringify(sanitized);
-    const MAX_RETRIES = 3;
+    const body = JSON.stringify(sheetPayload);
     let response: Response | null = null;
     let lastError: unknown = null;
+    let lastStatus: number | null = null;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const timeoutId = setTimeout(() => controller.abort(), SUBMIT_TIMEOUT);
 
         response = await fetch(SHEET_API_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
-          body: jsonBody,
+          body,
           signal: controller.signal,
           redirect: "follow",
         });
 
         clearTimeout(timeoutId);
-        break;
-      } catch (fetchError: unknown) {
-        lastError = fetchError;
-        const errName = fetchError instanceof Error ? fetchError.name : "";
-        if (errName === "AbortError" || errName === "TimeoutError") {
+
+        // Break on success or non-retryable client errors
+        if (response.ok || (response.status >= 400 && response.status < 500 && !isRetryableStatus(response.status))) {
+          break;
+        }
+
+        lastStatus = response.status;
+        if (attempt < MAX_RETRIES) {
+          const delay = RETRY_BASE_DELAY * Math.pow(2, attempt - 1);
+          console.warn(`Submit attempt ${attempt} got ${response.status}, retrying in ${delay}ms...`);
+          await new Promise((r) => setTimeout(r, delay));
+          response = null;
+          continue;
+        }
+      } catch (err: unknown) {
+        lastError = err;
+        const errName = err instanceof Error ? err.name : "";
+
+        if (errName === "AbortError") {
+          if (attempt < MAX_RETRIES) {
+            const delay = RETRY_BASE_DELAY * Math.pow(2, attempt - 1);
+            console.warn(`Submit attempt ${attempt} timed out, retrying in ${delay}ms...`);
+            await new Promise((r) => setTimeout(r, delay));
+            continue;
+          }
           return NextResponse.json(
-            { error: "Submission timed out. Please try again." },
-            { status: 504 }
+            { error: "Submission timed out after multiple attempts. Please try again." },
+            { status: 504 },
           );
         }
+
         if (attempt < MAX_RETRIES) {
-          console.warn(`Submit attempt ${attempt} failed, retrying...`);
-          await new Promise((r) => setTimeout(r, 1000 * attempt));
+          const delay = RETRY_BASE_DELAY * Math.pow(2, attempt - 1);
+          console.warn(`Submit attempt ${attempt} failed (network), retrying in ${delay}ms...`);
+          await new Promise((r) => setTimeout(r, delay));
           continue;
         }
       }
     }
 
     if (!response) {
-      console.error("All submit attempts failed:", lastError);
+      console.error("All submit attempts failed. Last error:", lastError, "Last status:", lastStatus);
       return NextResponse.json(
-        { error: "Could not reach submission service. Please try again." },
-        { status: 502 }
+        { error: "Could not reach submission service after multiple attempts. Please check your connection and try again." },
+        { status: 502 },
       );
     }
 
-    // Read response as text to handle both JSON and HTML error pages
-    const responseText = await response.text();
-
-    if (responseText.trimStart().startsWith("<!DOCTYPE") || responseText.trimStart().startsWith("<HTML")) {
-      console.error("Sheet API returned HTML error page");
+    // --- Read & parse response ---
+    let responseText: string;
+    try {
+      responseText = await response.text();
+    } catch {
       return NextResponse.json(
-        { error: "Submission service is temporarily unavailable. Please try again." },
-        { status: 502 }
+        { error: "Failed to read submission service response. Please try again." },
+        { status: 502 },
       );
     }
 
-    let result;
+    const trimmed = responseText.trimStart().toLowerCase();
+    if (trimmed.startsWith("<!doctype") || trimmed.startsWith("<html")) {
+      console.error("Sheet API returned HTML error page (status:", response.status, ")");
+      return NextResponse.json(
+        { error: "Submission service is temporarily unavailable. Please try again in a moment." },
+        { status: 502 },
+      );
+    }
+
+    if (!responseText.trim()) {
+      console.error("Sheet API returned empty response (status:", response.status, ")");
+      return NextResponse.json(
+        { error: "Submission service returned an empty response. Please try again." },
+        { status: 502 },
+      );
+    }
+
+    let result: Record<string, unknown>;
     try {
       result = JSON.parse(responseText);
     } catch {
-      console.error("Sheet API returned non-JSON:", responseText.substring(0, 200));
+      console.error("Sheet API returned non-JSON:", responseText.slice(0, 300));
       return NextResponse.json(
         { error: "Invalid response from submission service. Please try again." },
-        { status: 502 }
+        { status: 502 },
       );
     }
 
-    if (result.success === false) {
-      const msg = result.message || result.error || "Submission failed";
-      if (msg.includes("duplicate") || msg.includes("already")) {
+    if (result.success === false || result.error) {
+      const msg = String(result.message || result.error || "Submission failed");
+      const lower = msg.toLowerCase();
+      if (lower.includes("duplicate") || lower.includes("already")) {
         return NextResponse.json(
-          { error: "You have already submitted an application." },
-          { status: 409 }
+          { error: "You have already submitted an application with this Student ID or email." },
+          { status: 409 },
         );
       }
       return NextResponse.json({ error: msg }, { status: 400 });
-    }
-
-    if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
     return NextResponse.json({
@@ -203,10 +274,10 @@ export async function POST(request: NextRequest) {
       message: "Application submitted successfully!",
     });
   } catch (error) {
-    console.error("Submit route error:", error);
+    console.error("Submit route unexpected error:", error);
     return NextResponse.json(
-      { error: "Internal server error during submission" },
-      { status: 500 }
+      { error: "An unexpected error occurred during submission. Please try again." },
+      { status: 500 },
     );
   }
 }

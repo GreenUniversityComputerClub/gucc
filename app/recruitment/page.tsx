@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,7 @@ import {
   ExternalLink,
   Clock,
   Mail,
+  BookOpen,
 } from "lucide-react";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -59,11 +61,11 @@ const POSITIONS = [
   "Publication Secretary",
   "Joint Publication Secretary",
   "Cultural Secretary",
-  "Graphics and Multimedia Coordinator",
+  "Graphics and Multimedia Coordinators",
   "Photography Secretary",
-  "Photo & Video Editor",
+  "Photo and Video Editor",
   "Sports Secretary",
-  "Executive Member",
+  "Executive Members",
 ] as const;
 
 const SEMESTERS = [
@@ -82,13 +84,13 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^(?:\+?880|0)?1[3-9]\d{8}$/;
 const STUDENT_ID_REGEX = /^\d{9}$/;
 
-const MAX_CV_SIZE = 100 * 1024 * 1024;
-const MAX_PHOTO_SIZE = 100 * 1024 * 1024;
-const MAX_ID_SIZE = 100 * 1024 * 1024;
-const CLIENT_UPLOAD_TIMEOUT = 120_000;
-const CLIENT_MAX_RETRIES = 3;
+const MAX_CV_SIZE = 50 * 1024 * 1024;
+const MAX_PHOTO_SIZE = 50 * 1024 * 1024;
+const MAX_ID_SIZE = 50 * 1024 * 1024;
+const CLIENT_UPLOAD_TIMEOUT = 180_000;
+const CLIENT_MAX_RETRIES = 4;
 
-const APPLICATION_DEADLINE = "10 March 2026 (Tuesday) 11:59 PM";
+const APPLICATION_DEADLINE = "13 March 2026 (Friday) 11:59 PM";
 
 // Teal color tokens for light / dark
 const TEAL = {
@@ -244,7 +246,16 @@ export default function RecruitmentPage() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const idCardInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressTimerRefs = useRef<Record<string, ReturnType<typeof setInterval> | null>>({
+    cv: null,
+    photo: null,
+    idCard: null,
+  });
+  const uploadAbortRefs = useRef<Record<string, AbortController | null>>({
+    cv: null,
+    photo: null,
+    idCard: null,
+  });
 
   // ─── Online / offline detection ──────────────────────────────────────────
 
@@ -262,7 +273,9 @@ export default function RecruitmentPage() {
 
   useEffect(() => {
     return () => {
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      Object.values(progressTimerRefs.current).forEach((timer) => {
+        if (timer) clearInterval(timer);
+      });
     };
   }, []);
 
@@ -398,15 +411,16 @@ export default function RecruitmentPage() {
   // ─── Progress animation ─────────────────────────────────────────────────
 
   const startProgressAnimation = (
+    type: string,
     setter: React.Dispatch<React.SetStateAction<FileState>>
   ) => {
-    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    if (progressTimerRefs.current[type]) clearInterval(progressTimerRefs.current[type]!);
     let current = 10;
-    progressTimerRef.current = setInterval(() => {
+    progressTimerRefs.current[type] = setInterval(() => {
       current += Math.random() * 3 + 0.5;
       if (current >= 85) {
         current = 85;
-        if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+        if (progressTimerRefs.current[type]) clearInterval(progressTimerRefs.current[type]!);
       }
       setter((prev) =>
         prev.uploading ? { ...prev, progress: Math.round(current) } : prev
@@ -414,10 +428,10 @@ export default function RecruitmentPage() {
     }, 400);
   };
 
-  const stopProgressAnimation = () => {
-    if (progressTimerRef.current) {
-      clearInterval(progressTimerRef.current);
-      progressTimerRef.current = null;
+  const stopProgressAnimation = (type: string) => {
+    if (progressTimerRefs.current[type]) {
+      clearInterval(progressTimerRefs.current[type]!);
+      progressTimerRefs.current[type] = null;
     }
   };
 
@@ -443,21 +457,23 @@ export default function RecruitmentPage() {
       return copy;
     });
 
-    startProgressAnimation(setter);
+    startProgressAnimation(type, setter);
 
     for (let attempt = 0; attempt < CLIENT_MAX_RETRIES; attempt++) {
       try {
         if (attempt > 0) {
           setter((prev) => ({ ...prev, progress: 5, retryCount: attempt }));
-          await new Promise((r) => setTimeout(r, 1500 * attempt));
-          startProgressAnimation(setter);
+          const delay = 1500 * Math.pow(2, attempt - 1); // exponential backoff
+          await new Promise((r) => setTimeout(r, delay));
+          startProgressAnimation(type, setter);
         }
 
         const formDataObj = new globalThis.FormData();
         formDataObj.append("file", file);
-        formDataObj.append("type", type === "idCard" ? "photo" : type);
+        formDataObj.append("type", type);
 
         const controller = new AbortController();
+        uploadAbortRefs.current[type] = controller;
         const timeoutId = setTimeout(
           () => controller.abort(),
           CLIENT_UPLOAD_TIMEOUT
@@ -470,13 +486,28 @@ export default function RecruitmentPage() {
         });
 
         clearTimeout(timeoutId);
-        stopProgressAnimation();
+        stopProgressAnimation(type);
         setter((prev) => ({ ...prev, progress: 90 }));
 
-        const result = await response.json();
+        let result: { error?: string; url?: string };
+        try {
+          result = await response.json();
+        } catch {
+          // Non-JSON response from our own API — treat as server error
+          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
+          setter((prev) => ({
+            ...prev,
+            uploading: false,
+            error: "Server returned an invalid response. Please try again.",
+            progress: 0,
+            retryCount: 0,
+          }));
+          return;
+        }
 
         if (!response.ok) {
-          if (response.status === 400) {
+          // Don't retry client-side validation errors (400) or duplicates (409)
+          if (response.status === 400 || response.status === 409) {
             setter((prev) => ({
               ...prev,
               uploading: false,
@@ -486,11 +517,24 @@ export default function RecruitmentPage() {
             }));
             return;
           }
+          // Retry on server/gateway errors
           if (attempt < CLIENT_MAX_RETRIES - 1) continue;
           setter((prev) => ({
             ...prev,
             uploading: false,
-            error: result.error || "Upload failed. Please try again.",
+            error: result.error || "Upload failed after multiple attempts. Please try again.",
+            progress: 0,
+            retryCount: 0,
+          }));
+          return;
+        }
+
+        if (!result.url) {
+          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
+          setter((prev) => ({
+            ...prev,
+            uploading: false,
+            error: "Upload completed but no file URL was returned. Please try again.",
             progress: 0,
             retryCount: 0,
           }));
@@ -500,14 +544,14 @@ export default function RecruitmentPage() {
         setter((prev) => ({
           ...prev,
           uploading: false,
-          url: result.url,
+          url: result.url!,
           error: "",
           progress: 100,
           retryCount: 0,
         }));
         return;
       } catch (err: unknown) {
-        stopProgressAnimation();
+        stopProgressAnimation(type);
         const errName = err instanceof Error ? err.name : "";
 
         if (errName === "AbortError") {
@@ -515,7 +559,7 @@ export default function RecruitmentPage() {
           setter((prev) => ({
             ...prev,
             uploading: false,
-            error: "Upload timed out. Check your connection and try again.",
+            error: "Upload timed out after multiple attempts. Please check your connection and try again.",
             progress: 0,
             retryCount: 0,
           }));
@@ -547,18 +591,20 @@ export default function RecruitmentPage() {
     errorMsg: string
   ) => {
     if (!allowedTypes.includes(file.type)) {
-      setter((prev) => ({ ...prev, error: errorMsg }));
+      setter((prev) => ({ ...prev, error: errorMsg, url: "", file: null }));
       return;
     }
     if (file.size > maxSize) {
       setter((prev) => ({
         ...prev,
         error: `File too large (${formatFileSize(file.size)}). Max ${formatFileSize(maxSize)}`,
+        url: "",
+        file: null,
       }));
       return;
     }
     if (file.size === 0) {
-      setter((prev) => ({ ...prev, error: "File is empty. Please select a valid file." }));
+      setter((prev) => ({ ...prev, error: "File is empty. Please select a valid file.", url: "", file: null }));
       return;
     }
     uploadFile(file, type, setter);
@@ -567,7 +613,7 @@ export default function RecruitmentPage() {
   const handleCvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    handleFileSelect(file, "cv", setCv, MAX_CV_SIZE, ["application/pdf"], "Only PDF files are allowed");
+    handleFileSelect(file, "cv", setCv, MAX_CV_SIZE, ["application/pdf", "application/x-pdf", "application/vnd.pdf"], "Only PDF files are allowed");
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -599,7 +645,12 @@ export default function RecruitmentPage() {
   };
 
   const clearFile = (type: "cv" | "photo" | "idCard") => {
-    stopProgressAnimation();
+    stopProgressAnimation(type);
+    // Abort any in-flight upload fetch for this type
+    if (uploadAbortRefs.current[type]) {
+      uploadAbortRefs.current[type]!.abort();
+      uploadAbortRefs.current[type] = null;
+    }
     const refMap = { cv: cvInputRef, photo: photoInputRef, idCard: idCardInputRef };
     const setterMap = { cv: setCv, photo: setPhoto, idCard: setIdCard };
     setterMap[type]({ ...initialFileState });
@@ -653,6 +704,14 @@ export default function RecruitmentPage() {
       preferredPosition: "",
       clubWork: "",
     });
+    // Stop all progress timers and abort any in-flight uploads
+    (["cv", "photo", "idCard"] as const).forEach((type) => {
+      stopProgressAnimation(type);
+      if (uploadAbortRefs.current[type]) {
+        uploadAbortRefs.current[type]!.abort();
+        uploadAbortRefs.current[type] = null;
+      }
+    });
     setCv(initialFileState);
     setPhoto(initialFileState);
     setIdCard(initialFileState);
@@ -691,26 +750,33 @@ export default function RecruitmentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.fullName.trim(),
-          email: formData.email.trim().toLowerCase(),
           studentId: formData.studentId.trim(),
+          email: formData.email.trim().toLowerCase(),
           phone: formData.mobile.trim(),
           gender: formData.gender,
           semester: formData.semester,
           batch: formData.batch.trim(),
-          completedCredit: Number(formData.completedCredits),
           cgpa: Number(formData.cgpa),
+          completedCredit: Math.round(Number(formData.completedCredits)),
+          positions: formData.preferredPosition,
+          clubWork: formData.clubWork.trim(),
           cvUrl: cv.url,
           photoUrl: photo.url,
           idCardUrl: idCard.url,
-          positions: [formData.preferredPosition],
-          clubWork: formData.clubWork.trim(),
         }),
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
 
-      const result = await response.json();
+      let result: { error?: string; success?: boolean };
+      try {
+        result = await response.json();
+      } catch {
+        setSubmitError("Received an invalid response from the server. Please try again.");
+        setSubmitting(false);
+        return;
+      }
 
       if (!response.ok) {
         setSubmitError(result.error || "Submission failed. Please try again.");
@@ -819,7 +885,14 @@ export default function RecruitmentPage() {
                   {state.file.name} ({formatFileSize(state.file.size)})
                 </p>
               )}
-              <div className="h-2 w-full max-w-[220px] overflow-hidden rounded-full bg-muted dark:bg-muted/60">
+              <div
+                className="h-2 w-full max-w-[220px] overflow-hidden rounded-full bg-muted dark:bg-muted/60"
+                role="progressbar"
+                aria-valuenow={state.progress}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`${label || type} upload progress`}
+              >
                 <div
                   className={`h-full rounded-full transition-all duration-400 ease-out ${TEAL.progressBar}`}
                   style={{ width: `${state.progress}%` }}
@@ -994,21 +1067,29 @@ export default function RecruitmentPage() {
                 <br />
                 Kindly read the{" "}
                 <strong className="text-foreground">Main Circular</strong>{" "}
+                and the{" "}
+                <strong className="text-foreground">Eligibility &amp; Position Requirements</strong>{" "}
                 provided below thoroughly before proceeding with your
                 application.
               </div>
 
-              <div>
-                <strong className="text-foreground">Google Drive Link: </strong>
+              <div className="flex flex-wrap items-center gap-3">
                 <a
-                  href="https://docs.google.com/document/d/115PRH3OUkEncvbjsTbEzQDTIdrSMQI0ThMLKh-vlyE0/edit?usp=sharing"
+                  href="https://drive.google.com/file/d/1VJZBZSLUVl7FFsYLDYZuW1aCPaLAWN2h/view?usp=sharing"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`inline-flex items-center gap-1 font-semibold underline underline-offset-2 transition-colors ${TEAL.link}`}
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition-colors ${TEAL.link} ${TEAL.deadlineBg}`}
                 >
-                  Main Circular
                   <ExternalLink className="h-3.5 w-3.5" />
+                  Main Circular
                 </a>
+                <Link
+                  href="/recruitment/rules"
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition-colors ${TEAL.link} ${TEAL.deadlineBg}`}
+                >
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Eligibility &amp; Position Requirements
+                </Link>
               </div>
 
               <p className="italic text-muted-foreground">
@@ -1422,10 +1503,10 @@ export default function RecruitmentPage() {
                 onChange={handleCvChange}
                 accept=".pdf,application/pdf"
                 label="Upload your latest CV (Must be PDF)"
-                hint="PDF only"
+                hint="PDF only · Max 50 MB"
                 icon={FileText}
                 maxSize={MAX_CV_SIZE}
-                allowedTypes={["application/pdf"]}
+                allowedTypes={["application/pdf", "application/x-pdf", "application/vnd.pdf"]}
                 errorMsg="Only PDF files are allowed"
               />
             </CardContent>
@@ -1441,7 +1522,7 @@ export default function RecruitmentPage() {
                 onChange={handlePhotoChange}
                 accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                 label="Upload your latest formal photo (Passport Size)"
-                hint="JPG, PNG or WebP"
+                hint="JPG, PNG, or WebP · Max 50 MB"
                 icon={ImageIcon}
                 maxSize={MAX_PHOTO_SIZE}
                 allowedTypes={["image/jpeg", "image/png", "image/webp"]}
@@ -1472,7 +1553,7 @@ export default function RecruitmentPage() {
                 onChange={handleIdCardChange}
                 accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                 label=""
-                hint="JPG, PNG or WebP"
+                hint="JPG, PNG, or WebP · Max 50 MB"
                 icon={CreditCard}
                 maxSize={MAX_ID_SIZE}
                 allowedTypes={["image/jpeg", "image/png", "image/webp"]}
@@ -1549,20 +1630,68 @@ export default function RecruitmentPage() {
 
       {/* ─── Success Dialog ────────────────────────────────────────── */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent className="mx-4 max-w-sm sm:mx-auto sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg text-foreground">
-              <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
-              Application Submitted!
+        <DialogContent className="mx-4 max-w-sm sm:mx-auto sm:max-w-lg">
+          <DialogHeader className="text-center sm:text-left">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 dark:bg-emerald-400/15 sm:mx-0">
+              <CheckCircle2 className="h-8 w-8 text-emerald-500 dark:text-emerald-400" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-foreground">
+              Thank you for applying to GUCC! 🎉
             </DialogTitle>
-            <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
-              Thank you for applying to{" "}
-              <strong className="text-foreground">GUCC Executive Committee 2026-27</strong>! We have
-              received your application and will review it shortly. You&apos;ll
-              be notified about the status of your application.
+            <DialogDescription asChild>
+              <div className="space-y-3 pt-2 text-sm leading-relaxed text-muted-foreground">
+                <p>
+                  Your application to join the{" "}
+                  <strong className="text-foreground">Green University Computer Club (GUCC)</strong>{" "}
+                  has been successfully submitted. We&apos;ve received all your details.
+                </p>
+
+                <div className="space-y-2">
+                  <p className="font-medium text-foreground">In the meantime:</p>
+                  <ul className="list-inside space-y-1.5 text-[13px] sm:text-sm">
+                    <li className="flex items-start gap-2">
+                      <span className="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
+                      <span>
+                        Follow us on our{" "}
+                        <a
+                          href="https://gucc.green.edu.bd/socials"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`font-semibold underline underline-offset-2 transition-colors ${TEAL.link}`}
+                        >
+                          Social Media
+                        </a>{" "}
+                        for updates, events, and tech tips.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
+                      <span>
+                        Check your email (including spam folder) for future updates on your application.
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+
+                <p>
+                  We&apos;re excited about the possibility of welcoming you to our community of
+                  coders, innovators, and tech enthusiasts. Let&apos;s build something awesome
+                  together!
+                </p>
+
+                <p className="text-xs text-muted-foreground/70">
+                  Questions? Email us at{" "}
+                  <a
+                    href="mailto:gucc@green.edu.bd"
+                    className={`font-semibold underline underline-offset-2 transition-colors ${TEAL.link}`}
+                  >
+                    gucc@green.edu.bd
+                  </a>
+                </p>
+              </div>
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex flex-col-reverse gap-2.5 pt-3 sm:flex-row sm:justify-end sm:gap-3">
             <Button
               variant="outline"
               onClick={() => {
