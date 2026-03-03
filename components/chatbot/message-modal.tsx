@@ -27,7 +27,7 @@ export function MessageModal({ isOpen, onClose, message, screenSize }: MessageMo
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" aria-hidden="true" />
       <div
         className={cn(
-          "bg-white relative rounded-lg shadow-xl",
+          "bg-white dark:bg-slate-900 relative rounded-lg shadow-xl",
           "w-[95vw] sm:w-[90vw] md:w-[80vw] lg:w-[70vw] xl:w-[60vw]",
           "max-w-3xl max-h-[90vh] flex flex-col",
         )}
@@ -39,11 +39,11 @@ export function MessageModal({ isOpen, onClose, message, screenSize }: MessageMo
           className={cn(
             "absolute rounded-full transition-colors z-10",
             "right-2 top-2 sm:right-4 sm:top-4 md:right-6 md:top-6",
-            "p-1.5 sm:p-2 md:p-2.5 bg-green-100 hover:bg-green-200",
+            "p-1.5 sm:p-2 md:p-2.5 bg-green-100 hover:bg-green-200 dark:bg-slate-800 dark:hover:bg-slate-700",
           )}
           aria-label="Close"
         >
-          <X className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-green-800" />
+          <X className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-green-800 dark:text-green-200" />
         </button>
 
         {/* Header */}
@@ -56,7 +56,7 @@ export function MessageModal({ isOpen, onClose, message, screenSize }: MessageMo
             )}
           >
             {message.role === "user" ? "Your Message" : "GUCC Assistant"}
-            <span className="text-xs sm:text-sm md:text-base font-normal text-gray-500">
+            <span className="text-xs sm:text-sm md:text-base font-normal text-gray-500 dark:text-gray-400">
               {format(message.timestamp, "MMM d, yyyy h:mm a")}
             </span>
           </h2>
@@ -64,7 +64,7 @@ export function MessageModal({ isOpen, onClose, message, screenSize }: MessageMo
 
         {/* Content */}
         <ScrollArea className="flex-1 p-3 sm:p-6 md:p-8 pt-2 sm:pt-2 md:pt-2">
-          <div className="text-sm sm:text-base md:text-lg lg:text-xl text-black whitespace-pre-wrap">
+          <div className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-900 dark:text-slate-100 whitespace-pre-wrap">
             {message.text}
           </div>
         </ScrollArea>
@@ -74,7 +74,7 @@ export function MessageModal({ isOpen, onClose, message, screenSize }: MessageMo
           <Button
             variant="outline"
             onClick={onClose}
-            className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300 text-sm sm:text-base md:text-lg py-1.5 sm:py-2 md:py-2.5 h-auto px-4 sm:px-6 md:px-8"
+            className="bg-green-100 hover:bg-green-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-green-800 dark:text-slate-100 border-green-300 dark:border-slate-700 text-sm sm:text-base md:text-lg py-1.5 sm:py-2 md:py-2.5 h-auto px-4 sm:px-6 md:px-8"
           >
             Close
           </Button>

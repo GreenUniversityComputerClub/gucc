@@ -17,7 +17,12 @@ export default async function Blog() {
     const host = process.env.HASHNODE_HOST || "gucc.hashnode.dev";
     const response = await gqlClient(queries.getPosts(host))();
     const posts = response as PostsResponse;
-    const postsData = posts.data.publication.posts.edges;
+    
+    // Safely access the posts data with validation
+    let postsData = [];
+    if (posts?.data?.publication?.posts?.edges && Array.isArray(posts.data.publication.posts.edges)) {
+      postsData = posts.data.publication.posts.edges;
+    }
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
