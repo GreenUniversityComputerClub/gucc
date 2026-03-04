@@ -52,8 +52,8 @@ interface FormPayload {
   gender: string;
   semester: string;
   batch: string;
-  cgpa: number;
-  completedCredit: number;
+  cgpa: string | number;
+  completedCredit: string | number;
   positions: string;
   clubWork?: string;
   cvUrl: string;
@@ -87,13 +87,17 @@ function validate(d: FormPayload): string | null {
   if (!d.batch || typeof d.batch !== "string" || d.batch.trim().length === 0)
     return "Batch is required";
 
-  const cgpa = Number(d.cgpa);
-  if (isNaN(cgpa) || cgpa < 0 || cgpa > 4.0)
+  const cgpaStr = String(d.cgpa).trim();
+  const cgpa = parseFloat(cgpaStr);
+  if (!cgpaStr || isNaN(cgpa) || cgpa < 0 || cgpa > 4.0)
     return "CGPA must be between 0.00 and 4.00";
 
-  const credits = Number(d.completedCredit);
-  if (isNaN(credits) || !Number.isInteger(credits) || credits < 0 || credits > 200)
+  const creditsStr = String(d.completedCredit).trim();
+  const credits = parseInt(creditsStr, 10);
+  if (!creditsStr || isNaN(credits) || credits < 0 || credits > 200)
     return "Completed credits must be a whole number between 0 and 200";
+  if (creditsStr !== String(credits))
+    return "Completed credits must be a whole number";
 
   if (!d.positions || !VALID_POSITIONS.includes(d.positions))
     return "Please select a valid position";
@@ -142,8 +146,8 @@ export async function POST(request: NextRequest) {
       gender: data.gender,
       semester: data.semester,
       batch: data.batch.trim(),
-      cgpa: Number(data.cgpa),
-      completedCredit: Number(data.completedCredit),
+      cgpa: String(data.cgpa).trim(),
+      completedCredit: String(data.completedCredit).trim(),
       positions: data.positions,
       clubWork: (data.clubWork || "").trim(),
       cvUrl: data.cvUrl.trim(),

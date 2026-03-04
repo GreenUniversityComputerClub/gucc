@@ -92,6 +92,69 @@ const CLIENT_MAX_RETRIES = 4;
 
 const APPLICATION_DEADLINE = "13 March 2026 (Friday) 11:59 PM";
 
+// ─── Direct-to-GAS upload (bypasses Vercel ~4.5 MB body limit) ───────────────
+
+const GAS_UPLOAD_URL =
+  "https://script.google.com/macros/s/AKfycbx8JQnkB9Do0PZt0WADzCFuRojLB5Ze2nMOZV1hgdqAFN5H7wpoaze3YPsT1RAeeq5H/exec";
+
+type FileCategory = "cv" | "photo" | "idCard";
+
+const ACCEPTED_TYPES: Record<FileCategory, string[]> = {
+  cv: [
+    "application/pdf",
+    "application/x-pdf",
+    "application/acrobat",
+    "application/vnd.pdf",
+    "text/pdf",
+    "text/x-pdf",
+  ],
+  photo: ["image/jpeg", "image/jpg", "image/png", "image/webp"],
+  idCard: ["image/jpeg", "image/jpg", "image/png", "image/webp"],
+};
+
+const ACCEPTED_EXTENSIONS: Record<FileCategory, string[]> = {
+  cv: ["pdf"],
+  photo: ["jpg", "jpeg", "png", "webp"],
+  idCard: ["jpg", "jpeg", "png", "webp"],
+};
+
+const FILE_LABELS: Record<FileCategory, string> = {
+  cv: "CV (PDF)",
+  photo: "Photo",
+  idCard: "ID Card",
+};
+
+function getFileExtension(filename: string): string {
+  const dot = filename.lastIndexOf(".");
+  return dot >= 0 ? filename.slice(dot + 1).toLowerCase() : "";
+}
+
+function isValidUploadType(file: File, category: FileCategory): boolean {
+  const mime = (file.type || "").toLowerCase().trim();
+  const ext = getFileExtension(file.name);
+  if (mime && ACCEPTED_TYPES[category].includes(mime)) return true;
+  if (ext && ACCEPTED_EXTENSIONS[category].includes(ext)) return true;
+  return false;
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Strip the data-URL prefix ("data:…;base64,")
+      const base64 = result.includes(",") ? result.split(",")[1] : result;
+      resolve(base64);
+    };
+    reader.onerror = () => reject(new Error("Failed to read the file. It may be corrupted."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function isRetryableGASStatus(status: number): boolean {
+  return [429, 500, 502, 503, 504].includes(status);
+}
+
 // Teal color tokens for light / dark
 const TEAL = {
   text: "text-[#006380] dark:text-[#5ec4db]",
@@ -149,9 +212,37 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/** Block non-numeric keys in number inputs */
-function blockNonNumericKeys(e: React.KeyboardEvent<HTMLInputElement>) {
-  if (["e", "E", "+", "-"].includes(e.key)) e.preventDefault();
+/** Allow only digits and at most one decimal point (for CGPA, max 4.00) */
+function sanitizeCgpaInput(value: string): string {
+  // Strip everything except digits and dots
+  let cleaned = value.replace(/[^0-9.]/g, "");
+  // Allow only the first dot
+  const parts = cleaned.split(".");
+  if (parts.length > 2) cleaned = parts[0] + "." + parts.slice(1).join("");
+  // Limit to reasonable length (e.g. "4.00")
+  cleaned = cleaned.slice(0, 4);
+  // Prevent leading dot alone → user must type digit first
+  if (cleaned === ".") return "";
+  // If it parses to > 4, clamp properly
+  const num = parseFloat(cleaned);
+  if (!isNaN(num) && num > 4) {
+    if (cleaned.includes(".")) {
+      const [intPart, decPart] = cleaned.split(".");
+      if (parseInt(intPart, 10) > 4) return "4";
+      // Integer part is 4 — clamp any non-zero decimal digit to 0
+      return intPart + "." + decPart.replace(/[1-9]/g, "0");
+    }
+    return "4";
+  }
+  return cleaned;
+}
+
+/** Allow only digits, clamped to 200 (for credits) */
+function sanitizeCreditsInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 3); // max 3 digits
+  // Clamp to 200
+  if (digits && parseInt(digits, 10) > 200) return "200";
+  return digits;
 }
 
 // ─── Animated card wrapper ───────────────────────────────────────────────────
@@ -275,6 +366,10 @@ export default function RecruitmentPage() {
     return () => {
       Object.values(progressTimerRefs.current).forEach((timer) => {
         if (timer) clearInterval(timer);
+      });
+      // Abort any in-flight uploads when component unmounts
+      Object.values(uploadAbortRefs.current).forEach((ctrl) => {
+        if (ctrl) ctrl.abort();
       });
     };
   }, []);
@@ -435,13 +530,36 @@ export default function RecruitmentPage() {
     }
   };
 
-  // ─── File upload ────────────────────────────────────────────────────────
+  // ─── File upload (direct to Google Apps Script — no Vercel size limit) ──
 
   const uploadFile = async (
     file: File,
-    type: "cv" | "photo" | "idCard",
+    type: FileCategory,
     setter: React.Dispatch<React.SetStateAction<FileState>>
   ) => {
+    // ── Client-side validation ────────────────────────────────────────────
+    const label = FILE_LABELS[type];
+
+    if (file.size === 0) {
+      setter((prev) => ({
+        ...prev,
+        file: null,
+        error: `${label} file is empty. Please select a valid file.`,
+      }));
+      return;
+    }
+
+    if (!isValidUploadType(file, type)) {
+      const exts = ACCEPTED_EXTENSIONS[type].map((e) => `.${e}`).join(", ");
+      setter((prev) => ({
+        ...prev,
+        file: null,
+        error: `Invalid ${label} format. Accepted formats: ${exts}`,
+      }));
+      return;
+    }
+
+    // ── Begin upload ──────────────────────────────────────────────────────
     setter((prev) => ({
       ...prev,
       file,
@@ -457,20 +575,48 @@ export default function RecruitmentPage() {
       return copy;
     });
 
+    // ── Convert to base64 (runs once — the payload is reused across retries)
+    let base64: string;
+    try {
+      base64 = await fileToBase64(file);
+    } catch {
+      setter((prev) => ({
+        ...prev,
+        uploading: false,
+        error: "Failed to read the file. It may be corrupted — please try a different file.",
+        progress: 0,
+      }));
+      return;
+    }
+
+    // Resolve MIME to send to GAS (browser may leave it blank)
+    const ext = getFileExtension(file.name);
+    const resolvedMime =
+      file.type ||
+      (type === "cv"
+        ? "application/pdf"
+        : `image/${ext === "png" ? "png" : ext === "webp" ? "webp" : "jpeg"}`);
+
+    const payload = JSON.stringify({
+      file: base64,
+      fileName: file.name,
+      fileType: resolvedMime,
+      type, // "cv" | "photo" | "idCard"
+    });
+
     startProgressAnimation(type, setter);
 
+    // ── Retry loop with exponential back-off ──────────────────────────────
     for (let attempt = 0; attempt < CLIENT_MAX_RETRIES; attempt++) {
       try {
         if (attempt > 0) {
           setter((prev) => ({ ...prev, progress: 5, retryCount: attempt }));
-          const delay = 1500 * Math.pow(2, attempt - 1); // exponential backoff
+          const delay = 1500 * Math.pow(2, attempt - 1);
           await new Promise((r) => setTimeout(r, delay));
+          // If user cancelled during retry delay, stop silently
+          if (!uploadAbortRefs.current[type]) return;
           startProgressAnimation(type, setter);
         }
-
-        const formDataObj = new globalThis.FormData();
-        formDataObj.append("file", file);
-        formDataObj.append("type", type);
 
         const controller = new AbortController();
         uploadAbortRefs.current[type] = controller;
@@ -479,72 +625,125 @@ export default function RecruitmentPage() {
           CLIENT_UPLOAD_TIMEOUT
         );
 
-        const response = await fetch("/api/recruitment/upload", {
+        // POST directly to Google Apps Script (bypasses Vercel body limit)
+        const response = await fetch(GAS_UPLOAD_URL, {
           method: "POST",
-          body: formDataObj,
+          body: payload,
           signal: controller.signal,
+          // GAS deployed as "anyone" handles CORS; no extra headers needed
         });
 
         clearTimeout(timeoutId);
         stopProgressAnimation(type);
         setter((prev) => ({ ...prev, progress: 90 }));
 
-        let result: { error?: string; url?: string };
+        // ── Parse response ────────────────────────────────────────────────
+        let responseText: string;
         try {
-          result = await response.json();
+          responseText = await response.text();
         } catch {
-          // Non-JSON response from our own API — treat as server error
+          // If user cancelled (clearFile aborted the stream), stop silently
+          if (!uploadAbortRefs.current[type]) return;
           if (attempt < CLIENT_MAX_RETRIES - 1) continue;
           setter((prev) => ({
             ...prev,
             uploading: false,
-            error: "Server returned an invalid response. Please try again.",
+            error: "Failed to read upload service response. Please try again.",
             progress: 0,
             retryCount: 0,
           }));
           return;
         }
 
+        // GAS may return an HTML error page on transient failures
+        const trimmed = responseText.trimStart().toLowerCase();
+        if (trimmed.startsWith("<!doctype") || trimmed.startsWith("<html")) {
+          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
+          setter((prev) => ({
+            ...prev,
+            uploading: false,
+            error: "Upload service is temporarily unavailable. Please wait a moment and try again.",
+            progress: 0,
+            retryCount: 0,
+          }));
+          return;
+        }
+
+        if (!responseText.trim()) {
+          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
+          setter((prev) => ({
+            ...prev,
+            uploading: false,
+            error: "Upload service returned an empty response. Please try again.",
+            progress: 0,
+            retryCount: 0,
+          }));
+          return;
+        }
+
+        let result: Record<string, unknown>;
+        try {
+          result = JSON.parse(responseText);
+        } catch {
+          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
+          setter((prev) => ({
+            ...prev,
+            uploading: false,
+            error: "Invalid response from upload service. Please try again.",
+            progress: 0,
+            retryCount: 0,
+          }));
+          return;
+        }
+
+        // ── Handle explicit GAS errors ────────────────────────────────────
+        if (result.success === false || result.error) {
+          const msg = String(result.message || result.error || "Upload failed");
+          setter((prev) => ({
+            ...prev,
+            uploading: false,
+            error: msg,
+            progress: 0,
+            retryCount: 0,
+          }));
+          return;
+        }
+
+        // ── Non-OK HTTP status (retryable?) ───────────────────────────────
         if (!response.ok) {
-          // Don't retry client-side validation errors (400) or duplicates (409)
-          if (response.status === 400 || response.status === 409) {
-            setter((prev) => ({
-              ...prev,
-              uploading: false,
-              error: result.error || "Upload failed",
-              progress: 0,
-              retryCount: 0,
-            }));
-            return;
-          }
-          // Retry on server/gateway errors
-          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
+          if (isRetryableGASStatus(response.status) && attempt < CLIENT_MAX_RETRIES - 1) continue;
           setter((prev) => ({
             ...prev,
             uploading: false,
-            error: result.error || "Upload failed after multiple attempts. Please try again.",
+            error: "Upload failed after multiple attempts. Please try again.",
             progress: 0,
             retryCount: 0,
           }));
           return;
         }
 
-        if (!result.url) {
+        // ── Extract file URL ──────────────────────────────────────────────
+        const fileUrl = (
+          result.url || result.fileUrl || result.link || result.fileLink
+        ) as string | undefined;
+
+        if (!fileUrl) {
           if (attempt < CLIENT_MAX_RETRIES - 1) continue;
           setter((prev) => ({
             ...prev,
             uploading: false,
-            error: "Upload completed but no file URL was returned. Please try again.",
+            error: "Upload completed but the file URL was not returned. Please try again.",
             progress: 0,
             retryCount: 0,
           }));
           return;
         }
 
+        // ── Success !
         setter((prev) => ({
           ...prev,
           uploading: false,
-          url: result.url!,
+          url: fileUrl,
           error: "",
           progress: 100,
           retryCount: 0,
@@ -552,6 +751,9 @@ export default function RecruitmentPage() {
         return;
       } catch (err: unknown) {
         stopProgressAnimation(type);
+        // If user cancelled (clearFile already reset state), stop silently
+        if (!uploadAbortRefs.current[type]) return;
+
         const errName = err instanceof Error ? err.name : "";
 
         if (errName === "AbortError") {
@@ -587,11 +789,11 @@ export default function RecruitmentPage() {
     type: "cv" | "photo" | "idCard",
     setter: React.Dispatch<React.SetStateAction<FileState>>,
     maxSize: number,
-    allowedTypes: string[],
-    errorMsg: string
   ) => {
-    if (!allowedTypes.includes(file.type)) {
-      setter((prev) => ({ ...prev, error: errorMsg, url: "", file: null }));
+    // Use the robust MIME + extension validation (handles empty/unknown MIME on mobile)
+    if (!isValidUploadType(file, type)) {
+      const exts = ACCEPTED_EXTENSIONS[type].map((e) => `.${e}`).join(", ");
+      setter((prev) => ({ ...prev, error: `Invalid file format. Accepted: ${exts}`, url: "", file: null }));
       return;
     }
     if (file.size > maxSize) {
@@ -613,27 +815,19 @@ export default function RecruitmentPage() {
   const handleCvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    handleFileSelect(file, "cv", setCv, MAX_CV_SIZE, ["application/pdf", "application/x-pdf", "application/vnd.pdf"], "Only PDF files are allowed");
+    handleFileSelect(file, "cv", setCv, MAX_CV_SIZE);
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    handleFileSelect(
-      file, "photo", setPhoto, MAX_PHOTO_SIZE,
-      ["image/jpeg", "image/png", "image/webp"],
-      "Only JPG, PNG, or WebP files are allowed"
-    );
+    handleFileSelect(file, "photo", setPhoto, MAX_PHOTO_SIZE);
   };
 
   const handleIdCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    handleFileSelect(
-      file, "idCard", setIdCard, MAX_ID_SIZE,
-      ["image/jpeg", "image/png", "image/webp"],
-      "Only JPG, PNG, or WebP files are allowed"
-    );
+    handleFileSelect(file, "idCard", setIdCard, MAX_ID_SIZE);
   };
 
   const retryUpload = (type: "cv" | "photo" | "idCard") => {
@@ -665,15 +859,16 @@ export default function RecruitmentPage() {
     type: "cv" | "photo" | "idCard",
     setter: React.Dispatch<React.SetStateAction<FileState>>,
     maxSize: number,
-    allowedTypes: string[],
-    errorMsg: string
   ) => {
     e.preventDefault();
     e.stopPropagation();
     setDragType(null);
     const file = e.dataTransfer.files[0];
     if (!file) return;
-    handleFileSelect(file, type, setter, maxSize, allowedTypes, errorMsg);
+    // Don't start a new upload while one is already in progress for this slot
+    const stateMap = { cv, photo, idCard };
+    if (stateMap[type].uploading) return;
+    handleFileSelect(file, type, setter, maxSize);
   };
 
   const handleDragOver = (e: React.DragEvent, type: string) => {
@@ -726,8 +921,11 @@ export default function RecruitmentPage() {
 
   // ─── Submit ──────────────────────────────────────────────────────────────
 
+  const submittingRef = useRef(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return; // guard against double-click
     setSubmitError("");
 
     if (!isOnline) {
@@ -740,6 +938,7 @@ export default function RecruitmentPage() {
     if (!validateAll()) return;
 
     setSubmitting(true);
+    submittingRef.current = true;
 
     try {
       const controller = new AbortController();
@@ -756,8 +955,8 @@ export default function RecruitmentPage() {
           gender: formData.gender,
           semester: formData.semester,
           batch: formData.batch.trim(),
-          cgpa: Number(formData.cgpa),
-          completedCredit: Math.round(Number(formData.completedCredits)),
+          cgpa: formData.cgpa.trim(),
+          completedCredit: formData.completedCredits.trim(),
           positions: formData.preferredPosition,
           clubWork: formData.clubWork.trim(),
           cvUrl: cv.url,
@@ -800,6 +999,7 @@ export default function RecruitmentPage() {
       }
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
@@ -821,8 +1021,6 @@ export default function RecruitmentPage() {
     hint,
     icon: Icon,
     maxSize,
-    allowedTypes,
-    errorMsg,
     required = true,
   }: {
     type: "cv" | "photo" | "idCard";
@@ -834,8 +1032,6 @@ export default function RecruitmentPage() {
     hint: string;
     icon: typeof FileText;
     maxSize: number;
-    allowedTypes: string[];
-    errorMsg: string;
     required?: boolean;
   }) => {
     const isDragging = dragType === type;
@@ -849,7 +1045,7 @@ export default function RecruitmentPage() {
         )}
         <div
           onDrop={(e) =>
-            handleDrop(e, type, type === "cv" ? setCv : type === "photo" ? setPhoto : setIdCard, maxSize, allowedTypes, errorMsg)
+            handleDrop(e, type, type === "cv" ? setCv : type === "photo" ? setPhoto : setIdCard, maxSize)
           }
           onDragOver={(e) => handleDragOver(e, type)}
           onDragLeave={handleDragLeave}
@@ -1373,17 +1569,14 @@ export default function RecruitmentPage() {
                 </Label>
                 <Input
                   id="cgpa-input"
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  min="0"
-                  max="4"
-                  step="0.01"
                   placeholder="e.g., 3.75"
                   value={formData.cgpa}
-                  onChange={(e) => handleInputChange("cgpa", e.target.value)}
+                  onChange={(e) => handleInputChange("cgpa", sanitizeCgpaInput(e.target.value))}
                   onBlur={() => handleBlur("cgpa")}
-                  onKeyDown={blockNonNumericKeys}
                   aria-invalid={!!errors.cgpa}
+                  autoComplete="off"
                   className={inputClass}
                 />
                 <FieldError field="cgpa" />
@@ -1404,19 +1597,16 @@ export default function RecruitmentPage() {
                 </Label>
                 <Input
                   id="completedCredits-input"
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  min="0"
-                  max="200"
-                  step="1"
                   placeholder="e.g., 90"
                   value={formData.completedCredits}
                   onChange={(e) =>
-                    handleInputChange("completedCredits", e.target.value)
+                    handleInputChange("completedCredits", sanitizeCreditsInput(e.target.value))
                   }
                   onBlur={() => handleBlur("completedCredits")}
-                  onKeyDown={blockNonNumericKeys}
                   aria-invalid={!!errors.completedCredits}
+                  autoComplete="off"
                   className={inputClass}
                 />
                 <FieldError field="completedCredits" />
@@ -1506,8 +1696,6 @@ export default function RecruitmentPage() {
                 hint="PDF only · Max 50 MB"
                 icon={FileText}
                 maxSize={MAX_CV_SIZE}
-                allowedTypes={["application/pdf", "application/x-pdf", "application/vnd.pdf"]}
-                errorMsg="Only PDF files are allowed"
               />
             </CardContent>
           </AnimatedCard>
@@ -1525,8 +1713,6 @@ export default function RecruitmentPage() {
                 hint="JPG, PNG, or WebP · Max 50 MB"
                 icon={ImageIcon}
                 maxSize={MAX_PHOTO_SIZE}
-                allowedTypes={["image/jpeg", "image/png", "image/webp"]}
-                errorMsg="Only JPG, PNG, or WebP files are allowed"
               />
             </CardContent>
           </AnimatedCard>
@@ -1556,8 +1742,6 @@ export default function RecruitmentPage() {
                 hint="JPG, PNG, or WebP · Max 50 MB"
                 icon={CreditCard}
                 maxSize={MAX_ID_SIZE}
-                allowedTypes={["image/jpeg", "image/png", "image/webp"]}
-                errorMsg="Only JPG, PNG, or WebP files are allowed"
               />
             </CardContent>
           </AnimatedCard>
@@ -1605,6 +1789,7 @@ export default function RecruitmentPage() {
               type="button"
               variant="ghost"
               onClick={handleClearForm}
+              disabled={submitting}
               className={`h-10 text-sm font-medium ${TEAL.clearBtn}`}
             >
               Clear form
