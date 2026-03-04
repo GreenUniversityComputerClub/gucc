@@ -11,7 +11,6 @@ interface CertificateProps {
   eventDate?: string
   organization?: string
 }
-
 export const CertificateTemplate = memo(function CertificateTemplate(props: CertificateProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [svgLoaded, setSvgLoaded] = useState(false)
