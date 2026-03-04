@@ -137,18 +137,35 @@ function isValidUploadType(file: File, category: FileCategory): boolean {
   return false;
 }
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+/**
+ * Read a file as base64 with real progress tracking.
+ * Returns an abortable handle so cancel / unmount can stop the read.
+ */
+function fileToBase64(
+  file: File,
+  onProgress?: (fraction: number) => void,
+): { promise: Promise<string>; abort: () => void } {
+  const reader = new FileReader();
+  const promise = new Promise<string>((resolve, reject) => {
+    if (onProgress) {
+      reader.onprogress = (e) => {
+        if (e.lengthComputable) onProgress(e.loaded / e.total);
+      };
+    }
     reader.onload = () => {
       const result = reader.result as string;
-      // Strip the data-URL prefix ("data:…;base64,")
       const base64 = result.includes(",") ? result.split(",")[1] : result;
       resolve(base64);
     };
     reader.onerror = () => reject(new Error("Failed to read the file. It may be corrupted."));
+    reader.onabort = () => {
+      const err = new Error("File reading cancelled");
+      err.name = "AbortError";
+      reject(err);
+    };
     reader.readAsDataURL(file);
   });
+  return { promise, abort: () => reader.abort() };
 }
 
 function isRetryableGASStatus(status: number): boolean {
@@ -337,12 +354,12 @@ export default function RecruitmentPage() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const idCardInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const progressTimerRefs = useRef<Record<string, ReturnType<typeof setInterval> | null>>({
+  const uploadAbortRefs = useRef<Record<string, { abort: () => void } | null>>({
     cv: null,
     photo: null,
     idCard: null,
   });
-  const uploadAbortRefs = useRef<Record<string, AbortController | null>>({
+  const progressTimerRefs = useRef<Record<string, ReturnType<typeof setInterval> | null>>({
     cv: null,
     photo: null,
     idCard: null,
@@ -364,12 +381,12 @@ export default function RecruitmentPage() {
 
   useEffect(() => {
     return () => {
+      // Abort any in-flight uploads when component unmounts
+      Object.values(uploadAbortRefs.current).forEach((handle) => {
+        if (handle) handle.abort();
+      });
       Object.values(progressTimerRefs.current).forEach((timer) => {
         if (timer) clearInterval(timer);
-      });
-      // Abort any in-flight uploads when component unmounts
-      Object.values(uploadAbortRefs.current).forEach((ctrl) => {
-        if (ctrl) ctrl.abort();
       });
     };
   }, []);
@@ -503,34 +520,44 @@ export default function RecruitmentPage() {
     });
   };
 
-  // ─── Progress animation ─────────────────────────────────────────────────
+  // ─── File upload (direct to Google Apps Script — no Vercel size limit) ──
+  //
+  //  Progress phases:
+  //    0 →  8 %  FileReader reads file to base64 (real onprogress)
+  //   10 → 95 %  fetch() uploads to GAS (smooth asymptotic estimate,
+  //              scales with file size, never stops moving)
+  //       100 %  Done (response received)
 
-  const startProgressAnimation = (
+  /** Start a smooth asymptotic progress animation scaled by file size. */
+  const startUploadProgress = (
     type: string,
-    setter: React.Dispatch<React.SetStateAction<FileState>>
+    fileSize: number,
+    setter: React.Dispatch<React.SetStateAction<FileState>>,
   ) => {
     if (progressTimerRefs.current[type]) clearInterval(progressTimerRefs.current[type]!);
-    let current = 10;
+    const startTime = Date.now();
+    // Estimate how long upload + GAS processing takes (base64 ≈ 1.37× raw size)
+    // Assume ~300 KB/s effective throughput to GAS (conservative)
+    const estimatedMs = Math.max(4000, (fileSize * 1.37) / (300 * 1024) * 1000);
+
     progressTimerRefs.current[type] = setInterval(() => {
-      current += Math.random() * 3 + 0.5;
-      if (current >= 85) {
-        current = 85;
-        if (progressTimerRefs.current[type]) clearInterval(progressTimerRefs.current[type]!);
-      }
+      const elapsed = Date.now() - startTime;
+      // Asymptotic curve: fast start, slows down, never reaches 95%
+      // progress = 10 + 85 × (1 − e^(−elapsed / τ))  where τ scales with file size
+      const fraction = 1 - Math.exp((-elapsed * 1.5) / estimatedMs);
+      const pct = Math.min(95, 10 + Math.round(fraction * 85));
       setter((prev) =>
-        prev.uploading ? { ...prev, progress: Math.round(current) } : prev
+        prev.uploading ? { ...prev, progress: pct } : prev
       );
-    }, 400);
+    }, 300);
   };
 
-  const stopProgressAnimation = (type: string) => {
+  const stopUploadProgress = (type: string) => {
     if (progressTimerRefs.current[type]) {
       clearInterval(progressTimerRefs.current[type]!);
       progressTimerRefs.current[type] = null;
     }
   };
-
-  // ─── File upload (direct to Google Apps Script — no Vercel size limit) ──
 
   const uploadFile = async (
     file: File,
@@ -565,7 +592,7 @@ export default function RecruitmentPage() {
       file,
       uploading: true,
       error: "",
-      progress: 5,
+      progress: 1,
       retryCount: 0,
     }));
 
@@ -575,11 +602,20 @@ export default function RecruitmentPage() {
       return copy;
     });
 
-    // ── Convert to base64 (runs once — the payload is reused across retries)
+    // ── Phase 1: Convert to base64 with real progress (0→8%) ─────────────
     let base64: string;
+    const readerHandle = fileToBase64(file, (fraction) => {
+      setter((prev) =>
+        prev.uploading ? { ...prev, progress: Math.max(1, Math.round(fraction * 8)) } : prev
+      );
+    });
+    uploadAbortRefs.current[type] = readerHandle;
+
     try {
-      base64 = await fileToBase64(file);
-    } catch {
+      base64 = await readerHandle.promise;
+    } catch (err) {
+      if (!uploadAbortRefs.current[type]) return; // user cancelled
+      if ((err as Error).name === "AbortError") return;
       setter((prev) => ({
         ...prev,
         uploading: false,
@@ -588,6 +624,11 @@ export default function RecruitmentPage() {
       }));
       return;
     }
+
+    // Cancelled during read?
+    if (!uploadAbortRefs.current[type]) return;
+
+    setter((prev) => (prev.uploading ? { ...prev, progress: 9 } : prev));
 
     // Resolve MIME to send to GAS (browser may leave it blank)
     const ext = getFileExtension(file.name);
@@ -604,45 +645,48 @@ export default function RecruitmentPage() {
       type, // "cv" | "photo" | "idCard"
     });
 
-    startProgressAnimation(type, setter);
+    setter((prev) => (prev.uploading ? { ...prev, progress: 10 } : prev));
 
-    // ── Retry loop with exponential back-off ──────────────────────────────
+    // ── Phase 2: Upload via fetch with smooth estimated progress (10→95%) ──
     for (let attempt = 0; attempt < CLIENT_MAX_RETRIES; attempt++) {
       try {
         if (attempt > 0) {
-          setter((prev) => ({ ...prev, progress: 5, retryCount: attempt }));
+          setter((prev) => ({ ...prev, progress: 10, retryCount: attempt }));
           const delay = 1500 * Math.pow(2, attempt - 1);
           await new Promise((r) => setTimeout(r, delay));
-          // If user cancelled during retry delay, stop silently
-          if (!uploadAbortRefs.current[type]) return;
-          startProgressAnimation(type, setter);
+          if (!uploadAbortRefs.current[type]) return; // cancelled during delay
         }
 
         const controller = new AbortController();
         uploadAbortRefs.current[type] = controller;
         const timeoutId = setTimeout(
           () => controller.abort(),
-          CLIENT_UPLOAD_TIMEOUT
+          CLIENT_UPLOAD_TIMEOUT,
         );
 
-        // POST directly to Google Apps Script (bypasses Vercel body limit)
+        // Start smooth progress animation (scales with file size, never stops)
+        startUploadProgress(type, file.size, setter);
+
+        // POST directly to Google Apps Script (simple request, no CORS preflight)
         const response = await fetch(GAS_UPLOAD_URL, {
           method: "POST",
           body: payload,
           signal: controller.signal,
-          // GAS deployed as "anyone" handles CORS; no extra headers needed
         });
 
         clearTimeout(timeoutId);
-        stopProgressAnimation(type);
-        setter((prev) => ({ ...prev, progress: 90 }));
+        stopUploadProgress(type);
+
+        // Cancelled during fetch?
+        if (!uploadAbortRefs.current[type]) return;
+
+        setter((prev) => (prev.uploading ? { ...prev, progress: 96 } : prev));
 
         // ── Parse response ────────────────────────────────────────────────
         let responseText: string;
         try {
           responseText = await response.text();
         } catch {
-          // If user cancelled (clearFile aborted the stream), stop silently
           if (!uploadAbortRefs.current[type]) return;
           if (attempt < CLIENT_MAX_RETRIES - 1) continue;
           setter((prev) => ({
@@ -680,6 +724,8 @@ export default function RecruitmentPage() {
           }));
           return;
         }
+
+        setter((prev) => (prev.uploading ? { ...prev, progress: 97 } : prev));
 
         let result: Record<string, unknown>;
         try {
@@ -750,7 +796,7 @@ export default function RecruitmentPage() {
         }));
         return;
       } catch (err: unknown) {
-        stopProgressAnimation(type);
+        stopUploadProgress(type);
         // If user cancelled (clearFile already reset state), stop silently
         if (!uploadAbortRefs.current[type]) return;
 
@@ -839,8 +885,8 @@ export default function RecruitmentPage() {
   };
 
   const clearFile = (type: "cv" | "photo" | "idCard") => {
-    stopProgressAnimation(type);
-    // Abort any in-flight upload fetch for this type
+    stopUploadProgress(type);
+    // Abort any in-flight upload (FileReader or fetch) for this type
     if (uploadAbortRefs.current[type]) {
       uploadAbortRefs.current[type]!.abort();
       uploadAbortRefs.current[type] = null;
@@ -899,9 +945,9 @@ export default function RecruitmentPage() {
       preferredPosition: "",
       clubWork: "",
     });
-    // Stop all progress timers and abort any in-flight uploads
+    // Abort any in-flight uploads
     (["cv", "photo", "idCard"] as const).forEach((type) => {
-      stopProgressAnimation(type);
+      stopUploadProgress(type);
       if (uploadAbortRefs.current[type]) {
         uploadAbortRefs.current[type]!.abort();
         uploadAbortRefs.current[type] = null;
@@ -1074,7 +1120,11 @@ export default function RecruitmentPage() {
               <p className="text-sm font-medium text-foreground/80">
                 {state.retryCount > 0
                   ? `Retrying (${state.retryCount}/${CLIENT_MAX_RETRIES - 1})...`
-                  : "Uploading..."}
+                  : state.progress < 10
+                    ? "Reading file..."
+                    : state.progress >= 90
+                      ? "Almost done..."
+                      : "Uploading..."}
               </p>
               {state.file && (
                 <p className="max-w-full truncate text-xs text-muted-foreground">
