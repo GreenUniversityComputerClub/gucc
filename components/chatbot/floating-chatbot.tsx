@@ -27,7 +27,7 @@ function Modal({ isOpen, onClose, children, screenSize }: ModalProps) {
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" aria-hidden="true" />
       <div
         className={cn(
-          "bg-white p-0 relative rounded-lg shadow-xl overflow-hidden",
+          "bg-white dark:bg-slate-900 p-0 relative rounded-lg shadow-xl overflow-hidden",
           screenSize === "small"
             ? "w-[95vw] h-[90vh] max-w-none"
             : screenSize === "medium"
@@ -42,17 +42,17 @@ function Modal({ isOpen, onClose, children, screenSize }: ModalProps) {
           className={cn(
             "absolute z-50 rounded-full backdrop-blur-sm",
             screenSize === "small"
-              ? "right-2 top-2 p-1.5 bg-white/70 hover:bg-white"
+              ? "right-2 top-2 p-1.5 bg-white/70 hover:bg-white dark:bg-slate-800/70 dark:hover:bg-slate-700"
               : screenSize === "medium"
-                ? "right-3 top-3 p-2 bg-white/75 hover:bg-white shadow-md"
-                : "right-4 top-4 p-2.5 bg-white/80 hover:bg-white shadow-lg",
+                ? "right-3 top-3 p-2 bg-white/75 hover:bg-white shadow-md dark:bg-slate-800/75 dark:hover:bg-slate-700"
+                : "right-4 top-4 p-2.5 bg-white/80 hover:bg-white shadow-lg dark:bg-slate-800/80 dark:hover:bg-slate-700",
           )}
           aria-label="Close"
         >
           <X
             className={cn(
               screenSize === "small" ? "h-4 w-4" : screenSize === "medium" ? "h-4.5 w-4.5" : "h-5 w-5",
-              "text-green-800",
+              "text-green-800 dark:text-green-200",
             )}
           />
         </button>

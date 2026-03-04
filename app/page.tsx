@@ -32,6 +32,7 @@ export default function Home() {
       {new Date().getMonth() === 3 && new Date().getDate() === 14 && (
         <PohelaBoishakhGreeting />
       )}
+      
       {/* Hero Section */}
       <HeroSection />
 
