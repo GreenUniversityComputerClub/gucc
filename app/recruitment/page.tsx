@@ -90,7 +90,7 @@ const MAX_ID_SIZE = 50 * 1024 * 1024;
 const CLIENT_UPLOAD_TIMEOUT = 180_000;
 const CLIENT_MAX_RETRIES = 4;
 
-const APPLICATION_DEADLINE = "13 March 2026 (Friday) 11:59 PM";
+const APPLICATION_DEADLINE = "16 March 2026 (Monday) 11:59 PM";
 
 // ─── Direct-to-GAS upload (bypasses Vercel ~4.5 MB body limit) ───────────────
 
@@ -1351,7 +1351,7 @@ export default function RecruitmentPage() {
               <div className={`flex items-center gap-2.5 rounded-lg border p-3.5 ${TEAL.deadlineBg}`}>
                 <Clock className={`h-4 w-4 shrink-0 ${TEAL.deadlineIcon}`} />
                 <p className="text-sm font-semibold text-foreground">
-                  Application Deadline: {APPLICATION_DEADLINE}
+                  Application Deadline (Extended): {APPLICATION_DEADLINE}
                 </p>
               </div>
 
