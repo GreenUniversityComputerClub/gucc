@@ -101,7 +101,7 @@ export function Navbar() {
             </DropdownMenuContent>
           </DropdownMenu>
           <Button asChild>
-            <Link href="/recruitment">
+            <Link href="/join">
               Join Us
             </Link>
           </Button>
@@ -195,7 +195,7 @@ export function Navbar() {
             </div>
             <Button asChild>
               <Link
-                href="/recruitment"
+                href="/join"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Join Us
