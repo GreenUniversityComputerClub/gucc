@@ -404,7 +404,7 @@ export default function JoinPage() {
                 <InfoCard
                   icon={<Zap className="h-4 w-4" />}
                   title="Next Cycle"
-                  description="Recruitment typically reopens at the start of each new semester."
+                  description="Recruitment typically reopens at the start of each academic year."
                   animDelay="0.69s"
                 />
               </div>
