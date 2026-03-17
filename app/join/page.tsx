@@ -374,7 +374,7 @@ export default function JoinPage() {
                 <p className="mx-auto max-w-md text-sm leading-7 text-muted-foreground sm:text-base sm:leading-8">
                   The GUCC recruitment window has ended for this cycle.{" "}
                   <span className="font-semibold text-foreground/80">
-                    A new session opens every semester
+                    A new session opens every year
                   </span>{" "}
                   — follow our social channels to be the first to know!
                 </p>
