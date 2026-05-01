@@ -11,7 +11,11 @@ function createClient(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll: () => req.cookies.getAll().map((c) => ({ name: c.name, value: c.value })),
+        getAll: () =>
+          req.cookies.getAll().map((c) => ({
+            name: c.name,
+            value: c.value,
+          })),
       },
     }
   );
@@ -22,9 +26,10 @@ function isAdmin(email: string | undefined | null) {
   return adminEmails.includes(email.toLowerCase());
 }
 
+// PATCH: update status
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   const supabase = createClient(req);
   const { data: authData } = await supabase.auth.getUser();
@@ -33,7 +38,8 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await context.params;
+  const { id } = context.params;
+
   const body = await req.json();
   const { status } = body as { status: LostFoundStatus };
 
@@ -71,9 +77,10 @@ export async function PATCH(
   return NextResponse.json(data);
 }
 
+// DELETE: remove post
 export async function DELETE(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   const supabase = createClient(req);
   const { data: authData } = await supabase.auth.getUser();
@@ -82,7 +89,8 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await context.params;
+  const { id } = context.params;
+
   const { data: post, error: postError } = await supabase
     .from("lost_found_posts")
     .select("id, user_id")
@@ -99,7 +107,10 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { error } = await supabase.from("lost_found_posts").delete().eq("id", id);
+  const { error } = await supabase
+    .from("lost_found_posts")
+    .delete()
+    .eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
