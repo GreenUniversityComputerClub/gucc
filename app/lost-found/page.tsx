@@ -332,12 +332,12 @@ export default function LostFoundPage() {
                     <Link href="/auth/login">Login to post</Link>
                   </Button>
                 ) : (
-                  <Button className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">
-                    Create a report
+                  <Button asChild className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">
+                    <Link href="/lost-found#report">Create a report</Link>
                   </Button>
                 )}
-                <Button variant="outline" className="border-emerald-400/40 text-emerald-100">
-                  Browse active posts
+                <Button asChild variant="outline" className="border-emerald-400/40 text-emerald-100">
+                  <Link href="/lost-found#browse">Browse active posts</Link>
                 </Button>
               </div>
               <div className="flex flex-wrap gap-4 text-sm text-slate-200/70">
