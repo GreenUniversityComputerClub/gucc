@@ -2450,7 +2450,7 @@
     "mail": "mailto::tanveer.ziad@gmail.com"
   },
   {
-    "position": "Vice-President",
+    "position": "Vice-President (Activity)",
     "name": "Tasmia Noor Tama",
     "studentId": "223902001",
     "avatarUrl": "/executives/223902001.png",
@@ -2463,7 +2463,7 @@
     "mail": "mailto::tasmianoortama@gmail.com"
   },
   {
-    "position": "Vice-President",
+    "position": "Vice-President (Technical)",
     "name": "Md. Sajjad Mahmud Suton",
     "studentId": "232002218",
     "avatarUrl": "/executives/232002218.png",
@@ -2489,7 +2489,7 @@
     "mail": "mailto::bakul.ahmedd@gmail.com"
   },
   {
-    "position": "Joint General Secretary",
+    "position": "Joint General Secretary (Activity)",
     "name": "Md. Nasif Hasan Toha",
     "studentId": "223902009",
     "avatarUrl": "/executives/223902009.png",
@@ -2502,7 +2502,7 @@
     "mail": "mailto::nasifhasan35@gmail.com"
   },
   {
-    "position": "Joint General Secretary",
+    "position": "Joint General Secretary (Technical)",
     "name": "Md. Farhad",
     "studentId": "241002017",
     "avatarUrl": "/executives/241002017.png",
@@ -2595,7 +2595,7 @@
     "mail": "mailto::alimranemon93@gmail.com"
   },
   {
-    "position": "Programming Secretary",
+    "position": "Programming Secretary (Activity)",
     "name": "Jawad Hossain Mahi",
     "studentId": "242002023",
     "avatarUrl": "/executives/242002023.png",
@@ -2608,7 +2608,7 @@
     "mail": "mailto::jawadhossainmahi@gmail.com"
   },
   {
-    "position": "Programming Secretary",
+    "position": "Programming Secretary (Technical)",
     "name": "Shiplu Saha",
     "studentId": "242002067",
     "avatarUrl": "/executives/242002067.png",
@@ -2717,7 +2717,7 @@
   },
 
   {
-    "position": "Graphics and Multimedia Coordinators",
+    "position": "Graphics and Multimedia Coordinators (Lead)",
     "name": "Md. Mamun Shahriar",
     "studentId": "232002008",
     "avatarUrl": "/executives/232002008.png",
@@ -2730,7 +2730,7 @@
     "mail": "mailto::hello.mamunshahriar@gmail.com"
   },
   {
-    "position": "Graphics and Multimedia Coordinators",
+    "position": "Graphics and Multimedia Coordinators -1",
     "name": "Sree Antor Chandra Adikari",
     "studentId": "242002174",
     "avatarUrl": "/executives/242002174.png",
@@ -2743,7 +2743,7 @@
     "mail": "mailto::antoradhikary169802@gmail.com"
   },
   {
-    "position": "Graphics and Multimedia Coordinators",
+    "position": "Graphics and Multimedia Coordinators -2",
     "name": "Asraful Azom Shimul",
     "studentId": "251002017",
     "avatarUrl": "/executives/251002017.png",
@@ -2785,20 +2785,7 @@
   },
 
   {
-    "position": "Executive Member",
-    "name": "Sanjida Akter",
-    "studentId": "232002040",
-    "avatarUrl": "/executives/232002040.png",
-    "avatarPosition": { "x": 0, "y": 0 },
-    "avatarScale": 1,
-    "linkedin": "https://bd.linkedin.com/in/sanjida-akter-26a095407",
-    "github": "https://github.com/Saanjidaa",
-    "twitter": null,
-    "facebook": "https://www.facebook.com/share/1Cgk1kcgci/",
-    "mail": "mailto::sanzidazahan990@gmail.com"
-  },
-  {
-    "position": "Executive Member",
+    "position": "Executive Member-1",
     "name": "Mobashera Mim Diya",
     "studentId": "232002231",
     "avatarUrl": "/executives/232002231.png",
@@ -2811,7 +2798,21 @@
     "mail": "mailto::mobassharamim3611@gmail.com"
   },
   {
-    "position": "Executive Member",
+    
+    "position": "Executive Member-2",
+    "name": "Sanjida Akter",
+    "studentId": "232002040",
+    "avatarUrl": "/executives/232002040.png",
+    "avatarPosition": { "x": 0, "y": 0 },
+    "avatarScale": 1,
+    "linkedin": "https://bd.linkedin.com/in/sanjida-akter-26a095407",
+    "github": "https://github.com/Saanjidaa",
+    "twitter": null,
+    "facebook": "https://www.facebook.com/share/1Cgk1kcgci/",
+    "mail": "mailto::sanzidazahan990@gmail.com"
+  },
+  {
+    "position": "Executive Member-3",
     "name": "Khandakar Fazilat",
     "studentId": "242002049",
     "avatarUrl": "/executives/242002049.png",
@@ -2824,7 +2825,7 @@
     "mail": "mailto::khandakarfazilat@gmail.com"
   },
   {
-    "position": "Executive Member",
+    "position": "Executive Member-4",
     "name": "Ayrin Rahman Meem",
     "studentId": "242002172",
     "avatarUrl": "/executives/242002172.png",
@@ -2837,7 +2838,7 @@
     "mail": "mailto::ayrin0rahman@gmail.com"
   },
   {
-    "position": "Executive Member",
+    "position": "Executive Member-5",
     "name": "Afroja Akter",
     "studentId": "251002106",
     "avatarUrl": "/executives/251002106.png",
@@ -2850,7 +2851,7 @@
     "mail": "mailto::afroja.adiba06@gmail.com"
   },
   {
-    "position": "Executive Member",
+    "position": "Executive Member-6",
     "name": "Mehedi Hasan Auntik",
     "studentId": "252002015",
     "avatarUrl": "/executives/252002015.png",
@@ -2863,7 +2864,7 @@
     "mail": "mailto::auntik75@gmail.com"
   },
   {
-    "position": "Executive Member",
+    "position": "Executive Member-7",
     "name": "Mohibul Islam Rajon",
     "studentId": "252002138",
     "avatarUrl": "/executives/252002138.png",
