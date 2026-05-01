@@ -12,6 +12,17 @@ function createClient(req: NextRequest) {
     {
       cookies: {
         getAll: () => req.cookies.getAll().map((c) => ({ name: c.name, value: c.value })),
+        setAll: (cookiesToSet) => {
+          for (const { name, value, options } of cookiesToSet) {
+            try {
+              req.cookies.set({ name, value, ...options });
+            } catch {
+              // Route handlers may not always allow mutating request cookies;
+              // ignore to preserve current behavior while still exposing the
+              // full cookie adapter expected by Supabase SSR.
+            }
+          }
+        },
       },
     }
   );
