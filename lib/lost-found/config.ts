@@ -30,6 +30,10 @@ export const lostFoundContactMethods = [
   { value: "in_app", label: "In-app message" },
 ];
 
-export const allowedStudentDomains = ["@green.edu.bd", "@green.ac.bd"];
+export const allowedStudentDomains = [
+  "@green.edu.bd",
+  "@green.ac.bd",
+  "@student.green.ac.bd",
+];
 
 export const adminEmails = ["232002256@student.green.ac.bd"];

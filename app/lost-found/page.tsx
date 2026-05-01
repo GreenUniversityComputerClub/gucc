@@ -41,6 +41,10 @@ import type {
 } from "@/lib/lost-found/types";
 import { CalendarDays, Filter, Inbox, MapPin, Search, ShieldCheck } from "lucide-react";
 
+
+export const dynamic = "force-dynamic";
+
+
 const statusLabels: Record<LostFoundStatus, string> = {
   pending: "Pending",
   active: "Active",
@@ -76,7 +80,15 @@ const initialFilters = {
 };
 
 export default function LostFoundPage() {
-  const supabase = useMemo(() => createClient(), []);
+
+  const supabase = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return null;
+    }
+    return createClient();
+  }, []);
+
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [posts, setPosts] = useState<LostFoundPost[]>([]);
@@ -107,6 +119,13 @@ export default function LostFoundPage() {
 
   useEffect(() => {
     let isMounted = true;
+
+    if (!supabase) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
 
     supabase.auth.getUser().then(({ data }) => {
       if (!isMounted) return;
@@ -205,6 +224,12 @@ export default function LostFoundPage() {
     setIsSubmitting(true);
 
     try {
+
+      if (!supabase) {
+        setFormError("Supabase is not configured.");
+        return;
+      }
+
       let imageUrl: string | null = null;
 
       if (imageFile) {
@@ -307,12 +332,12 @@ export default function LostFoundPage() {
                     <Link href="/auth/login">Login to post</Link>
                   </Button>
                 ) : (
-                  <Button className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">
-                    Create a report
+                  <Button asChild className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">
+                    <Link href="/lost-found#report">Create a report</Link>
                   </Button>
                 )}
-                <Button variant="outline" className="border-emerald-400/40 text-emerald-100">
-                  Browse active posts
+                <Button asChild variant="outline" className="border-emerald-400/40 text-emerald-100">
+                  <Link href="/lost-found#browse">Browse active posts</Link>
                 </Button>
               </div>
               <div className="flex flex-wrap gap-4 text-sm text-slate-200/70">
