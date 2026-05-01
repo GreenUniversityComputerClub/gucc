@@ -41,6 +41,8 @@ import type {
 } from "@/lib/lost-found/types";
 import { CalendarDays, Filter, Inbox, MapPin, Search, ShieldCheck } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 const statusLabels: Record<LostFoundStatus, string> = {
   pending: "Pending",
   active: "Active",
@@ -76,7 +78,13 @@ const initialFilters = {
 };
 
 export default function LostFoundPage() {
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return null;
+    }
+    return createClient();
+  }, []);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [posts, setPosts] = useState<LostFoundPost[]>([]);
@@ -107,6 +115,12 @@ export default function LostFoundPage() {
 
   useEffect(() => {
     let isMounted = true;
+
+    if (!supabase) {
+      return () => {
+        isMounted = false;
+      };
+    }
 
     supabase.auth.getUser().then(({ data }) => {
       if (!isMounted) return;
@@ -205,6 +219,11 @@ export default function LostFoundPage() {
     setIsSubmitting(true);
 
     try {
+      if (!supabase) {
+        setFormError("Supabase is not configured.");
+        return;
+      }
+
       let imageUrl: string | null = null;
 
       if (imageFile) {

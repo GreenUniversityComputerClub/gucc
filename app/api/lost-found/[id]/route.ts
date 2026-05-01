@@ -22,7 +22,10 @@ function isAdmin(email: string | undefined | null) {
   return adminEmails.includes(email.toLowerCase());
 }
 
-export async function PATCH(req: NextRequest, context: { params: { id: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const supabase = createClient(req);
   const { data: authData } = await supabase.auth.getUser();
 
@@ -30,7 +33,7 @@ export async function PATCH(req: NextRequest, context: { params: { id: string } 
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = context.params;
+  const { id } = await context.params;
   const body = await req.json();
   const { status } = body as { status: LostFoundStatus };
 
@@ -68,7 +71,10 @@ export async function PATCH(req: NextRequest, context: { params: { id: string } 
   return NextResponse.json(data);
 }
 
-export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const supabase = createClient(req);
   const { data: authData } = await supabase.auth.getUser();
 
@@ -76,7 +82,7 @@ export async function DELETE(req: NextRequest, context: { params: { id: string }
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = context.params;
+  const { id } = await context.params;
   const { data: post, error: postError } = await supabase
     .from("lost_found_posts")
     .select("id, user_id")
