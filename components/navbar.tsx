@@ -73,6 +73,12 @@ export function Navbar() {
             Contests
           </Link>
           <Link
+            href="/lost-found"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/lost-found") ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Lost & Found
+          </Link>
+          <Link
             href="/blog"
             className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/blog") ? "text-primary" : "text-muted-foreground"}`}
           >
@@ -152,6 +158,13 @@ export function Navbar() {
               onClick={() => setIsMenuOpen(false)}
             >
               Contests
+            </Link>
+            <Link
+              href="/lost-found"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/lost-found") ? "text-primary" : "text-muted-foreground"}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Lost & Found
             </Link>
             <Link
               href="/blog"
