@@ -17,6 +17,9 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
+  const [fullName, setFullName] = useState('')
+  const [studentId, setStudentId] = useState('')
+  const [department, setDepartment] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [repeatPassword, setRepeatPassword] = useState('')
@@ -41,6 +44,11 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
         email,
         password,
         options: {
+          data: {
+            full_name: fullName,
+            student_id: studentId,
+            department,
+          },
           emailRedirectTo: `${window.location.origin}/protected`,
         },
       })
@@ -63,6 +71,39 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
         <CardContent>
           <form onSubmit={handleSignUp}>
             <div className="flex flex-col gap-6">
+              <div className="grid gap-2">
+                <Label htmlFor="full-name">Full name</Label>
+                <Input
+                  id="full-name"
+                  type="text"
+                  placeholder="Your name"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="student-id">Student ID</Label>
+                <Input
+                  id="student-id"
+                  type="text"
+                  placeholder="221-XX-XXXX"
+                  required
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="department">Department</Label>
+                <Input
+                  id="department"
+                  type="text"
+                  placeholder="CSE"
+                  required
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
