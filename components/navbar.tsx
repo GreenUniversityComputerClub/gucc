@@ -72,12 +72,7 @@ export function Navbar() {
           >
             Contests
           </Link>
-          <Link
-            href="/lost-found"
-            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/lost-found") ? "text-primary" : "text-muted-foreground"}`}
-          >
-            Lost & Found
-          </Link>
+          {/* Lost & Found moved into Projects dropdown */}
           <Link
             href="/blog"
             className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/blog") ? "text-primary" : "text-muted-foreground"}`}
@@ -103,6 +98,9 @@ export function Navbar() {
             <DropdownMenuContent align="start" sideOffset={8}>
               <DropdownMenuItem asChild>
                 <Link href="/scheduler">Scheduler</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/lost-found">Lost & Found</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -159,13 +157,7 @@ export function Navbar() {
             >
               Contests
             </Link>
-            <Link
-              href="/lost-found"
-              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/lost-found") ? "text-primary" : "text-muted-foreground"}`}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Lost & Found
-            </Link>
+            {/* Lost & Found moved into Projects mobile list */}
             <Link
               href="/blog"
               className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/blog") ? "text-primary" : "text-muted-foreground"}`}
@@ -202,6 +194,16 @@ export function Navbar() {
                     }}
                   >
                     Scheduler
+                  </Link>
+                  <Link
+                    href="/lost-found"
+                    className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/lost-found") ? "text-primary" : "text-muted-foreground"}`}
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsProjectsMobileOpen(false);
+                    }}
+                  >
+                    Lost & Found
                   </Link>
                 </div>
               )}
