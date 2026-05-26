@@ -17,22 +17,65 @@ export async function POST(request: Request) {
     // Find the executive in the data
     let found = false;
     const updatedData = executivesData.map((yearData) => {
-      const updatedExecutives = yearData?.studentExecutives?.map((executive) => {
-        if (executive.studentId === studentId) {
-          found = true;
-          return {
-            ...executive,
-            avatarPosition,
-            avatarScale,
-          };
-        }
-        return executive;
-      });
+      if (yearData?.studentExecutives) {
+        const updatedExecutives = yearData.studentExecutives.map((executive) => {
+          if (executive.studentId === studentId) {
+            found = true;
+            return {
+              ...executive,
+              avatarPosition,
+              avatarScale,
+            };
+          }
+          return executive;
+        });
 
-      return {
-        ...yearData,
-        studentExecutives: updatedExecutives,
-      };
+        return {
+          ...yearData,
+          studentExecutives: updatedExecutives,
+        };
+      }
+
+      if (yearData?.campuses) {
+        const updatedCampuses = Object.fromEntries(
+          Object.entries(yearData.campuses as Record<string, any>).map(
+            ([campusKey, campus]) => {
+              if (!campus?.studentExecutives) {
+                return [campusKey, campus];
+              }
+
+              const updatedExecutives = campus.studentExecutives.map(
+                (executive: any) => {
+                  if (executive.studentId === studentId) {
+                    found = true;
+                    return {
+                      ...executive,
+                      avatarPosition,
+                      avatarScale,
+                    };
+                  }
+                  return executive;
+                },
+              );
+
+              return [
+                campusKey,
+                {
+                  ...campus,
+                  studentExecutives: updatedExecutives,
+                },
+              ];
+            },
+          ),
+        );
+
+        return {
+          ...yearData,
+          campuses: updatedCampuses,
+        };
+      }
+
+      return yearData;
     });
 
     if (!found) {
