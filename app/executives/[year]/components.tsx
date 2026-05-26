@@ -422,35 +422,35 @@ export function CampusTabs({ year, yearData }: { year: string; yearData: any }) 
   const [isResizeMode] = useState(RESIZE_AVATAR);
 
   if (yearData?.campuses) {
+    const campusKeys = Object.keys(yearData.campuses);
+    const defaultCampus =
+      year === "2023"
+        ? "merged"
+        : campusKeys.includes("city")
+          ? "city"
+          : campusKeys[0];
+
     return (
       <Tabs
-        defaultValue={year === "2023" ? "merged" : "city"}
+        defaultValue={defaultCampus}
         className="mt-8"
         onValueChange={setActiveCampus}
       >
         <div className="flex justify-center mb-8">
           <TabsList>
-            <TabsTrigger value={year === "2023" ? "merged" : "city"}>
-              {year === "2023" ? "Merged Campus" : "City Campus"}
-            </TabsTrigger>
-            <TabsTrigger value="permanent">
-              Permanent Campus
-            </TabsTrigger>
+            {campusKeys.map((campusKey) => (
+              <TabsTrigger key={campusKey} value={campusKey}>
+                {formatCampusLabel(campusKey)}
+              </TabsTrigger>
+            ))}
           </TabsList>
         </div>
 
-        <TabsContent value="permanent">
-          {renderCampusContent(
-            yearData.campuses.permanent,
-            isResizeMode
-          )}
-        </TabsContent>
-        <TabsContent value={year === "2023" ? "merged" : "city"}>
-          {renderCampusContent(
-            yearData.campuses[year === "2023" ? "merged" : "city"],
-            isResizeMode
-          )}
-        </TabsContent>
+        {campusKeys.map((campusKey) => (
+          <TabsContent key={campusKey} value={campusKey}>
+            {renderCampusContent(yearData.campuses[campusKey], isResizeMode)}
+          </TabsContent>
+        ))}
       </Tabs>
     );
   }
@@ -603,6 +603,16 @@ export function getRoleName(position: string) {
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
+}
+
+function formatCampusLabel(campusKey: string) {
+  if (campusKey === "gucc") return "GUCC";
+  if (campusKey === "css") return "CSS";
+
+  return campusKey
+    .split(/[-_ ]+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }
 
 // New component for displaying executive profiles
