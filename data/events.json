@@ -4,7 +4,7 @@
     "name": "Workshop on SEO Fundamental & Career Opportunity",
     "date": "2022-01-06",
     "time": "7:00 PM - 9:00 PM Online",
-    "location":"Online (Zoom)",
+    "location": "Online (Zoom)",
     "participants": 120,
     "guest": "Chief Guest: Prof. Dr. Md. Abdur Razzaque, SMIEEE, Chairmen, Dept. of CSE, University of Dhaka\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB",
     "year": 2022,
@@ -16,7 +16,7 @@
     "name": "CSE Fresher's Orientation Spring 2022",
     "date": "2022-02-02",
     "time": "6:00 PM - 8:00 PM Online",
-    "location":"Online (Zoom)",
+    "location": "Online (Zoom)",
     "participants": 100,
     "guest": "Chief Guest: Prof. Dr. Md. Abdur Razzaque, SMIEEE, Chairmen, Dept. of CSE, University of Dhaka\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB",
     "year": 2022,
@@ -28,7 +28,7 @@
     "name": "Workshop on Introduction to MATLAB for Engineering Students",
     "date": "2022-03-13",
     "time": "5:00 PM - 7:00 PM Online",
-    "location":"Online (Zoom)",
+    "location": "Online (Zoom)",
     "participants": 123,
     "guest": "Chief Guest: Prof. Dr. Md. Abdur Razzaque, SMIEEE, Chairmen, Dept. of CSE, University of Dhaka\n\nSpecial Guest & Session Chair: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB",
     "year": 2022,
@@ -40,7 +40,7 @@
     "name": "গ্রিনের তরে বহুদিন পরে সিএসই পুনর্মিলনী - ২০২২",
     "date": "2022-04-01",
     "time": "Day long",
-    "location":"Green University of Bangladesh",
+    "location": "Green University of Bangladesh",
     "participants": 325,
     "guest": "All Faculty Members and Students",
     "year": 2022,
@@ -53,7 +53,7 @@
     "name": "গ্রিনের আঙিনায় রমজানের মহিমায় ইফতার মাহফিল ও ইসলামিক অলিম্পিয়াড - ২০২২",
     "date": "2022-04-22",
     "time": "3:00 PM - 7:00 PM",
-    "location":"Room A-409(Syndicate Room)",
+    "location": "Room A-409(Syndicate Room)",
     "participants": 230,
     "guest": "Chief Guest: Prof. Dr. Md. Golam Samdani Fakir, Distinguished Professor, GBS, Former VC, GUB\n\nSpecial Guest: Prof. Dr. Md. Abdur Razzaque, SMIEEE, Chairmen, Dept. of CSE, University of Dhaka\n\nSession Chair: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB",
     "year": 2022,
@@ -66,7 +66,7 @@
     "name": "CSE Freshers' Orientation Summer 2022",
     "date": "2022-06-07",
     "time": "12:00 PM - 4:00 PM",
-    "location":"Room A-302(Seminar Hall)",
+    "location": "Room A-302(Seminar Hall)",
     "participants": 150,
     "guest": "Chief Guest: Prof. Dr. Md. Abdur Razzaque, SMIEEE, Chairmen, Dept. of CSE, University of Dhaka\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB",
     "year": 2022,
@@ -108,7 +108,7 @@
     "year": 2022,
     "organizer": "GUCC",
     "category": "Orientation",
-    "link":"https://www.facebook.com/share/p/16cXyuzSq4/"
+    "link": "https://www.facebook.com/share/p/16cXyuzSq4/"
   },
   {
     "sl": 10,
@@ -143,7 +143,7 @@
     "year": 2023,
     "organizer": "GUCC",
     "category": "Orientation",
-    "link":"https://www.facebook.com/share/p/1AsYaF22w9/"
+    "link": "https://www.facebook.com/share/p/1AsYaF22w9/"
   },
   {
     "sl": 13,
@@ -166,7 +166,7 @@
     "year": 2023,
     "organizer": "GUCC",
     "category": "Programming Contest",
-    "link":"https://www.facebook.com/share/p/1DkujYPFyb/"
+    "link": "https://www.facebook.com/share/p/1DkujYPFyb/"
   },
   {
     "sl": 15,
@@ -197,7 +197,7 @@
     "name": "The first Meet up of \"GUCC Executive Committee 2023-2024\"",
     "date": "2023-08-04",
     "time": "08:00 PM - 10:00 PM Online",
-    "location":"Online (Google Meet)",
+    "location": "Online (Google Meet)",
     "participants": "All Executive Members",
     "guest": "Club Moderators & Department Head",
     "year": 2023,
@@ -210,7 +210,7 @@
     "name": "CSE Freshers' Orientation Fall 2023",
     "date": "2023-09-17",
     "time": "2:00 PM - 4:00 PM",
-    "location":"Green University, Cafeteria",
+    "location": "Green University, Cafeteria",
     "participants": 400,
     "guest": "Chief Guest: Prof. Dr. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2023,
@@ -223,20 +223,20 @@
     "name": "GUCC Day 2023",
     "date": "2023-12-22",
     "time": "2:00 PM - 4:00 PM",
-    "location":"Room A-409(Syndicate Room)",
+    "location": "Room A-409(Syndicate Room)",
     "participants": 90,
     "guest": "Chief Guest: Prof. Dr. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2023,
     "organizer": "GUCC",
     "category": "Celebration of 10th Anniversary of GUCC",
-    "link":"https://www.facebook.com/share/p/18nVWzJ8r8/"
+    "link": "https://www.facebook.com/share/p/18nVWzJ8r8/"
   },
   {
     "sl": 20,
     "name": "Inter Department Programming Contest (IDPC) Spring 2024",
     "date": "2024-02-15",
     "time": "01:30PM-03:30PM",
-    "location":"Green University of Bangladesh",
+    "location": "Green University of Bangladesh",
     "participants": 300,
     "guest": "Chief Guest: Prof. Dr. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2024,
@@ -249,7 +249,7 @@
     "name": "CSE Freshers' Orientation, Spring 2024",
     "date": "2024-02-25",
     "time": "02:00PM-03:15PM",
-    "location":"Green University, Multi-Purpose Hall",
+    "location": "Green University, Multi-Purpose Hall",
     "participants": 250,
     "guest": "Chief Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSpecial Guest: Prof. Dr. MD. Ahsan Habib, Professor, Dept of CSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2024,
@@ -263,7 +263,7 @@
     "date": "2024-02-20",
     "endDate": "2024-02-23",
     "time": "Day long",
-    "location":"Green University play graund",
+    "location": "Green University play graund",
     "participants": 300,
     "guest": "Chief Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSpecial Guest: Prof. Dr. MD. Ahsan Habib, Professor, Dept of CSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB\n\nOther Faculty Members",
     "year": 2024,
@@ -276,66 +276,65 @@
     "name": "CSE Annual Picnic 2024",
     "date": "2024-03-03",
     "time": "Day long",
-    "location":"Gazipur",
+    "location": "Gazipur",
     "participants": 500,
     "guest": "All Faculty Members and Students",
     "year": 2024,
     "organizer": "GUCC",
     "category": "Picnic",
-    "link":"https://www.facebook.com/share/p/14NTL3AboTN/"
-
+    "link": "https://www.facebook.com/share/p/14NTL3AboTN/"
   },
   {
     "sl": 24,
     "name": "The Bebras Challenge Allows All Students at School to Learn Computational Thinking in a Joyful Way",
     "date": "2024-03-19",
     "time": "09:00AM-10:30AM",
-    "location":"Room A-302(Seminar Hall)",
+    "location": "Room A-302(Seminar Hall)",
     "participants": 150,
     "guest": "Chief Guest: Prof. Dr. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2024,
     "organizer": "GUCC",
     "category": "Seminar",
-    "link":"https://www.facebook.com/share/p/14x4ehNy8S/"
+    "link": "https://www.facebook.com/share/p/14x4ehNy8S/"
   },
   {
     "sl": 25,
     "name": "CSE Iftar Mahfil 2024 & Islamic Olympiad 2.0",
     "date": "2024-03-29",
     "time": "03:30PM-06:45PM",
-    "location":"Room A-409(Syndicate Room)",
+    "location": "Room A-409(Syndicate Room)",
     "participants": 350,
     "guest": "Special Guest: ASM Shihavuddin, Former Chairperson, Dept of EEE, GUB\n\nSpecial Guest: Dr. Abul Hossain, Chairperson, Dept of SOC, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2024,
     "organizer": "GUCC",
     "category": "Iftar Mahfil and Islamic Olympiad",
-    "link":"https://www.facebook.com/share/p/1ZMLqvfqcG/"
+    "link": "https://www.facebook.com/share/p/1ZMLqvfqcG/"
   },
   {
     "sl": 26,
     "name": "Club Executive Iftar",
     "date": "2024-04-04",
     "time": "5:00 PM - 8:00 PM",
-    "location":"The Hub Restaurant, Mirpur 1",
+    "location": "The Hub Restaurant, Mirpur 1",
     "participants": 26,
     "guest": "Chief Guest: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB\n\nSpecial Guest: Syed Ahsanul Kabir, Associate Professor Dept of CSE, GUB",
     "year": 2024,
     "organizer": "GUCC",
     "category": "Iftar Mahfil",
-    "link":"https://www.facebook.com/share/p/1XxmfLeLKb/"
+    "link": "https://www.facebook.com/share/p/1XxmfLeLKb/"
   },
   {
     "sl": 27,
     "name": "Orientation of Primary Level Programming Session",
     "date": "2024-05-12",
     "time": "8:00 PM - 10:00 PM",
-    "location":"Online (Google Meet)",
+    "location": "Online (Google Meet)",
     "participants": 50,
     "guest": "Guest Speakers: Shakib Imtiaz, Vice President(Technical) GUCC\n\nGuest Speakers: Al Amin, Joint General Secretary(Technical) GUCC\n\nSpecial Guest: Md. Rahul Reza, Former General Secretary, GUCC",
     "year": 2024,
     "organizer": "GUCC",
     "category": "Orientation",
-    "link":"https://www.facebook.com/share/p/1C9fE3eS9Z/"
+    "link": "https://www.facebook.com/share/p/1C9fE3eS9Z/"
   },
   {
     "sl": 28,
@@ -347,7 +346,7 @@
     "year": 2024,
     "organizer": "GUCC",
     "category": "Remormation of Executive Committee",
-    "link":"https://www.facebook.com/share/p/15jFhKeCJw/"
+    "link": "https://www.facebook.com/share/p/15jFhKeCJw/"
   },
   {
     "sl": 29,
@@ -360,7 +359,7 @@
     "year": 2024,
     "organizer": "GUCC",
     "category": "Seminar",
-    "link":"https://www.facebook.com/share/p/1B7ZR8HBB1/"
+    "link": "https://www.facebook.com/share/p/1B7ZR8HBB1/"
   },
   {
     "sl": 30,
@@ -373,7 +372,7 @@
     "year": 2024,
     "organizer": "GUCC",
     "category": "Seminar",
-    "link":"https://www.facebook.com/share/p/16ZRh6uhZU/"
+    "link": "https://www.facebook.com/share/p/16ZRh6uhZU/"
   },
   {
     "sl": 31,
@@ -385,7 +384,7 @@
     "year": 2024,
     "organizer": "GUCC",
     "category": "Formation of Wing",
-    "link":"https://web.facebook.com/share/p/19PCvoWJhi/"
+    "link": "https://web.facebook.com/share/p/19PCvoWJhi/"
   },
   {
     "sl": 32,
@@ -412,7 +411,6 @@
     "organizer": "GUCC",
     "category": "Carnival: Idea Showcasing",
     "link": "https://www.facebook.com/share/p/1Aa2fiBjt9/"
-
   },
   {
     "sl": 34,
@@ -425,7 +423,7 @@
     "year": 2024,
     "organizer": "GUCC",
     "category": "Carnival: Talent Hunt",
-    "link":"https://www.facebook.com/share/p/1ByyP9YgmP/"
+    "link": "https://www.facebook.com/share/p/1ByyP9YgmP/"
   },
   {
     "sl": 35,
@@ -455,13 +453,13 @@
     "name": "GUB CSE Carnival 2024: CSE Gaming Battle",
     "date": "2024-10-03",
     "time": "10:00 AM - 12:30 PM",
-    "location":"Green University, Multi-Purpose Hall",
+    "location": "Green University, Multi-Purpose Hall",
     "participants": 500,
     "guest": "All Faculty Members and Students",
     "year": 2024,
     "organizer": "GUCC",
     "category": "Carnival: CSE Gaming Battle",
-    "link":"https://www.facebook.com/share/p/1DLrFsoGig/"
+    "link": "https://www.facebook.com/share/p/1DLrFsoGig/"
   },
   {
     "sl": 38,
@@ -472,22 +470,22 @@
     "participants": 80,
     "guest": "Special Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSenior Faculty members of Dept. of CSE, GUB",
     "year": 2024,
-    "organizer": "GUCC & Green University Debate Club",  
+    "organizer": "GUCC & Green University Debate Club",
     "category": "Carnival: Tech-Based Debate Contest",
-    "link":"https://www.facebook.com/share/p/1Cjs2ULzzU/"
+    "link": "https://www.facebook.com/share/p/1Cjs2ULzzU/"
   },
   {
     "sl": 39,
     "name": "GUB CSE Carnival 2024: Path to Develop a Proficient Technological Career",
     "date": "2024-10-03",
     "time": "2:00 PM - 3:30 PM",
-    "location":"Room A-409(Syndicate Room)",
+    "location": "Room A-409(Syndicate Room)",
     "participants": 150,
     "guest": "Keynote Speakers: Kazi Safaet Mahmud Auvi, General manager, Product & Technology bKash Ltd\n\nMd. Faisal Hossain, Chief Technology Officer, Bangladesh Finance Ltd\n\nZeseya Sharmin, PhD, Researcherm DUPR Scholar, School of IT, Deakin University, Australia\n\nCheif Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2024,
     "organizer": "GUCC",
     "category": "Carnival: Tech Talk",
-    "link":"https://www.facebook.com/share/p/19mjKCAVKC/"
+    "link": "https://www.facebook.com/share/p/19mjKCAVKC/"
   },
   {
     "sl": 40,
@@ -532,7 +530,7 @@
     "name": "GUB CSE Carnival 2024: Closing, Award Ceremony, Cultural Events and Concert",
     "date": "2024-10-04",
     "time": "2:00 PM - 8:30 PM",
-    "location":"Green University, Multi-Purpose Hall",
+    "location": "Green University, Multi-Purpose Hall",
     "participants": 550,
     "guest": "Senior Faculty members of Dept. of CSE, GUB & Students",
     "year": 2024,
@@ -584,7 +582,7 @@
     "name": "Webinar on Data Science & AI for Researchers with bongoDev",
     "date": "2024-11-21",
     "time": "8:00 PM - 10:00 PM",
-    "location":"Online (Google Meet)",
+    "location": "Online (Google Meet)",
     "participants": 150,
     "guest": "Keynote Speaker: Md. Nure Alam Siddiq, Co-Founder & CEO, bongoDev, Software Engineering Manager, Optimizely\n\nAll Faculty Members and Students",
     "year": 2024,
@@ -597,7 +595,7 @@
     "name": "CSE Fresher's Orientation Spring 2025",
     "date": "2025-01-03",
     "time": "2:00 PM - 4:00 PM",
-    "location":"Green University, Multi-Purpose Hall",
+    "location": "Green University, Multi-Purpose Hall",
     "participants": 250,
     "guest": "Chief Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSpecial Guest: Prof. Dr. MD. Ahsan Habib, Professor, Dept of CSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2025,
@@ -610,7 +608,7 @@
     "name": "Seminar on: Choosing the Right Path in Machine Learning, DevOps, Software Engineering & Cybersecurity",
     "date": "2025-02-23",
     "time": "2:00 PM - 4:00 PM",
-    "location":"Room A-302(Seminar Hall)",
+    "location": "Room A-302(Seminar Hall)",
     "participants": 130,
     "guest": "Keynote Speaker: Md. Nure Alam Siddiq, Co-Founder & CEO, bongoDev, Software Engineering Manager, Optimizely\n\nKamrul Hasan, Mentor, bongoDev, Software Engineer, Optimizely\n\nChief Guest: Prof. Dr. MD. Ahsan Habib, Immediate Past Chair, IEEE CS BDC\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2025,
@@ -632,7 +630,6 @@
     "organizer": "GUCC & GUCC Virtual Gaming Society",
     "category": "Competition"
   },
-
   {
     "sl": 51,
     "name": "Announcement of GUCC Executive Committee 2025",
@@ -643,7 +640,6 @@
     "organizer": "GUCC",
     "category": "Remormation of Executive Committee"
   },
-
   {
     "sl": 52,
     "name": "GUB Logic Battle 2025 (Beginner IDPC & IDMO)",
@@ -658,21 +654,20 @@
     "category": "Competition",
     "link": "https://www.facebook.com/share/p/1AeTBzde3J/"
   },
-    {
+  {
     "sl": 53,
     "name": "Celebration of Pohela Boishakh 1432 with বৈশাখী ত্রিধারা and Boishakh Fusion",
     "date": "2025-04-19",
     "time": "Day Long",
-    "location":"Room A-302(Seminar Hall)",
+    "location": "Room A-302(Seminar Hall)",
     "participants": 250,
     "guest": "Students, Faculty & Admin Members",
-    "year": 2025, 
+    "year": 2025,
     "organizer": "GUCC & GUB",
     "category": "Competition",
     "link": "https://www.facebook.com/share/p/16VcBGaHwK/"
-
   },
-    {
+  {
     "sl": 54,
     "name": "CSE T10 Cricket Tournament Season 2",
     "date": "2025-04-26",
@@ -686,7 +681,7 @@
     "category": "Competition",
     "link": "https://www.facebook.com/share/p/1FU2Yu76ZX/"
   },
-    {
+  {
     "sl": 55,
     "name": "CSE Fresher's Orientation Summer 2025",
     "date": "2025-06-22",
@@ -694,7 +689,7 @@
     "location": "GUB, Multi-Purpose Hall",
     "category": "Competition"
   },
-    {
+  {
     "sl": 53,
     "name": "CSE Fresher's Orientation Spring 2025",
     "date": "2025-06-22",
@@ -723,14 +718,14 @@
     "sl": 57,
     "name": "GUCC Inauguration & Farewell Ceremony 2025",
     "date": "2025-06-28",
-    "time":"2:30 PM - 4:00 PM",
+    "time": "2:30 PM - 4:00 PM",
     "location": "Room A-302(Seminar Hall)",
     "participants": "All Executive Members",
     "guest": "Chief Guest: Prof. Dr. Md. Shorif Uddin, Vice Chancellor, GUB\n\nGuest of honour: Prof. Khawza Iftekhar Uddin Ahmed, Pro Vice Chancellor, GUB\n\nSpecial Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, Professor, Dept of CSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
     "year": 2025,
     "organizer": "GUCC",
     "category": "Inauguration & Farewell Ceremony",
-    "link":"https://web.facebook.com/share/p/16mfdiJdEB/"
+    "link": "https://web.facebook.com/share/p/16mfdiJdEB/"
   },
   {
     "sl": 58,
@@ -828,13 +823,13 @@
     "name": "CSE Fresher's Orientation Fall 2025",
     "date": "2025-09-24",
     "time": "11:30 AM - 12:30 PM",
-    "location":"Green University, Multi-Purpose Hall",
+    "location": "Green University, Multi-Purpose Hall",
     "participants": 147,
     "guest": "Chief Guest: Engr. Mohammad Ziaur Rahman - Additional Director, UGC Project Director, BDSET Project. High-Tech Park Authority Bangladesh Ministry of Posts, Telecommunication and information technology\n\nKeynote Speaker: Monjur Mohammad Shahriar - Project Director, (DEIED) Project Bangladesh Hi-Tech Park Authority (BHTPA) Information and Communication Technology (ICT) Division Ministry of Post, Telecommunication\n\nSession Chair: Prof. Dr. Md. Ahsan Habib (Tareq), Chairperson, Dept. of CSE, GUB",
     "year": 2025,
     "organizer": "GUCC",
     "category": "Orientation",
-    "link": "https://www.facebook.com/share/p/17UWZHcEbB/"  
+    "link": "https://www.facebook.com/share/p/17UWZHcEbB/"
   },
   {
     "sl": 66,
@@ -861,14 +856,14 @@
     "year": 2025,
     "organizer": "DEA Project (Innovation Design and Entrepreneurship Academy) & Dept. of CSE, GUB and Co-organizer: GUCC, IEEE Student Branch GUB",
     "category": "Seminar",
-    "link":"https://www.facebook.com/share/p/1FP3Truvrv/"
+    "link": "https://www.facebook.com/share/p/1FP3Truvrv/"
   },
   {
     "sl": 68,
     "name": "GUCC 12th Anniversary Celebration",
     "date": "2025-10-19",
     "time": "02:30 PM - 04:00 PM",
-    "location":"Room A-409(Syndicate Room)",
+    "location": "Room A-409(Syndicate Room)",
     "participants": 45,
     "guest": "Chief Guest: Prof. Dr. Md. Ahsan Habib, Chairperson, Dept. of CSE, GUB\n\n Session Chair: Monirul Islam, Assistant Professor and Moderator - GUCC, Dept. of CSE, GUB",
     "year": 2025,
@@ -894,7 +889,7 @@
     "name": "সর্বস্তরে বাংলা ভাষা: শুদ্ধ বানানে শুদ্ধ উচ্চারণে’ শীর্ষক গুরুত্বপূর্ণ কর্মশালা",
     "date": "2025-12-20",
     "time": "11:30 AM - 12:30 PM",
-    "location":"Room A-302(Seminar Hall)",
+    "location": "Room A-302(Seminar Hall)",
     "participants": 130,
     "guest": "প্রধান অতিথি: ইতিবাচক চিন্তার মননশীল লেখক ড. ইউসুফ খান, স্যার (চেয়ারপার্সন, বুরো বাংলাদেশ, উপদেষ্টা, ছায়ানীড়)\n\nসংবর্ধিত অতিথি: প্রফেসর ড. মো. গোলাম শাহী আলম, স্যার (সদস্য, বাংলাদেশ অ্যাক্রেডিটেশন কাউন্সিল ও সাবেক উপাচার্য, সিলেট কৃষি বিশ্ববিদ্যালয়)\n\nবিশেষ অতিথি:  আবুল কাশেম চৌধুরী, স্যার (উপদেষ্টা, ছায়ানীড়)\n\nমুখ্য আলোচক: বাংলা ভাষার ফেরিওয়ালা অধ্যাপক মো. লুৎফর রহমান, স্যার (অধ্যাপক, বাংলা বিভাগ, ঢাকা বিশ্ববিদ্যালয়)\n\nআলোচক: মো. মনিরুল ইসলাম, স্যার (সহকারী অধ্যাপক, কম্পিউটার সায়েন্স এন্ড ইঞ্জিনিয়ারিং বিভাগ, গ্রীন ইউনিভার্সিটি অব বাংলাদেশ)\n\nসভাপতি: প্রফেসর ড. মো. আহসান হাবিব (চেয়ারপার্সন, কম্পিউটার সায়েন্স এন্ড ইঞ্জিনিয়ারিং বিভাগ, গ্রীন ইউনিভার্সিটি অব বাংলাদেশ)",
     "year": 2025,
@@ -903,44 +898,58 @@
     "link": "https://www.facebook.com/share/p/1DPPQxuU7E/"
   },
   {
-  "sl": 71,
-  "name": "A Road to Erasmus Mundus Joint Masters (EMJM) and Erasmus Mundus Scholarship",
-  "date": "2026-04-11",
-  "time": "08:00 PM – 09:30 PM",
-  "location": "Online (Zoom)",
-  "participants": 135,
-  "guest": "KEYNOTE SPEAKER: MD. AZIZUR RAHMAN RIYAZ, Volunteer, Erasmus Mundus Association, Erasmus Scholar, International Master in Innovative Medicine (IMIM) (2025-2027 Cohort), Uppsala University of Sweden, University of Tartu, Estonia\n\nKEYNOTE SPEAKER: HABIBA DEWAN ARPITA, Volunteer, Erasmus Mundus Association, Erasmus Scholar, European Master in Linguistic Data Science (EMLDS) (2025-2027 Cohort), Nova University of Lisbon, Portugal; Universita Cattolica del Sacro Cuore, Italy; University of Zaragoza, Spain\n\nSESSION CHAIR: PROF. DR. ASM. SHIHAVUDDIN, Center for Research Innovation and Transformation (CRIT), Center of Excellence for Teaching and Learning (CETL), Green University Research & Publication Community (GUPRC), Professor, Department of EEE, Green University of Bangladesh",
-  "year": 2026,
-  "organizer": "GUCC & Erasmus Mundus Association – Bangladesh",
-  "category": "Webinar",
-  "link": "https://www.facebook.com/share/p/18jNxxTBBx/"
-},
-{
-  "sl": 72,
-  "name": "Pohela Boishakh 1433 & Club Fair 2026",
-  "date": "2026-04-13",
-  "time": "Day Long",
-  "location": "Green University of Bangladesh",
-  "participants": 300,
-  "guest": "Faculty, Students, Admin Members",
-  "year": 2026,
-  "organizer": "Green University Student Affairs",
-  "category": "Festival",
-  "link": "https://www.facebook.com/share/p/1bJKU3gjzT/",
-  "description": "GUCC participated in the vibrant celebration of Pohela Boishakh 1433 and Club Fair 2026 at Green University of Bangladesh. The club proudly achieved the 'Most Colorful Stall' award, showcasing creativity, cultural spirit, and strong team collaboration throughout the event."
-},
-{
-  "sl": 73,
-  "name": "Meet the Dean: Interactive Session with FSE Students",
-  "date": "2026-04-27",
-  "time": "11:00 AM",
-  "location": "Online (Zoom)",
-  "participants": 115,
-  "guest": "Dean: Prof. Dr. Md. Saiful Azad, Faculty of Science and Engineering (FSE)",
-  "year": 2026,
-  "organizer": "Green University Computer Club (GUCC)",
-  "category": "Seminar",
-  "link": "https://www.facebook.com/share/p/1EYQhTNxFo/",
-  "description": "An interactive session organized for ADS, CSE, EEE, SWE, and TE students with the Honourable Dean of the Faculty of Science and Engineering (FSE). The session focused on open discussion, addressing student concerns, and strengthening academic engagement."
-}
+    "sl": 71,
+    "name": "A Road to Erasmus Mundus Joint Masters (EMJM) and Erasmus Mundus Scholarship",
+    "date": "2026-04-11",
+    "time": "08:00 PM – 09:30 PM",
+    "location": "Online (Zoom)",
+    "participants": 135,
+    "guest": "KEYNOTE SPEAKER: MD. AZIZUR RAHMAN RIYAZ, Volunteer, Erasmus Mundus Association, Erasmus Scholar, International Master in Innovative Medicine (IMIM) (2025-2027 Cohort), Uppsala University of Sweden, University of Tartu, Estonia\n\nKEYNOTE SPEAKER: HABIBA DEWAN ARPITA, Volunteer, Erasmus Mundus Association, Erasmus Scholar, European Master in Linguistic Data Science (EMLDS) (2025-2027 Cohort), Nova University of Lisbon, Portugal; Universita Cattolica del Sacro Cuore, Italy; University of Zaragoza, Spain\n\nSESSION CHAIR: PROF. DR. ASM. SHIHAVUDDIN, Center for Research Innovation and Transformation (CRIT), Center of Excellence for Teaching and Learning (CETL), Green University Research & Publication Community (GUPRC), Professor, Department of EEE, Green University of Bangladesh",
+    "year": 2026,
+    "organizer": "GUCC & Erasmus Mundus Association – Bangladesh",
+    "category": "Webinar",
+    "link": "https://www.facebook.com/share/p/18jNxxTBBx/"
+  },
+  {
+    "sl": 72,
+    "name": "Pohela Boishakh 1433 & Club Fair 2026",
+    "date": "2026-04-13",
+    "time": "Day Long",
+    "location": "Green University of Bangladesh",
+    "participants": 300,
+    "guest": "Faculty, Students, Admin Members",
+    "year": 2026,
+    "organizer": "Green University Student Affairs",
+    "category": "Festival",
+    "link": "https://www.facebook.com/share/p/1bJKU3gjzT/",
+    "description": "GUCC participated in the vibrant celebration of Pohela Boishakh 1433 and Club Fair 2026 at Green University of Bangladesh. The club proudly achieved the 'Most Colorful Stall' award, showcasing creativity, cultural spirit, and strong team collaboration throughout the event."
+  },
+  {
+    "sl": 73,
+    "name": "Meet the Dean: Interactive Session with FSE Students",
+    "date": "2026-04-27",
+    "time": "11:00 AM",
+    "location": "Online (Zoom)",
+    "participants": 115,
+    "guest": "Dean: Prof. Dr. Md. Saiful Azad, Faculty of Science and Engineering (FSE)",
+    "year": 2026,
+    "organizer": "Green University Computer Club (GUCC)",
+    "category": "Seminar",
+    "link": "https://www.facebook.com/share/p/1EYQhTNxFo/",
+    "description": "An interactive session organized for ADS, CSE, EEE, SWE, and TE students with the Honourable Dean of the Faculty of Science and Engineering (FSE). The session focused on open discussion, addressing student concerns, and strengthening academic engagement."
+  },
+  {
+    "sl": 74,
+    "name": "CSE Fresher's Orientation Summer 2026",
+    "date": "2026-06-13",
+    "time": "11:00 AM",
+    "location": "GUB, Multi-Purpose Hall",
+    "participants": 250,
+    "guest": "Chief Guest: Prof. Dr. Md. Saiful Azad, Dean, FSE, GUB\n\nSpecial Guest: Prof. Dr. MD. Ahsan Habib, Professor, Dept of CSE, GUB\n\nSession Chair: Dr. Muhammad Aminur Rahaman, Chairperson, Dept. of CSE, GUB",
+    "year": 2026,
+    "organizer": "Green University Computer Club (GUCC)",
+    "category": "Seminar",
+    "link": "https://web.facebook.com/share/p/1BMp1v5CiP/",
+    "description": "New faces, fresh aspirations and endless possibilities.\nIt was a pleasure meeting Batch 260 and sharing the spirit of GUCC.\nHere's to an incredible journey ahead."
+  }
 ]
