@@ -121,7 +121,6 @@
       "platform": "vjudge",
       "images": []
     },
-
     {
       "id": 6,
       "type": "IUPC",
@@ -190,8 +189,8 @@
       "authors": "NCPC Bangladesh",
       "platform": "BAPS",
       "images": []
-    },   
-    {      
+    },
+    {
       "id": 8,
       "type": "IUPC",
       "timestamp": "Jul 28, 2023",
@@ -371,7 +370,9 @@
       "standingsLink": "#",
       "editorialLink": "#",
       "authors": "University of Dhaka",
-      "images": ["/contests/1/primary.jpg"]
+      "images": [
+        "/contests/1/primary.jpg"
+      ]
     },
     {
       "id": 15,
@@ -554,7 +555,6 @@
             "Md. Akash Khan.",
             "Suaeb Ahmed",
             "Mohabbat Marjuk Muttaki."
-            
           ],
           "rank": 86,
           "achievement": ""
@@ -594,7 +594,6 @@
     },
     {
       "id": 21,
-
       "type": "Hackathon",
       "timestamp": "March 22, 2025",
       "title": "NEOFETCH Hackathon at Military Institute of Science and Technology (MIST)",
@@ -642,19 +641,11 @@
       "authors": "Uttara University (UU)",
       "images": []
     },
-   
     {
-
       "id": 23,
       "type": "IUPC",
       "timestamp": "Jun 21, 2025",
-      "title": "Uttara University Inter-University Programming Contest 2025",
-
-      "id": 22,
-      "type": "IUPC",
-      "timestamp": "Jun 21, 2025",
       "title": "Uttara University Inter-University Programming Contest 2025 at Uttara University (UU)",
-
       "teams": [
         {
           "name": "GreenU_TripleQ",
@@ -673,6 +664,56 @@
       "editorialLink": "#",
       "authors": "Uttara University (UU)",
       "images": []
+    },
+    {
+      "id": 24,
+      "type": "IUPC",
+      "timestamp": "Dec 16, 2025",
+      "title": "CUET Inter-University Programming Contest (IUPC) 2025",
+      "teams": [
+        {
+          "name": "GreenForces",
+          "members": [
+            "Md. Ruhan Azad.",
+            "Md. Hosain Rohman Noyon.",
+            "Mahfuz Bin Minhaz."
+          ],
+          "rank": 9,
+          "achievement": "Top 10 National Finish"
+        }
+      ],
+      "contestLink": "#",
+      "problemsetLink": "#",
+      "standingsLink": "#",
+      "editorialLink": "#",
+      "authors": "Chittagong University of Engineering & Technology (CUET)",
+      "platform": "toph.io",
+      "images": []
+    },
+    {
+      "id": 25,
+      "type": "IUPC",
+      "timestamp": "Nov 22, 2025",
+      "title": "Metropolitan University IUPC 2025",
+      "teams": [
+        {
+          "name": "GreenForces",
+          "members": [
+            "Md. Hosain Rohman Noyon.",
+            "Md. Ruhan Azad.",
+            "Mahfuz Bin Minhaz."
+          ],
+          "rank": 15,
+          "achievement": ""
+        }
+      ],
+      "contestLink": "#",
+      "problemsetLink": "#",
+      "standingsLink": "#",
+      "editorialLink": "#",
+      "authors": "Metropolitan University (MU)",
+      "platform": "toph.io",
+      "images": []
     }
   ]
-} 
+}
