@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,13 +70,13 @@ export function ContactForm() {
         }),
       });
 
-      const result = (await response.json()) as {
+      const result = (await response.json().catch(() => null)) as {
         error?: string;
         message?: string;
-      };
+      } | null;
 
       if (!response.ok) {
-        throw new Error(result.error || "Unable to send message");
+        throw new Error(result?.error || "Unable to send message");
       }
 
       setForm(initialFormState);
@@ -85,7 +86,7 @@ export function ContactForm() {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "We could not send your message. Please try again."
+          : "We could not send your message. Please try again.",
       );
     }
   }
@@ -155,16 +156,10 @@ export function ContactForm() {
         )}
 
         {submitState === "error" && errorMessage && (
-          <p className="text-sm font-medium text-destructive">
-            {errorMessage}
-          </p>
+          <p className="text-sm font-medium text-destructive">{errorMessage}</p>
         )}
 
-        <Button
-          type="submit"
-          className="w-full gap-2"
-          disabled={isSubmitting}
-        >
+        <Button type="submit" className="w-full gap-2" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
