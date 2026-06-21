@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const contactEmail = process.env.CONTACT_EMAIL ?? "imranonweb@gmail.com";
+const resendFromEmail =
+  process.env.RESEND_FROM_EMAIL ?? "GUCC Website <onboarding@resend.dev>";
+
+type ContactRequest = {
+  name?: unknown;
+  email?: unknown;
+  message?: unknown;
+};
 
 function escapeHtml(value: string) {
   return value
@@ -17,22 +25,29 @@ function isValidEmail(value: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = (await request.json()) as ContactRequest;
     const name = String(body.name ?? "").trim();
     const email = String(body.email ?? "").trim();
     const message = String(body.message ?? "").trim();
 
-    if (name.length < 2 || !isValidEmail(email) || message.length < 10) {
+    if (
+      !name ||
+      name.length > 100 ||
+      !isValidEmail(email) ||
+      email.length > 254 ||
+      !message ||
+      message.length > 5000
+    ) {
       return NextResponse.json(
         { error: "Invalid contact form submission" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!process.env.RESEND_API_KEY) {
       return NextResponse.json(
         { error: "Email service is not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -43,7 +58,7 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "GUCC Website <onboarding@resend.dev>",
+        from: resendFromEmail,
         to: contactEmail,
         subject: `New Contact Form Submission from ${name}`,
         html: `
@@ -58,18 +73,32 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      throw new Error(await response.text());
+      const providerError = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      const message = providerError?.message ?? "Resend rejected the email";
+
+      console.error("Resend rejected contact email:", message);
+      return NextResponse.json(
+        {
+          error:
+            process.env.NODE_ENV === "development"
+              ? message
+              : "Email delivery was rejected. Please try again later.",
+        },
+        { status: 502 },
+      );
     }
 
     return NextResponse.json(
       { message: "Email sent successfully" },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Contact form error:", error);
     return NextResponse.json(
       { error: "Failed to send email" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
