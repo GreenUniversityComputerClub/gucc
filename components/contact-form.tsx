@@ -30,9 +30,9 @@ export function ContactForm() {
 
   const isValid = useMemo(() => {
     return (
-      form.name.trim().length >= 2 &&
+      form.name.trim().length >= 1 &&
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()) &&
-      form.message.trim().length >= 10
+      form.message.trim().length >= 1
     );
   }, [form]);
 
@@ -49,7 +49,7 @@ export function ContactForm() {
 
     if (!isValid) {
       setSubmitState("error");
-      setErrorMessage("Please complete every field with valid information.");
+      setErrorMessage("Please enter your name, a valid email, and a message.");
       return;
     }
 
@@ -69,15 +69,24 @@ export function ContactForm() {
         }),
       });
 
+      const result = (await response.json()) as {
+        error?: string;
+        message?: string;
+      };
+
       if (!response.ok) {
-        throw new Error("Unable to send message");
+        throw new Error(result.error || "Unable to send message");
       }
 
       setForm(initialFormState);
       setSubmitState("success");
-    } catch {
+    } catch (error) {
       setSubmitState("error");
-      setErrorMessage("We could not send your message. Please try again.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "We could not send your message. Please try again."
+      );
     }
   }
 
@@ -96,7 +105,8 @@ export function ContactForm() {
             onChange={(event) => updateField("name", event.target.value)}
             placeholder="Your name"
             autoComplete="name"
-            aria-invalid={submitState === "error" && form.name.trim().length < 2}
+            aria-invalid={submitState === "error" && !form.name.trim()}
+            maxLength={100}
             disabled={isSubmitting}
             required
           />
@@ -117,6 +127,7 @@ export function ContactForm() {
               !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
             }
             disabled={isSubmitting}
+            maxLength={254}
             required
           />
         </div>
@@ -130,10 +141,9 @@ export function ContactForm() {
             onChange={(event) => updateField("message", event.target.value)}
             placeholder="Tell us what is on your mind"
             className="min-h-36 resize-none"
-            aria-invalid={
-              submitState === "error" && form.message.trim().length < 10
-            }
+            aria-invalid={submitState === "error" && !form.message.trim()}
             disabled={isSubmitting}
+            maxLength={5000}
             required
           />
         </div>

@@ -22,7 +22,14 @@ export async function POST(request: NextRequest) {
     const email = String(body.email ?? "").trim();
     const message = String(body.message ?? "").trim();
 
-    if (name.length < 2 || !isValidEmail(email) || message.length < 10) {
+    if (
+      !name ||
+      name.length > 100 ||
+      !isValidEmail(email) ||
+      email.length > 254 ||
+      !message ||
+      message.length > 5000
+    ) {
       return NextResponse.json(
         { error: "Invalid contact form submission" },
         { status: 400 }
@@ -58,7 +65,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      throw new Error(await response.text());
+      const providerError = await response.text();
+      console.error("Resend rejected contact email:", providerError);
+      return NextResponse.json(
+        { error: "Email delivery was rejected. Please try again later." },
+        { status: 502 }
+      );
     }
 
     return NextResponse.json(
