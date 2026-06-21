@@ -85,6 +85,12 @@ export function Navbar() {
           >
             Executives
           </Link>
+          <Link
+            href="/contact"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contact") ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Contact
+          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -171,6 +177,13 @@ export function Navbar() {
               onClick={() => setIsMenuOpen(false)}
             >
               Executives
+            </Link>
+            <Link
+              href="/contact"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contact") ? "text-primary" : "text-muted-foreground"}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Contact
             </Link>
             <div className="space-y-2">
               <button

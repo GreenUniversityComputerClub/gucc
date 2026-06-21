@@ -1,0 +1,75 @@
+import { NextRequest, NextResponse } from "next/server";
+
+const contactEmail = process.env.CONTACT_EMAIL ?? "imranonweb@gmail.com";
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const name = String(body.name ?? "").trim();
+    const email = String(body.email ?? "").trim();
+    const message = String(body.message ?? "").trim();
+
+    if (name.length < 2 || !isValidEmail(email) || message.length < 10) {
+      return NextResponse.json(
+        { error: "Invalid contact form submission" },
+        { status: 400 }
+      );
+    }
+
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json(
+        { error: "Email service is not configured" },
+        { status: 500 }
+      );
+    }
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "GUCC Website <onboarding@resend.dev>",
+        to: contactEmail,
+        subject: `New Contact Form Submission from ${name}`,
+        html: `
+          <h2>New Contact Form Submission</h2>
+          <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+          <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+          <p><strong>Message:</strong></p>
+          <p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>
+        `,
+        reply_to: email,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    return NextResponse.json(
+      { message: "Email sent successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Contact form error:", error);
+    return NextResponse.json(
+      { error: "Failed to send email" },
+      { status: 500 }
+    );
+  }
+}
