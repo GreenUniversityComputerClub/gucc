@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const contactEmail = process.env.CONTACT_EMAIL ?? "imranonweb@gmail.com";
+const contactEmail = process.env.CONTACT_EMAIL ?? "gucc@green.edu.bd";
 const resendFromEmail =
-  process.env.RESEND_FROM_EMAIL ?? "GUCC Website <onboarding@resend.dev>";
+  process.env.RESEND_FROM_EMAIL ?? "GUCC Website <gucc@green.edu.bd>";
 
 type ContactRequest = {
   name?: unknown;
@@ -47,6 +47,13 @@ export async function POST(request: NextRequest) {
     if (!process.env.RESEND_API_KEY) {
       return NextResponse.json(
         { error: "Email service is not configured" },
+        { status: 500 },
+      );
+    }
+
+    if (!contactEmail) {
+      return NextResponse.json(
+        { error: "Contact email is not configured" },
         { status: 500 },
       );
     }
