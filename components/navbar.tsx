@@ -89,7 +89,7 @@ export function Navbar() {
             href="/contact"
             className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contact") ? "text-primary" : "text-muted-foreground"}`}
           >
-            Contact
+            Contact Us
           </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
