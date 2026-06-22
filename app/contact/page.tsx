@@ -5,12 +5,12 @@ import { ContactForm } from "@/components/contact-form";
 const socials = [
   {
     icon: Github,
-    href: "https://github.com/BUBT-GUCC",
+    href: "https://github.com/GreenUniversityComputerClub/",
     label: "Github",
   },
   {
     icon: Linkedin,
-    href: "https://www.linkedin.com/company/bubt-gucc/",
+    href: "https://www.linkedin.com/company/greenuniversitycomputerclub",
     label: "LinkedIn",
   },
   {
