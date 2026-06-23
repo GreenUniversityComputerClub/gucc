@@ -22,6 +22,8 @@ const initialFormState: FormState = {
   message: "",
 };
 
+const web3formsAccessKey = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
+
 export function ContactForm() {
   const [form, setForm] = useState<FormState>(initialFormState);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
@@ -54,29 +56,40 @@ export function ContactForm() {
       return;
     }
 
+    if (!web3formsAccessKey) {
+      setSubmitState("error");
+      setErrorMessage("Email service is not configured.");
+      return;
+    }
+
     setSubmitState("submitting");
     setErrorMessage("");
 
     try {
-      const response = await fetch("/api/contact", {
+      const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify({
+          access_key: web3formsAccessKey,
+          subject: `New Contact Form Submission from ${form.name.trim()}`,
+          from_name: "GUCC Website",
           name: form.name.trim(),
           email: form.email.trim(),
           message: form.message.trim(),
+          replyto: form.email.trim(),
         }),
       });
 
       const result = (await response.json().catch(() => null)) as {
-        error?: string;
+        success?: boolean;
         message?: string;
       } | null;
 
-      if (!response.ok) {
-        throw new Error(result?.error || "Unable to send message");
+      if (!result?.success) {
+        throw new Error(result?.message || "Unable to send message");
       }
 
       setForm(initialFormState);
