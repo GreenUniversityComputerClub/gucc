@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { submitContactForm } from "@/lib/contact/actions";
 
 type FormState = {
   name: string;
@@ -21,8 +22,6 @@ const initialFormState: FormState = {
   email: "",
   message: "",
 };
-
-const web3formsAccessKey = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
 
 export function ContactForm() {
   const [form, setForm] = useState<FormState>(initialFormState);
@@ -56,52 +55,23 @@ export function ContactForm() {
       return;
     }
 
-    if (!web3formsAccessKey) {
-      setSubmitState("error");
-      setErrorMessage("Email service is not configured.");
-      return;
-    }
-
     setSubmitState("submitting");
     setErrorMessage("");
 
-    try {
-      const response = await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          access_key: web3formsAccessKey,
-          subject: `New Contact Form Submission from ${form.name.trim()}`,
-          from_name: "GUCC Website",
-          name: form.name.trim(),
-          email: form.email.trim(),
-          message: form.message.trim(),
-          replyto: form.email.trim(),
-        }),
-      });
+    const result = await submitContactForm({
+      name: form.name,
+      email: form.email,
+      message: form.message,
+    });
 
-      const result = (await response.json().catch(() => null)) as {
-        success?: boolean;
-        message?: string;
-      } | null;
-
-      if (!result?.success) {
-        throw new Error(result?.message || "Unable to send message");
-      }
-
-      setForm(initialFormState);
-      setSubmitState("success");
-    } catch (error) {
+    if (!result.success) {
       setSubmitState("error");
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "We could not send your message. Please try again.",
-      );
+      setErrorMessage(result.error);
+      return;
     }
+
+    setForm(initialFormState);
+    setSubmitState("success");
   }
 
   return (
