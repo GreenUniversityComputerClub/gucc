@@ -1,23 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const contactEmail = process.env.CONTACT_EMAIL ?? "gucc@green.edu.bd";
-const resendFromEmail =
-  process.env.RESEND_FROM_EMAIL ?? "GUCC Website <gucc@green.edu.bd>";
+const web3formsAccessKey = process.env.WEB3FORMS_ACCESS_KEY;
 
 type ContactRequest = {
   name?: unknown;
   email?: unknown;
   message?: unknown;
 };
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -44,48 +33,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.RESEND_API_KEY) {
+    if (!web3formsAccessKey) {
       return NextResponse.json(
-        { error: "Email service is not configured" },
+        {
+          error: "WEB3FORMS_ACCESS_KEY is not configured.",
+        },
         { status: 500 },
       );
     }
 
-    if (!contactEmail) {
-      return NextResponse.json(
-        { error: "Contact email is not configured" },
-        { status: 500 },
-      );
-    }
-
-    const response = await fetch("https://api.resend.com/emails", {
+    const response = await fetch("https://api.web3forms.com/submit", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: resendFromEmail,
-        to: contactEmail,
+        access_key: web3formsAccessKey,
         subject: `New Contact Form Submission from ${name}`,
-        html: `
-          <h2>New Contact Form Submission</h2>
-          <p><strong>Name:</strong> ${escapeHtml(name)}</p>
-          <p><strong>Email:</strong> ${escapeHtml(email)}</p>
-          <p><strong>Message:</strong></p>
-          <p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>
-        `,
-        reply_to: email,
+        from_name: "GUCC Website",
+        name,
+        email,
+        message,
+        replyto: email,
+        botcheck: true,
       }),
     });
 
     if (!response.ok) {
       const providerError = (await response.json().catch(() => null)) as {
         message?: string;
+        success?: boolean;
+        error?: string;
       } | null;
-      const message = providerError?.message ?? "Resend rejected the email";
+      const message =
+        providerError?.message ??
+        providerError?.error ??
+        "Web3Forms rejected the email";
 
-      console.error("Resend rejected contact email:", message);
+      console.error("Web3Forms rejected contact email:", message);
       return NextResponse.json(
         {
           error:
