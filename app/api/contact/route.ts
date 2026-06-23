@@ -55,7 +55,6 @@ export async function POST(request: NextRequest) {
         email,
         message,
         replyto: email,
-        botcheck: true,
       }),
     });
 
