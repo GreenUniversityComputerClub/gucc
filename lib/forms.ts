@@ -1,73 +1,61 @@
-import { createClient } from "@/lib/supabase/server"
-import type { FormConfig } from "@/types/form"
 import { v4 as uuidv4 } from "uuid"
+import type { FormConfig } from "@/types/form"
+import { appendToTab, readTab, updateRowById, deleteRowById } from "./master-sheet"
 
-const BUCKET = "form-configs"
+const TAB = "forms"
 
-function formPath(userId: string, formId: string) {
-  return `${userId}/${formId}.json`
-}
-
-export async function listForms(userId: string): Promise<FormConfig[]> {
-  const supabase = await createClient()
-  const { data, error } = await supabase.storage.from(BUCKET).list(userId, {
-    limit: 100,
-    sortBy: { column: "created_at", order: "desc" },
-  })
-  if (error || !data) return []
-
-  const forms: FormConfig[] = []
-  for (const file of data) {
-    if (!file.name.endsWith(".json")) continue
-    const formId = file.name.replace(".json", "")
-    const form = await getForm(userId, formId)
-    if (form) forms.push(form)
-  }
-  return forms
-}
-
-export async function getForm(
-  userId: string,
-  formId: string
-): Promise<FormConfig | null> {
-  const supabase = await createClient()
-  const { data, error } = await supabase.storage
-    .from(BUCKET)
-    .download(formPath(userId, formId))
-  if (error || !data) return null
+function rowToForm(row: string[]): FormConfig | null {
   try {
-    return JSON.parse(await data.text()) as FormConfig
+    const [id, title, description, sheetId, sheetName, config_json, createdAt, updatedAt] = row
+    if (!id || !config_json) return null
+    const parsed = JSON.parse(config_json) as FormConfig
+    return { ...parsed, id, title, description, sheetId, sheetName, createdAt, updatedAt }
   } catch {
     return null
   }
 }
 
+function formToRow(form: FormConfig): string[] {
+  return [
+    form.id,
+    form.title,
+    form.description ?? "",
+    form.sheetId,
+    form.sheetName,
+    JSON.stringify(form),
+    form.createdAt,
+    form.updatedAt,
+  ]
+}
+
+export async function listForms(): Promise<FormConfig[]> {
+  const rows = await readTab(TAB)
+  return rows.map(rowToForm).filter(Boolean) as FormConfig[]
+}
+
+export async function getForm(formId: string): Promise<FormConfig | null> {
+  const rows = await readTab(TAB)
+  const row = rows.find((r) => r[0] === formId)
+  if (!row) return null
+  return rowToForm(row)
+}
+
+// alias used by public submit page
 export async function getFormById(formId: string): Promise<FormConfig | null> {
-  const supabase = await createClient()
-  const { data, error } = await supabase.storage
-    .from(BUCKET)
-    .download(`index/${formId}.json`)
-  if (error || !data) return null
-  try {
-    const { userId } = JSON.parse(await data.text()) as { userId: string }
-    return await getForm(userId, formId)
-  } catch {
-    return null
-  }
+  return getForm(formId)
 }
 
 export async function saveForm(
-  userId: string,
   config: Partial<FormConfig> & { id?: string }
 ): Promise<FormConfig> {
-  const supabase = await createClient()
   const now = new Date().toISOString()
+  const isNew = !config.id
   const formId = config.id ?? uuidv4()
-  const existing = config.id ? await getForm(userId, formId) : null
+  const existing = isNew ? null : await getForm(formId)
 
   const form: FormConfig = {
     id: formId,
-    userId,
+    userId: "",
     title: config.title ?? "Untitled Form",
     description: config.description ?? "",
     sheetId: config.sheetId ?? "",
@@ -80,38 +68,15 @@ export async function saveForm(
     updatedAt: now,
   }
 
-  const blob = new Blob([JSON.stringify(form, null, 2)], { type: "application/json" })
-  await supabase.storage.from(BUCKET).upload(formPath(userId, formId), blob, { upsert: true })
-
-  const indexBlob = new Blob([JSON.stringify({ userId, formId })], { type: "application/json" })
-  await supabase.storage.from(BUCKET).upload(`index/${formId}.json`, indexBlob, { upsert: true })
-
+  const row = formToRow(form)
+  if (isNew) {
+    await appendToTab(TAB, row)
+  } else {
+    await updateRowById(TAB, formId, row)
+  }
   return form
 }
 
-export async function deleteForm(userId: string, formId: string): Promise<void> {
-  const supabase = await createClient()
-  await supabase.storage.from(BUCKET).remove([
-    formPath(userId, formId),
-    `index/${formId}.json`,
-  ])
-}
-
-export async function uploadSubmissionFile(
-  formId: string,
-  fieldId: string,
-  file: File
-): Promise<string> {
-  const supabase = await createClient()
-  const UPLOAD_BUCKET = "form-uploads"
-  const ext = file.name.split(".").pop() ?? "bin"
-  const path = `${formId}/${fieldId}/${Date.now()}.${ext}`
-
-  const { error } = await supabase.storage.from(UPLOAD_BUCKET).upload(path, file, {
-    contentType: file.type,
-    upsert: false,
-  })
-  if (error) throw new Error(`Upload failed: ${error.message}`)
-
-  return supabase.storage.from(UPLOAD_BUCKET).getPublicUrl(path).data.publicUrl
+export async function deleteForm(formId: string): Promise<void> {
+  await deleteRowById(TAB, formId)
 }

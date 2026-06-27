@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
 import { getForm } from "@/lib/forms"
 import FormRenderer from "@/components/form-renderer/FormRenderer"
 import { Badge } from "@/components/ui/badge"
@@ -11,16 +10,11 @@ interface Props { params: Promise<{ formId: string }> }
 
 export default async function PreviewPage({ params }: Props) {
   const { formId } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) notFound()
-
-  const form = await getForm(user.id, formId)
+  const form = await getForm(formId)
   if (!form) notFound()
 
   return (
     <div>
-      {/* Preview banner */}
       <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-3">
         <Button asChild variant="ghost" size="sm" className="h-7">
           <Link href={`/forms/${formId}/edit`}>
@@ -36,7 +30,6 @@ export default async function PreviewPage({ params }: Props) {
           </Link>
         </Button>
       </div>
-
       <FormRenderer form={form} preview />
     </div>
   )

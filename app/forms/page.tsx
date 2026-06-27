@@ -1,26 +1,20 @@
-import { redirect } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
 import { listForms } from "@/lib/forms"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, ExternalLink, Edit, Trash2, Eye } from "lucide-react"
+import { Plus, ExternalLink, Edit, Eye } from "lucide-react"
 import { FormConfig } from "@/types/form"
 import DeleteFormButton from "./_components/DeleteFormButton"
 
 export default async function FormsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
-
-  const forms = await listForms(user.id)
+  const forms = await listForms()
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">My Forms</h1>
+          <h1 className="text-2xl font-bold">Form Builder</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Build forms that write directly to Google Sheets
           </p>
