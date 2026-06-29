@@ -3,21 +3,26 @@ import { google } from "googleapis"
 const MASTER_SHEET_ID = process.env.MASTER_SHEET_ID!
 
 function getAuth() {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL!
-  const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY!
-
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY!
+  let clientEmail: string
   let privateKey: string
+
   try {
-    privateKey = JSON.parse(key).private_key
+    const parsed = JSON.parse(raw)
+    clientEmail = parsed.client_email
+    privateKey = parsed.private_key
   } catch {
-    privateKey = key.replace(/\\n/g, "\n")
+    clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL!
+    privateKey = raw.replace(/\\n/g, "\n")
   }
 
-  return new google.auth.JWT(email, undefined, privateKey, [
-    "https://www.googleapis.com/auth/spreadsheets",
-  ])
+  return new google.auth.GoogleAuth({
+    credentials: { client_email: clientEmail, private_key: privateKey },
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  })
 }
 
+// ... rest of your functions unchanged
 function getSheetsClient() {
   return google.sheets({ version: "v4", auth: getAuth() })
 }

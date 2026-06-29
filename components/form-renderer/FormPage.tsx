@@ -23,21 +23,56 @@ interface Props {
   onChange: (fieldId: string, value: string) => void
 }
 
+// Only the FormPage function needs to change — FieldRenderer stays identical
+
 export default function FormPage({ fields, values, errors, onChange }: Props) {
+  // Group fields: consecutive "half" fields go into the same row (max 2 per row),
+  // "full" fields always get their own row.
+  const rows: FormField[][] = []
+  let i = 0
+  while (i < fields.length) {
+    const current = fields[i]
+    if (current.width === "half" && fields[i + 1]?.width === "half") {
+      rows.push([current, fields[i + 1]])
+      i += 2
+    } else {
+      rows.push([current])
+      i += 1
+    }
+  }
+
   return (
     <div className="space-y-5">
-      {fields.map((field) => (
-        <FieldRenderer
-          key={field.id}
-          field={field}
-          value={values[field.id] ?? ""}
-          error={errors[field.id]}
-          onChange={(v) => onChange(field.id, v)}
-        />
-      ))}
+      {rows.map((row, rowIdx) =>
+        row.length === 2 ? (
+          // Two half-width fields → side by side
+          <div key={rowIdx} className="flex gap-4">
+            {row.map((field) => (
+              <div key={field.id} className="flex-1 min-w-0">
+                <FieldRenderer
+                  field={field}
+                  value={values[field.id] ?? ""}
+                  error={errors[field.id]}
+                  onChange={(v) => onChange(field.id, v)}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          // Single field (full or solo half) → full row
+          <FieldRenderer
+            key={row[0].id}
+            field={row[0]}
+            value={values[row[0].id] ?? ""}
+            error={errors[row[0].id]}
+            onChange={(v) => onChange(row[0].id, v)}
+          />
+        )
+      )}
     </div>
   )
 }
+
 
 function FieldRenderer({
   field,
@@ -74,10 +109,9 @@ function FieldRenderer({
     }
   }
 
-  const wrapperClass = field.width === "half" ? "w-1/2" : "w-full"
 
   return (
-    <div className={`${wrapperClass} space-y-1.5`}>
+    <div className={`space-y-1.5`}>
       <Label className="text-sm font-medium">
         {field.label}
         {field.required && <span className="text-destructive ml-1">*</span>}
@@ -208,9 +242,8 @@ function FieldRenderer({
                 onClick={() => onChange(String(val))}
               >
                 <Star
-                  className={`h-7 w-7 transition-colors ${
-                    active ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"
-                  }`}
+                  className={`h-7 w-7 transition-colors ${active ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"
+                    }`}
                 />
               </button>
             )
@@ -268,17 +301,16 @@ function FieldRenderer({
           />
           <div
             onClick={() => fileRef.current?.click()}
-            className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors ${
-              error ? "border-destructive" : "border-border"
-            }`}
+            className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors ${error ? "border-destructive" : "border-border"
+              }`}
           >
             <Upload className="h-5 w-5 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
               {uploading
                 ? "Uploading..."
                 : fileName
-                ? fileName
-                : `Click to upload${field.accept ? ` (${field.accept})` : ""}`}
+                  ? fileName
+                  : `Click to upload${field.accept ? ` (${field.accept})` : ""}`}
             </p>
           </div>
         </div>

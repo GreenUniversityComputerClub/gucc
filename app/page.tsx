@@ -27,6 +27,11 @@ const recentEvents = eventsData.filter((event) => {
 });
 
 export default function Home() {
+  console.log({
+    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    hasKey: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
+    sheetId: process.env.MASTER_SHEET_ID,
+  });
   return (
     <div className="flex flex-col min-h-screen">
       {new Date().getMonth() === 3 && new Date().getDate() === 14 && (
@@ -249,7 +254,7 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10">
               <CardContent className="p-5">
                 <div className="flex flex-col items-center text-center space-y-3">
@@ -267,7 +272,7 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10">
               <CardContent className="p-5">
                 <div className="flex flex-col items-center text-center space-y-3">
