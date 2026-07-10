@@ -44,6 +44,31 @@ export default function FieldEditor({ field, onChange, onDelete }: Props) {
     onChange({ options: (field.options ?? []).filter((_, i) => i !== index) })
   }
 
+  // ── Custom HTML attributes (min, max, pattern, maxLength, etc.) ──────
+  const customAttrEntries = Object.entries(field.customAttributes ?? {})
+
+  const addCustomAttr = () => {
+    onChange({ customAttributes: { ...(field.customAttributes ?? {}), "": "" } })
+  }
+
+  const updateCustomAttrKey = (oldKey: string, newKey: string) => {
+    const next = { ...(field.customAttributes ?? {}) }
+    const value = next[oldKey]
+    delete next[oldKey]
+    next[newKey] = value
+    onChange({ customAttributes: next })
+  }
+
+  const updateCustomAttrValue = (key: string, value: string) => {
+    onChange({ customAttributes: { ...(field.customAttributes ?? {}), [key]: value } })
+  }
+
+  const removeCustomAttr = (key: string) => {
+    const next = { ...(field.customAttributes ?? {}) }
+    delete next[key]
+    onChange({ customAttributes: next })
+  }
+
   return (
     <div className="p-4 space-y-5">
       <div className="flex items-center justify-between">
@@ -212,6 +237,46 @@ export default function FieldEditor({ field, onChange, onDelete }: Props) {
             </button>
           ))}
         </div>
+      </div>
+
+      <Separator />
+
+      {/* Custom HTML attributes */}
+      <div className="space-y-2">
+        <Label className="text-xs">Custom HTML Attributes</Label>
+        <p className="text-[10px] text-muted-foreground">
+          Applied directly to the input, e.g. min, max, pattern, maxLength, autoComplete, step, list.
+          Use camelCase React prop names (maxLength, not maxlength).
+        </p>
+        <div className="space-y-1.5">
+          {customAttrEntries.map(([key, value], i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <Input
+                value={key}
+                onChange={(e) => updateCustomAttrKey(key, e.target.value)}
+                placeholder="attribute"
+                className="h-7 text-xs flex-1"
+              />
+              <Input
+                value={value}
+                onChange={(e) => updateCustomAttrValue(key, e.target.value)}
+                placeholder="value"
+                className="h-7 text-xs flex-1"
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 shrink-0 text-muted-foreground"
+                onClick={() => removeCustomAttr(key)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <Button size="sm" variant="outline" className="w-full h-7 text-xs" onClick={addCustomAttr}>
+          <Plus className="h-3.5 w-3.5 mr-1" /> Add Attribute
+        </Button>
       </div>
 
       <Separator />

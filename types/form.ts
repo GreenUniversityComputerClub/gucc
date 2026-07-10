@@ -37,10 +37,13 @@ export interface FormField {
   rows?: number
   pageIndex: number
   width?: "full" | "half"
+  /** Arbitrary HTML attributes applied directly to the rendered input, e.g. { pattern: "[0-9]{10}", maxLength: "10", autoComplete: "off" } */
+  customAttributes?: Record<string, string>
 }
 
 export interface FormPage {
   title?: string
+  /** Shown to the person filling out the form, above the fields on this page/segment */
   description?: string
 }
 
@@ -49,6 +52,9 @@ export interface FormConfig {
   userId: string
   title: string
   description?: string
+  logoUrl?: string
+  rulebookUrl?: string
+  rulebookFileName?: string
   sheetId: string
   sheetName: string
   fields: FormField[]

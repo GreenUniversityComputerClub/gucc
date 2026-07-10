@@ -3,6 +3,8 @@
 import { FormPage } from "@/types/form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import { Plus, Trash2 } from "lucide-react"
 
 interface Props {
@@ -24,11 +26,23 @@ export default function PageManager({
 }: Props) {
   if (pages.length === 1) {
     return (
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">Single page form</p>
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onAddPage}>
-          <Plus className="h-3.5 w-3.5 mr-1" /> Add Page
-        </Button>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">Single page form</p>
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onAddPage}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Add Page
+          </Button>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Instructions for this segment (optional)</Label>
+          <Textarea
+            value={pages[0]?.description ?? ""}
+            onChange={(e) => onUpdatePage(0, { description: e.target.value })}
+            placeholder="Anything the person filling this out should know before they start — e.g. what to prepare, deadlines, format expectations..."
+            rows={2}
+            className="text-xs resize-none"
+          />
+        </div>
       </div>
     )
   }
@@ -72,6 +86,18 @@ export default function PageManager({
         placeholder={`Page ${currentPage + 1} title...`}
         className="h-7 text-xs max-w-xs"
       />
+
+      {/* Edit current page instructions — shown to the person filling out this segment */}
+      <div className="space-y-1">
+        <Label className="text-xs">Instructions for this segment (optional)</Label>
+        <Textarea
+          value={pages[currentPage]?.description ?? ""}
+          onChange={(e) => onUpdatePage(currentPage, { description: e.target.value })}
+          placeholder="Anything the person should know before filling out this page..."
+          rows={2}
+          className="text-xs resize-none"
+        />
+      </div>
     </div>
   )
 }

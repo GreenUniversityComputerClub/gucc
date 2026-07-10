@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { FormConfig, FormField, FieldType } from "@/types/form"
 import FieldPalette from "./FieldPalette"
@@ -23,6 +23,10 @@ import {
   Settings2,
   AlertCircle,
   CheckCircle2,
+  ImagePlus,
+  FileText,
+  X,
+  KeyRound,
 } from "lucide-react"
 
 interface FormBuilderProps {
@@ -34,6 +38,13 @@ interface FormBuilderProps {
 export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderProps) {
   const [title, setTitle] = useState(initial?.title ?? "Untitled Form")
   const [description, setDescription] = useState(initial?.description ?? "")
+  const [logoUrl, setLogoUrl] = useState(initial?.logoUrl ?? "")
+  const [rulebookUrl, setRulebookUrl] = useState(initial?.rulebookUrl ?? "")
+  const [rulebookFileName, setRulebookFileName] = useState(initial?.rulebookFileName ?? "")
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [uploadingRulebook, setUploadingRulebook] = useState(false)
+  const [logoError, setLogoError] = useState<string | null>(null)
+  const [rulebookError, setRulebookError] = useState<string | null>(null)
   const [sheetUrl, setSheetUrl] = useState(initial?.sheetId ?? "")
   const [sheetName, setSheetName] = useState(initial?.sheetName ?? "Sheet1")
   const [submitLabel, setSubmitLabel] = useState(initial?.submitLabel ?? "Submit")
@@ -52,6 +63,19 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [dragFieldId, setDragFieldId] = useState<string | null>(null)
   const [savedFormId, setSavedFormId] = useState<string | null>(initial?.id ?? null)
+  const [serviceAccountEmail, setServiceAccountEmail] = useState<string | null>(null)
+  const [serviceAccountError, setServiceAccountError] = useState<string | null>(null)
+  const [emailCopied, setEmailCopied] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/config/service-account")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.error) setServiceAccountError(json.error)
+        else setServiceAccountEmail(json.data?.email ?? null)
+      })
+      .catch(() => setServiceAccountError("Could not load service account info."))
+  }, [])
 
   const pageFields = fields.filter((f) => f.pageIndex === currentPage)
   const selectedField = fields.find((f) => f.id === selectedFieldId) ?? null
@@ -124,6 +148,61 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
     setDragOverIndex(null)
   }
 
+  // ── Logo / Rule book uploads ────────────────────────────────────
+  const uploadAsset = async (file: File, fieldId: "form-logo" | "form-rulebook") => {
+    const fd = new FormData()
+    fd.append("file", file)
+    fd.append("fieldId", fieldId)
+    fd.append("sheetId", sheetUrl)
+    const res = await fetch("/api/upload", { method: "POST", body: fd })
+    const json = await res.json()
+    if (!res.ok || json.error) throw new Error(json.error ?? "Upload failed")
+    return json as { url: string; fileName: string }
+  }
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!sheetUrl.trim()) {
+      setLogoError("Add your Google Sheet URL below first — uploads are stored in a Drive folder next to it.")
+      e.target.value = ""
+      return
+    }
+    setUploadingLogo(true)
+    setLogoError(null)
+    try {
+      const { url } = await uploadAsset(file, "form-logo")
+      setLogoUrl(url)
+    } catch (err) {
+      setLogoError(err instanceof Error ? err.message : "Upload failed")
+    } finally {
+      setUploadingLogo(false)
+      e.target.value = ""
+    }
+  }
+
+  const handleRulebookChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!sheetUrl.trim()) {
+      setRulebookError("Add your Google Sheet URL below first — uploads are stored in a Drive folder next to it.")
+      e.target.value = ""
+      return
+    }
+    setUploadingRulebook(true)
+    setRulebookError(null)
+    try {
+      const { url, fileName } = await uploadAsset(file, "form-rulebook")
+      setRulebookUrl(url)
+      setRulebookFileName(fileName)
+    } catch (err) {
+      setRulebookError(err instanceof Error ? err.message : "Upload failed")
+    } finally {
+      setUploadingRulebook(false)
+      e.target.value = ""
+    }
+  }
+
   // ── Sheet validation ──────────────────────────────────────────
   const validateSheet = async () => {
     if (!sheetUrl.trim()) return
@@ -157,6 +236,9 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
         id: savedFormId ?? undefined,
         title,
         description,
+        logoUrl,
+        rulebookUrl,
+        rulebookFileName,
         sheetId: sheetUrl,
         sheetName,
         fields,
@@ -185,6 +267,36 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
       <main className="flex-1 overflow-y-auto flex flex-col">
         {/* Top bar */}
         <div className="sticky top-0 z-10 bg-background border-b px-6 py-3 flex items-center gap-3">
+          {/* Logo */}
+          <label className="relative shrink-0 h-10 w-10 rounded-md border border-dashed flex items-center justify-center cursor-pointer hover:bg-muted/50 overflow-hidden group">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleLogoChange}
+              disabled={uploadingLogo}
+            />
+            {uploadingLogo ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : logoUrl ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logoUrl} alt="Form logo" className="h-full w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setLogoUrl("")
+                  }}
+                  className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/50 text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
+              <ImagePlus className="h-4 w-4 text-muted-foreground" />
+            )}
+          </label>
           <div className="flex-1 min-w-0">
             <Input
               value={title}
@@ -192,6 +304,7 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
               className="text-lg font-semibold border-none shadow-none focus-visible:ring-0 px-0 h-auto"
               placeholder="Form title..."
             />
+            {logoError && <p className="text-[11px] text-destructive">{logoError}</p>}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {saveStatus === "success" && (
@@ -231,7 +344,91 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
                 rows={2}
                 className="resize-none border-none shadow-none focus-visible:ring-0 px-0 text-sm text-muted-foreground"
               />
+
+              {/* Rule book / attachment PDF, shown alongside the description */}
+              <div className="flex items-center gap-2">
+                {rulebookUrl ? (
+                  <div className="flex items-center gap-2 text-xs bg-muted rounded-md px-2.5 py-1.5">
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <a
+                      href={rulebookUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline truncate max-w-[220px]"
+                    >
+                      {rulebookFileName || "Rule Book.pdf"}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRulebookUrl("")
+                        setRulebookFileName("")
+                      }}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-1.5 text-xs border rounded-md px-2.5 py-1.5 cursor-pointer hover:bg-muted/50 text-muted-foreground">
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      onChange={handleRulebookChange}
+                      disabled={uploadingRulebook}
+                    />
+                    {uploadingRulebook ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <FileText className="h-3.5 w-3.5" />
+                    )}
+                    {uploadingRulebook ? "Uploading..." : "Attach Rule Book (PDF)"}
+                  </label>
+                )}
+                {rulebookError && (
+                  <span className="text-[11px] text-destructive">{rulebookError}</span>
+                )}
+              </div>
+
               <Separator />
+
+              {/* Setup instructions + the email that needs Editor access */}
+              <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+                <p className="text-xs font-medium flex items-center gap-1.5">
+                  <KeyRound className="h-3.5 w-3.5" /> Google Sheets & Drive access
+                </p>
+                <ol className="text-[11px] text-muted-foreground list-decimal list-inside space-y-0.5">
+                  <li>Create or open the Google Sheet you want responses saved to.</li>
+                  <li>Click <span className="font-medium">Share</span>, then share the <span className="font-medium">folder</span> containing that Sheet (not just the Sheet file) with the email below, set to <span className="font-medium">Editor</span>. Sharing the folder — not only the file — is what lets uploaded logos, rule books, and submitted files be saved into a &quot;Form Uploads&quot; folder next to your Sheet.</li>
+                  <li>Paste the Sheet URL below and click Verify.</li>
+                </ol>
+                {serviceAccountEmail && (
+                  <div className="flex items-center gap-2">
+                    <code className="text-[11px] bg-background border rounded px-2 py-1 flex-1 truncate">
+                      {serviceAccountEmail}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs shrink-0"
+                      onClick={() => {
+                        navigator.clipboard.writeText(serviceAccountEmail)
+                        setEmailCopied(true)
+                        setTimeout(() => setEmailCopied(false), 2000)
+                      }}
+                    >
+                      {emailCopied ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                )}
+                {serviceAccountError && (
+                  <p className="text-[11px] text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> {serviceAccountError}
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">Google Sheet URL or ID</Label>

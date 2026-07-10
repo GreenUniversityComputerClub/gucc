@@ -1,27 +1,9 @@
 import { google } from "googleapis"
 import type { FormConfig } from "@/types/form"
-function getAuth() {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY!
-  let clientEmail: string
-  let privateKey: string
-
-  try {
-    const parsed = JSON.parse(raw)
-    clientEmail = parsed.client_email
-    privateKey = parsed.private_key
-  } catch {
-    clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL!
-    privateKey = raw.replace(/\\n/g, "\n")
-  }
-
-  return new google.auth.GoogleAuth({
-    credentials: { client_email: clientEmail, private_key: privateKey },
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  })
-}
+import { getGoogleAuth, getServiceAccountEmail } from "./google-auth"
 
 function getSheetsClient() {
-  return google.sheets({ version: "v4", auth: getAuth() })
+  return google.sheets({ version: "v4", auth: getGoogleAuth() })
 }
 
 export function extractSheetId(urlOrId: string): string | null {
@@ -57,7 +39,7 @@ export async function validateSheet(
     if (msg.includes("403")) {
       return {
         ok: false,
-        error: `Sheet not shared with service account. Share it with: ${process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL}`,
+        error: `Sheet not shared with service account. Share it with: ${getServiceAccountEmail()}`,
       }
     }
     if (msg.includes("404")) {
