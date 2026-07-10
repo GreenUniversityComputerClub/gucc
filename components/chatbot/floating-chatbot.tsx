@@ -85,10 +85,10 @@ function FloatingChatbot() {
               ? "border border-emerald-950/40 bg-[#07140e] text-zinc-100"
               : "border border-emerald-100 bg-[#f4faf7] text-zinc-900",
             screenSize === "small"
-              ? "inset-0 w-full h-full rounded-none"
+              ? "bottom-4 right-4 left-4 h-[420px] max-h-[70vh] rounded-2xl"
               : screenSize === "medium"
-                ? "bottom-6 right-6 w-[380px] h-[480px] max-h-[85vh] rounded-2xl"
-                : "bottom-8 right-8 w-[400px] h-[500px] max-h-[85vh] rounded-2xl",
+                ? "bottom-6 right-6 w-[340px] h-[440px] max-h-[80vh] rounded-2xl"
+                : "bottom-8 right-8 w-[380px] h-[480px] max-h-[80vh] rounded-2xl",
           )}
         >
           <Chatbot onClose={handleClose} isChatbotDark={isChatbotDark} />
