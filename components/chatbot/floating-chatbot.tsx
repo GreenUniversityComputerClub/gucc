@@ -87,8 +87,8 @@ function FloatingChatbot() {
             screenSize === "small"
               ? "inset-0 w-full h-full rounded-none"
               : screenSize === "medium"
-                ? "bottom-6 right-6 w-[380px] h-[580px] max-h-[85vh] rounded-2xl"
-                : "bottom-8 right-8 w-[400px] h-[600px] max-h-[85vh] rounded-2xl",
+                ? "bottom-6 right-6 w-[380px] h-[480px] max-h-[85vh] rounded-2xl"
+                : "bottom-8 right-8 w-[400px] h-[500px] max-h-[85vh] rounded-2xl",
           )}
         >
           <Chatbot onClose={handleClose} isChatbotDark={isChatbotDark} />

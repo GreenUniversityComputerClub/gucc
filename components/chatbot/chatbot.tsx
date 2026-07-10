@@ -468,12 +468,6 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
           <div className="p-4 sm:p-5">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center h-full mt-6">
-                <div className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center mb-4 border",
-                  isChatbotDark ? "bg-emerald-950/40 border-emerald-500/20" : "bg-emerald-100 border-emerald-250"
-                )}>
-                  <Computer className={cn("h-6 w-6", isChatbotDark ? "text-emerald-400" : "text-emerald-600")} />
-                </div>
                 <h3 className={cn("text-base font-bold mb-2", isChatbotDark ? "text-emerald-50" : "text-zinc-800")}>
                   Welcome to GUCC Assistant
                 </h3>
@@ -485,19 +479,18 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                     Frequently Asked Questions:
                   </p>
                   {predefinedQuestions.map((item, index) => (
-                    <Button
+                    <button
                       key={index}
-                      variant="outline"
                       onClick={() => handlePredefinedQuestionClick(item.question)}
                       className={cn(
-                        "w-full justify-start text-left text-xs py-3 px-4 rounded-xl transition-all font-normal whitespace-normal h-auto min-h-[44px]",
+                        "w-full justify-start text-left text-xs py-3 px-4 rounded-xl transition-all font-normal whitespace-normal h-auto min-h-[44px] border",
                         isChatbotDark
                           ? "bg-[#0b2016]/50 border-emerald-900/25 hover:bg-[#10301f]/50 hover:border-emerald-500/30 hover:text-emerald-100 text-emerald-200/90"
-                          : "bg-white border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 text-zinc-700"
+                          : "bg-white border-emerald-200 hover:bg-emerald-50/50 hover:text-emerald-900 text-emerald-800"
                       )}
                     >
                       {item.question}
-                    </Button>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -570,20 +563,18 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                       {getUnaskedQuestions()
                         .slice(0, 3)
                         .map((item, index) => (
-                          <Button
+                          <button
                             key={index}
-                            variant="outline"
-                            size="sm"
                             onClick={() => handlePredefinedQuestionClick(item.question)}
                             className={cn(
                               "w-full text-left justify-start text-xs py-2 px-3 h-auto min-h-[36px] rounded-lg font-normal whitespace-normal border transition-all",
                               isChatbotDark
                                 ? "bg-[#0b2016]/60 hover:bg-[#10301f]/50 hover:text-emerald-100 hover:border-emerald-500/30 text-emerald-200/90 border-emerald-900/25"
-                                : "bg-white hover:bg-zinc-50 text-zinc-700 border-zinc-200"
+                                : "bg-white hover:bg-emerald-50/50 hover:text-emerald-900 text-emerald-800 border-emerald-200"
                             )}
                           >
                             {item.question}
-                          </Button>
+                          </button>
                         ))}
                     </div>
                   </div>
@@ -602,7 +593,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
         isChatbotDark ? "border-emerald-950/40 bg-[#07140e]" : "border-zinc-200 bg-[#f4faf7]"
       )}>
         <div className="flex gap-2 max-w-4xl mx-auto items-center">
-          <Input
+          <input
             ref={inputRef}
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
@@ -610,23 +601,22 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             placeholder="Ask something about GUCC..."
             disabled={isLoading || !sessionId}
             className={cn(
-              "flex-1 rounded-full h-11 text-xs sm:text-sm pl-4 focus-visible:ring-emerald-500 focus-visible:ring-offset-0 focus-visible:ring-1 focus-visible:border-emerald-500",
+              "flex-1 rounded-full h-11 text-xs sm:text-sm pl-4 focus:outline-none border",
               isChatbotDark
                 ? "bg-[#0b2016] border-emerald-900/30 text-emerald-50 placeholder-emerald-700/60"
-                : "bg-zinc-50 border-zinc-250 text-zinc-900 placeholder-zinc-400"
+                : "bg-white border-emerald-250 text-emerald-950 placeholder-emerald-700/50"
             )}
           />
-          <Button
+          <button
             onClick={() => handleSendMessage()}
             disabled={isLoading || !userInput.trim() || !sessionId}
-            size="icon"
             className={cn(
               "border h-11 w-11 rounded-full transition-all active:scale-95 shrink-0 flex items-center justify-center",
               userInput.trim()
                 ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
                 : (isChatbotDark
                     ? "bg-[#0b2016] border-emerald-950/40 text-emerald-800/40 cursor-not-allowed"
-                    : "bg-zinc-100 border-zinc-200 text-zinc-400 cursor-not-allowed")
+                    : "bg-emerald-50/50 border-emerald-100 text-emerald-350 cursor-not-allowed")
             )}
           >
             {isLoading ? (
@@ -634,7 +624,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             ) : (
               <Send className="h-4.5 w-4.5" />
             )}
-          </Button>
+          </button>
         </div>
       </div>
 
