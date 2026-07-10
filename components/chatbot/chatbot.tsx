@@ -5,10 +5,11 @@ import { useEffect, useState, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Send, AlertCircle, Loader2, Computer, GraduationCap } from "lucide-react"
+import { Send, AlertCircle, Loader2, Computer, GraduationCap, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { MessageModal } from "./message-modal"
+import Image from "next/image"
 
 // RAG API endpoint
 const RAG_API_URL = "https://andrewvelox-gucc-rag-agent.hf.space"
@@ -25,7 +26,7 @@ interface PredefinedQuestion {
   answer: string
 }
 
-export default function Chatbot() {
+export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: () => void; isChatbotDark?: boolean }) {
   const [messages, setMessages] = useState<Message[]>([])
   const [userInput, setUserInput] = useState("")
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -407,44 +408,93 @@ export default function Chatbot() {
   }, [messages, predefinedQuestions])
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
-      {/* Fixed Header */}
-      <div className="bg-green-700 text-white py-2 px-3 sm:py-3 sm:px-6 md:py-4 md:px-8 border-b border-green-800 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl sm:text-2xl md:text-3xl mx-auto font-bold text-center flex items-center gap-1 sm:gap-2 md:gap-3">
-            <Computer className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7" />
-            GUCC Assistant
-          </h2>
+    <div className="flex flex-col h-full w-full overflow-hidden bg-transparent font-sans">
+      {/* Header */}
+      <div className={cn(
+        "px-4 py-3 border-b flex-shrink-0 flex items-center justify-between",
+        isChatbotDark ? "bg-[#091a12]/60 border-emerald-950/30" : "bg-zinc-50 border-zinc-200"
+      )}>
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            "w-9 h-9 rounded-full overflow-hidden border flex items-center justify-center flex-shrink-0 bg-white",
+            isChatbotDark ? "border-emerald-900/30" : "border-zinc-200"
+          )}>
+            <img
+              src="https://raw.githubusercontent.com/green-university-computer-club/gucc/main/public/android-chrome-192x192.png"
+              alt="GUCC Logo"
+              className="w-8 h-8 object-contain"
+            />
+          </div>
+          <div>
+            <h2 className={cn("text-sm font-bold tracking-tight", isChatbotDark ? "text-emerald-50" : "text-zinc-900")}>
+              GUCC Assistant
+            </h2>
+            <div className="flex items-center gap-1.5 text-[11px] text-emerald-605 font-medium mt-0.5">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+              </span>
+              <span>Online & Ready to help</span>
+            </div>
+          </div>
         </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className={cn(
+              "p-1.5 rounded-lg transition-colors",
+              isChatbotDark ? "hover:bg-[#10301f]/50 text-emerald-450 hover:text-emerald-250" : "hover:bg-zinc-200 text-zinc-550 hover:text-zinc-800"
+            )}
+            aria-label="Close"
+          >
+            <X className="h-4.5 w-4.5" />
+          </button>
+        )}
       </div>
 
       {/* Scrollable Content Area */}
-      <div className="flex-grow overflow-hidden relative">
+      <div className={cn("flex-grow overflow-hidden relative", isChatbotDark ? "bg-[#07140e]" : "bg-[#f4faf7]")}>
         {error && (
-          <Alert variant="destructive" className="m-2 sm:m-4 md:m-7">
-            <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6" />
-            <AlertDescription className="text-sm sm:text-base md:text-lg">{error}</AlertDescription>
+          <Alert variant="destructive" className="m-3">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">{error}</AlertDescription>
           </Alert>
         )}
 
-        <div className="h-full overflow-y-auto bg-green-50 pb-4">
-          <div className="p-3 sm:p-4 md:p-6 lg:p-8">
+        <div className={cn(
+          "h-full overflow-y-auto pb-4 scrollbar-thin scrollbar-track-transparent",
+          isChatbotDark ? "scrollbar-thumb-emerald-950/60" : "scrollbar-thumb-zinc-200"
+        )}>
+          <div className="p-4 sm:p-5">
             {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-3 sm:p-6 md:p-8 lg:p-10">
-                <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-medium mb-1 sm:mb-2 md:mb-3 text-green-800">
+              <div className="flex flex-col items-center justify-center text-center h-full mt-6">
+                <div className={cn(
+                  "w-12 h-12 rounded-full flex items-center justify-center mb-4 border",
+                  isChatbotDark ? "bg-emerald-950/40 border-emerald-500/20" : "bg-emerald-100 border-emerald-250"
+                )}>
+                  <Computer className={cn("h-6 w-6", isChatbotDark ? "text-emerald-400" : "text-emerald-600")} />
+                </div>
+                <h3 className={cn("text-base font-bold mb-2", isChatbotDark ? "text-emerald-50" : "text-zinc-800")}>
                   Welcome to GUCC Assistant
                 </h3>
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-green-700 max-w-2xl mx-auto">
-                  Ask me anything about Green University Computer Club, events, membership, or how we can help your
-                  career in tech!
+                <p className={cn("text-xs max-w-sm mx-auto leading-relaxed mb-6 font-medium px-2", isChatbotDark ? "text-emerald-400" : "text-emerald-600")}>
+                  Ask me anything about Green University Computer Club, events, membership, or how we can help your career in tech!
                 </p>
-                <div className="mt-3 sm:mt-4 md:mt-6 lg:mt-8 space-y-2 md:space-y-3 w-full max-w-2xl">
+                <div className="w-full space-y-2 max-w-xs sm:max-w-sm">
+                  <p className={cn("text-[10px] font-bold tracking-wider uppercase text-left pl-1", isChatbotDark ? "text-emerald-500/60 font-semibold" : "text-zinc-450")}>
+                    Frequently Asked Questions:
+                  </p>
                   {predefinedQuestions.map((item, index) => (
                     <Button
                       key={index}
                       variant="outline"
                       onClick={() => handlePredefinedQuestionClick(item.question)}
-                      className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300 w-full text-left justify-start text-xs sm:text-sm md:text-base lg:text-lg py-2 px-3 md:py-3 md:px-4 h-auto min-h-[40px] md:min-h-[50px]"
+                      className={cn(
+                        "w-full justify-start text-left text-xs py-3 px-4 rounded-xl transition-all font-normal whitespace-normal h-auto min-h-[44px]",
+                        isChatbotDark
+                          ? "bg-[#0b2016]/50 border-emerald-900/25 hover:bg-[#10301f]/50 hover:border-emerald-500/30 hover:text-emerald-100 text-emerald-200/90"
+                          : "bg-white border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 text-zinc-700"
+                      )}
                     >
                       {item.question}
                     </Button>
@@ -452,25 +502,39 @@ export default function Chatbot() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-3 sm:space-y-4 md:space-y-5 w-full max-w-4xl mx-auto">
+              <div className="space-y-4 w-full max-w-3xl mx-auto">
                 {messages.map((msg, index) => (
                   <div
                     key={index}
+                    onClick={() => handleMessageClick(msg)}
                     className={cn(
-                      "flex flex-col rounded-lg",
-                      "p-3 sm:p-4 md:p-5",
-                      msg.role === "user" ? "ml-auto bg-green-600 text-white" : "mr-auto bg-green-100 text-green-900",
-                      "max-w-[85%] sm:max-w-[80%] md:max-w-[75%] lg:max-w-[70%]",
+                      "flex flex-col rounded-2xl cursor-pointer transition-all duration-155 p-3 sm:p-4 shadow-sm",
+                      msg.role === "user"
+                        ? "ml-auto bg-emerald-600 hover:bg-emerald-500 text-white rounded-tr-none"
+                        : cn("mr-auto rounded-tl-none border",
+                            isChatbotDark
+                              ? "bg-[#0d261a] text-emerald-100 border-emerald-900/30 hover:bg-[#113222]"
+                              : "bg-white text-zinc-800 border-zinc-200 hover:bg-zinc-50"),
+                      "max-w-[85%] sm:max-w-[80%]",
                     )}
                   >
-                    <div className="whitespace-pre-wrap text-sm sm:text-base md:text-lg">
+                    <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
                       {msg.text}
                     </div>
-                    <div className="flex items-center justify-end mt-2">
+                    {msg.sources && msg.sources.length > 0 && (
+                      <div className={cn(
+                        "mt-1.5 pt-1.5 border-t text-[10px]",
+                        isChatbotDark ? "border-emerald-950/40 text-emerald-400/80" : "border-zinc-100 text-zinc-550"
+                      )}>
+                        <span className="font-semibold text-emerald-605">Sources:</span>{" "}
+                        {msg.sources.join(", ")}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-end mt-1.5">
                       <span
                         className={cn(
-                          "text-[10px] sm:text-xs md:text-sm",
-                          msg.role === "user" ? "text-green-100" : "text-green-700",
+                          "text-[9px] sm:text-[10px]",
+                          msg.role === "user" ? "text-emerald-250" : (isChatbotDark ? "text-emerald-500/60" : "text-zinc-450"),
                         )}
                       >
                         {format(msg.timestamp, "h:mm a")}
@@ -480,30 +544,43 @@ export default function Chatbot() {
                 ))}
 
                 {isLoading && (
-                  <div className="flex flex-col max-w-[85%] sm:max-w-[80%] md:max-w-[75%] lg:max-w-[70%] rounded-lg p-3 sm:p-4 md:p-5 mr-auto bg-green-100 text-green-900">
-                    <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
-                      <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 animate-spin" />
-                      <span className="text-sm sm:text-base md:text-lg">Thinking...</span>
+                  <div className={cn(
+                    "flex flex-col max-w-[85%] sm:max-w-[80%] rounded-2xl rounded-tl-none p-3 sm:p-4 mr-auto border shadow-sm",
+                    isChatbotDark
+                      ? "bg-[#0d261a] text-emerald-100 border-emerald-900/30"
+                      : "bg-white text-zinc-800 border-zinc-200"
+                  )}>
+                    <div className="flex items-center gap-2 text-zinc-450">
+                      <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+                      <span className="text-xs">Thinking...</span>
                     </div>
                   </div>
                 )}
 
                 {/* Show remaining questions after each bot response */}
                 {showSuggestions && messages.length > 0 && messages[messages.length - 1].role === "model" && (
-                  <div className="my-3 sm:my-4 md:my-5 p-2 sm:p-3 md:p-4 bg-green-50 border border-green-200 rounded-lg max-w-4xl mx-auto">
-                    <p className="text-xs sm:text-sm md:text-base lg:text-lg font-medium text-green-800 mb-1 sm:mb-2 md:mb-3">
+                  <div className={cn(
+                    "my-4 p-3 border rounded-xl max-w-3xl mx-auto shadow-sm",
+                    isChatbotDark ? "bg-[#081d13]/30 border-emerald-950/40" : "bg-white border-zinc-200"
+                  )}>
+                    <p className={cn("text-[10px] font-bold tracking-wider uppercase mb-2", isChatbotDark ? "text-emerald-500/60 font-semibold" : "text-zinc-450")}>
                       You might also want to ask:
                     </p>
-                    <div className="space-y-1.5 sm:space-y-2 md:space-y-3 grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+                    <div className="space-y-1.5">
                       {getUnaskedQuestions()
-                        .slice(0, 4)
+                        .slice(0, 3)
                         .map((item, index) => (
                           <Button
                             key={index}
                             variant="outline"
                             size="sm"
                             onClick={() => handlePredefinedQuestionClick(item.question)}
-                            className="bg-white hover:bg-green-100 text-green-800 border-green-200 w-full text-left justify-start text-xs sm:text-sm md:text-base py-1.5 px-2 md:py-2 md:px-3 h-auto min-h-[32px] md:min-h-[40px]"
+                            className={cn(
+                              "w-full text-left justify-start text-xs py-2 px-3 h-auto min-h-[36px] rounded-lg font-normal whitespace-normal border transition-all",
+                              isChatbotDark
+                                ? "bg-[#0b2016]/60 hover:bg-[#10301f]/50 hover:text-emerald-100 hover:border-emerald-500/30 text-emerald-200/90 border-emerald-900/25"
+                                : "bg-white hover:bg-zinc-50 text-zinc-700 border-zinc-200"
+                            )}
                           >
                             {item.question}
                           </Button>
@@ -520,8 +597,11 @@ export default function Chatbot() {
       </div>
 
       {/* Fixed Input Area */}
-      <div className="p-2 sm:p-3 md:p-4 lg:p-6 border-t border-green-200 bg-green-50 flex-shrink-0">
-        <div className="flex gap-1 sm:gap-2 md:gap-3 max-w-4xl mx-auto">
+      <div className={cn(
+        "p-3 border-t flex-shrink-0",
+        isChatbotDark ? "border-emerald-950/40 bg-[#07140e]" : "border-zinc-200 bg-[#f4faf7]"
+      )}>
+        <div className="flex gap-2 max-w-4xl mx-auto items-center">
           <Input
             ref={inputRef}
             value={userInput}
@@ -529,18 +609,30 @@ export default function Chatbot() {
             onKeyDown={handleKeyDown}
             placeholder="Ask something about GUCC..."
             disabled={isLoading || !sessionId}
-            className="flex-1 border-green-300 focus-visible:ring-green-500 text-sm sm:text-base md:text-lg h-9 sm:h-10 md:h-12"
+            className={cn(
+              "flex-1 rounded-full h-11 text-xs sm:text-sm pl-4 focus-visible:ring-emerald-500 focus-visible:ring-offset-0 focus-visible:ring-1 focus-visible:border-emerald-500",
+              isChatbotDark
+                ? "bg-[#0b2016] border-emerald-900/30 text-emerald-50 placeholder-emerald-700/60"
+                : "bg-zinc-50 border-zinc-250 text-zinc-900 placeholder-zinc-400"
+            )}
           />
           <Button
             onClick={() => handleSendMessage()}
             disabled={isLoading || !userInput.trim() || !sessionId}
             size="icon"
-            className="bg-green-700 hover:bg-green-800 h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12"
+            className={cn(
+              "border h-11 w-11 rounded-full transition-all active:scale-95 shrink-0 flex items-center justify-center",
+              userInput.trim()
+                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
+                : (isChatbotDark
+                    ? "bg-[#0b2016] border-emerald-950/40 text-emerald-800/40 cursor-not-allowed"
+                    : "bg-zinc-100 border-zinc-200 text-zinc-400 cursor-not-allowed")
+            )}
           >
             {isLoading ? (
-              <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 animate-spin" />
+              <Loader2 className="h-4.5 w-4.5 animate-spin" />
             ) : (
-              <Send className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+              <Send className="h-4.5 w-4.5" />
             )}
           </Button>
         </div>

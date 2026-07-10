@@ -1,71 +1,29 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useCallback, memo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { MessageCircle, X, Computer } from "lucide-react"
+import { MessageCircle, Computer } from "lucide-react"
 import { cn } from "@/lib/utils"
 import dynamic from "next/dynamic"
+import { useTheme } from "next-themes"
 
 // Dynamically import the Chatbot component with no SSR to avoid hydration issues
 const Chatbot = dynamic(() => import("./chatbot"), { ssr: false })
 
-// Custom Modal Component
-interface ModalProps {
-  isOpen: boolean
-  onClose: () => void
-  children: React.ReactNode
-  screenSize: "small" | "medium" | "large"
-}
-
-function Modal({ isOpen, onClose, children, screenSize }: ModalProps) {
-  if (!isOpen) return null
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" aria-hidden="true" />
-      <div
-        className={cn(
-          "bg-white p-0 relative rounded-lg shadow-xl overflow-hidden",
-          screenSize === "small"
-            ? "w-[95vw] h-[90vh] max-w-none"
-            : screenSize === "medium"
-              ? "w-[85vw] h-[85vh] max-w-[800px] rounded-xl"
-              : "w-[75vw] h-[85vh] max-w-[1200px] rounded-xl",
-        )}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className={cn(
-            "absolute z-50 rounded-full backdrop-blur-sm",
-            screenSize === "small"
-              ? "right-2 top-2 p-1.5 bg-white/70 hover:bg-white"
-              : screenSize === "medium"
-                ? "right-3 top-3 p-2 bg-white/75 hover:bg-white shadow-md"
-                : "right-4 top-4 p-2.5 bg-white/80 hover:bg-white shadow-lg",
-          )}
-          aria-label="Close"
-        >
-          <X
-            className={cn(
-              screenSize === "small" ? "h-4 w-4" : screenSize === "medium" ? "h-4.5 w-4.5" : "h-5 w-5",
-              "text-green-800",
-            )}
-          />
-        </button>
-
-        {children}
-      </div>
-    </div>
-  )
-}
-
 function FloatingChatbot() {
   const [isOpen, setIsOpen] = useState(false)
   const [screenSize, setScreenSize] = useState<"small" | "medium" | "large">("medium")
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  // Wait until mounted on client to prevent hydration mismatches
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Invert chatbot theme: Light theme in dark mode, Dark theme in light mode
+  const isChatbotDark = mounted ? resolvedTheme === "light" : false
 
   // Check screen size
   useEffect(() => {
@@ -99,15 +57,15 @@ function FloatingChatbot() {
       <Button
         onClick={handleOpen}
         className={cn(
-          "fixed rounded-full shadow-lg z-50",
+          "fixed rounded-full shadow-2xl z-50",
           "flex items-center justify-center",
-          "bg-green-700 text-white hover:bg-green-800 transition-all duration-300",
+          "bg-emerald-600 text-white hover:bg-emerald-500 transition-all duration-300",
           screenSize === "small"
             ? "bottom-4 right-4 w-12 h-12 gap-1"
             : screenSize === "medium"
               ? "bottom-6 right-6 w-14 h-14 gap-1.5"
               : "bottom-8 right-8 w-16 h-16 gap-2",
-          isOpen ? "scale-0 opacity-0" : "scale-100 opacity-100",
+          isOpen ? "scale-0 opacity-0 pointer-events-none" : "scale-100 opacity-100",
         )}
         aria-label="Open chat"
       >
@@ -117,14 +75,31 @@ function FloatingChatbot() {
         />
       </Button>
 
-      {/* Custom Modal */}
-      <Modal isOpen={isOpen} onClose={handleClose} screenSize={screenSize}>
-        {isOpen && <Chatbot />}
-      </Modal>
+      {/* Floating Chatbot Container */}
+      {isOpen && (
+        <div
+          className={cn(
+            "fixed z-50 shadow-2xl overflow-hidden flex flex-col transition-all duration-300",
+            "animate-in fade-in slide-in-from-bottom-5 duration-200",
+            isChatbotDark
+              ? "border border-emerald-950/40 bg-[#07140e] text-zinc-100"
+              : "border border-emerald-100 bg-[#f4faf7] text-zinc-900",
+            screenSize === "small"
+              ? "inset-0 w-full h-full rounded-none"
+              : screenSize === "medium"
+                ? "bottom-6 right-6 w-[380px] h-[580px] max-h-[85vh] rounded-2xl"
+                : "bottom-8 right-8 w-[400px] h-[600px] max-h-[85vh] rounded-2xl",
+          )}
+        >
+          <Chatbot onClose={handleClose} isChatbotDark={isChatbotDark} />
+        </div>
+      )}
     </>
   )
 }
 
 // Memoize the entire component to prevent unnecessary re-renders
 export default memo(FloatingChatbot)
+
+
 
