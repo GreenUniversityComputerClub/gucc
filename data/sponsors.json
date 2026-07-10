@@ -1,0 +1,110 @@
+{
+  "event": {
+    "name": "Programming Contest & Math Olympiad 2026",
+    "tagline": "Inter Departmental Mega Event",
+    "organizer": "Green University Computer Club (GUCC)",
+    "university": "Green University of Bangladesh",
+    "website": "gucc.green.edu.bd",
+    "email": "gucc@green.edu.bd"
+  },
+  "about": {
+    "eventDescription": "The Inter Departmental Programming Contest and Math Olympiad are premier flagship events designed to foster algorithmic problem-solving, analytical thinking, and mathematical prowess among university students. Operating as a core talent-discovery platform, these events challenge young minds to apply complex logic and coding skills to solve real-world computational problems under extreme time constraints. This dual-event structure serves as a critical stepping stone for students aiming to represent the institution in national and international arenas like the ICPC and national hackathons.",
+    "clubDescription": "Green University Computer Club (GUCC) is a dynamic, student-driven non-profit organization operating in collaboration with the Department of Computer Science and Engineering (CSE), with a thriving community of over 7,000+ members. GUCC is dedicated to cultivating aspiring professionals and building the next generation of tech leaders in Bangladesh."
+  },
+  "achievements": [
+    {
+      "title": "BUBT Inter-University Contest 2025",
+      "description": "Team \"GREENFORCES\" secured the Championship title at the prestigious BUBT Inter-University Collaborative Contest."
+    },
+    {
+      "title": "CUET IUPC 2025",
+      "description": "Team \"GreenForces\" achieved an impressive 9th place nationwide against the nation's best competitive programming teams."
+    },
+    {
+      "title": "Metropolitan University IUPC 2025",
+      "description": "Our brilliant students secured a Top 15 finish at the highly competitive Metropolitan University Inter-University Programming Contest."
+    },
+    {
+      "title": "Best Student Branch Chapter 2025",
+      "description": "The associated IEEE Computer Society Student Branch Chapter was recognized as the \"Best Computer Society Student Branch Chapter in Bangladesh\"."
+    }
+  ],
+  "schedule": [
+    { "label": "Registration Start", "date": "05 July" },
+    { "label": "Registration Close", "date": "15 July" },
+    { "label": "Mock Contest", "date": "18 July" },
+    { "label": "Math Olympiad (Morning Session)", "date": "20 July" },
+    { "label": "Programming Contest (Main Event)", "date": "22 July" }
+  ],
+  "previousPartners": [
+    "Brain Station 23",
+    "Jamuna TV",
+    "Daily Campus",
+    "IT Institute",
+    "VortexUp Digital",
+    "The Business Standard",
+    "The Minute School",
+    "Green Bangladesh Mentors"
+  ],
+  "whySponsor": "Sponsoring the Inter Departmental Programming Contest and Math Olympiad 2026 is an exceptional opportunity to connect directly with a highly concentrated pool of top-tier technical talent, software engineers, and analytical minds. Sponsors receive significant exposure through prominent logo placement on banners, backdrops, festoons, contest platforms, and all event creatives, plus ongoing marketing via social media and on-campus campaigns. This event provides a direct recruitment pipeline, positioning your organization as an employer of choice among 7,000+ tech-focused students, with special brand promotional segments and the option to be a distinguished guest at the final event and prize-giving ceremony.",
+  "packages": [
+    {
+      "tier": "Gold Sponsor",
+      "slots": 1,
+      "price": 120000,
+      "currency": "BDT",
+      "highlight": true,
+      "benefits": [
+        "Recognition as \"Powered by\" sponsor",
+        "Logo on all backdrops, side-drops, banners, posters, t-shirts and digital campaigns",
+        "3 VIP invitations",
+        "Branding in media coverage & press releases"
+      ]
+    },
+    {
+      "tier": "Silver Sponsor",
+      "slots": 2,
+      "price": 80000,
+      "currency": "BDT",
+      "highlight": false,
+      "benefits": [
+        "Recognition as \"In Association with\" sponsor",
+        "Logo on backdrops, banners, posters, souvenirs, and digital campaigns",
+        "2 VIP invitations",
+        "Branding in media coverage & digital promotions"
+      ]
+    },
+    {
+      "tier": "Bronze Sponsor",
+      "slots": 3,
+      "price": 40000,
+      "currency": "BDT",
+      "highlight": false,
+      "benefits": [
+        "Logo on posters, and social media campaigns",
+        "1 VIP invitation",
+        "Branding in digital campaigns"
+      ]
+    }
+  ],
+  "otherOpportunities": [
+    { "title": "T-Shirt Partner", "detail": "200 Pieces" },
+    { "title": "Food & Beverage Partner", "detail": "200 Pieces" },
+    { "title": "Gift & Award Partner", "detail": "200 Pieces" },
+    { "title": "Platform / Server Partner", "detail": "In-kind / Technical" }
+  ],
+  "contacts": [
+    {
+      "name": "Tanveer Ziad",
+      "role": "President, Green University Computer Club (GUCC)",
+      "phone": "+880 1XXX XXXXXX",
+      "email": "president.gucc@green.edu.bd"
+    },
+    {
+      "name": "Galib",
+      "role": "Joint Information Secretary, Green University Computer Club (GUCC)",
+      "phone": "+880 1XXX XXXXXX",
+      "email": "info.gucc@green.edu.bd"
+    }
+  ]
+}
