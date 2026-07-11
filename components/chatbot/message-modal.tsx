@@ -26,6 +26,9 @@ export function MessageModal({ isOpen, onClose, message, screenSize }: MessageMo
     <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={onClose}>
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" aria-hidden="true" />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="message-modal-title"
         className={cn(
           "bg-zinc-950 border border-zinc-800 text-zinc-100 relative rounded-2xl shadow-2xl",
           "w-[95vw] sm:w-[90vw] md:w-[70vw] lg:w-[60vw] xl:w-[50vw]",
@@ -44,7 +47,7 @@ export function MessageModal({ isOpen, onClose, message, screenSize }: MessageMo
 
         {/* Header */}
         <div className="p-5 pb-3">
-          <h2 className="flex flex-col sm:flex-row sm:items-center gap-2 text-base sm:text-lg font-bold">
+          <h2 id="message-modal-title" className="flex flex-col sm:flex-row sm:items-center gap-2 text-base sm:text-lg font-bold">
             <span className={message.role === "user" ? "text-emerald-400" : "text-white"}>
               {message.role === "user" ? "Your Message" : "GUCC Assistant"}
             </span>

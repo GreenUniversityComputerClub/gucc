@@ -1,6 +1,5 @@
 "use client"
 
-import type React from "react"
 import { useState, useCallback, memo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { MessageCircle, Computer } from "lucide-react"

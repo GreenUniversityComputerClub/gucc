@@ -1,11 +1,9 @@
 "use client"
 
-import type React from "react"
 import { useEffect, useState, useRef, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import type { KeyboardEvent } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Send, AlertCircle, Loader2, Computer, GraduationCap, X } from "lucide-react"
+import { Send, AlertCircle, Loader2, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { MessageModal } from "./message-modal"
@@ -376,7 +374,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
   )
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    (e: KeyboardEvent) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault()
         handleSendMessage()
@@ -419,9 +417,11 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             "w-9 h-9 rounded-full overflow-hidden border flex items-center justify-center flex-shrink-0 bg-white",
             isChatbotDark ? "border-emerald-900/30" : "border-zinc-200"
           )}>
-            <img
-              src="https://raw.githubusercontent.com/green-university-computer-club/gucc/main/public/android-chrome-192x192.png"
+            <Image
+              src="/android-chrome-192x192.png"
               alt="GUCC Logo"
+              width={32}
+              height={32}
               className="w-8 h-8 object-contain"
             />
           </div>
@@ -429,7 +429,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             <h2 className={cn("text-sm font-bold tracking-tight", isChatbotDark ? "text-emerald-50" : "text-zinc-900")}>
               GUCC Assistant
             </h2>
-            <div className="flex items-center gap-1.5 text-[11px] text-emerald-605 font-medium mt-0.5">
+            <div className={cn("flex items-center gap-1.5 text-[11px] font-medium mt-0.5", isChatbotDark ? "text-emerald-400" : "text-emerald-600")}>
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
@@ -443,7 +443,9 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             onClick={onClose}
             className={cn(
               "p-1.5 rounded-lg transition-colors",
-              isChatbotDark ? "hover:bg-[#10301f]/50 text-emerald-450 hover:text-emerald-250" : "hover:bg-zinc-200 text-zinc-550 hover:text-zinc-800"
+              isChatbotDark
+                ? "hover:bg-[#10301f]/50 text-emerald-400 hover:text-emerald-200"
+                : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800"
             )}
             aria-label="Close"
           >
@@ -461,10 +463,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
           </Alert>
         )}
 
-        <div className={cn(
-          "h-full overflow-y-auto pb-4 scrollbar-thin scrollbar-track-transparent",
-          isChatbotDark ? "scrollbar-thumb-emerald-950/60" : "scrollbar-thumb-zinc-200"
-        )}>
+        <div className="h-full overflow-y-auto pb-4">
           <div className="p-4 sm:p-5">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center h-full mt-6">
@@ -608,6 +607,8 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             )}
           />
           <button
+            type="button"
+            aria-label="Send message"
             onClick={() => handleSendMessage()}
             disabled={isLoading || !userInput.trim() || !sessionId}
             className={cn(
@@ -616,7 +617,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                 ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
                 : (isChatbotDark
                     ? "bg-[#0b2016] border-emerald-950/40 text-emerald-800/40 cursor-not-allowed"
-                    : "bg-emerald-50/50 border-emerald-100 text-emerald-350 cursor-not-allowed")
+                    : "bg-emerald-50/50 border-emerald-100 text-emerald-400 cursor-not-allowed")
             )}
           >
             {isLoading ? (
