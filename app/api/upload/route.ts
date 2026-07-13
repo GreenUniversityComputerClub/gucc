@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { uploadFileToSheetFolder } from "@/lib/drive"
-import { extractSheetId } from "@/lib/sheets"
+import { uploadFileToFolder, extractFolderId } from "@/lib/drive"
 
 const MAX_SIZE_BYTES = 15 * 1024 * 1024 // 15MB
 
@@ -28,22 +27,22 @@ export async function POST(req: NextRequest) {
   const fd = await req.formData()
   const file = fd.get("file") as File | null
   const fieldId = fd.get("fieldId") as string | null
-  const sheetRef = fd.get("sheetId") as string | null
+  const folderRef = fd.get("folderId") as string | null
 
   if (!file || !fieldId) {
     return NextResponse.json({ error: "Missing file or fieldId" }, { status: 400 })
   }
 
-  if (!sheetRef || !sheetRef.trim()) {
+  if (!folderRef || !folderRef.trim()) {
     return NextResponse.json(
-      { error: "Connect and verify this form's Google Sheet before uploading files — uploads are stored in a Drive folder next to that Sheet." },
+      { error: "Connect and verify this form's Google Drive folder before uploading files." },
       { status: 400 }
     )
   }
 
-  const sheetId = extractSheetId(sheetRef)
-  if (!sheetId) {
-    return NextResponse.json({ error: "Invalid Google Sheet URL or ID." }, { status: 400 })
+  const folderId = extractFolderId(folderRef)
+  if (!folderId) {
+    return NextResponse.json({ error: "Invalid Google Drive folder URL or ID." }, { status: 400 })
   }
 
   if (file.size === 0) {
@@ -68,13 +67,16 @@ export async function POST(req: NextRequest) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer())
-    const { url } = await uploadFileToSheetFolder({
-      sheetId,
+    const { fileId } = await uploadFileToFolder({
+      folderId,
       fileName: driveFileName,
       mimeType: file.type || "application/octet-stream",
       buffer,
     })
-    return NextResponse.json({ url, fileName: file.name })
+    // Proxied through our own site so opening/downloading never redirects to drive.google.com.
+    // Absolute, since this also gets written into the Sheet cell and opened from outside the app.
+    const downloadUrl = new URL(`/api/files/${fileId}`, req.url).toString()
+    return NextResponse.json({ url: downloadUrl, fileId, fileName: file.name })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload failed"
     return NextResponse.json({ error: message }, { status: 500 })

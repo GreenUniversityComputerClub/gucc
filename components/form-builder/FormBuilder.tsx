@@ -39,12 +39,20 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
   const [title, setTitle] = useState(initial?.title ?? "Untitled Form")
   const [description, setDescription] = useState(initial?.description ?? "")
   const [logoUrl, setLogoUrl] = useState(initial?.logoUrl ?? "")
+  const [logoPosition, setLogoPosition] = useState<"top" | "below-description">(
+    initial?.logoPosition ?? "top"
+  )
   const [rulebookUrl, setRulebookUrl] = useState(initial?.rulebookUrl ?? "")
   const [rulebookFileName, setRulebookFileName] = useState(initial?.rulebookFileName ?? "")
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [uploadingRulebook, setUploadingRulebook] = useState(false)
   const [logoError, setLogoError] = useState<string | null>(null)
   const [rulebookError, setRulebookError] = useState<string | null>(null)
+  const [driveFolderUrl, setDriveFolderUrl] = useState(initial?.driveFolderId ?? "")
+  const [validatingFolder, setValidatingFolder] = useState(false)
+  const [folderValid, setFolderValid] = useState<boolean | null>(null)
+  const [folderError, setFolderError] = useState<string | null>(null)
+  const [folderName, setFolderName] = useState<string | null>(null)
   const [sheetUrl, setSheetUrl] = useState(initial?.sheetId ?? "")
   const [sheetName, setSheetName] = useState(initial?.sheetName ?? "Sheet1")
   const [submitLabel, setSubmitLabel] = useState(initial?.submitLabel ?? "Submit")
@@ -153,7 +161,7 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
     const fd = new FormData()
     fd.append("file", file)
     fd.append("fieldId", fieldId)
-    fd.append("sheetId", sheetUrl)
+    fd.append("folderId", driveFolderUrl)
     const res = await fetch("/api/upload", { method: "POST", body: fd })
     const json = await res.json()
     if (!res.ok || json.error) throw new Error(json.error ?? "Upload failed")
@@ -163,8 +171,8 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!sheetUrl.trim()) {
-      setLogoError("Add your Google Sheet URL below first — uploads are stored in a Drive folder next to it.")
+    if (!driveFolderUrl.trim()) {
+      setLogoError("Add your Google Drive folder link below first — uploads are stored there.")
       e.target.value = ""
       return
     }
@@ -184,8 +192,8 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
   const handleRulebookChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!sheetUrl.trim()) {
-      setRulebookError("Add your Google Sheet URL below first — uploads are stored in a Drive folder next to it.")
+    if (!driveFolderUrl.trim()) {
+      setRulebookError("Add your Google Drive folder link below first — uploads are stored there.")
       e.target.value = ""
       return
     }
@@ -200,6 +208,30 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
     } finally {
       setUploadingRulebook(false)
       e.target.value = ""
+    }
+  }
+
+  const validateFolder = async () => {
+    if (!driveFolderUrl.trim()) return
+    setValidatingFolder(true)
+    setFolderError(null)
+    try {
+      const params = new URLSearchParams({ folderId: driveFolderUrl })
+      const res = await fetch(`/api/drive/validate?${params}`)
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        setFolderValid(false)
+        setFolderError(json.error ?? "Could not verify this folder")
+        setFolderName(null)
+      } else {
+        setFolderValid(true)
+        setFolderName(json.data?.name ?? null)
+      }
+    } catch {
+      setFolderValid(false)
+      setFolderError("Network error while verifying folder")
+    } finally {
+      setValidatingFolder(false)
     }
   }
 
@@ -237,8 +269,10 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
         title,
         description,
         logoUrl,
+        logoPosition,
         rulebookUrl,
         rulebookFileName,
+        driveFolderId: driveFolderUrl,
         sheetId: sheetUrl,
         sheetName,
         fields,
@@ -305,6 +339,19 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
               placeholder="Form title..."
             />
             {logoError && <p className="text-[11px] text-destructive">{logoError}</p>}
+            {logoUrl && (
+              <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-0.5">
+                Logo position:
+                <select
+                  value={logoPosition}
+                  onChange={(e) => setLogoPosition(e.target.value as "top" | "below-description")}
+                  className="text-[11px] border rounded px-1 py-0.5 bg-background"
+                >
+                  <option value="top">Top, above title</option>
+                  <option value="below-description">Below description</option>
+                </select>
+              </label>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {saveStatus === "success" && (
@@ -399,9 +446,8 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
                   <KeyRound className="h-3.5 w-3.5" /> Google Sheets & Drive access
                 </p>
                 <ol className="text-[11px] text-muted-foreground list-decimal list-inside space-y-0.5">
-                  <li>Create or open the Google Sheet you want responses saved to.</li>
-                  <li>Click <span className="font-medium">Share</span>, then share the <span className="font-medium">folder</span> containing that Sheet (not just the Sheet file) with the email below, set to <span className="font-medium">Editor</span>. Sharing the folder — not only the file — is what lets uploaded logos, rule books, and submitted files be saved into a &quot;Form Uploads&quot; folder next to your Sheet.</li>
-                  <li>Paste the Sheet URL below and click Verify.</li>
+                  <li>Create or open the Google Sheet you want responses saved to, and share it with the email below as <span className="font-medium">Editor</span>. Paste its URL and click Verify.</li>
+                  <li>Create (or pick) a Google Drive folder for uploads — logos, rule books, and any file/image fields people submit. Share that folder with the same email as <span className="font-medium">Editor</span>, then paste its URL and click Verify.</li>
                 </ol>
                 {serviceAccountEmail && (
                   <div className="flex items-center gap-2">
@@ -472,6 +518,40 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
                     className="text-xs h-8"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Google Drive Folder URL or ID (for uploads)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={driveFolderUrl}
+                    onChange={(e) => {
+                      setDriveFolderUrl(e.target.value)
+                      setFolderValid(null)
+                    }}
+                    placeholder="Paste Drive folder URL..."
+                    className="text-xs h-8"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs shrink-0"
+                    onClick={validateFolder}
+                    disabled={validatingFolder || !driveFolderUrl.trim()}
+                  >
+                    {validatingFolder ? <Loader2 className="h-3 w-3 animate-spin" /> : "Verify"}
+                  </Button>
+                </div>
+                {folderValid === true && (
+                  <p className="text-xs text-green-600 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Connected{folderName ? ` to "${folderName}"` : ""}
+                  </p>
+                )}
+                {folderValid === false && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> {folderError}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

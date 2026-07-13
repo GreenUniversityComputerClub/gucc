@@ -1,6 +1,6 @@
 "use client"
 
-import { FormField, SelectOption } from "@/types/form"
+import { FormField, SelectOption, ValidationRuleType } from "@/types/form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -68,6 +68,21 @@ export default function FieldEditor({ field, onChange, onDelete }: Props) {
     delete next[key]
     onChange({ customAttributes: next })
   }
+
+  // ── Response validation (Google-Forms style) ──────────────────────────
+  const isTextValidatable = ["text", "email", "url", "phone", "textarea"].includes(field.type)
+  const isNumberValidatable = field.type === "number"
+  const supportsValidation = isTextValidatable || isNumberValidatable
+  const validation = field.validation ?? { type: "none" as ValidationRuleType }
+
+  const updateValidation = (patch: { type?: ValidationRuleType; value?: string; value2?: string; message?: string }) => {
+    onChange({ validation: { ...validation, ...patch } })
+  }
+
+  const SINGLE_VALUE_RULES: ValidationRuleType[] = [
+    "number_gt", "number_gte", "number_lt", "number_lte", "number_eq",
+    "text_min_length", "text_max_length", "text_contains", "text_not_contains", "text_regex",
+  ]
 
   return (
     <div className="p-4 space-y-5">
@@ -278,6 +293,87 @@ export default function FieldEditor({ field, onChange, onDelete }: Props) {
           <Plus className="h-3.5 w-3.5 mr-1" /> Add Attribute
         </Button>
       </div>
+
+      {supportsValidation && (
+        <>
+          <Separator />
+          <div className="space-y-2">
+            <Label className="text-xs">Response Validation</Label>
+            <select
+              value={validation.type}
+              onChange={(e) =>
+                updateValidation({ type: e.target.value as ValidationRuleType, value: "", value2: "" })
+              }
+              className="w-full text-xs border rounded h-7 px-2 bg-background"
+            >
+              <option value="none">None</option>
+              {isNumberValidatable && (
+                <>
+                  <option value="number_gt">Number greater than</option>
+                  <option value="number_gte">Number greater than or equal to</option>
+                  <option value="number_lt">Number less than</option>
+                  <option value="number_lte">Number less than or equal to</option>
+                  <option value="number_eq">Number equal to</option>
+                  <option value="number_between">Number between</option>
+                  <option value="number_integer">Whole number</option>
+                </>
+              )}
+              {isTextValidatable && (
+                <>
+                  <option value="text_min_length">Minimum length</option>
+                  <option value="text_max_length">Maximum length</option>
+                  <option value="text_contains">Contains text</option>
+                  <option value="text_not_contains">Doesn&apos;t contain text</option>
+                  <option value="text_regex">Regular expression</option>
+                  <option value="text_email">Is valid email</option>
+                  <option value="text_url">Is valid URL</option>
+                </>
+              )}
+            </select>
+
+            {SINGLE_VALUE_RULES.includes(validation.type) && (
+              <Input
+                value={validation.value ?? ""}
+                onChange={(e) => updateValidation({ value: e.target.value })}
+                placeholder={
+                  validation.type === "text_regex"
+                    ? "Pattern, e.g. ^[0-9]{10}$"
+                    : validation.type.startsWith("text_")
+                      ? "Text value"
+                      : "Number"
+                }
+                className="h-7 text-xs"
+              />
+            )}
+
+            {validation.type === "number_between" && (
+              <div className="flex gap-1.5">
+                <Input
+                  value={validation.value ?? ""}
+                  onChange={(e) => updateValidation({ value: e.target.value })}
+                  placeholder="Min"
+                  className="h-7 text-xs"
+                />
+                <Input
+                  value={validation.value2 ?? ""}
+                  onChange={(e) => updateValidation({ value2: e.target.value })}
+                  placeholder="Max"
+                  className="h-7 text-xs"
+                />
+              </div>
+            )}
+
+            {validation.type !== "none" && (
+              <Input
+                value={validation.message ?? ""}
+                onChange={(e) => updateValidation({ message: e.target.value })}
+                placeholder="Custom error message (optional)"
+                className="h-7 text-xs"
+              />
+            )}
+          </div>
+        </>
+      )}
 
       <Separator />
 

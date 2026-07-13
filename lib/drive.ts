@@ -2,79 +2,80 @@ import { google } from "googleapis"
 import { Readable } from "stream"
 import { getGoogleAuth } from "./google-auth"
 
-const UPLOADS_FOLDER_NAME = "Form Uploads"
-
 function getDriveClient() {
   return google.drive({ version: "v3", auth: getGoogleAuth() })
 }
 
-type DriveClient = ReturnType<typeof getDriveClient>
-
-async function getSheetParentFolderId(
-  sheetId: string,
-  drive: DriveClient
-): Promise<string | null> {
-  try {
-    const res = await drive.files.get({ fileId: sheetId, fields: "parents" })
-    return res.data.parents?.[0] ?? null
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error"
-    throw new Error(
-      `Could not read the Google Sheet's Drive location (${message}). Make sure the Sheet's folder is shared with the service account as Editor and that the Google Drive API is enabled on the project.`
-    )
-  }
+/** Accepts a full Drive folder URL or a bare folder ID and returns the ID. */
+export function extractFolderId(urlOrId: string): string | null {
+  const trimmed = urlOrId.trim()
+  const match = trimmed.match(/\/folders\/([a-zA-Z0-9-_]+)/)
+  if (match) return match[1]
+  const idParam = trimmed.match(/[?&]id=([a-zA-Z0-9-_]+)/)
+  if (idParam) return idParam[1]
+  if (/^[a-zA-Z0-9-_]{10,}$/.test(trimmed)) return trimmed
+  return null
 }
 
-async function findOrCreateUploadsFolder(
-  parentId: string | null,
-  drive: DriveClient
-): Promise<string> {
-  const q = parentId
-    ? `name = '${UPLOADS_FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and '${parentId}' in parents and trashed = false`
-    : `name = '${UPLOADS_FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-
-  const existing = await drive.files.list({ q, fields: "files(id, name)", spaces: "drive" })
-  const found = existing.data.files?.[0]?.id
-  if (found) return found
-
-  const created = await drive.files.create({
-    requestBody: {
-      name: UPLOADS_FOLDER_NAME,
-      mimeType: "application/vnd.google-apps.folder",
-      parents: parentId ? [parentId] : undefined,
-    },
-    fields: "id",
-  })
-
-  if (!created.data.id) throw new Error("Failed to create the Drive uploads folder.")
-  return created.data.id
+/** Confirms the service account can see the folder, and that it really is a folder. */
+export async function validateFolder(
+  folderId: string
+): Promise<{ ok: boolean; name?: string; error?: string }> {
+  try {
+    const drive = getDriveClient()
+    const res = await drive.files.get({ fileId: folderId, fields: "id, name, mimeType" })
+    if (res.data.mimeType !== "application/vnd.google-apps.folder") {
+      return { ok: false, error: "That link points to a file, not a folder. Paste a folder link instead." }
+    }
+    return { ok: true, name: res.data.name ?? undefined }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error"
+    if (message.includes("404")) {
+      return { ok: false, error: "Folder not found. Check the link and make sure it's shared with the service account." }
+    }
+    if (message.includes("403")) {
+      return { ok: false, error: "No access to this folder. Share it with the service account email as Editor." }
+    }
+    return { ok: false, error: message }
+  }
 }
 
 export interface DriveUploadResult {
   fileId: string
-  url: string
 }
 
-/**
- * Uploads a file into a "Form Uploads" folder that lives right next to the
- * form's Google Sheet, so everything for a form stays in one place in Drive.
- * Requires the Sheet's parent folder to be shared with the service account
- * as Editor (sharing only the Sheet file itself is not enough to create
- * files alongside it).
- */
-export async function uploadFileToSheetFolder(params: {
-  sheetId: string
+/** Fetches a file's bytes + metadata for proxying a download through our own site. */
+export async function getFileForDownload(fileId: string): Promise<{
+  stream: NodeJS.ReadableStream
+  name: string
+  mimeType: string
+}> {
+  const drive = getDriveClient()
+  const meta = await drive.files.get({ fileId, fields: "name, mimeType" })
+  const content = await drive.files.get(
+    { fileId, alt: "media" },
+    { responseType: "stream" }
+  )
+  return {
+    stream: content.data as unknown as NodeJS.ReadableStream,
+    name: meta.data.name ?? "download",
+    mimeType: meta.data.mimeType ?? "application/octet-stream",
+  }
+}
+
+/** Uploads a file directly into the given Drive folder. Returns the Drive file id — build
+ * the downloadable URL as `/api/files/{fileId}` so downloads are proxied through our own
+ * site instead of redirecting to drive.google.com. */
+export async function uploadFileToFolder(params: {
+  folderId: string
   fileName: string
   mimeType: string
   buffer: Buffer
 }): Promise<DriveUploadResult> {
   const drive = getDriveClient()
 
-  const parentId = await getSheetParentFolderId(params.sheetId, drive)
-  const folderId = await findOrCreateUploadsFolder(parentId, drive)
-
   const created = await drive.files.create({
-    requestBody: { name: params.fileName, parents: [folderId] },
+    requestBody: { name: params.fileName, parents: [params.folderId] },
     media: { mimeType: params.mimeType, body: Readable.from(params.buffer) },
     fields: "id",
   })
@@ -82,19 +83,5 @@ export async function uploadFileToSheetFolder(params: {
   const fileId = created.data.id
   if (!fileId) throw new Error("Drive did not return a file id after upload.")
 
-  // Make the file link-viewable so anyone who opens the sheet can open the
-  // file too, without needing separate Drive access of their own.
-  try {
-    await drive.permissions.create({
-      fileId,
-      requestBody: { role: "reader", type: "anyone" },
-    })
-  } catch {
-    // Organization Drive policy may block public link sharing. The file
-    // still exists and remains accessible to anyone with folder access.
-  }
-
-  const file = await drive.files.get({ fileId, fields: "webViewLink, webContentLink" })
-  const url = file.data.webViewLink ?? file.data.webContentLink ?? ""
-  return { fileId, url }
+  return { fileId }
 }

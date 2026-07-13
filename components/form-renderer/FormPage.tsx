@@ -22,12 +22,12 @@ interface Props {
   errors: Record<string, string>
   onChange: (fieldId: string, value: string) => void
   onUploadingChange?: (fieldId: string, uploading: boolean) => void
-  sheetId: string
+  driveFolderId: string
 }
 
 // Only the FormPage function needs to change — FieldRenderer stays identical
 
-export default function FormPage({ fields, values, errors, onChange, onUploadingChange, sheetId }: Props) {
+export default function FormPage({ fields, values, errors, onChange, onUploadingChange, driveFolderId }: Props) {
   // Group fields: consecutive "half" fields go into the same row (max 2 per row),
   // "full" fields always get their own row.
   const rows: FormField[][] = []
@@ -57,7 +57,7 @@ export default function FormPage({ fields, values, errors, onChange, onUploading
                   error={errors[field.id]}
                   onChange={(v) => onChange(field.id, v)}
                   onUploadingChange={(u) => onUploadingChange?.(field.id, u)}
-                  sheetId={sheetId}
+                  driveFolderId={driveFolderId}
                 />
               </div>
             ))}
@@ -71,7 +71,7 @@ export default function FormPage({ fields, values, errors, onChange, onUploading
             error={errors[row[0].id]}
             onChange={(v) => onChange(row[0].id, v)}
             onUploadingChange={(u) => onUploadingChange?.(row[0].id, u)}
-            sheetId={sheetId}
+            driveFolderId={driveFolderId}
           />
         )
       )}
@@ -86,14 +86,14 @@ function FieldRenderer({
   error,
   onChange,
   onUploadingChange,
-  sheetId,
+  driveFolderId,
 }: {
   field: FormField
   value: string
   error?: string
   onChange: (v: string) => void
   onUploadingChange?: (uploading: boolean) => void
-  sheetId: string
+  driveFolderId: string
 }) {
   const [hoverRating, setHoverRating] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -104,8 +104,8 @@ function FieldRenderer({
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!sheetId) {
-      setUploadError("This form isn't connected to a Google Sheet yet, so there's nowhere to store the file.")
+    if (!driveFolderId) {
+      setUploadError("This form isn't connected to a Google Drive folder yet, so there's nowhere to store the file.")
       return
     }
     setFileName(file.name)
@@ -117,7 +117,7 @@ function FieldRenderer({
       const fd = new FormData()
       fd.append("file", file)
       fd.append("fieldId", field.id)
-      fd.append("sheetId", sheetId)
+      fd.append("folderId", driveFolderId)
       const res = await fetch("/api/upload", { method: "POST", body: fd })
       const json = await res.json()
       if (!res.ok || json.error) {
@@ -347,11 +347,10 @@ function FieldRenderer({
           {value && !uploading && !uploadError && (
             <a
               href={value}
-              target="_blank"
-              rel="noopener noreferrer"
+              download
               className="text-xs text-primary underline mt-1 inline-block"
             >
-              View uploaded file
+              Download uploaded file
             </a>
           )}
           {uploadError && (

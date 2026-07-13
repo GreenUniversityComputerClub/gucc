@@ -21,6 +21,33 @@ export interface SelectOption {
   value: string
 }
 
+export type ValidationRuleType =
+  | "none"
+  | "number_gt"
+  | "number_gte"
+  | "number_lt"
+  | "number_lte"
+  | "number_eq"
+  | "number_between"
+  | "number_integer"
+  | "text_min_length"
+  | "text_max_length"
+  | "text_regex"
+  | "text_contains"
+  | "text_not_contains"
+  | "text_email"
+  | "text_url"
+
+export interface ValidationRule {
+  type: ValidationRuleType
+  /** Primary comparison value (number or text depending on rule type) */
+  value?: string
+  /** Secondary value, only used by "*_between" rules */
+  value2?: string
+  /** Shown instead of the generic error when this rule fails */
+  message?: string
+}
+
 export interface FormField {
   id: string
   type: FieldType
@@ -39,6 +66,8 @@ export interface FormField {
   width?: "full" | "half"
   /** Arbitrary HTML attributes applied directly to the rendered input, e.g. { pattern: "[0-9]{10}", maxLength: "10", autoComplete: "off" } */
   customAttributes?: Record<string, string>
+  /** Google-Forms-style response validation, checked in addition to `required` */
+  validation?: ValidationRule
 }
 
 export interface FormPage {
@@ -53,8 +82,12 @@ export interface FormConfig {
   title: string
   description?: string
   logoUrl?: string
+  /** Where the logo renders relative to the title/description. Defaults to "top" (above the title). */
+  logoPosition?: "top" | "below-description"
   rulebookUrl?: string
   rulebookFileName?: string
+  /** Google Drive folder (shared with the service account) where logo/rulebook/submission files are stored */
+  driveFolderId?: string
   sheetId: string
   sheetName: string
   fields: FormField[]

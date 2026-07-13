@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { FormConfig } from "@/types/form"
+import { validateFields } from "@/lib/validation"
 import FormPage from "./FormPage"
 import SubmitHandler from "./SubmitHandler"
 import { Button } from "@/components/ui/button"
@@ -43,22 +44,7 @@ export default function FormRenderer({ form, preview = false }: Props) {
   }
 
   const validatePage = () => {
-    const newErrors: Record<string, string> = {}
-    for (const field of pageFields) {
-      if (field.required && !values[field.id]?.trim()) {
-        newErrors[field.id] = `${field.label} is required`
-      }
-      if (field.type === "email" && values[field.id]) {
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values[field.id])) {
-          newErrors[field.id] = "Enter a valid email address"
-        }
-      }
-      if (field.type === "url" && values[field.id]) {
-        try { new URL(values[field.id]) } catch {
-          newErrors[field.id] = "Enter a valid URL"
-        }
-      }
-    }
+    const newErrors = validateFields(pageFields, values)
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -116,7 +102,7 @@ export default function FormRenderer({ form, preview = false }: Props) {
     <div className="max-w-2xl mx-auto w-full space-y-6 py-8 px-4">
       {/* Header */}
       <div className="space-y-2">
-        {form.logoUrl && (
+        {form.logoUrl && form.logoPosition !== "below-description" && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={form.logoUrl}
@@ -126,15 +112,22 @@ export default function FormRenderer({ form, preview = false }: Props) {
         )}
         <h1 className="text-2xl font-bold">{form.title}</h1>
         {form.description && <p className="text-muted-foreground">{form.description}</p>}
+        {form.logoUrl && form.logoPosition === "below-description" && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={form.logoUrl}
+            alt={`${form.title} logo`}
+            className="h-14 w-auto object-contain"
+          />
+        )}
         {form.rulebookUrl && (
           <a
             href={form.rulebookUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            download
             className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline"
           >
             <FileText className="h-4 w-4" />
-            {form.rulebookFileName ? `View ${form.rulebookFileName}` : "View Rule Book (PDF)"}
+            {form.rulebookFileName ? `Download ${form.rulebookFileName}` : "Download Rule Book (PDF)"}
           </a>
         )}
       </div>
@@ -164,7 +157,7 @@ export default function FormRenderer({ form, preview = false }: Props) {
         errors={errors}
         onChange={setValue}
         onUploadingChange={handleUploadingChange}
-        sheetId={form.sheetId}
+        driveFolderId={form.driveFolderId ?? ""}
       />
 
       {/* Error */}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getForm, saveForm, deleteForm } from "@/lib/forms"
 import { extractSheetId } from "@/lib/sheets"
+import { extractFolderId } from "@/lib/drive"
 
 interface Params { params: Promise<{ formId: string }> }
 
@@ -21,6 +22,11 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const sheetId = extractSheetId(body.sheetId)
     if (!sheetId) return NextResponse.json({ data: null, error: "Invalid Sheet URL" }, { status: 400 })
     body.sheetId = sheetId
+  }
+  if (body.driveFolderId && body.driveFolderId !== existing.driveFolderId) {
+    const driveFolderId = extractFolderId(body.driveFolderId)
+    if (!driveFolderId) return NextResponse.json({ data: null, error: "Invalid Drive folder URL" }, { status: 400 })
+    body.driveFolderId = driveFolderId
   }
   const updated = await saveForm({ ...body, id: formId })
   return NextResponse.json({ data: updated, error: null })
