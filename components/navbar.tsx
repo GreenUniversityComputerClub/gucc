@@ -86,12 +86,6 @@ export function Navbar() {
             Executives
           </Link>
           <Link
-            href="/sponsors"
-            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/sponsors") ? "text-primary" : "text-muted-foreground"}`}
-          >
-            Sponsors
-          </Link>
-          <Link
             href="/contact"
             className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contact") ? "text-primary" : "text-muted-foreground"}`}
           >
@@ -183,13 +177,6 @@ export function Navbar() {
               onClick={() => setIsMenuOpen(false)}
             >
               Executives
-            </Link>
-            <Link
-              href="/sponsors"
-              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/sponsors") ? "text-primary" : "text-muted-foreground"}`}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Sponsors
             </Link>
             <Link
               href="/contact"
