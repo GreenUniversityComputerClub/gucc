@@ -551,29 +551,98 @@ export default function SponsorsPage() {
         </section>
 
         {/* ---------- Why Sponsor ---------- */}
-        <section className="relative py-16 bg-gradient-to-br from-green-600 to-emerald-600 text-white overflow-hidden">
-          <motion.div
-            className="absolute -top-16 -right-16 w-64 h-64 bg-white/10 rounded-full blur-3xl"
-            animate={{ scale: [1, 1.15, 1] }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            className="absolute -bottom-20 -left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl"
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <Reveal className="relative container mx-auto px-4 max-w-4xl text-center">
-            <motion.div
-              animate={{ rotate: [0, -8, 8, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="inline-block mb-4"
-            >
-              <Megaphone className="w-8 h-8 opacity-90" />
-            </motion.div>
-            <h2 className="text-2xl sm:text-3xl font-bold mb-4">Why Sponsor Us</h2>
-            <p className="leading-relaxed text-green-50/95 text-sm sm:text-base">
-              {whySponsor}
-            </p>
+        <section className="relative py-20 sm:py-28 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/20 to-background" />
+          <DotGrid className="text-primary" />
+          <ParallaxBlob className="top-0 left-1/4 w-72 h-72 bg-primary/10" duration={18} />
+          <ParallaxBlob className="bottom-0 right-1/4 w-80 h-80 bg-emerald-400/10" duration={22} />
+
+          <Reveal className="relative container mx-auto px-4 max-w-4xl">
+            <div className="relative rounded-3xl p-[1.5px] overflow-hidden shadow-2xl shadow-primary/10">
+              <motion.div
+                aria-hidden
+                className="absolute inset-[-50%]"
+                style={{
+                  background:
+                    "conic-gradient(from 0deg, transparent 0%, hsl(var(--primary)/0.9) 8%, transparent 22%)",
+                }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              />
+              <div className="relative rounded-[calc(1.5rem-1.5px)] bg-background/85 backdrop-blur-xl border border-primary/10 px-6 py-10 sm:px-14 sm:py-14 text-center overflow-hidden">
+                <DotGrid className="text-primary opacity-[0.15]" />
+
+                <motion.div
+                  className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/30 mb-6"
+                  animate={{
+                    boxShadow: [
+                      "0 0 0px hsl(var(--primary)/0.25)",
+                      "0 0 28px hsl(var(--primary)/0.45)",
+                      "0 0 0px hsl(var(--primary)/0.25)",
+                    ],
+                  }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <Megaphone className="w-7 h-7 text-primary" />
+                  <span className="absolute inset-0 rounded-2xl border border-primary/40 animate-ping" />
+                </motion.div>
+
+                <h2 className="relative text-2xl sm:text-3xl font-bold mb-6">
+                  <span className="bg-gradient-to-r from-primary via-emerald-400 to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-shift_5s_ease_infinite]">
+                    Why Sponsor Us
+                  </span>
+                </h2>
+
+                <motion.div
+                  className="relative space-y-3 max-w-2xl mx-auto"
+                  initial="hidden"
+                  whileInView="show"
+                  viewport={{ once: true, margin: "-80px" }}
+                  variants={staggerContainer}
+                >
+                  {whySponsor
+                    .split(". ")
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                    .map((sentence, i) => (
+                      <motion.p
+                        key={i}
+                        variants={fadeUp}
+                        className="leading-relaxed text-muted-foreground text-sm sm:text-base"
+                      >
+                        {sentence}
+                        {sentence.endsWith(".") ? "" : "."}
+                      </motion.p>
+                    ))}
+                </motion.div>
+
+                <motion.div
+                  className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 mt-9 max-w-2xl mx-auto"
+                  initial="hidden"
+                  whileInView="show"
+                  viewport={{ once: true, margin: "-80px" }}
+                  variants={staggerContainer}
+                >
+                  {[
+                    { icon: Users, label: "7,000+ Talent Pool" },
+                    { icon: Megaphone, label: "Prime Brand Exposure" },
+                    { icon: Trophy, label: "Recruitment Pipeline" },
+                    { icon: Award, label: "VIP Ceremony Access" },
+                  ].map((item) => (
+                    <motion.div
+                      key={item.label}
+                      variants={fadeUp}
+                      whileHover={{ y: -4, scale: 1.03 }}
+                      className="group relative rounded-xl border border-primary/15 bg-primary/[0.03] p-4 overflow-hidden transition-colors hover:border-primary/40"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-transparent to-emerald-400/0 opacity-0 transition-opacity duration-300 group-hover:from-primary/15 group-hover:to-emerald-400/10 group-hover:opacity-100" />
+                      <item.icon className="relative mx-auto mb-2 w-5 h-5 text-primary transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" />
+                      <p className="relative text-xs font-medium">{item.label}</p>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </div>
+            </div>
           </Reveal>
         </section>
 
