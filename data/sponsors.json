@@ -35,11 +35,26 @@
 
   ],
   "schedule": [
-    { "label": "Registration Start", "date": "05 July" },
-    { "label": "Registration Close", "date": "15 July" },
-    { "label": "Mock Contest", "date": "18 July" },
-    { "label": "Math Olympiad (Morning Session)", "date": "20 July" },
-    { "label": "Programming Contest (Main Event)", "date": "22 July" }
+    {
+      "label": "Registration Start",
+      "date": "05 July"
+    },
+    {
+      "label": "Registration Close",
+      "date": "15 July"
+    },
+    {
+      "label": "Mock Contest",
+      "date": "18 July"
+    },
+    {
+      "label": "Math Olympiad (Morning Session)",
+      "date": "20 July"
+    },
+    {
+      "label": "Programming Contest (Main Event)",
+      "date": "22 July"
+    }
   ],
   "previousPartners": [
     "Brain Station 23",
@@ -93,10 +108,22 @@
     }
   ],
   "otherOpportunities": [
-    { "title": "T-Shirt Partner", "detail": "200 Pieces" },
-    { "title": "Food & Beverage Partner", "detail": "200 Pieces" },
-    { "title": "Gift & Award Partner", "detail": "200 Pieces" },
-    { "title": "Platform / Server Partner", "detail": "In-kind / Technical" }
+    {
+      "title": "T-Shirt Partner",
+      "detail": "200 Pieces"
+    },
+    {
+      "title": "Food & Beverage Partner",
+      "detail": "200 Pieces"
+    },
+    {
+      "title": "Gift & Award Partner",
+      "detail": "200 Pieces"
+    },
+    {
+      "title": "Platform / Server Partner",
+      "detail": "In-kind / Technical"
+    }
   ],
   "contacts": [
     {
