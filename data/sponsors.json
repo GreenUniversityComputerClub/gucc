@@ -13,28 +13,47 @@
   },
   "achievements": [
     {
-      "title": "BUBT Inter-University Contest 2025",
-      "description": "Team \"GREENFORCES\" secured the Championship title at the prestigious BUBT Inter-University Collaborative Contest."
+      "title": "HackTheAI 2025",
+      "description": "Organized one of Bangladesh's largest university AI hackathons, featuring nationwide participation, industry mentors, expert judges, and sponsorship from SmythOS."
     },
     {
-      "title": "CUET IUPC 2025",
-      "description": "Team \"GreenForces\" achieved an impressive 9th place nationwide against the nation's best competitive programming teams."
+      "title": "GUB CSE Carnival 2024",
+      "description": "Successfully organized a three-day flagship technology festival featuring programming contests, AI & cybersecurity talks, panel discussions, gaming competitions, and innovation showcases."
     },
     {
-      "title": "Metropolitan University IUPC 2025",
-      "description": "Our brilliant students secured a Top 15 finish at the highly competitive Metropolitan University Inter-University Programming Contest."
+      "title": "Inter Department Programming Contest (IDPC)",
+      "description": "Hosted one of the university's premier competitive programming contests, attracting hundreds of participants and promoting algorithmic problem-solving among students."
     },
     {
-      "title": "Best Student Branch Chapter 2025",
-      "description": "The associated IEEE Computer Society Student Branch Chapter was recognized as the \"Best Computer Society Student Branch Chapter in Bangladesh\"."
+      "title": "Career & Industry Tech Summit",
+      "description": "Conducted high-impact seminars and workshops with experts from bKash, Google Developer Group (GDG), Erasmus Mundus Association, bongoDev, and other leading organizations."
+    },
+    {
+      "title": "Competitive Programming & Tech Community",
+      "description": "Built a thriving programming community through beginner programming contests, weekly coding sessions, and mentorship programs, preparing students for national and international competitions."
     }
   ],
   "schedule": [
-    { "label": "Registration Start", "date": "05 July" },
-    { "label": "Registration Close", "date": "15 July" },
-    { "label": "Mock Contest", "date": "18 July" },
-    { "label": "Math Olympiad (Morning Session)", "date": "20 July" },
-    { "label": "Programming Contest (Main Event)", "date": "22 July" }
+    {
+      "label": "Registration Start",
+      "date": "05 July"
+    },
+    {
+      "label": "Registration Close",
+      "date": "15 July"
+    },
+    {
+      "label": "Mock Contest",
+      "date": "18 July"
+    },
+    {
+      "label": "Math Olympiad (Morning Session)",
+      "date": "20 July"
+    },
+    {
+      "label": "Programming Contest (Main Event)",
+      "date": "22 July"
+    }
   ],
   "previousPartners": [
     "Brain Station 23",
@@ -88,10 +107,22 @@
     }
   ],
   "otherOpportunities": [
-    { "title": "T-Shirt Partner", "detail": "200 Pieces" },
-    { "title": "Food & Beverage Partner", "detail": "200 Pieces" },
-    { "title": "Gift & Award Partner", "detail": "200 Pieces" },
-    { "title": "Platform / Server Partner", "detail": "In-kind / Technical" }
+    {
+      "title": "T-Shirt Partner",
+      "detail": "200 Pieces"
+    },
+    {
+      "title": "Food & Beverage Partner",
+      "detail": "200 Pieces"
+    },
+    {
+      "title": "Gift & Award Partner",
+      "detail": "200 Pieces"
+    },
+    {
+      "title": "Platform / Server Partner",
+      "detail": "In-kind / Technical"
+    }
   ],
   "contacts": [
     {
