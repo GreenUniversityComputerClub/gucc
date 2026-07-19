@@ -11,27 +11,28 @@
     "eventDescription": "The Inter Departmental Programming Contest and Math Olympiad are premier flagship events designed to foster algorithmic problem-solving, analytical thinking, and mathematical prowess among university students. Operating as a core talent-discovery platform, these events challenge young minds to apply complex logic and coding skills to solve real-world computational problems under extreme time constraints. This dual-event structure serves as a critical stepping stone for students aiming to represent the institution in national and international arenas like the ICPC and national hackathons.",
     "clubDescription": "Green University Computer Club (GUCC) is a dynamic, student-driven non-profit organization operating in collaboration with the Department of Computer Science and Engineering (CSE), with a thriving community of over 7,000+ members. GUCC is dedicated to cultivating aspiring professionals and building the next generation of tech leaders in Bangladesh."
   },
-  "achievements": [
-    {
-      "title": "HackTheAI 2025",
-      "description": "Organized one of Bangladesh's largest university AI hackathons, featuring nationwide participation, industry mentors, expert judges, and sponsorship from SmythOS."
-    },
-    {
-      "title": "GUB CSE Carnival 2024",
-      "description": "Successfully organized a three-day flagship technology festival featuring programming contests, AI & cybersecurity talks, panel discussions, gaming competitions, and innovation showcases."
-    },
-    {
-      "title": "Inter Department Programming Contest (IDPC)",
-      "description": "Hosted one of the university's premier competitive programming contests, attracting hundreds of participants and promoting algorithmic problem-solving among students."
-    },
-    {
-      "title": "Career & Industry Tech Summit",
-      "description": "Conducted high-impact seminars and workshops with experts from bKash, Google Developer Group (GDG), Erasmus Mundus Association, bongoDev, and other leading organizations."
-    },
-    {
-      "title": "Competitive Programming & Tech Community",
-      "description": "Built a thriving programming community through beginner programming contests, weekly coding sessions, and mentorship programs, preparing students for national and international competitions."
-    }
+ "achievements": [
+  {
+    "title": "HackTheAI 2025",
+    "description": "Organized one of Bangladesh's largest university AI hackathons, featuring nationwide participation, industry mentors, expert judges, and sponsorship from SmythOS."
+  },
+  {
+    "title": "GUB CSE Carnival 2024",
+    "description": "Successfully organized a three-day flagship technology festival featuring programming contests, AI & cybersecurity talks, panel discussions, gaming competitions, and innovation showcases."
+  },
+  {
+    "title": "Inter Department Programming Contest (IDPC)",
+    "description": "Hosted one of the university's premier competitive programming contests, attracting hundreds of participants and promoting algorithmic problem-solving among students."
+  },
+  {
+    "title": "Career & Industry Tech Summit",
+    "description": "Conducted high-impact seminars and workshops with experts from bKash, Google Developer Group (GDG), Erasmus Mundus Association, bongoDev, and other leading organizations."
+  },
+  {
+    "title": "Competitive Programming & Tech Community",
+    "description": "Built a thriving programming community through beginner programming contests, weekly coding sessions, and mentorship programs, preparing students for national and international competitions."
+  }
+
   ],
   "schedule": [
     {
