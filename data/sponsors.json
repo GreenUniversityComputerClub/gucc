@@ -57,14 +57,19 @@
     }
   ],
   "previousPartners": [
-    "Brain Station 23",
-    "Jamuna TV",
-    "Daily Campus",
-    "IT Institute",
-    "VortexUp Digital",
-    "The Business Standard",
-    "The Minute School",
-    "Green Bangladesh Mentors"
+    { "name": "SmythOS", "logo": "/sponsors/smythos.png" },
+    { "name": "GIGABYTE", "logo": "/sponsors/gigabyte.jpg" },
+    { "name": "AORUS", "logo": "/sponsors/aorus.png" },
+    { "name": "GitHub", "logo": "/sponsors/github.png" },
+    { "name": "Cursor", "logo": "/sponsors/cursor.webp" },
+    { "name": "Google Developers", "logo": "/sponsors/google-developers.webp" },
+    { "name": "NetCom Learning", "logo": "/sponsors/netcom-learning.webp" },
+    { "name": "NextGen Xperience", "logo": "/sponsors/nextgen-xperience.png" },
+    { "name": "ESN BD", "logo": "/sponsors/esn-bd.jpg" },
+    { "name": "Trendbeat", "logo": "/sponsors/trendbeat.jpg" },
+    { "name": "AMA Coffee", "logo": "/sponsors/ama-coffee.jpg" },
+    { "name": "Royal Moon Rooftop Restaurant", "logo": "/sponsors/royal-moon.jpg" },
+    { "name": "PCB BD", "logo": "/sponsors/pcb-bd.jpg" }
   ],
   "whySponsor": "Sponsoring the Inter Departmental Programming Contest and Math Olympiad 2026 is an exceptional opportunity to connect directly with a highly concentrated pool of top-tier technical talent, software engineers, and analytical minds. Sponsors receive significant exposure through prominent logo placement on banners, backdrops, festoons, contest platforms, and all event creatives, plus ongoing marketing via social media and on-campus campaigns. This event provides a direct recruitment pipeline, positioning your organization as an employer of choice among 7,000+ tech-focused students, with special brand promotional segments and the option to be a distinguished guest at the final event and prize-giving ceremony.",
   "packages": [
