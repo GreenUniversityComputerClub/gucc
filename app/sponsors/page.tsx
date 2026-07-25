@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, type ElementType } from "react";
+import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
+import Image from "next/image";
 import {
   motion,
   MotionConfig,
@@ -37,6 +38,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import sponsorData from "@/data/sponsors.json";
+
+interface Partner {
+  name: string;
+  logo: string;
+}
 
 interface Package {
   tier: string;
@@ -208,6 +214,151 @@ function AmbientBackground() {
   );
 }
 
+/**
+ * Auto-scrolling sponsor logo strip, like a slider: it drifts on its own,
+ * pauses the moment the mouse (or a touch) lands on it, and can be dragged
+ * left/right with the mouse while paused.
+ */
+function PartnersMarquee({ partners }: { partners: Partner[] }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(false);
+  const draggingRef = useRef(false);
+  const dragStartXRef = useRef(0);
+  const dragStartScrollRef = useRef(0);
+  const movedRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const loop = [...partners, ...partners, ...partners];
+
+  const setPaused = (value: boolean) => {
+    pausedRef.current = value;
+  };
+
+  // Continuous auto-scroll via rAF, wrapping seamlessly across the tripled list.
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    track.scrollLeft = track.scrollWidth / 3;
+
+    let frameId: number;
+    const speed = 0.6; // px per frame (~36px/s at 60fps)
+    const step = () => {
+      const oneSetWidth = track.scrollWidth / 3;
+      if (!pausedRef.current && !draggingRef.current && oneSetWidth > 0) {
+        track.scrollLeft += speed;
+        if (track.scrollLeft >= oneSetWidth * 2) {
+          track.scrollLeft -= oneSetWidth;
+        } else if (track.scrollLeft <= 0) {
+          track.scrollLeft += oneSetWidth;
+        }
+      }
+      frameId = requestAnimationFrame(step);
+    };
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, [partners.length]);
+
+  const startDrag = (clientX: number) => {
+    const track = trackRef.current;
+    if (!track) return;
+    draggingRef.current = true;
+    movedRef.current = false;
+    setIsDragging(true);
+    dragStartXRef.current = clientX;
+    dragStartScrollRef.current = track.scrollLeft;
+  };
+
+  const moveDrag = (clientX: number) => {
+    const track = trackRef.current;
+    if (!track || !draggingRef.current) return;
+    const dx = clientX - dragStartXRef.current;
+    if (Math.abs(dx) > 3) movedRef.current = true;
+    track.scrollLeft = dragStartScrollRef.current - dx;
+  };
+
+  const endDrag = () => {
+    draggingRef.current = false;
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => moveDrag(e.clientX);
+    const onUp = () => endDrag();
+    if (isDragging) {
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    }
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [isDragging]);
+
+  return (
+    <section className="py-16 overflow-hidden">
+      <Reveal className="container mx-auto px-4 max-w-5xl text-center mb-2">
+        <h2 className="text-2xl sm:text-3xl font-bold">
+          Our Previous Sponsoring Partners
+        </h2>
+        <p className="text-muted-foreground text-sm mt-2">
+          Trusted by leading brands and organizations — hover to pause,
+          drag to browse
+        </p>
+      </Reveal>
+      <div
+        className="relative w-full"
+        style={{
+          maskImage:
+            "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
+          WebkitMaskImage:
+            "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
+        }}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => {
+          setPaused(false);
+          endDrag();
+        }}
+        onTouchStart={() => setPaused(true)}
+        onTouchEnd={() => setPaused(false)}
+      >
+        <div
+          ref={trackRef}
+          className={`flex w-full gap-4 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
+            isDragging ? "cursor-grabbing" : "cursor-grab"
+          }`}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            startDrag(e.clientX);
+          }}
+          onDragStart={(e) => e.preventDefault()}
+          onClickCapture={(e) => {
+            if (movedRef.current) e.preventDefault();
+          }}
+        >
+          {loop.map((p, i) => (
+            <div
+              key={`${p.name}-${i}`}
+              className="group flex items-center justify-center h-20 w-44 shrink-0 rounded-xl border border-border/60 bg-background px-5 py-3 transition-all duration-300 hover:border-primary/40 hover:shadow-md hover:shadow-primary/5"
+              title={p.name}
+            >
+              <div className="relative h-full w-full">
+                <Image
+                  src={p.logo}
+                  alt={p.name}
+                  fill
+                  sizes="176px"
+                  draggable={false}
+                  className="object-contain grayscale opacity-70 transition-all duration-300 pointer-events-none select-none group-hover:grayscale-0 group-hover:opacity-100"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function SponsorsPage() {
   const {
     event,
@@ -224,7 +375,7 @@ export default function SponsorsPage() {
     about: typeof sponsorData.about;
     achievements: typeof sponsorData.achievements;
     schedule: typeof sponsorData.schedule;
-    previousPartners: string[];
+    previousPartners: Partner[];
     whySponsor: string;
     packages: Package[];
     otherOpportunities: typeof sponsorData.otherOpportunities;
@@ -791,38 +942,7 @@ export default function SponsorsPage() {
         </section>
 
         {/* ---------- Previous Partners ---------- */}
-        <section className="py-16 overflow-hidden">
-          <Reveal className="container mx-auto px-4 max-w-5xl text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              Our Previous Sponsoring Partners
-            </h2>
-          </Reveal>
-          <div
-            className="relative w-full overflow-hidden"
-            style={{
-              maskImage:
-                "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
-              WebkitMaskImage:
-                "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
-            }}
-          >
-            <div
-              className="flex w-max gap-3 animate-marquee hover:[animation-play-state:paused]"
-              style={{ animationDuration: `${Math.max(previousPartners.length * 3.5, 20)}s` }}
-            >
-              {[...previousPartners, ...previousPartners, ...previousPartners].map(
-                (p, i) => (
-                  <span
-                    key={`${p}-${i}`}
-                    className="px-4 py-2 rounded-full border border-border/60 bg-background text-sm text-muted-foreground whitespace-nowrap"
-                  >
-                    {p}
-                  </span>
-                )
-              )}
-            </div>
-          </div>
-        </section>
+        <PartnersMarquee partners={previousPartners} />
 
         {/* ---------- Contact ---------- */}
         <section id="contact" className="container mx-auto px-4 py-20 max-w-4xl">
