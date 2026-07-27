@@ -18,7 +18,7 @@ const collaborators = [
   },
   {
     name: 'IIEC-IUBAT',
-    image: '/collaborators/iiec-iubat.jpg',
+    image: '/collaborators/iiec-iubat.png',
     description: 'Joint initiatives with IIEC-IUBAT',
   },
   {
