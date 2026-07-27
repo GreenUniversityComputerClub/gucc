@@ -1,0 +1,1015 @@
+/* Remove the dark mode theme configuration */
+@layer base {
+  :root {
+    /* Green University theme */
+    --background: 150 30% 98%;
+    --foreground: 155 40% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 155 40% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 155 40% 10%;
+
+    --primary: 142 76% 36%;
+    --primary-foreground: 355 100% 100%;
+
+    --secondary: 160 84% 39%;
+    --secondary-foreground: 355 100% 100%;
+
+    --muted: 150 20% 96%;
+    --muted-foreground: 155 25% 40%;
+
+    --accent: 142 70% 45%;
+    --accent-foreground: 355 100% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 150 20% 90%;
+    --input: 150 20% 90%;
+    --ring: 142 76% 36%;
+
+    --radius: 0.75rem;
+
+    /* Keep scheduler locked to light mode */
+    color-scheme: light;
+  }
+
+  /* Force the scheduler to stay on the light theme even when the parent
+     document sets a global `.dark` class (site-wide default) */
+  .dark {
+    --background: 150 30% 98%;
+    --foreground: 155 40% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 155 40% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 155 40% 10%;
+
+    --primary: 142 76% 36%;
+    --primary-foreground: 355 100% 100%;
+
+    --secondary: 160 84% 39%;
+    --secondary-foreground: 355 100% 100%;
+
+    --muted: 150 20% 96%;
+    --muted-foreground: 155 25% 40%;
+
+    --accent: 142 70% 45%;
+    --accent-foreground: 355 100% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 150 20% 90%;
+    --input: 150 20% 90%;
+    --ring: 142 76% 36%;
+
+    --radius: 0.75rem;
+
+    /* Prevent dark mode styles from taking effect within scheduler */
+    color-scheme: light;
+  }
+}
+
+@layer base {
+  * {
+    /* Tailwind utility was failing to resolve in this scoped build; set border color directly */
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+/* Add these styles at the end of the file */
+
+/* Export styling */
+.exporting {
+  background-color: white !important;
+  color: black !important;
+  padding: 20px !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+}
+
+.exporting table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+}
+
+.exporting th,
+.exporting td {
+  border: 1px solid #ddd !important;
+  padding: 10px !important;
+  text-align: center !important;
+  height: auto !important;
+  min-height: 80px !important;
+  vertical-align: middle !important;
+  word-break: break-word !important;
+}
+
+.exporting th {
+  background-color: #f2f2f2 !important;
+  font-weight: bold !important;
+}
+
+.exporting .bg-primary\/10 {
+  background-color: #e6f7ff !important;
+  border: 1px solid #91caff !important;
+}
+
+.exporting .text-primary {
+  color: #0066cc !important;
+}
+
+.exporting .text-primary\/80 {
+  color: #0066cc !important;
+  opacity: 0.8 !important;
+}
+
+#schedule-container {
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#schedule-container table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+#schedule-container th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  text-align: center;
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+#schedule-container td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+  height: auto;
+  min-height: 80px;
+  word-break: break-word;
+  overflow: visible;
+}
+
+#schedule-container tr:last-child td {
+  border-bottom: none;
+}
+
+/* Print styles */
+@media print {
+  #schedule-container {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  #schedule-container th {
+    background-color: #f9fafb !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  #schedule-container .bg-primary\/10 {
+    background-color: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+/* Add a specific animation for the loading spinner to ensure it works correctly */
+/* Add this at the end of the file */
+
+@keyframes spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-spinner {
+  animation: spinner 1s linear infinite;
+}
+
+/* Add these styles at the end of the file for better scrollbar styling */
+
+/* Custom scrollbar for better visibility */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* For Firefox */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--muted));
+}
+
+/* Add a subtle animation for selected courses */
+@keyframes pulse-border {
+  0% {
+    border-color: hsl(var(--primary) / 0.3);
+  }
+  50% {
+    border-color: hsl(var(--primary) / 0.6);
+  }
+  100% {
+    border-color: hsl(var(--primary) / 0.3);
+  }
+}
+
+.border-primary {
+  animation: pulse-border 2s infinite ease-in-out;
+}
+
+/* Course credit size indicators */
+.credit-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.credit-indicator-1 {
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: #d1fae5; /* Light green */
+  color: #047857; /* Dark green */
+}
+
+.credit-indicator-1-5 {
+  width: 1.75rem;
+  height: 1.75rem;
+  background-color: #ede9fe; /* Light purple */
+  color: #6d28d9; /* Dark purple */
+}
+
+.credit-indicator-2 {
+  width: 2rem;
+  height: 2rem;
+  background-color: #fef9c3; /* Light yellow */
+  color: #ca8a04; /* Dark yellow */
+}
+
+.credit-indicator-3 {
+  width: 2.25rem;
+  height: 2.25rem;
+  background-color: #e0f2fe; /* Light blue */
+  color: #0369a1; /* Dark blue */
+}
+
+.credit-indicator-4 {
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: #fee2e2; /* Light red */
+  color: #b91c1c; /* Dark red */
+}
+
+/* Department color classes for course cards - using fixed colors instead of theme functions */
+.dept-card-cse {
+  border-left: 4px solid #0ea5e9; /* Sky blue */
+  background-color: #e0f2fe; /* Light blue */
+}
+
+.dept-card-eee {
+  border-left: 4px solid #facc15; /* Yellow */
+  background-color: #fef9c3; /* Light yellow */
+}
+
+.dept-card-ged {
+  border-left: 4px solid #10b981; /* Green */
+  background-color: #d1fae5; /* Light green */
+}
+
+.dept-card-mat {
+  border-left: 4px solid #8b5cf6; /* Purple */
+  background-color: #ede9fe; /* Light purple */
+}
+
+.dept-card-phy {
+  border-left: 4px solid #f87171; /* Red */
+  background-color: #fee2e2; /* Light red */
+}
+
+.dept-card-esp {
+  border-left: 4px solid #ec4899; /* Pink */
+  background-color: #fce7f3; /* Light pink */
+}
+
+.dept-card-che {
+  border-left: 4px solid #fb923c; /* Orange */
+  background-color: #ffedd5; /* Light orange */
+}
+
+/* Department background colors */
+.bg-dept-cse-light {
+  background-color: #e0f2fe; /* Light blue */
+}
+
+.bg-dept-eee-light {
+  background-color: #fef9c3; /* Light yellow */
+}
+
+.bg-dept-ged-light {
+  background-color: #d1fae5; /* Light green */
+}
+
+.bg-dept-mat-light {
+  background-color: #ede9fe; /* Light purple */
+}
+
+.bg-dept-phy-light {
+  background-color: #fee2e2; /* Light red */
+}
+
+.bg-dept-esp-light {
+  background-color: #fce7f3; /* Light pink */
+}
+
+.bg-dept-che-light {
+  background-color: #ffedd5; /* Light orange */
+}
+
+/* Department text colors */
+.text-dept-cse-dark {
+  color: #0369a1; /* Dark blue */
+}
+
+.text-dept-eee-dark {
+  color: #ca8a04; /* Dark yellow */
+}
+
+.text-dept-ged-dark {
+  color: #047857; /* Dark green */
+}
+
+.text-dept-mat-dark {
+  color: #6d28d9; /* Dark purple */
+}
+
+.text-dept-phy-dark {
+  color: #b91c1c; /* Dark red */
+}
+
+.text-dept-esp-dark {
+  color: #be185d; /* Dark pink */
+}
+
+.text-dept-che-dark {
+  color: #c2410c; /* Dark orange */
+}
+
+/* Course block sizes */
+.course-block-1 {
+  min-height: 90px !important; /* Increased from previous values */
+  word-break: break-word;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+.course-block-1-5 {
+  min-height: 90px !important; /* Increased from previous values */
+  word-break: break-word;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+.course-block-2 {
+  min-height: 90px !important; /* Increased from previous values */
+  word-break: break-word;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+.course-block-3 {
+  min-height: 90px !important; /* Increased from previous values */
+  word-break: break-word;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+.course-block-4 {
+  min-height: 90px !important; /* Increased from previous values */
+  word-break: break-word;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+/* Add specific styles for exported schedule */
+.exporting .course-block-1,
+.exporting .course-block-1-5,
+.exporting .course-block-2,
+.exporting .course-block-3,
+.exporting .course-block-4 {
+  min-height: 90px !important; /* Increased from previous values */
+  padding: 8px !important;
+  word-break: break-word;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+/* Add colorful gradients for page background */
+.green-gradient {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--background)) 0%,
+    hsl(var(--primary) / 0.1) 25%,
+    hsl(var(--secondary) / 0.1) 50%,
+    hsl(var(--primary) / 0.05) 75%,
+    hsl(var(--background)) 100%
+  );
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Add green card styles */
+.card-green {
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--card));
+  box-shadow:
+    0 4px 6px -1px hsl(var(--primary) / 0.1),
+    0 2px 4px -2px hsl(var(--primary) / 0.1);
+  transition: all 0.3s ease;
+}
+
+.card-green:hover {
+  box-shadow:
+    0 10px 15px -3px hsl(var(--primary) / 0.2),
+    0 4px 6px -4px hsl(var(--primary) / 0.2);
+  border-color: hsl(var(--primary) / 0.3);
+}
+
+/* Add green button styles */
+.button-green {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary)) 0%,
+    hsl(var(--secondary)) 100%
+  );
+  color: hsl(var(--primary-foreground));
+  transition: all 0.3s ease;
+}
+
+.button-green:hover {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary)) 20%,
+    hsl(var(--secondary)) 80%
+  );
+  transform: translateY(-1px);
+}
+
+/* Add green header styles */
+.header-green {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary) / 0.1) 0%,
+    hsl(var(--secondary) / 0.1) 100%
+  );
+  border-bottom: 1px solid hsl(var(--primary) / 0.2);
+}
+
+/* Green University logo colors */
+.green-university-title {
+  background-image: linear-gradient(to right, #10b981, #059669, #047857);
+  background-clip: text;
+  color: transparent;
+}
+
+/* Add these styles at the end of the file */
+
+/* Green University theme colors based on the image */
+.green-university-bg {
+  background-color: #fff; /* Light mint green background */
+}
+
+.white-card {
+  background-color: #e8f5e9;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.green-title {
+  color: #0a5d2a; /* Dark green for titles */
+  font-weight: 600;
+}
+
+.green-subtitle {
+  color: #2e7d32; /* Medium green for subtitles */
+}
+
+/* Override the previous gradient styles */
+.green-gradient {
+  background-color: #fff; /* Solid light mint green background instead of gradient */
+}
+
+.card-green {
+  background-color: #e8f5e9;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header-green {
+  background-color: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.green-university-title {
+  color: #0a5d2a; /* Dark green for the main title */
+  background-image: none;
+  background-clip: unset;
+}
+
+/* Add these responsive styles for the schedule container */
+@media (max-width: 640px) {
+  #schedule-container table {
+    font-size: 0.75rem;
+  }
+
+  #schedule-container th,
+  #schedule-container td {
+    padding: 6px;
+  }
+
+  .credit-indicator {
+    transform: scale(0.85);
+  }
+
+  /* Adjust course blocks for mobile */
+  .course-block-1,
+  .course-block-1-5,
+  .course-block-2,
+  .course-block-3,
+  .course-block-4 {
+    min-height: 50px;
+  }
+}
+
+/* Add these styles at the end of the file for better dialog accessibility */
+.combinations-dialog {
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.combinations-dialog [role="dialog"] {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+/* Improve focus styles for better accessibility */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Ensure screen reader only text is properly hidden visually but available to screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Ensure dialog content scrolls properly on mobile */
+@media (max-width: 640px) {
+  .combinations-dialog [role="dialog"] {
+    max-height: 85vh;
+    padding: 1rem;
+  }
+
+  .combinations-dialog .space-y-6 {
+    padding-bottom: 2rem;
+  }
+}
+
+/* Add styles for the collapsible courses section */
+.course-section-collapsed {
+  max-height: 40px;
+  overflow: hidden;
+}
+
+.course-section-expanded {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.course-section-toggle {
+  transition: transform 0.2s ease;
+}
+
+.course-section-toggle[aria-expanded="true"] {
+  transform: rotate(180deg);
+}
+
+/* Improve table cell padding in exports */
+.exporting p {
+  margin: 4px 0 !important;
+  line-height: 1.4 !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+}
+
+/* Add these styles at the end of the file */
+
+/* Ensure ScrollArea in combinations dialog works properly */
+#selected-courses-panel {
+  overflow: auto;
+}
+
+/* Make sure the ScrollArea viewport has proper height */
+#selected-courses-panel [data-radix-scroll-area-viewport] {
+  height: 100% !important;
+}
+
+/* Ensure the combinations navigator is properly styled on all screen sizes */
+.combinations-navigator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Ensure the dialog content has proper overflow handling */
+.combinations-dialog [role="dialog"] > div {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Add these styles at the end of the file to improve export rendering */
+
+/* Improve course block sizing for exports */
+
+/* Ensure text doesn't get cropped in exports */
+
+#schedule-container p {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Add these specific styles for the schedule export to fix text cropping */
+
+/* Course block sizes - ensure text doesn't get cropped */
+.course-block-1,
+.course-block-1-5,
+.course-block-2,
+.course-block-3,
+.course-block-4 {
+  min-height: 90px;
+  word-break: break-word;
+  white-space: normal;
+  overflow: visible;
+}
+
+/* Ensure text in schedule cells doesn't get cropped */
+#schedule-container td p {
+  word-break: break-word;
+  white-space: normal;
+  overflow: visible;
+  line-height: 1.3;
+}
+
+/* Specific styles for exported schedule */
+.exporting .course-block-1,
+.exporting .course-block-1-5,
+.exporting .course-block-2,
+.exporting .course-block-3,
+.exporting .course-block-4 {
+  min-height: 90px !important;
+  padding: 8px !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+/* Ensure text in exported schedule cells doesn't get cropped */
+.exporting td p {
+  word-break: break-word !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  line-height: 1.3 !important;
+  margin: 4px 0 !important;
+}
+
+/* Ensure table cells in exports have proper dimensions */
+.exporting table {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+.exporting td {
+  padding: 10px !important;
+  vertical-align: middle !important;
+  height: auto !important;
+  min-height: 80px !important;
+  word-break: break-word !important;
+}
+
+/* Add these styles at the end of the file for export functionality */
+
+/* Force desktop layout for exports */
+.force-desktop-layout .mobile-only {
+  display: none !important;
+}
+
+.force-desktop-layout .desktop-view,
+.force-desktop-layout .desktop-export-table {
+  display: block !important;
+  width: 100% !important;
+}
+
+/* Ensure tables in exports have proper layout */
+.desktop-export-table {
+  table-layout: fixed !important;
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+
+.desktop-export-table th,
+.desktop-export-table td {
+  padding: 10px !important;
+  vertical-align: middle !important;
+  height: auto !important;
+  min-height: 80px !important;
+  word-break: break-word !important;
+}
+
+/* Ensure course blocks in exports have proper dimensions */
+.force-desktop-layout [class*="course-block"] {
+  min-height: 90px !important;
+  word-break: break-word !important;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+/* Ensure text in exported cells doesn't get cropped */
+.force-desktop-layout td p {
+  word-break: break-word !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  line-height: 1.3 !important;
+  margin: 4px 0 !important;
+}
+
+/* Ensure the export container has proper dimensions */
+@media print {
+  .force-desktop-layout {
+    width: 100% !important;
+    max-width: 1200px !important;
+  }
+}
+
+/* Add styles for the export-only view */
+.export-only-view {
+  display: none;
+}
+
+/* Add styles for mobile fallbacks */
+.schedule-table-container {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.schedule-table-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.schedule-table-container th,
+.schedule-table-container td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.schedule-table-container th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+/* Fix mobile view display */
+@media (max-width: 640px) {
+  .mobile-only {
+    display: block !important;
+  }
+}
+
+/* Add these styles at the end of the file to fix mobile view issues */
+
+/* Fix mobile view display */
+@media (max-width: 640px) {
+  .mobile-only {
+    display: block !important;
+  }
+
+  .desktop-view {
+    display: none !important;
+  }
+
+  /* Ensure mobile schedule cards are properly styled */
+  #schedule-container .mobile-only .rounded-md {
+    padding: 8px;
+    margin-bottom: 8px;
+    word-break: break-word;
+  }
+
+  /* Improve mobile schedule day headers */
+  #schedule-container .mobile-only .bg-muted {
+    font-weight: 600;
+    padding: 8px;
+  }
+}
+
+/* Ensure export view works correctly */
+.force-desktop-layout .mobile-only {
+  display: none !important;
+}
+
+.force-desktop-layout .desktop-view,
+.force-desktop-layout .desktop-export-table {
+  display: block !important;
+  width: 100% !important;
+}
+
+/* Fix for export view on mobile */
+.export-only-view {
+  display: none !important;
+}
+
+/* Ensure the schedule container is visible on all devices */
+#schedule-container {
+  display: block !important;
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+/* Add these styles at the end of the file to ensure tables use full width in exports */
+
+/* Force tables to use full width in exports */
+.force-desktop-layout table,
+.desktop-export-table,
+.schedule-table-container table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  margin: 0 !important;
+  border-collapse: collapse !important;
+}
+
+/* Ensure the export container has proper dimensions */
+.force-desktop-layout {
+  width: 100% !important;
+  max-width: 1200px !important;
+  box-sizing: border-box !important;
+  padding: 20px !important;
+}
+
+/* Ensure the schedule container is visible and uses full width on all devices */
+#schedule-container {
+  display: block !important;
+  width: 100% !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure the desktop view uses full width */
+.desktop-view,
+.force-desktop-layout .desktop-view,
+.force-desktop-layout .desktop-export-table {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure table cells have proper dimensions */
+.desktop-export-table th,
+.desktop-export-table td,
+.schedule-table-container th,
+.schedule-table-container td {
+  padding: 10px !important;
+  vertical-align: middle !important;
+  height: auto !important;
+  min-height: 80px !important;
+  word-break: break-word !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure the day column has a fixed width */
+.desktop-export-table th:first-child,
+.desktop-export-table td:first-child,
+.schedule-table-container th:first-child,
+.schedule-table-container td:first-child {
+  width: 60px !important;
+}
+
+/* Ensure time slot columns have equal width */
+.desktop-export-table th:not(:first-child),
+.schedule-table-container th:not(:first-child) {
+  width: calc((100% - 60px) / var(--time-slots-count, 5)) !important;
+}
+
+/* Ensure course blocks in exports have proper dimensions */
+.force-desktop-layout [class*="course-block"] {
+  min-height: 90px !important;
+  word-break: break-word !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Add these styles at the end of the file: */
+
+/* Fix container margins */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1536px;
+  }
+}
+
+/* Ensure content doesn't touch screen edges */
+.green-university-bg {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}

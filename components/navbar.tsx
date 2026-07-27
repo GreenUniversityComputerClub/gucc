@@ -1,0 +1,250 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, Menu, X } from "lucide-react";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+export function Navbar() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProjectsMobileOpen, setIsProjectsMobileOpen] = useState(false);
+  const pathname = usePathname();
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const isActive = (path: string) => {
+    if (path === "/executives/2026") {
+      return pathname.startsWith("/executives");
+    }
+    return pathname === path;
+  };
+
+  const isProjectsPath = pathname.startsWith("/scheduler");
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60">
+      <div className="container flex h-16 items-center justify-between">
+        <Link href="/" className="flex items-center space-x-2">
+          <Image
+            src="/android-chrome-192x192.png"
+            alt="GUCC Logo"
+            width={45}
+            height={45}
+          />
+          <div className="hidden sm:block">
+            <div className="text-xl font-bold">
+              <p className="text-lg text-primary leading-[18px]">
+                GREEN UNIVERSITY
+              </p>
+              <p className="text-sm text-foreground">COMPUTER CLUB</p>
+            </div>
+          </div>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-6">
+          <Link
+            href="/"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/") ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Home
+          </Link>
+          <Link
+            href="/events"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/events") ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Events
+          </Link>
+          <Link
+            href="/contests"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contests") ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Contests
+          </Link>
+          {/* Lost & Found moved into Projects dropdown */}
+          <Link
+            href="/blog"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/blog") ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Blog
+          </Link>
+          <Link
+            href="/executives/2026"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/executives/2026") ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Executives
+          </Link>
+          <Link
+            href="/sponsors"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/sponsors") ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Sponsors
+          </Link>
+          <Link
+            href="/contact"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contact") ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Contact Us
+          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={`group inline-flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary ${isProjectsPath ? "text-primary" : "text-muted-foreground"}`}
+              >
+                Projects
+                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={8}>
+              <DropdownMenuItem asChild>
+                <Link href="/scheduler">Scheduler</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/lost-found">Lost & Found</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button asChild>
+            <Link href="/join">
+              Join Us
+            </Link>
+          </Button>
+        </nav>
+
+        {/* Dark Mode & Mobile Menu Button */}
+        <div className="flex items-center space-x-3">
+          {/* 🌙 Dark Mode Toggle */}
+          <ThemeToggle />
+
+          {/* ☰ Mobile Menu Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={toggleMenu}
+          >
+            {isMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Mobile Navigation */}
+      {isMenuOpen && (
+        <div className="container md:hidden py-4 border-t border-border">
+          <nav className="flex flex-col space-y-4">
+            <Link
+              href="/"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/") ? "text-primary" : "text-muted-foreground"}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Home
+            </Link>
+            <Link
+              href="/events"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/events") ? "text-primary" : "text-muted-foreground"}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Events
+            </Link>
+            <Link
+              href="/contests"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contests") ? "text-primary" : "text-muted-foreground"}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Contests
+            </Link>
+            {/* Lost & Found moved into Projects mobile list */}
+            <Link
+              href="/blog"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/blog") ? "text-primary" : "text-muted-foreground"}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Blog
+            </Link>
+            <Link
+              href="/executives/2026"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/executives/2026") ? "text-primary" : "text-muted-foreground"}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Executives
+            </Link>
+            <Link
+              href="/sponsors"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/sponsors") ? "text-primary" : "text-muted-foreground"}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Sponsors
+            </Link>
+            <Link
+              href="/contact"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contact") ? "text-primary" : "text-muted-foreground"}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Contact
+            </Link>
+            <div className="space-y-2">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between text-sm font-medium text-muted-foreground"
+                onClick={() => setIsProjectsMobileOpen((prev) => !prev)}
+              >
+                Projects
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${isProjectsMobileOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {isProjectsMobileOpen && (
+                <div className="flex flex-col space-y-2 pl-2">
+                  <Link
+                    href="/scheduler"
+                    className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/scheduler") ? "text-primary" : "text-muted-foreground"}`}
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsProjectsMobileOpen(false);
+                    }}
+                  >
+                    Scheduler
+                  </Link>
+                  <Link
+                    href="/lost-found"
+                    className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/lost-found") ? "text-primary" : "text-muted-foreground"}`}
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsProjectsMobileOpen(false);
+                    }}
+                  >
+                    Lost & Found
+                  </Link>
+                </div>
+              )}
+            </div>
+            <Button asChild>
+              <Link
+                href="/join"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Join Us
+              </Link>
+            </Button>
+          </nav>
+        </div>
+      )}
+    </header>
+  );
+}

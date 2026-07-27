@@ -1,0 +1,44 @@
+/* Certificate container styles */
+.certificateContainer {
+  page-break-inside: avoid;
+  margin-bottom: 2rem;
+}
+
+/* Print styles for certificates */
+@media print {
+  .certificateContainer {
+    page-break-after: always;
+    page-break-inside: avoid;
+    margin: 0;
+    padding: 0;
+  }
+
+  .certificateContainer:last-child {
+    page-break-after: avoid;
+  }
+
+  /* Hide other elements when printing */
+  .downloadButton {
+    display: none !important;
+  }
+
+  .executiveInfo {
+    display: none !important;
+  }
+}
+
+/* Button styles */
+.downloadButton {
+  background: linear-gradient(135deg, #059669, #047857);
+  transition: all 0.2s ease-in-out;
+}
+
+.downloadButton:hover {
+  background: linear-gradient(135deg, #047857, #065f46);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+}
+
+.downloadButton:active {
+  transform: translateY(0);
+}

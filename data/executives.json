@@ -1,0 +1,2966 @@
+[
+  {
+    "year": "2016",
+    "facultyMembers": [
+      {
+        "position": "Moderator",
+        "name": "Misbah Ul Hoque",
+        "designation": "Senior Lecturer",
+        "contact": "01812585739"
+      },
+      {
+        "position": "Deputy Moderator",
+        "name": "Humayan Kabir Rana",
+        "designation": "Lecturer",
+        "contact": "01723744140"
+      }
+    ],
+    "studentExecutives": [
+      {
+        "position": "President",
+        "name": "Zeseya Sharmin",
+        "studentId": "142002015",
+        "contact": "01934799452"
+      },
+      {
+        "position": "Vice-President",
+        "name": "Abdullah Al Mashuk",
+        "studentId": "151002009",
+        "contact": "01685089404"
+      },
+      {
+        "position": "General Secretary",
+        "name": "Saleh Al Hasan",
+        "studentId": "141002029",
+        "contact": "01835787354"
+      },
+      {
+        "position": "Assistant General Secretary",
+        "name": "Md. Asif Bashar",
+        "studentId": "143002037",
+        "contact": "01770336060"
+      },
+      {
+        "position": "Treasurer",
+        "name": "A.K.M. Ashek Farahi",
+        "studentId": "143002026",
+        "contact": "01911144646"
+      },
+      {
+        "position": "Deputy Treasurer",
+        "name": "Bulbul Ahmed",
+        "studentId": "151002010",
+        "contact": "01720349497"
+      },
+      {
+        "position": "Organization Secretary",
+        "name": "S.M EMON",
+        "studentId": "151002022",
+        "contact": "01648813166"
+      },
+      {
+        "position": "Deputy Organization Secretary",
+        "name": "Shah Adil",
+        "studentId": "153002007",
+        "contact": "01913911855"
+      },
+      {
+        "position": "Programming Secretary",
+        "name": "Muhammad Tareq Hossain",
+        "studentId": "151002017",
+        "contact": "01534777420"
+      },
+      {
+        "position": "Deputy Programming Secretary",
+        "name": "Gulzar Hossain",
+        "studentId": "151002096",
+        "contact": "01862555259"
+      },
+      {
+        "position": "Sports Secretary",
+        "name": "Tamim Hossen",
+        "studentId": "162002013",
+        "contact": "01754472907"
+      },
+      {
+        "position": "Deputy Sports Secretary",
+        "name": "Omar Faruk",
+        "studentId": "162002004",
+        "contact": "01756664974"
+      },
+      {
+        "position": "Cultural Secretary",
+        "name": "Angshu Adhikary",
+        "studentId": "161002026",
+        "contact": "01630237714"
+      },
+      {
+        "position": "Deputy Cultural Secretary",
+        "name": "Arnob Mirza",
+        "studentId": "161002019",
+        "contact": "01907030920"
+      },
+      {
+        "position": "Publication Secretary",
+        "name": "Sajjad Sobuj",
+        "studentId": "161002080",
+        "contact": "01756424134"
+      },
+      {
+        "position": "Deputy Publication Secretary",
+        "name": "Rajibul Palas",
+        "studentId": "162002001",
+        "contact": "01956189875"
+      },
+      {
+        "position": "Information Secretary",
+        "name": "Kaushik Ahmed Apu",
+        "studentId": "161002032",
+        "contact": "01738246575"
+      },
+      {
+        "position": "Deputy Information Secretary",
+        "name": "Arafat Hossain Rana",
+        "studentId": "161002043",
+        "contact": "01558890400"
+      }
+    ]
+  },
+  {
+    "year": "2018",
+    "facultyMembers": [
+      {
+        "position": "Moderator",
+        "name": "Ahmed Iqbal Pritom",
+        "designation": "Lecturer",
+        "contact": "01726718569"
+      },
+      {
+        "position": "Deputy Moderator",
+        "name": "Md. Mahin",
+        "designation": "Lecturer",
+        "contact": "01937085639"
+      }
+    ],
+    "studentExecutives": [
+      {
+        "position": "President",
+        "name": "Tareq Hosain",
+        "studentId": "151002015"
+      },
+      {
+        "position": "Vice-President",
+        "name": "S.M. Emon",
+        "studentId": "151002009"
+      },
+      {
+        "position": "General Secretary",
+        "name": "Bulbul Ahmed",
+        "studentId": "141002029"
+      },
+      {
+        "position": "Joint General Secretary",
+        "name": "Mostafiz Babu",
+        "studentId": "143002037"
+      },
+      {
+        "position": "Treasurer",
+        "name": "Arafat Hossain Rana",
+        "studentId": "143002026"
+      },
+      {
+        "position": "Joint Treasurer",
+        "name": "Tamim Hossain",
+        "studentId": "151002010"
+      },
+      {
+        "position": "Organizing Secretary",
+        "name": "Kaushik Ahmed Apu",
+        "studentId": "151002022"
+      },
+      {
+        "position": "Joint Organizing Secretary",
+        "name": "Razibur Rahman",
+        "studentId": "153002007"
+      },
+      {
+        "position": "Programming Secretary",
+        "name": "Gulzar Hossain",
+        "studentId": "151002017"
+      },
+      {
+        "position": "Joint Programming Secretary",
+        "name": "Md. Khaled",
+        "studentId": "151002096"
+      },
+      {
+        "position": "Cultural Secretary",
+        "name": "Angshu Adhikary",
+        "studentId": "162002013"
+      },
+      {
+        "position": "Joint Cultural Secretary",
+        "name": "Rushmita Halim",
+        "studentId": "162002004"
+      },
+      {
+        "position": "Information Secretary",
+        "name": "Omar Faruk",
+        "studentId": "161002026"
+      },
+      {
+        "position": "Joint Information Secretary",
+        "name": "Md. Miraz",
+        "studentId": "161002019"
+      },
+      {
+        "position": "Sports Secretary",
+        "name": "Ashfaqur Rahman",
+        "studentId": "161002080"
+      },
+      {
+        "position": "Joint Sports Secretary",
+        "name": "Munibul Islam",
+        "studentId": "162002001"
+      },
+      {
+        "position": "Publication Secretary",
+        "name": "Sajjad Sobuj",
+        "studentId": "161002032"
+      },
+      {
+        "position": "Joint Publication Secretary",
+        "name": "Roman",
+        "studentId": "161002043"
+      }
+    ]
+  },
+  {
+    "year": "2019",
+    "facultyMembers": [
+      {
+        "position": "Moderator",
+        "name": "Ahmed Iqbal Pritom",
+        "designation": "Sr. Lecturer",
+        "contact": "01726718569"
+      },
+      {
+        "position": "Deputy Moderator",
+        "name": "Md. Mahin",
+        "designation": "Lecturer",
+        "contact": "01937085639"
+      }
+    ],
+    "studentExecutives": [
+      {
+        "position": "President",
+        "name": "Md. Arafat Hossen",
+        "studentId": "161002043"
+      },
+      {
+        "position": "Vice-President",
+        "name": "Kaushik Ahmed Apu",
+        "studentId": "161002032"
+      },
+      {
+        "position": "Vice-President",
+        "name": "Mirza Saifullah Zaman Arnob",
+        "studentId": "161002019"
+      },
+      {
+        "position": "General Secretary",
+        "name": "Rajibur Rahman",
+        "studentId": "161002054"
+      },
+      {
+        "position": "Joint General Secretary",
+        "name": "Md. Rajibul Palas",
+        "studentId": "162002001"
+      },
+      {
+        "position": "Treasurer",
+        "name": "Tamim Hossen",
+        "studentId": "162002013"
+      },
+      {
+        "position": "Joint Treasurer",
+        "name": "Rusmita Halim Chaity",
+        "studentId": "171002022"
+      },
+      {
+        "position": "Organizing Secretary",
+        "name": "Soyed Sabbir Hossain",
+        "studentId": "163002037"
+      },
+      {
+        "position": "Joint Organizing Secretary",
+        "name": "Md. Miraj",
+        "studentId": "171002025"
+      },
+      {
+        "position": "Programming Secretary",
+        "name": "Md. Khaled",
+        "studentId": "153002006"
+      },
+      {
+        "position": "Joint Programming Secretary",
+        "name": "Md. Asif Iqbal Fahim",
+        "studentId": "163002002"
+      },
+      {
+        "position": "Cultural Secretary",
+        "name": "Abir Hasan",
+        "studentId": "181002140"
+      },
+      {
+        "position": "Joint Cultural Secretary",
+        "name": "Kashifa Shehzad",
+        "studentId": "181002069"
+      },
+      {
+        "position": "Information Secretary",
+        "name": "Md. Rakibul Islam",
+        "studentId": "162002002"
+      },
+      {
+        "position": "Joint Information Secretary",
+        "name": "Najmus Sakib Sizan",
+        "studentId": "181002115"
+      },
+      {
+        "position": "Sports Secretary",
+        "name": "Montaser Abdul Quader",
+        "studentId": "161002047"
+      },
+      {
+        "position": "Joint Sports Secretary",
+        "name": "Indronil Mohan",
+        "studentId": "173002048"
+      },
+      {
+        "position": "Publication Secretary",
+        "name": "Asadur Rahman Pias",
+        "studentId": "171002050"
+      },
+      {
+        "position": "Joint Publication Secretary",
+        "name": "Md. Shahidul Islam Tomal",
+        "studentId": "171002039"
+      }
+    ]
+  },
+  {
+    "year": "2020",
+    "facultyMembers": [
+      {
+        "position": "Moderator",
+        "name": "Ahmed Iqbal Pritom",
+        "designation": "Senior Lecturer",
+        "avatarUrl": "/executives/iqbal.cse.png",
+        "avatarScale": 0.8
+      },
+      {
+        "position": "Deputy Moderator",
+        "name": "Sultana Umme Habiba",
+        "designation": "Lecturer",
+        "avatarUrl": "/executives/sultana.cse.png",
+        "avatarScale": 0.8
+      }
+    ],
+    "studentExecutives": [
+      {
+        "position": "President",
+        "name": "Najmus Sakib Sizan",
+        "studentId": "181002115"
+      },
+      {
+        "position": "Vice President",
+        "name": "Md. Ariful Hoque Yash",
+        "studentId": "182002038"
+      },
+      {
+        "position": "General Secretary",
+        "name": "Sajib Miah",
+        "studentId": "181002053"
+      },
+      {
+        "position": "Joint General Secretary",
+        "name": "Md. Mohtamim Islam Nayeem",
+        "studentId": "193015047"
+      },
+      {
+        "position": "Treasurer",
+        "name": "Diganta Dey",
+        "studentId": "181002123"
+      },
+      {
+        "position": "Joint Treasurer",
+        "name": "Mahabub Sajid Habib",
+        "studentId": "182002023"
+      },
+      {
+        "position": "Organizing Secretary",
+        "name": "Md Zahidul Hasan",
+        "studentId": "183002076"
+      },
+      {
+        "position": "Joint Organizing Secretary",
+        "name": "Md.Iqbal Jahan",
+        "studentId": "191002281"
+      },
+      {
+        "position": "Programming Secretary",
+        "name": "Md. Nasir Hossain Hridoy",
+        "studentId": "173002044"
+      },
+      {
+        "position": "Joint Programming Secretary",
+        "name": "K M Farhat Snigdah",
+        "studentId": "191002124"
+      },
+      {
+        "position": "Cultural Secretary",
+        "name": "Bithy Roy",
+        "studentId": "182002004"
+      },
+      {
+        "position": "Joint Cultural Secretary",
+        "name": "Sabikun Nahar Sharna",
+        "studentId": "182002013"
+      },
+      {
+        "position": "Information Secretary",
+        "name": "Md. Rahul Reza",
+        "studentId": "191002067"
+      },
+      {
+        "position": "Joint Information Secretary",
+        "name": "MD. Jahid Hassan",
+        "studentId": "201002463"
+      },
+      {
+        "position": "Sports Secretary",
+        "name": "Neamul Nasir Jony",
+        "studentId": "181002040"
+      },
+      {
+        "position": "Joint Sports Secretary",
+        "name": "Shahriar Mahmud",
+        "studentId": "183015050"
+      },
+      {
+        "position": "Publication Secretary",
+        "name": "Kamrujjaman Shamim",
+        "studentId": "193002044"
+      },
+      {
+        "position": "Joint Publication Secretary",
+        "name": "MD Sakhawat Hossain Rabbi",
+        "studentId": "201002311"
+      }
+    ]
+  },
+  {
+    "year": "2021",
+    "facultyMembers": [
+      {
+        "position": "Moderator",
+        "name": "Ahmed Iqbal Pritom",
+        "designation": "Senior Lecturer",
+        "avatarUrl": "/executives/iqbal.cse.png",
+        "avatarScale": 0.8
+      },
+      {
+        "position": "Deputy Moderator",
+        "name": "Sultana Umme Habiba",
+        "designation": "Lecturer",
+        "avatarUrl": "/executives/sultana.cse.png",
+        "avatarScale": 0.8
+      }
+    ],
+    "studentExecutives": [
+      {
+        "position": "President",
+        "name": "Najmus Sakib Sizan",
+        "studentId": "181002115"
+      },
+      {
+        "position": "Vice President",
+        "name": "Md. Ariful Hoque Yash",
+        "studentId": "182002038"
+      },
+      {
+        "position": "General Secretary",
+        "name": "Sajib Miah",
+        "studentId": "181002053"
+      },
+      {
+        "position": "Joint General Secretary",
+        "name": "Md. Mohtamim Islam Nayeem",
+        "studentId": "193015047"
+      },
+      {
+        "position": "Treasurer",
+        "name": "Diganta Dey",
+        "studentId": "181002123"
+      },
+      {
+        "position": "Joint Treasurer",
+        "name": "Mahabub Sajid Habib",
+        "studentId": "182002023"
+      },
+      {
+        "position": "Organizing Secretary",
+        "name": "MD Zahidul Hasan",
+        "studentId": "183002076"
+      },
+      {
+        "position": "Joint Organizing Secretary",
+        "name": "MD. Iqbal Jahan",
+        "studentId": "191002281"
+      },
+      {
+        "position": "Programming Secretary",
+        "name": "MD. Nasir Hossain Hridoy",
+        "studentId": "173002044"
+      },
+      {
+        "position": "Joint Programming Secretary",
+        "name": "K M Farhat Snigdah",
+        "studentId": "191002124"
+      },
+      {
+        "position": "Information Secretary",
+        "name": "MD. Rahul Reza",
+        "studentId": "191002067"
+      },
+      {
+        "position": "Joint Information Secretary",
+        "name": "MD. Jahid Hassan",
+        "studentId": "201002463"
+      },
+      {
+        "position": "Cultural Secretary",
+        "name": "Bithy Roy",
+        "studentId": "182002004"
+      },
+      {
+        "position": "Joint Cultural Secretary",
+        "name": "Sabikun Nahar Sharna",
+        "studentId": "182002013"
+      },
+      {
+        "position": "Office Secretary & Graphic Designer",
+        "name": "Fahad Bin Kamal Anik",
+        "studentId": "183002xxx"
+      },
+      {
+        "position": "Sports Secretary",
+        "name": "Neamul Nasir Jony",
+        "studentId": "181002040"
+      },
+      {
+        "position": "Joint Sports Secretary",
+        "name": "Shahriar Mahmud",
+        "studentId": "183015050"
+      },
+      {
+        "position": "Publication Secretary",
+        "name": "Kamrujjaman Shamim",
+        "studentId": "193002044"
+      },
+      {
+        "position": "Joint Publication Secretary",
+        "name": "MD Sakhawat Hossain Rabbi",
+        "studentId": "201002311"
+      }
+    ]
+  },
+  {
+    "year": "2022",
+    "campuses": {
+      "permanent": {
+        "facultyMembers": [
+          {
+            "position": "Moderator",
+            "name": "Md. Solaiman Mia",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/solaiman.cse.png",
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Monoshi Kumar Roy",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/monoshi.cse.png",
+            "avatarScale": 0.8
+          }
+        ],
+        "studentExecutives": [
+          {
+            "position": "President",
+            "name": "Kazi Hasnayeen Emad",
+            "studentId": "201902xxx"
+          },
+          {
+            "position": "Vice President (Activities)",
+            "name": "Md. Ariful Islam",
+            "studentId": "201902xxx"
+          },
+          {
+            "position": "Vice President (Technical)",
+            "name": "Ahsanul Karim",
+            "studentId": "201902xxx"
+          },
+          {
+            "position": "General Secretary",
+            "name": "Md. Neamot Ullah Okib",
+            "studentId": "201902xxx"
+          },
+          {
+            "position": "Joint General Secretary",
+            "name": "Shakib Imtiaz",
+            "studentId": "202902008"
+          },
+          {
+            "position": "Treasurer",
+            "name": "Nasir Uddin Foysal",
+            "studentId": "201902xxx"
+          },
+          {
+            "position": "Joint Treasurer",
+            "name": "Md. Nazmul Hosain",
+            "studentId": "201902090"
+          },
+          {
+            "position": "Organizing Secretary",
+            "name": "Mohammad Nazmul Hossain",
+            "studentId": "201902xxx"
+          },
+          {
+            "position": "Joint Organizing Secretary",
+            "name": "Farjana Afrin Maria",
+            "studentId": "201902xxx"
+          },
+          {
+            "position": "Information Secretary",
+            "name": "Md. Abdullah Al Mamun",
+            "studentId": "201902091"
+          },
+          {
+            "position": "Joint Information Secretary",
+            "name": "Md. Rahul Islam Joy",
+            "studentId": "212902070"
+          },
+          {
+            "position": "Publication Secretary",
+            "name": "Abdullah Al Kafi",
+            "studentId": "201902145"
+          },
+          {
+            "position": "Joint Publication Secretary",
+            "name": "Md. Jubayer",
+            "studentId": "201902xxx"
+          },
+          {
+            "position": "Programming Secretary",
+            "name": "Shamim Ahmed",
+            "studentId": "201902067"
+          },
+          {
+            "position": "Joint Programming Secretary",
+            "name": "Md. Manzurul Alam",
+            "studentId": "202902003"
+          },
+          {
+            "position": "Graphics Designer",
+            "name": "Rayhan Kobir",
+            "studentId": "201902xxx"
+          },
+          {
+            "position": "Content Writer",
+            "name": "Amitav Roy Chowdhury",
+            "studentId": "201902xxx"
+          }
+        ]
+      },
+      "city": {
+        "facultyMembers": [
+          {
+            "position": "Moderator",
+            "name": "Ahmed Iqbal Pritom",
+            "designation": "Sr. Lecturer",
+            "avatarUrl": "/executives/iqbal.cse.png",
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Ms. Sultana Umme Habiba",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/sultana.cse.png",
+            "avatarScale": 0.8
+          }
+        ],
+        "studentExecutives": [
+          {
+            "position": "President",
+            "name": "Md. Iqbal Jahan",
+            "studentId": "191002281"
+          },
+          {
+            "position": "Vice President",
+            "name": "Md. Zahidul Hasan",
+            "studentId": "183002076"
+          },
+          {
+            "position": "General Secretary",
+            "name": "Md. Rahul Reza",
+            "studentId": "191002067"
+          },
+          {
+            "position": "Joint General Secretary",
+            "name": "MD Mohtamim Islam Nayeem",
+            "studentId": "193015047"
+          },
+          {
+            "position": "Treasurer",
+            "name": "Kamrujjaman Shamim",
+            "studentId": "193002044"
+          },
+          {
+            "position": "Joint Treasurer",
+            "name": "Md. Jahid Hassan",
+            "studentId": "201002463"
+          },
+          {
+            "position": "Organizing Secretary",
+            "name": "Mahshiat Tahsin Bably",
+            "studentId": "192002014"
+          },
+          {
+            "position": "Joint Organizing Secretary",
+            "name": "Sakhawat Hossain Rabbi",
+            "studentId": "201002311"
+          },
+          {
+            "position": "Programming Secretary",
+            "name": "Muntasir Chowdhury Mridul",
+            "studentId": "192002035"
+          },
+          {
+            "position": "Information Secretary",
+            "name": "Shahriar Ahsan Taisiq",
+            "studentId": "201002396"
+          },
+          {
+            "position": "Joint Information Secretary",
+            "name": "Md. Montasir Rahman",
+            "studentId": "202002003",
+            "avatarPosition": {
+              "x": -6,
+              "y": 2
+            },
+            "avatarScale": 0.9
+          },
+          {
+            "position": "Cultural Secretary",
+            "name": "Sabrina Rahman",
+            "studentId": "191002305"
+          },
+          {
+            "position": "Joint Cultural Secretary",
+            "name": "Asma UL Husna",
+            "studentId": "201002032"
+          },
+          {
+            "position": "Graphic Designer",
+            "name": "Md Khyruddin",
+            "studentId": "212002135"
+          },
+          {
+            "position": "Sports Secretary",
+            "name": "Ismail Hossain",
+            "studentId": "191002023"
+          },
+          {
+            "position": "Joint Sports Secretary",
+            "name": "Tamim Ahmed",
+            "studentId": "193002014"
+          },
+          {
+            "position": "Publication Secretary",
+            "name": "Md. Rafiqul Islam (Bayazid)",
+            "studentId": "201015044"
+          },
+          {
+            "position": "Joint Publication Secretary",
+            "name": "Mahbubullah",
+            "studentId": "211002084"
+          },
+          {
+            "position": "Office Secretary",
+            "name": "Rashadul Hasan Romman",
+            "studentId": "211002045"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "year": "2023",
+    "campuses": {
+      "permanent": {
+        "facultyMembers": [
+          {
+            "position": "Moderator",
+            "name": "Md. Abu Rumman Refat",
+            "designation": "Lecturer, CSE",
+            "campus": "Permanent Campus",
+            "avatarUrl": "/executives/refat.cse.png",
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Md. Parvez Hossain",
+            "designation": "Lecturer & PC, CSE",
+            "campus": "Permanent Campus",
+            "avatarUrl": "/executives/parvez.cse.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 4
+            },
+            "avatarScale": 0.9
+          }
+        ],
+        "studentExecutives": [
+          {
+            "position": "President",
+            "name": "Shamim Ahmed",
+            "studentId": "201902067",
+            "mail": "shamim.cse.2024@gmail.com"
+          },
+          {
+            "position": "Vice President (Activity)",
+            "name": "Md. Nazmul Hosain",
+            "studentId": "201902090",
+            "mail": "mynajmul@gmail.com"
+          },
+          {
+            "position": "Vice President (Technical)",
+            "name": "Shakib Imtiaz",
+            "studentId": "202902008",
+            "mail": "shakibimtiazishan1111@gmail.com"
+          },
+          {
+            "position": "General Secretary",
+            "name": "Abdullah al kafi",
+            "studentId": "201902145",
+            "mail": "shoaibkafi2002@gmail.com"
+          },
+          {
+            "position": "Joint General Secretary",
+            "name": "Tarqul Alam Opi",
+            "studentId": "201902074",
+            "mail": "tarqulopi77@gmail.com"
+          },
+          {
+            "position": "Treasurer",
+            "name": "Md. Abdullah Al Mamun",
+            "studentId": "201902091",
+            "mail": "abdullahalmamun.gub@gmail.com"
+          },
+          {
+            "position": "Joint Treasurer",
+            "name": "Obaydur Rahman",
+            "studentId": "213902018",
+            "mail": "hello@opu.rocks"
+          },
+          {
+            "position": "Organizing Secretary",
+            "name": "Ibrahim Tanvir",
+            "studentId": "211902055",
+            "mail": "ibrahimtanvir680@gmail.com"
+          },
+          {
+            "position": "Joint Organizing Secretary",
+            "name": "Samim Reza",
+            "studentId": "221902245",
+            "mail": "samimreza2111@gmail.com"
+          },
+          {
+            "position": "Publication Secretary",
+            "name": "Md. Hasibur Rahman",
+            "studentId": "212902018",
+            "mail": "hasibur0163175381@gmail.com"
+          },
+          {
+            "position": "Joint Publication Secretary",
+            "name": "Nazmul Hasan",
+            "studentId": "213902003",
+            "mail": "nazmulhasan478900@gmail.com"
+          },
+          {
+            "position": "Programming Secretary",
+            "name": "Md. Manzurul Alam",
+            "studentId": "202902003",
+            "mail": "manzurul104@gmail.com"
+          },
+          {
+            "position": "Joint Programming Secretary",
+            "name": "Md. Abu Taief Siddique",
+            "studentId": "211902037",
+            "mail": "taiefsiddik2@gmail.com"
+          },
+          {
+            "position": "Information Secretary",
+            "name": "Md. Rahul Islam Joy",
+            "studentId": "212902070",
+            "mail": "md.rahulislam9216@gmail.com"
+          },
+          {
+            "position": "Joint Information Secretary",
+            "name": "Md Fahim Sarker Mridul",
+            "studentId": "221902369",
+            "mail": "fahimsarker0805@gmail.com"
+          },
+          {
+            "position": "Graphics Designer",
+            "name": "Md. Mahmudul Hasan",
+            "studentId": "212902028",
+            "mail": "mmdhasan150@gmail.com"
+          },
+          {
+            "position": "Assistant Graphics Designer",
+            "name": "Md. Zobayer Chowdhury",
+            "studentId": "221902038",
+            "mail": "mdzobayerchowdhury3077@gmail.com"
+          },
+          {
+            "position": "Cultural Secretary",
+            "name": "Riya Hasan",
+            "studentId": "221902188",
+            "mail": "riyahasan6754@gmail.com"
+          },
+          {
+            "position": "Executive Member – 1",
+            "name": "Rufaida Jaman Rayta",
+            "studentId": "221902020",
+            "mail": "rufaidajaman15@gmail.com",
+            "avatarScale": 0.7
+          },
+          {
+            "position": "Executive Member – 2",
+            "name": "Md. Showaib Rahman Tanveer",
+            "studentId": "221902084",
+            "mail": "tanveer.cse69@gmail.com"
+          }
+        ]
+      },
+      "merged": {
+        "facultyMembers": [
+          {
+            "position": "Moderator",
+            "name": "Md. Monirul Islam",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/monirul.cse.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Tanoy Debnath",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/tanoy.cse.png",
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Md. Abu Rumman Refat",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/refat.cse.png",
+            "avatarScale": 0.8
+          }
+        ],
+        "studentExecutives": [
+          {
+            "position": "President",
+            "name": "Shamim Ahmed",
+            "studentId": "201902067"
+          },
+          {
+            "position": "Vice President (Activity)",
+            "name": "Md. Montasir Rahman",
+            "studentId": "202002003"
+          },
+          {
+            "position": "Vice President (Technical)",
+            "name": "Shakib Imtiaz",
+            "studentId": "202902008"
+          },
+          {
+            "position": "General Secretary",
+            "name": "Sakhawat Hossain Rabbi",
+            "studentId": "201002311"
+          },
+          {
+            "position": "Joint General Secretary (Activity)",
+            "name": "Md. Jahid Hassan",
+            "studentId": "201002463"
+          },
+          {
+            "position": "Joint General Secretary (Technical)",
+            "name": "Al Amin",
+            "studentId": "202902024"
+          },
+          {
+            "position": "Organizing Secretary",
+            "name": "Ibrahim Tanvir",
+            "studentId": "211902055"
+          },
+          {
+            "position": "Joint Organizing Secretary",
+            "name": "Hridoy Debnath",
+            "studentId": "213002239"
+          },
+          {
+            "position": "Treasurer",
+            "name": "Kazi Sabbir Ahmed Opi",
+            "studentId": "201002043"
+          },
+          {
+            "position": "Joint Treasurer",
+            "name": "Abdul Fattah",
+            "studentId": "221902066"
+          },
+          {
+            "position": "Programming Secretary",
+            "name": "Md. Abu Taief Siddique",
+            "studentId": "211902037"
+          },
+          {
+            "position": "Joint Programming Secretary",
+            "name": "Jannatul Ferdous Nuri",
+            "studentId": "211002005"
+          },
+          {
+            "position": "Information Secretary",
+            "name": "Sikder Md. Shariful Islam",
+            "studentId": "213002146"
+          },
+          {
+            "position": "Joint Information Secretary",
+            "name": "Hasimunnahar Shanta",
+            "studentId": "221002585"
+          },
+          {
+            "position": "Event Coordinator",
+            "name": "Riya Hasan",
+            "studentId": "221902188"
+          },
+          {
+            "position": "Cultural Secretary",
+            "name": "Asma UL Husna",
+            "studentId": "201002032"
+          },
+          {
+            "position": "Joint Cultural Secretary",
+            "name": "Md. Showaib Rahman Tanveer",
+            "studentId": "221902084"
+          },
+          {
+            "position": "Publication Secretary",
+            "name": "Md. Hasibur Rahman",
+            "studentId": "212902018"
+          },
+          {
+            "position": "Joint Publication Secretary",
+            "name": "Shawmin Azmi",
+            "studentId": "221002352"
+          },
+          {
+            "position": "Graphics Designer",
+            "name": "Umma Salma Noor Tamanna",
+            "studentId": "213002100"
+          },
+          {
+            "position": "Sports Secretary",
+            "name": "Md. Akramul Hoque",
+            "studentId": "221002565"
+          },
+          {
+            "position": "Executive Member-1",
+            "name": "Al Shahriar Ahommed Shanto",
+            "studentId": "221002567"
+          },
+          {
+            "position": "Executive Member-2",
+            "name": "Mahmuda Akter Nadia",
+            "studentId": "231002001"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "year": "2024",
+    "wings": {
+      "vgs": {
+        "year": "2024",
+        "facultyMembers": [
+          {
+            "position": "Moderator",
+            "name": "Md. Monirul Islam",
+            "designation": "Assistant Professor",
+            "avatarUrl": "/executives/monirul.cse.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Feroza Naznin",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/feroza.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": -8
+            },
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Montaser Abdul Quader",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/montaser.cse.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 0.8
+          }
+        ],
+        "studentExecutives": [
+          {
+            "position": "Chair",
+            "name": "Faysal Hossain Tomal",
+            "studentId": "221002220",
+            "mail": "faysaltomal02@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/faysaltomal/",
+            "github": "https://github.com/FaysalHT",
+            "facebook": "https://www.facebook.com/FaysalHT02"
+          },
+          {
+            "position": "Vice-Chair",
+            "name": "M. Tahsinur Rahiman",
+            "studentId": "222002062",
+            "mail": "ariyanrahman1713@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/m-tahsinur-rahman62",
+            "github": "https://github.com/Aruuu62",
+            "facebook": "https://m.facebook.com/iqbal.abdullah.3572/"
+          },
+          {
+            "position": "General Secretary",
+            "name": "K M Monoarul Islam Shovon",
+            "studentId": "221002213",
+            "mail": "shovon2565@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/k-m-shovon/",
+            "github": "https://github.com/Shovon25657",
+            "facebook": "https://www.facebook.com/km.shvon9"
+          },
+          {
+            "position": "Joint General Secretary",
+            "name": "Muaz Ibn Kamal",
+            "studentId": "232002109",
+            "mail": "muazibnkamal8@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/muaz-ibn-kamal-26252735a/",
+            "github": "https://github.com/MuazibnKamal",
+            "facebook": "https://www.facebook.com/muazibnkamal.alif.18"
+          },
+          {
+            "position": "Treasurer",
+            "name": "Hasibul Hassan",
+            "studentId": "221002546",
+            "mail": "hasibulgreen@gmail.com",
+            "facebook": null
+          },
+          {
+            "position": "Joint Treasurer",
+            "name": "Dip Barman",
+            "studentId": "222002118",
+            "mail": "dipbarman1212@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/dipbarman",
+            "facebook": "https://www.facebook.com/share/1BdLjDHS88/"
+          },
+          {
+            "position": "Organizing Secretary",
+            "name": "Heaven Bawm",
+            "studentId": "221902015",
+            "mail": "heavenbawm77@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/heaven-bawm-4a79a1295",
+            "github": "https://github.com/MrB0T15",
+            "facebook": "https://www.facebook.com/share/1G7uEH4JYD/"
+          },
+          {
+            "position": "Joint Organizing Secretary",
+            "name": "Nahian Reza Shafin",
+            "studentId": "221002576",
+            "mail": "shafinnahian01@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/nahian-shafin-8a655b272",
+            "github": "https://github.com/Shafin2576",
+            "facebook": "https://www.facebook.com/prince.shafin.50/"
+          },
+          {
+            "position": "Outreach Secretary",
+            "name": "Pronoy Sarker Amit",
+            "studentId": "222002082",
+            "mail": "pronoysarkeramit@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/pronoy-sarker-amit/",
+            "github": "https://github.com/PSarker108",
+            "facebook": "https://www.facebook.com/pronoy.sarker.479806"
+          },
+          {
+            "position": "E-Sports Gaming Secretary",
+            "name": "Md Rezanur Bin Shamim",
+            "studentId": "221902305",
+            "mail": "rezanurbinshamim@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/mrezanur/",
+            "github": "https://github.com/Rnrezanur",
+            "facebook": "https://www.facebook.com/Rnrezanur/"
+          },
+          {
+            "position": "Graphics and Multimedia Secretary",
+            "name": "Ryan Hasan Sunny",
+            "studentId": "213002183",
+            "mail": "ryanhasansunny31@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/ryan-hasan-sunny-190a65245/",
+            "github": "https://github.com/RyanHasanSunny",
+            "facebook": "https://www.facebook.com/ryanhasan.sunny7"
+          },
+          {
+            "position": "Graphics and Multimedia Secretary",
+            "name": "Ashraf Zaman",
+            "studentId": "232002174",
+            "mail": "ashraf636bd@gmail.com",
+            "facebook": "https://www.facebook.com/share/1Dmi3Cafmr/"
+          },
+          {
+            "position": "Graphics and Multimedia Secretary",
+            "name": "Julqarnaeen Ahmed Jihad",
+            "studentId": "241002046",
+            "mail": "julqarnaeen2003@gmail.com",
+            "facebook": "https://www.facebook.com/zulqarnaeen.9?mibextid=ZbWKwL"
+          },
+          {
+            "position": "Executive Member",
+            "name": "MD. Sazib",
+            "studentId": "23190200S",
+            "mail": "mdsazib.cse@gmail.com"
+          },
+          {
+            "position": "Executive Member",
+            "name": "Afiya Humaira",
+            "studentId": "222002112",
+            "mail": "afiyahumaira999@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/afiya-humaira-13a396285",
+            "facebook": "https://www.facebook.com/share/1A8KwRUow2/"
+          },
+          {
+            "position": "Executive Member",
+            "name": "Humayra Nur",
+            "studentId": "231002012",
+            "mail": "anannaanu974@gmail.com",
+            "facebook": "https://www.facebook.com/anannaanu974"
+          }
+        ]
+      }
+    },
+    "facultyMembers": [
+      {
+        "position": "Moderator",
+        "name": "Md. Monirul Islam",
+        "designation": "Assistant Professor",
+        "avatarUrl": "/executives/monirul.cse.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8
+      },
+      {
+        "position": "Deputy Moderator",
+        "name": "Jarin Tasnim Tonvi",
+        "designation": "Lecturer",
+        "avatarUrl": "/executives/tonvi.cse.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8
+      },
+      {
+        "position": "Deputy Moderator",
+        "name": "Montaser Abdul Quader",
+        "designation": "Lecturer",
+        "avatarUrl": "/executives/montaser.cse.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8
+      }
+    ],
+    "studentExecutives": [
+      {
+        "position": "President",
+        "name": "Md. Montasir Rahman",
+        "studentId": "202002003"
+      },
+      {
+        "position": "Vice President",
+        "name": "Shakib Imtiaz",
+        "studentId": "202902008",
+        "avatarPosition": {
+          "x": 0,
+          "y": 2
+        },
+        "avatarScale": 1
+      },
+      {
+        "position": "General Secretary",
+        "name": "Al Amin",
+        "studentId": "202902024",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8
+      },
+      {
+        "position": "Joint General Secretary",
+        "name": "Md. Showaib Rahman Tanveer",
+        "studentId": "221902084",
+        "avatarPosition": {
+          "x": -7,
+          "y": -11
+        },
+        "avatarScale": 0.9
+      },
+      {
+        "position": "Organizing Secretary",
+        "name": "Ibrahim Tanvir",
+        "studentId": "211902055"
+      },
+      {
+        "position": "Joint Organizing Secretary",
+        "name": "Hridoy Debnath",
+        "studentId": "213002239"
+      },
+      {
+        "position": "Treasurer",
+        "name": "Abdul Fattah",
+        "studentId": "221902066",
+        "avatarPosition": {
+          "x": -1,
+          "y": -9
+        },
+        "avatarScale": 0.8
+      },
+      {
+        "position": "Programming Secretary",
+        "name": "Md. Abu Taief Siddique",
+        "studentId": "211902037"
+      },
+      {
+        "position": "Joint Programming Secretary",
+        "name": "Jannatul Ferdous Nuri",
+        "studentId": "211002005",
+        "avatarPosition": {
+          "x": 0,
+          "y": -3
+        },
+        "avatarScale": 0.8
+      },
+      {
+        "position": "Information Secretary",
+        "name": "Sikder Md. Shariful Islam",
+        "studentId": "213002146",
+        "avatarPosition": {
+          "x": 1,
+          "y": 10
+        },
+        "avatarScale": 1
+      },
+      {
+        "position": "Joint Information Secretary",
+        "name": "Hasimunnahar Shanta",
+        "studentId": "221002585",
+        "avatarPosition": {
+          "x": 0,
+          "y": -10
+        },
+        "avatarScale": 0.9
+      },
+      {
+        "position": "Event Coordinator",
+        "name": "Al Shahriar Ahommed Shanto",
+        "studentId": "221002567",
+        "avatarPosition": {
+          "x": 3,
+          "y": -2
+        },
+        "avatarScale": 1
+      },
+      {
+        "position": "Cultural Secretary",
+        "name": "Riya Hasan",
+        "studentId": "221902188",
+        "avatarPosition": {
+          "x": -5,
+          "y": 11
+        },
+        "avatarScale": 1
+      },
+      {
+        "position": "Publication Secretary",
+        "name": "Md. Hasibur Rahman",
+        "studentId": "212902018",
+        "avatarPosition": {
+          "x": -16,
+          "y": -1
+        },
+        "avatarScale": 0.8
+      },
+      {
+        "position": "Joint Publication Secretary",
+        "name": "Shawmin Azmi",
+        "studentId": "221002352",
+        "avatarPosition": {
+          "x": 2,
+          "y": 4
+        },
+        "avatarScale": 0.9
+      },
+      {
+        "position": "Sports Secretary",
+        "name": "Md. Akramul Hoque",
+        "studentId": "221002565",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8
+      },
+      {
+        "position": "Graphics and Multimedia Coordinator",
+        "name": "Umma Salma Noor Tamanna",
+        "studentId": "213002100",
+        "avatarPosition": {
+          "x": 0,
+          "y": 10
+        },
+        "avatarScale": 0.9
+      },
+      {
+        "position": "Graphics and Multimedia Coordinator",
+        "name": "Mahmuda Akter Nadia",
+        "studentId": "231002001",
+        "avatarPosition": {
+          "x": 1,
+          "y": -10
+        },
+        "avatarScale": 1
+      },
+      {
+        "position": "Executive Member",
+        "name": "Akash Adhikary",
+        "studentId": "213002021",
+        "avatarPosition": {
+          "x": -4,
+          "y": 7
+        },
+        "avatarScale": 1
+      },
+      {
+        "position": "Executive Member",
+        "name": "Md. Fazle Rabbi Riyad",
+        "studentId": "213002027",
+        "avatarPosition": {
+          "x": -13,
+          "y": 13
+        },
+        "avatarScale": 1
+      },
+      {
+        "position": "Executive Member",
+        "name": "Majharul Islam",
+        "studentId": "232002256",
+        "avatarPosition": {
+          "x": 0,
+          "y": 2
+        },
+        "avatarScale": 0.9
+      }
+    ]
+  },
+  {
+    "year": "2025",
+    "wings": {
+      "vgs": {
+        "year": "2025",
+        "facultyMembers": [
+          {
+            "position": "Moderator",
+            "name": "Md. Monirul Islam",
+            "designation": "Assistant Professor",
+            "avatarUrl": "/executives/monirul.cse.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Feroza Naznin",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/feroza.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": -8
+            },
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Montaser Abdul Quader",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/montaser.cse.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 0.8
+          }
+        ],
+        "studentExecutives": [
+          {
+            "position": "Chair",
+            "name": "M. Tahsinur Rahman",
+            "studentId": "222002062",
+            "avatarUrl": "/executives/222002062.png",
+            "mail": "ariyanrahman1713@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/m-tahsinur-rahman62/",
+            "github": "https://github.com/Aruuu62/",
+            "facebook": "https://www.facebook.com/iqbal.abdullah.3572"
+          },
+          {
+            "position": "Vice-Chair",
+            "name": "Heaven Bawm",
+            "studentId": "221902015",
+            "avatarUrl": "/executives/221902015.png",
+            "mail": "heavenbawm77@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/heaven-bawm-4a79a1295?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
+            "github": "https://github.com/MrB0T15",
+            "facebook": "https://www.facebook.com/share/1JnVDFQ5ab/"
+          },
+          {
+            "position": "General Secretary",
+            "name": "MD. Sazib ",
+            "studentId": "231902305",
+            "avatarUrl": "/executives/23190200S.png",
+            "mail": "mdsazib.cse@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/mdsazib-sudostealth",
+            "github": "https://github.com/sudostealth",
+            "facebook": "https://www.facebook.com/immdsazib"
+          },
+          {
+            "position": "Treasurer",
+            "name": "Kawser Miah",
+            "studentId": "223002063",
+            "avatarUrl": "/executives/223002063.png",
+            "mail": "kawsermiah658@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/md-kawser-ahmed-b2a250304/",
+            "github": "https://github.com/Kawser-Miah",
+            "facebook": "https://www.facebook.com/share/1JGDNyqvgV/"
+          },
+          {
+            "position": "Organizing Secretary",
+            "name": "Simran Yesmin Sweety",
+            "studentId": "231002019",
+            "avatarUrl": "/executives/231002019.png",
+            "mail": "simran01hossain@gmail.com",
+            "linkedin": "http://www.linkedin.com/in/simran-yesmin-sweety-98934833b",
+            "github": "",
+            "facebook": "https://www.facebook.com/share/1AxLTcsjSW/"
+          },
+          {
+            "position": "Outreach Secretary",
+            "name": "Afiya Humaira",
+            "studentId": "222002112",
+            "avatarUrl": "/executives/222002112.png",
+            "mail": "afiyahumaira999@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/afiya-humaira-13a396285?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
+            "github": "",
+            "facebook": "https://www.facebook.com/share/19kEy4L1xy/"
+          },
+          {
+            "position": "Publication & Publicity Secretary",
+            "name": "Jannatul Mawa",
+            "studentId": "231002007",
+            "avatarUrl": "/executives/231002007.png",
+            "mail": "jannatul6322@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": "https://www.facebook.com/share/16wnT7UXQZ/"
+          },
+          {
+            "position": "Esports Secretary",
+            "name": "Dipon Barman",
+            "studentId": "242002177",
+            "avatarUrl": "/executives/242002177.png",
+            "mail": "diponbarman9@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": "https://www.facebook.com/share/1F2vHrWghd/"
+          },
+          {
+            "position": "Graphics and Multimedia Coordinators",
+            "name": "Md. Maruf Ahmmed",
+            "studentId": "221002299",
+            "avatarUrl": "/executives/221002299.png",
+            "mail": "hellomarufahmmed@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/mdmarufahmmed?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
+            "github": "",
+            "facebook": "https://www.facebook.com/share/1CqxMLKa1i/"
+          },
+          {
+            "position": "Graphics and Multimedia Coordinators",
+            "name": "Gazi Md. Faysal Hossain Raju",
+            "studentId": "242002089",
+            "avatarUrl": "/executives/242002089.png",
+            "mail": "arahinjubayar33@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/gazi-md-faysal-hossain-raju-2a839436b?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
+            "github": "",
+            "facebook": "https://www.facebook.com/raju.gazi.798?mibextid=ZbWKwL"
+          },
+          {
+            "position": "Graphics and Multimedia Coordinators",
+            "name": "Jubayar Alam",
+            "studentId": "242002155",
+            "avatarUrl": "/executives/242002155.png",
+            "mail": "rahinjubayar33@gmail.com",
+            "linkedin": "",
+            "github": "",
+            "facebook": "https://www.facebook.com/share/16uyd3uM4y/"
+          },
+          {
+            "position": "Executive Member",
+            "name": "Eva Kazi",
+            "studentId": "231902003",
+            "avatarUrl": "/executives/231902003.png",
+            "mail": "evak80156@gmail.com",
+            "linkedin": "https://www.linkedin.com/in/eva-cse",
+            "github": "",
+            "facebook": "https://www.facebook.com/share/1Lwb1LtpBZ/"
+          },
+          {
+            "position": "Executive Member",
+            "name": "Abu Bakkar Bhuiyan",
+            "studentId": "242002107",
+            "avatarUrl": "/executives/242002107.png",
+            "mail": "abubakkarr050@gmail.com",
+            "linkedin": "http://www.linkedin.com/in/abu-bakkar-bhuiyan-abbr",
+            "github": "https://github.com/55055-abb",
+            "facebook": "https://www.facebook.com/share/1CiFx1cTHG/"
+          }
+        ]
+      }
+    },
+    "facultyMembers": [
+      {
+        "position": "Moderator",
+        "name": "Md. Monirul Islam",
+        "designation": "Assistant Professor",
+        "avatarUrl": "/executives/monirul.cse.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8
+      },
+      {
+        "position": "Deputy Moderator",
+        "name": "Feroza Naznin",
+        "designation": "Lecturer",
+        "avatarUrl": "/executives/feroza.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": -8
+        },
+        "avatarScale": 0.8
+      },
+      {
+        "position": "Deputy Moderator",
+        "name": "Montaser Abdul Quader",
+        "designation": "Lecturer",
+        "avatarUrl": "/executives/montaser.cse.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8
+      }
+    ],
+    "studentExecutives": [
+      {
+        "position": "President",
+        "name": "Md. Showaib Rahman Tanveer",
+        "studentId": "221902084",
+        "avatarUrl": "/executives/221902084.png",
+        "avatarPosition": {
+          "x": -7,
+          "y": -11
+        },
+        "avatarScale": 0.9,
+        "linkedin": "https://www.linkedin.com/in/srtanveer",
+        "github": "https://github.com/idontbyte69",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/tanveer.vaiya01/",
+        "mail": "mailto::tanveer.cse69@gmail.com"
+      },
+      {
+        "position": "Vice President (Activity)",
+        "name": "Hasimunnahar Shanta",
+        "studentId": "221002585",
+        "avatarUrl": "/executives/221002585.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": -10
+        },
+        "avatarScale": 0.9,
+        "linkedin": "https://www.linkedin.com/in/shanta-islam-17b224218?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
+        "github": "https://github.com/Sh-AntA",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/profile.php?id=100019762786123",
+        "mail": "mailto::shantaislamgucc@gmail.com"
+      },
+      {
+        "position": "Vice President (Technical)",
+        "name": "Ammar Bin Anwar Fuad",
+        "studentId": "222902080",
+        "avatarUrl": "/executives/222902080.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 1,
+        "linkedin": "https://www.linkedin.com/in/ammarbin/",
+        "github": "https://github.com/ammarbinanwarfuad",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/ammarbin.anwarfuad",
+        "mail": "mailto::ammarbinanwarfuad@gmail.com"
+      },
+      {
+        "position": "General Secretary",
+        "name": "Abdul Fattah",
+        "studentId": "221902066",
+        "avatarUrl": "/executives/221902066.png",
+        "avatarPosition": {
+          "x": -1,
+          "y": -9
+        },
+        "avatarScale": 0.8,
+        "linkedin": "https://www.linkedin.com/in/abdul-fattah-3522a4232/?originalSubdomain=bd",
+        "github": null,
+        "twitter": null,
+        "facebook": "https://www.facebook.com/abdul.fattah.92798",
+        "mail": "mailto::abdulfattahgreen@gmail.com"
+      },
+      {
+        "position": "Joint General Secretary (Activity)",
+        "name": "Al Shahriar Ahommed Shanto",
+        "studentId": "221002567",
+        "avatarUrl": "/executives/221002567.png",
+        "avatarPosition": {
+          "x": 3,
+          "y": -2
+        },
+        "avatarScale": 1,
+        "linkedin": "https://www.linkedin.com/in/shahriarshanto4916/",
+        "github": "https://github.com/ShantoGUB567",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/shanto.4916",
+        "mail": "mailto::shahriarshanto221002567@gmail.com"
+      },
+      {
+        "position": "Joint General Secretary (Technical)",
+        "name": "Shawmin Azmi",
+        "studentId": "221002352",
+        "avatarUrl": "/executives/221002352.png",
+        "avatarPosition": {
+          "x": 2,
+          "y": 4
+        },
+        "avatarScale": 0.9,
+        "linkedin": "https://www.linkedin.com/in/shawmin-azmi-007223281/?originalSubdomain=bd",
+        "github": null,
+        "twitter": null,
+        "facebook": "https://www.facebook.com/shawmin.azmi?mibextid=ZbWKwL",
+        "mail": "mailto::shawminazmilogno@gmail.com"
+      },
+      {
+        "position": "Treasurer",
+        "name": "Nazmus Sakib",
+        "studentId": "223902073",
+        "avatarUrl": "/executives/223902073.png",
+        "avatarPosition": {
+          "x": 1,
+          "y": 11
+        },
+        "avatarScale": 1,
+        "linkedin": "https://www.linkedin.com/in/nazmus-sakib-b84371259/",
+        "github": null,
+        "twitter": null,
+        "facebook": "https://www.facebook.com/nm.sakib09",
+        "mail": "mailto::nazmussakib.nms@gmail.com"
+      },
+      {
+        "position": "Joint Treasurer",
+        "name": "Mahmuda Akter Nadia",
+        "studentId": "231002001",
+        "avatarUrl": "/executives/231002001.png",
+        "avatarPosition": {
+          "x": 1,
+          "y": -10
+        },
+        "avatarScale": 1,
+        "linkedin": "https://www.linkedin.com/in/mahmudaakternadia/?originalSubdomain=bd",
+        "github": "https://github.com/mahmudaakternadia",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/mahmudaakternadiaa",
+        "mail": "mailto::mahmudaakternadia@gmail.com"
+      },
+      {
+        "position": "Organizing Secretary",
+        "name": "Riya Hasan",
+        "studentId": "221902188",
+        "avatarUrl": "/executives/221902188.png",
+        "avatarPosition": {
+          "x": -5,
+          "y": 11
+        },
+        "avatarScale": 1,
+        "linkedin": null,
+        "github": null,
+        "twitter": null,
+        "facebook": "https://www.facebook.com/eliza.mehek.14",
+        "mail": "mailto::mermaidriyahasan188@gmail.com"
+      },
+      {
+        "position": "Joint Organizing Secretary",
+        "name": "Md. Akramul Hoque",
+        "studentId": "221002565",
+        "avatarUrl": "/executives/221002565.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8,
+        "linkedin": "https://www.linkedin.com/in/md-akramul-hoque-reja-18497b232",
+        "github": "https://github.com/Akramul-565",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/share/1DjxyfykpE/",
+        "mail": "mailto::m.a.h.reja1@gmail.com"
+      },
+      {
+        "position": "Event Coordinator",
+        "name": "Tanveer Ahmed Ziad",
+        "studentId": "231902048",
+        "avatarUrl": "/executives/231902048.png",
+        "avatarPosition": {
+          "x": 7,
+          "y": 8
+        },
+        "avatarScale": 1,
+        "linkedin": "https://www.linkedin.com/in/tanveer-ziad-785855246/",
+        "github": "https://github.com/TanveerZiad",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/tanveerziad7",
+        "mail": "mailto::tanveer.ziad@gmail.com"
+      },
+      {
+        "position": "Programming and Development Secretary",
+        "name": "Nurul Huda (Apon)",
+        "studentId": "221902012",
+        "avatarUrl": "/executives/221902012.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.9,
+        "linkedin": "https://www.linkedin.com/in/nurulhudaapon/?originalSubdomain=bd",
+        "github": "https://github.com/nurulhudaapon",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/nurulhudaapon",
+        "mail": "mailto::me@nurulhudaapon.com"
+      },
+      {
+        "position": "Programming and Development Secretary (Activity)",
+        "name": "Fahmida Akter Nupur",
+        "studentId": "221902385",
+        "avatarUrl": "/executives/221902385.png",
+        "avatarPosition": {
+          "x": 4,
+          "y": -7
+        },
+        "avatarScale": 0.8,
+        "linkedin": "https://www.linkedin.com/in/fahmida-akter-nupur-53643426a/",
+        "github": "https://github.com/nupur221",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/nupur.385",
+        "mail": "mailto::fahmidanupur99@gmail.com"
+      },
+      {
+        "position": "Programming and Development Secretary (Technical)",
+        "name": "Mohabbat Marjuk Muttaki",
+        "studentId": "231902001",
+        "avatarUrl": "/executives/231902001.png",
+        "avatarPosition": {
+          "x": 7,
+          "y": -4
+        },
+        "avatarScale": 0.8,
+        "linkedin": "https://www.linkedin.com/in/mohabbat69/",
+        "github": "https://github.com/Andrew-Velox",
+        "twitter": null,
+        "facebook": "https://facebook.com/mohabbat404",
+        "mail": "mailto::mohabbat.bd2020@gmail.com"
+      },
+      {
+        "position": "Information Secretary",
+        "name": "Mehreen Jerin Khan",
+        "studentId": "222902019",
+        "avatarUrl": "/executives/222902019.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8,
+        "linkedin": "https://www.linkedin.com/in/mehreen-jerin-khan-5a1718297/",
+        "github": "https://github.com/mehrinmehu",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/zzerryy",
+        "mail": "mailto::mehrinzerin24@gmail.com"
+      },
+      {
+        "position": "Joint Information Secretary",
+        "name": "Bakul Ahmed",
+        "studentId": "232002184",
+        "avatarUrl": "/executives/232002184.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.7,
+        "linkedin": "https://www.linkedin.com/in/bakulahmed",
+        "github": "https://github.com/BakulBd",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/ibakul",
+        "mail": "mailto::bokula88@gmail.com"
+      },
+      {
+        "position": "Outreach Secretary",
+        "name": "Tasmia Noor Tama",
+        "studentId": "223902001",
+        "avatarUrl": "/executives/223902001.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8,
+        "linkedin": null,
+        "github": "https://github.com/",
+        "twitter": null,
+        "facebook": null,
+        "mail": "mailto::ttasmianoor@gmail.com"
+      },
+      {
+        "position": "Publication Secretary",
+        "name": "Pranta Sarker",
+        "studentId": "221002516",
+        "avatarUrl": "/executives/221002516.png",
+        "avatarPosition": {
+          "x": -6,
+          "y": 2
+        },
+        "avatarScale": 0.9,
+        "linkedin": "https://www.linkedin.com/in/pranta-sarker-sarker-60924433b/",
+        "github": "https://github.com/sarker01",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/prasanta.sarker.710",
+        "mail": "mailto::prantasarkergub@gmail.com"
+      },
+      {
+        "position": "Joint Publication Secretary",
+        "name": "Rahat Hossain Himel",
+        "studentId": "231902018",
+        "avatarUrl": "/executives/231902018.png",
+        "avatarPosition": {
+          "x": -19,
+          "y": 2
+        },
+        "avatarScale": 0.9,
+        "linkedin": "https://www.linkedin.com/in/itshimelz/",
+        "github": "https://github.com/itshimelz",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/itshimelz",
+        "mail": "mailto::himelhasan1215@gmail.com"
+      },
+      {
+        "position": "Cultural Secretary",
+        "name": "Israt Hossain",
+        "studentId": "221902331",
+        "avatarUrl": "/executives/221902331.png",
+        "avatarPosition": {
+          "x": 3,
+          "y": -9
+        },
+        "avatarScale": 0.8,
+        "linkedin": null,
+        "github": null,
+        "twitter": null,
+        "facebook": "https://www.facebook.com/share/1HaPsQdacb/",
+        "mail": "mailto::221902331@student.green.edu.bd"
+      },
+      {
+        "position": "Joint Cultural Secretary",
+        "name": "Shakib Hasan",
+        "studentId": "241002036",
+        "avatarUrl": "/executives/241002036.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8,
+        "linkedin": "https://www.linkedin.com/in/shakib-hasan-118571193",
+        "github": "https://github.com/shakibhasan101",
+        "twitter": null,
+        "facebook": "https://facebook.com/shakibhasan101",
+        "mail": "mailto::shakibhasan1040@gmail.com"
+      },
+      {
+        "position": "Graphics and Multimedia Coordinator",
+        "name": "Majharul Islam",
+        "studentId": "232002256",
+        "avatarUrl": "/executives/232002256.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 2
+        },
+        "avatarScale": 0.9,
+        "linkedin": "https://www.linkedin.com/in/majharul-islam-68945326b/",
+        "github": "https://github.com/MrMajharul",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/majharul.islam.891882",
+        "mail": "mailto::majharul.cs@gmail.com"
+      },
+      {
+        "position": "Media Production Coordinator",
+        "name": "Mohammad Sajid Hossain",
+        "studentId": "221902116",
+        "avatarUrl": "/executives/221902116.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.9,
+        "linkedin": null,
+        "github": null,
+        "twitter": null,
+        "facebook": "https://www.facebook.com/aayan_sajid88",
+        "mail": "mailto::aayansajid88@gmail.com"
+      },
+      {
+        "position": "Photography Secretary",
+        "name": "MD Nahiduzzaman Dipu",
+        "studentId": "223002150",
+        "avatarUrl": "/executives/223002150.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8,
+        "linkedin": "https://www.linkedin.com/in/mdnahiduzzamandipu?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app",
+        "github": "https://github.com/NahiduzzamanDipu",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/share/1AE5Jw1RDG/?mibextid=wwXIfr",
+        "mail": "mailto::mdnahiduzzamandipu@gmail.com"
+      },
+      {
+        "position": "Sports Secretary",
+        "name": "Md. Fazle Rabbi Riyad",
+        "studentId": "213002027",
+        "avatarUrl": "/executives/213002027.png",
+        "avatarPosition": {
+          "x": -13,
+          "y": 13
+        },
+        "avatarScale": 1,
+        "linkedin": "https://www.linkedin.com/in/riyadsheikh27",
+        "github": "https://github.com/RiyadSheikh27",
+        "twitter": null,
+        "facebook": "https://m.facebook.com/fazle.riyad/",
+        "mail": "mailto::riyad.cse27@gmail.com"
+      },
+      {
+        "position": "Executive Member-1",
+        "name": "Md. Jawadul Hassan Sowmik",
+        "studentId": "241002002",
+        "avatarUrl": "/executives/241002002.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8,
+        "linkedin": "https://www.linkedin.com/in/jawadul-hasan-sowmik-13028b355",
+        "github": "https://github.com/Jawadul-Hasan",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/jawadulhasan04/",
+        "mail": "mailto::jhsowmik35@gamil.com"
+      },
+      {
+        "position": "Executive Member-2",
+        "name": "Md Farhad",
+        "studentId": "241002017",
+        "avatarUrl": "/executives/241002017.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.8,
+        "linkedin": "https://www.linkedin.com/in/md-farhad-a5410a397",
+        "github": "https://github.com/Farhad-Bhuiyan",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/share/1AE1weBiBN/",
+        "mail": "mailto::md1660782@gmail.com"
+      },
+      {
+        "position": "Executive Member-3",
+        "name": "Nafisa Anjum Dina",
+        "studentId": "242002136",
+        "avatarUrl": "/executives/242002136.png",
+        "avatarPosition": {
+          "x": 0,
+          "y": 0
+        },
+        "avatarScale": 0.9,
+        "linkedin": null,
+        "github": null,
+        "twitter": null,
+        "facebook": "https://www.facebook.com/profile.php?id=61569530049287",
+        "mail": "mailto::nafisaanjumdina019@gmail.com"
+      },
+      {
+        "position": "Executive Member-4",
+        "name": "Nusrat Jahan Sumaiya",
+        "studentId": "242002167",
+        "avatarUrl": "/executives/242002167.png",
+        "avatarPosition": {
+          "x": -4,
+          "y": -5
+        },
+        "avatarScale": 0.9,
+        "linkedin": "https://www.linkedin.com/in/nusrat-jahan-sumaiya-8aba342a6?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
+        "github": "https://github.com/nusrat167",
+        "twitter": null,
+        "facebook": "https://www.facebook.com/share/1A5Fc8GwrY/",
+        "mail": "mailto::nusrat23200@gmail.com"
+      }
+    ]
+  },
+  {
+    "year": "2026",
+    "campuses": {
+      "gucc": {
+        "facultyMembers": [
+          {
+            "position": "Moderator",
+            "name": "Md. Monirul Islam",
+            "designation": "Assistant Professor",
+            "avatarUrl": "/executives/monirul.cse.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": -15
+            },
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Feroza Naznin",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/feroza.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": -15
+            },
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Montaser Abdul Quader",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/montaser.cse.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": -15
+            },
+            "avatarScale": 0.8
+          }
+        ],
+        "studentExecutives": [
+          {
+            "position": "President",
+            "name": "Tanveer Ahmed Ziad",
+            "studentId": "231902048",
+            "avatarUrl": "/executives/231902048.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/tanveer-ziad07",
+            "github": "https://github.com/TanveerZiad",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/tanveerziad7",
+            "mail": "tanveer.ziad@gmail.com"
+          },
+          {
+            "position": "Vice-President (Activity)",
+            "name": "Tasmia Noor Tama",
+            "studentId": "223902001",
+            "avatarUrl": "/executives/223902001.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": null,
+            "mail": "mailto::tasmianoortama@gmail.com"
+          },
+          {
+            "position": "Vice-President (Technical)",
+            "name": "Md. Sajjad Mahmud Suton",
+            "studentId": "232002218",
+            "avatarUrl": "/executives/232002218.png",
+            "avatarPosition": {
+              "x": -20,
+              "y": -15
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/md-sajjad-mahmud-suton-344a802a7",
+            "github": "https://github.com/Sajjad-Mahmud-Suton",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/sajjadmahmudsuton.suton/",
+            "mail": "mailto::sajjadmahmudsuton@gmail.com"
+          },
+          {
+            "position": "General Secretary",
+            "name": "Bakul Ahmed",
+            "studentId": "232002184",
+            "avatarUrl": "/executives/232002184.png",
+            "avatarPosition": {
+              "x": -10,
+              "y": -15
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/bakulahmed",
+            "github": "https://github.com/bakulbd",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/ibakul",
+            "mail": "mailto::bakul.ahmedd@gmail.com"
+          },
+          {
+            "position": "Joint General Secretary (Activity)",
+            "name": "Md. Nasif Hasan Toha",
+            "studentId": "223902009",
+            "avatarUrl": "/executives/223902009.png",
+            "avatarPosition": {
+              "x": -20,
+              "y": -10
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/md-nasif-hasan/",
+            "github": "https://github.com/Nasif-Hasan",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/nasifhasan.toha",
+            "mail": "mailto::nasifhasan35@gmail.com"
+          },
+          {
+            "position": "Joint General Secretary (Technical)",
+            "name": "Md. Farhad",
+            "studentId": "241002017",
+            "avatarUrl": "/executives/241002017.png",
+            "avatarPosition": {
+              "x": -10,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/md-farhad-a5410a397",
+            "github": "https://github.com/Farhad-Bhuiyan",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/md.rimonbhuiyanfarhad/",
+            "mail": "mailto::mdfarhad24100@gmail.com"
+          },
+          {
+            "position": "Treasurer",
+            "name": "Majharul Islam",
+            "studentId": "232002256",
+            "avatarUrl": "/executives/232002256.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/majharul-islam-68945326b/",
+            "github": "https://github.com/MrMajharul",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/majharul.islam.891882",
+            "mail": "mailto::majharul.cs@gmail.com"
+          },
+          {
+            "position": "Joint Treasurer",
+            "name": "MD. Jawadul Hasan Sowmik",
+            "studentId": "241002002",
+            "avatarUrl": "/executives/241002002.png",
+            "avatarPosition": {
+              "x": -10,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/jawadul-hasan-sowmik-2775342a4/",
+            "github": "https://github.com/Jawadul-Hasan",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/JawadulHasanSowmik/",
+            "mail": "mailto::jhsowmik35@gmail.com"
+          },
+          {
+            "position": "Organizing Secretary",
+            "name": "Shakib Hasan",
+            "studentId": "241002036",
+            "avatarUrl": "/executives/241002036.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/shakib-hasan-118571193/",
+            "github": "https://github.com/shakibhasan101",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/shakibhasan101",
+            "mail": "mailto::shakibhasan1040@gmail.com"
+          },
+          {
+            "position": "Joint Organizing Secretary",
+            "name": "Nusrat Jahan Sumaiya",
+            "studentId": "242002167",
+            "avatarUrl": "/executives/242002167.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/nusrat-jahan-sumaiya-242002167gub",
+            "github": "https://github.com/nusrat167",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/1GKDwFPYNn/",
+            "mail": "mailto::nusrat23200@gmail.com"
+          },
+          {
+            "position": "Event Coordinator",
+            "name": "Sharna Das",
+            "studentId": "232002096",
+            "avatarUrl": "/executives/232002096.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/sharna-das-9ba799284",
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/1CwrwZJhCa/",
+            "mail": "mailto::sharna119058@gmail.com"
+          },
+          {
+            "position": "Programming Secretary",
+            "name": "Md. Al Imran Emon",
+            "studentId": "232002136",
+            "avatarUrl": "/executives/232002136.png",
+            "avatarPosition": {
+              "x": -15,
+              "y": -10
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/al-imran-emon/",
+            "github": "https://github.com/imranonweb",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/imranonweb1/",
+            "mail": "mailto::alimranemon93@gmail.com"
+          },
+          {
+            "position": "Programming Secretary (Activity)",
+            "name": "Jawad Hossain Mahi",
+            "studentId": "242002023",
+            "avatarUrl": "/executives/242002023.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": -10
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/jawadhossainmahi",
+            "github": "https://github.com/jawadhossainmahi",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/jawadhossainmahi/",
+            "mail": "mailto::jawadhossainmahi@gmail.com"
+          },
+          {
+            "position": "Programming Secretary (Technical)",
+            "name": "Shiplu Saha",
+            "studentId": "242002067",
+            "avatarUrl": "/executives/242002067.png",
+            "avatarPosition": {
+              "x": -8,
+              "y": -10
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/shiplu-saha-68635633a",
+            "github": "https://github.com/ShipluSaha995",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/shiplu.saha.1690",
+            "mail": "mailto::shiplusaha995@gmail.com"
+          },
+          {
+            "position": "Information Secretary",
+            "name": "Md Nazimul Islam",
+            "studentId": "232002216",
+            "avatarUrl": "/executives/232002216.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/nazimul216",
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/17SrRpoZD4/",
+            "mail": "mailto::nazimulll250@gmail.com"
+          },
+          {
+            "position": "Joint Information Secretary",
+            "name": "ABDULLAH MD GALIB",
+            "studentId": "251002029",
+            "avatarUrl": "/executives/251002029.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": null,
+            "mail": "mailto::muhammad.cse.gub@gmail.com"
+          },
+          {
+            "position": "Outreach Secretary",
+            "name": "Mymona Salim Phool",
+            "studentId": "242002078",
+            "avatarUrl": "/executives/242002078.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/mymona-salim-phool-b99589326",
+            "github": "https://github.com/phool078",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/mymona.salim.phool",
+            "mail": "mailto::mymonaphool@gmail.com"
+          },
+          {
+            "position": "Publication Secretary",
+            "name": "Mohona Akter Joty",
+            "studentId": "242002027",
+            "avatarUrl": "/executives/242002027.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/mohona-akter-joty-b87962348",
+            "github": "https://github.com/mohonajoty",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/1B8k8poppU/",
+            "mail": "mailto::jotyamir08@gmail.com"
+          },
+          {
+            "position": "Joint Publication Secretary",
+            "name": "Md.Main Uddin Hossain",
+            "studentId": "242002072",
+            "avatarUrl": "/executives/242002072.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/md.mainuddin.178138",
+            "mail": "mailto::main67479@gmail.com"
+          },
+          {
+            "position": "Cultural Secretary",
+            "name": "Jannatul Bushra Ananna",
+            "studentId": "232002267",
+            "avatarUrl": "/executives/232002267.png",
+            "avatarPosition": {
+              "x": -10,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": null,
+            "mail": "mailto::ananna0675@gmail.com"
+          },
+          {
+            "position": "Joint Cultural Secretary",
+            "name": "Nazmus Sakib",
+            "studentId": "242002062",
+            "avatarUrl": "/executives/242002062.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "http://www.linkedin.com/in/nazmus-sakib-7a95b1326",
+            "github": "https://github.com/Nazmussakib222834",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/1E2Bf7SN9P/",
+            "mail": "mailto::nazmussakib222834@gmail.com"
+          },
+          {
+            "position": "Graphics and Multimedia Coordinators (Lead)",
+            "name": "Md. Mamun Shahriar",
+            "studentId": "232002008",
+            "avatarUrl": "/executives/232002008.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/mamunshahriar/",
+            "github": "https://github.com/mamunshahriar",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/MamunShahriar.dev",
+            "mail": "mailto::hello.mamunshahriar@gmail.com"
+          },
+          {
+            "position": "Graphics and Multimedia Coordinators -1",
+            "name": "Sree Antor Chandra Adikari",
+            "studentId": "242002174",
+            "avatarUrl": "/executives/242002174.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/1Lt5zPhtwz/",
+            "mail": "mailto::antoradhikary169802@gmail.com"
+          },
+          {
+            "position": "Graphics and Multimedia Coordinators -2",
+            "name": "Asraful Azom Shimul",
+            "studentId": "251002017",
+            "avatarUrl": "/executives/251002017.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/asrafulazam.shimul.5",
+            "mail": "mailto::mdaashimul@gmail.com"
+          },
+          {
+            "position": "Photography Secretary",
+            "name": "Tasnimul Hasan Himel",
+            "studentId": "242002092",
+            "avatarUrl": "/executives/242002092.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/tasnimul-hasan-himel-b16b12360",
+            "github": "https://github.com/thimel07",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/web.developer.himel",
+            "mail": "mailto::t.h.himel07@gmail.com"
+          },
+          {
+            "position": "Sports Secretary",
+            "name": "Junayed Prodan",
+            "studentId": "242002044",
+            "avatarUrl": "/executives/242002044.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/1CCX5eV4Ra/",
+            "mail": "mailto::junayedprodan95@gmail.com"
+          },
+          {
+            "position": "Executive Member-1",
+            "name": "Mobashera Mim Diya",
+            "studentId": "232002231",
+            "avatarUrl": "/executives/232002231.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": -15
+            },
+            "avatarScale": 1,
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": null,
+            "mail": "mailto::mobassharamim3611@gmail.com"
+          },
+          {
+            "position": "Executive Member-2",
+            "name": "Sanjida Akter",
+            "studentId": "232002040",
+            "avatarUrl": "/executives/232002040.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://bd.linkedin.com/in/sanjida-akter-26a095407",
+            "github": "https://github.com/Saanjidaa",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/1Cgk1kcgci/",
+            "mail": "mailto::sanzidazahan990@gmail.com"
+          },
+          {
+            "position": "Executive Member-3",
+            "name": "Khandakar Fazilat",
+            "studentId": "242002049",
+            "avatarUrl": "/executives/242002049.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/1B3NiLXti3/",
+            "mail": "mailto::khandakarfazilat@gmail.com"
+          },
+          {
+            "position": "Executive Member-4",
+            "name": "Ayrin Rahman Meem",
+            "studentId": "242002172",
+            "avatarUrl": "/executives/242002172.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/17G3rNbgLY/",
+            "mail": "mailto::ayrin0rahman@gmail.com"
+          },
+          {
+            "position": "Executive Member-5",
+            "name": "Afroja Akter",
+            "studentId": "251002106",
+            "avatarUrl": "/executives/251002106.png",
+            "avatarPosition": {
+              "x": -10,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/afroja-akter-a712b5407",
+            "github": "https://github.com/adibaafroj91-hub",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/1FRHaBsziw/",
+            "mail": "mailto::afroja.adiba06@gmail.com"
+          },
+          {
+            "position": "Executive Member-6",
+            "name": "Mehedi Hasan Auntik",
+            "studentId": "252002015",
+            "avatarUrl": "/executives/252002015.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/mehedi-hasan-auntik-a132ab407/",
+            "github": "https://github.com/auntik75-hash",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/mehedihasan.auntik/",
+            "mail": "mailto:auntik75@gmail.com"
+          },
+          {
+            "position": "Executive Member-7",
+            "name": "Mohibul Islam Rajon",
+            "studentId": "252002138",
+            "avatarUrl": "/executives/252002138.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": 0
+            },
+            "avatarScale": 1,
+            "linkedin": "https://www.linkedin.com/in/mohibul-islam-rajon",
+            "github": "https://github.com/rajon-eng",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/1Aqsi3ptsG/",
+            "mail": "mailto::rajonadmission@gmail.com"
+          }
+        ]
+      },
+      "css": {
+        "facultyMembers": [
+          {
+            "position": "Moderator",
+            "name": "Md. Monirul Islam",
+            "designation": "Assistant Professor",
+            "avatarUrl": "/executives/monirul.cse.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": -15
+            },
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Feroza Naznin",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/feroza.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": -15
+            },
+            "avatarScale": 0.8
+          },
+          {
+            "position": "Deputy Moderator",
+            "name": "Montaser Abdul Quader",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/montaser.cse.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": -15
+            },
+            "avatarScale": 0.8
+          }
+        ],
+        "studentExecutives": [
+          {
+            "position": "Chair",
+            "name": "Mahady Hasan Fahim",
+            "studentId": "221002469",
+            "department": "CSE",
+            "phone": "8801722003285",
+            "whatsapp": "8801722003285",
+            "linkedin": "https://www.linkedin.com/in/fmahadybd/",
+            "github": "https://github.com/fmahadyBD",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/fmahadyBD/",
+            "mail": "mailto:fmahady01@gmail.com"
+          },
+          {
+            "position": "Vice Chair",
+            "name": "Md. Robiul Islam",
+            "studentId": "222002068",
+            "department": "CSE",
+            "phone": "8801770120136",
+            "whatsapp": "8801770120136",
+            "linkedin": "https://www.linkedin.com/in/wdrobi",
+            "github": "https://github.com/Wdrobi",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/wdrobi17/",
+            "mail": "mailto:md.robiulislam.qcsc@gmail.com"
+          },
+          {
+            "position": "General Secretary",
+            "name": "Ashrafun Nahar Arifa",
+            "studentId": "222002066",
+            "department": "CSE",
+            "phone": "8801780213066",
+            "whatsapp": "8801780213066",
+            "linkedin": "https://www.linkedin.com/in/ashrafun-nahar-arifa",
+            "github": "https://github.com/anaArifa",
+            "twitter": null,
+            "facebook": "https://m.facebook.com/ashrafunnahar.arifa/",
+            "mail": "mailto:ashrafunnahararifa@gmail.com"
+          },
+          {
+            "position": "Red Team Secretary",
+            "name": "Nuren Abreshum Anonta",
+            "studentId": "222902092",
+            "department": "CSE",
+            "phone": "8801853305411",
+            "whatsapp": "8801853305411",
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/1CnsmTDxUa/",
+            "mail": "mailto:ramiannuren9@gmail.com"
+          },
+          {
+            "position": "Treasurer",
+            "name": "Thiaba Rahman Methi",
+            "studentId": "232002042",
+            "department": "CSE",
+            "phone": "8801775575705",
+            "whatsapp": "8801775575705",
+            "linkedin": "https://www.linkedin.com/in/taiyeaba-rahman-4b2ab1282?utm_source=share_via&utm_content=profile&utm_medium=member_android",
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/1CXiBiGWqG/",
+            "mail": "mailto:methithiabarahman@gmail.com"
+          },
+          {
+            "position": "Organizing Secretary",
+            "name": "Tanvir Hasan Abokash",
+            "studentId": "232002279",
+            "department": "CSE",
+            "phone": "8801821713904",
+            "whatsapp": "8801821713904",
+            "linkedin": null,
+            "github": "https://github.com/TanvirHasanCSE",
+            "twitter": null,
+            "facebook": null,
+            "mail": "mailto:en.tanvir.cse@gmail.com"
+          },
+          {
+            "position": "Blue Team Secretary",
+            "name": "Abdullah",
+            "studentId": "242002059",
+            "department": "CSE",
+            "phone": "8801816349972",
+            "whatsapp": "8801816349972",
+            "linkedin": "https://www.linkedin.com/in/abdullahalfahim01",
+            "github": "https://github.com/abdullah-alfahim",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/abdullah.niFahim",
+            "mail": "mailto:abdullasadarpur99@gmail.com"
+          },
+          {
+            "position": "CTF Secretary",
+            "name": "Shoaib",
+            "studentId": "232002075",
+            "department": "CSE",
+            "phone": "8801403605646",
+            "whatsapp": "8801403605646",
+            "linkedin": "https://www.linkedin.com/in/shoaib121/",
+            "github": "https://github.com/asoaib121",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/profile.php?id=61580838216490",
+            "mail": "mailto:asoaib121@gmail.com"
+          },
+          {
+            "position": "Graphics and Multimedia Secretary",
+            "name": "Rezanur Rahman Anan",
+            "studentId": "242002101",
+            "department": "CSE",
+            "phone": "8801766939876",
+            "whatsapp": "8801766939876",
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/rezanur.anan1",
+            "mail": "mailto:rezanur.anan@gmail.com"
+          },
+          {
+            "position": "Executive Member",
+            "name": "Md. Tarikul Islam Tuhen",
+            "studentId": "242002137",
+            "department": "CSE",
+            "phone": "8801611382895",
+            "whatsapp": "8801611382895",
+            "linkedin": "https://www.linkedin.com/in/md-tarikul-934404364?utm_source=share_via&utm_content=profile&utm_medium=member_ios",
+            "github": "https://github.com/dashboard",
+            "twitter": null,
+            "facebook": "https://www.facebook.com/mdtarikul.islamtuhin.94",
+            "mail": "mailto:mdtarikul543345@gmail.com"
+          },
+          {
+            "position": "Executive Member",
+            "name": "Shahta Jarab",
+            "studentId": "250002098",
+            "department": "CSE",
+            "phone": "8801916962649",
+            "whatsapp": "8801916962649",
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/17K9hZ5SYN/",
+            "mail": "mailto:sjmunif@gmail.com"
+          },
+          {
+            "position": "Executive Member",
+            "name": "MD Arman Hossain Rifat",
+            "studentId": "242002053",
+            "department": "CSE",
+            "phone": "8801518935842",
+            "whatsapp": "8801518935842",
+            "linkedin": "https://www.linkedin.com/in/arman-hossain-rifat?utm_source=share_via&utm_content=profile&utm_medium=member_android",
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/ashbin.islam.2025",
+            "mail": "mailto:armanhossainrifat1234@gmail.com"
+          },
+          {
+            "position": "Executive Member",
+            "name": "Romana Zaman",
+            "studentId": "250002107",
+            "department": "CSE",
+            "phone": "8801928002629",
+            "whatsapp": "8801928002629",
+            "linkedin": null,
+            "github": null,
+            "twitter": null,
+            "facebook": "https://www.facebook.com/share/18s78ptECs/",
+            "mail": "mailto:rokanuzzamanmd2@gmail.com"
+          }
+        ]
+      }
+    }
+  }
+]
