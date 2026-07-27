@@ -644,7 +644,7 @@ function PartnersMarquee({ partners }: { partners: Partner[] }) {
 }
 
 /* ─── Gallery ────────────────────────────────────────── */
-const GALLERY_IMAGES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const GALLERY_IMAGES = [65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 78];
 
 function Gallery() {
   const [lightbox, setLightbox] = useState<number | null>(null);
