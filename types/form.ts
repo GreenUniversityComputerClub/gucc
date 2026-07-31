@@ -72,7 +72,7 @@ export interface FormField {
 
 export interface FormPage {
   title?: string
-  /** Shown to the person filling out the form, above the fields on this page/segment */
+  /** Sanitized rich-text HTML shown to the person filling out the form, above the fields on this page/segment */
   description?: string
 }
 
@@ -80,20 +80,30 @@ export interface FormConfig {
   id: string
   userId: string
   title: string
+  /** Sanitized rich-text HTML (bold, lists, links, etc.), not plain text */
   description?: string
   logoUrl?: string
-  /** Where the logo renders relative to the title/description. Defaults to "top" (above the title). */
-  logoPosition?: "top" | "below-description"
+  /** Where the banner image renders relative to the title/description. Defaults to "top". */
+  logoPosition?: "top" | "below-description" | "left" | "right" | "background"
   rulebookUrl?: string
   rulebookFileName?: string
-  /** Google Drive folder (shared with the service account) where logo/rulebook/submission files are stored */
+  /** @deprecated Google Drive folder id — no longer used for new uploads (Supabase Storage is used instead). Kept so old forms still resolve any Drive-hosted links they already saved. */
   driveFolderId?: string
   sheetId: string
   sheetName: string
   fields: FormField[]
   pages: FormPage[]
   submitLabel?: string
+  /** Sanitized rich-text HTML shown after submission when successAction is "message" */
   successMessage?: string
+  /** Image shown alongside the success message */
+  successImageUrl?: string
+  /** What happens right after a successful submission. Defaults to "message". */
+  successAction?: "message" | "redirect"
+  /** External URL to send the user to when successAction is "redirect" */
+  redirectUrl?: string
+  /** Seconds to show the "redirecting..." screen before navigating away. Defaults to 3. */
+  redirectDelaySeconds?: number
   createdAt: string
   updatedAt: string
 }
