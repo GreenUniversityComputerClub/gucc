@@ -87,15 +87,22 @@ export async function checkUniqueness(
   values: Record<string, string>
 ): Promise<{ ok: boolean; conflictField?: string; conflictValue?: string }> {
   const uniqueFields = form.fields.filter((f) => f.isUnique)
-  for (const field of uniqueFields) {
-    const fieldIndex = form.fields.indexOf(field)
-    const existing = await getColumnValues(form.sheetId, form.sheetName, fieldIndex + 1)
-    const submitted = values[field.id] ?? ""
-    if (submitted && existing.includes(submitted)) {
-      return { ok: false, conflictField: field.label, conflictValue: submitted }
-    }
-  }
-  return { ok: true }
+
+  // Each check is an independent Sheets API read — run them concurrently instead
+  // of one-by-one so forms with several unique fields don't pile up latency.
+  const results = await Promise.all(
+    uniqueFields.map(async (field) => {
+      const fieldIndex = form.fields.indexOf(field)
+      const existing = await getColumnValues(form.sheetId, form.sheetName, fieldIndex + 1)
+      const submitted = values[field.id] ?? ""
+      if (submitted && existing.includes(submitted)) {
+        return { ok: false as const, conflictField: field.label, conflictValue: submitted }
+      }
+      return { ok: true as const }
+    })
+  )
+
+  return results.find((r) => !r.ok) ?? { ok: true }
 }
 
 export async function appendRow(

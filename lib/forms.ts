@@ -68,7 +68,11 @@ export async function saveForm(
     fields: config.fields ?? [],
     pages: config.pages ?? [{ title: "Page 1" }],
     submitLabel: config.submitLabel ?? "Submit",
-    successMessage: config.successMessage ?? "Thank you! Your response has been recorded.",
+    successMessage: config.successMessage ?? existing?.successMessage ?? "Thank you! Your response has been recorded.",
+    successImageUrl: config.successImageUrl ?? existing?.successImageUrl ?? "",
+    successAction: config.successAction ?? existing?.successAction ?? "message",
+    redirectUrl: config.redirectUrl ?? existing?.redirectUrl ?? "",
+    redirectDelaySeconds: config.redirectDelaySeconds ?? existing?.redirectDelaySeconds ?? 3,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   }
