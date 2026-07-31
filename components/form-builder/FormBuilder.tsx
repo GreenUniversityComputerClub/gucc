@@ -5,10 +5,10 @@ import { v4 as uuidv4 } from "uuid"
 import { FormConfig, FormField, FieldType } from "@/types/form"
 import FieldPalette from "./FieldPalette"
 import FieldEditor from "./FieldEditor"
+import RichTextEditor from "./RichTextEditor"
 import PageManager from "@/options/PageManager"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -27,6 +27,8 @@ import {
   FileText,
   X,
   KeyRound,
+  Link2,
+  MessageSquare,
 } from "lucide-react"
 
 interface FormBuilderProps {
@@ -39,7 +41,7 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
   const [title, setTitle] = useState(initial?.title ?? "Untitled Form")
   const [description, setDescription] = useState(initial?.description ?? "")
   const [logoUrl, setLogoUrl] = useState(initial?.logoUrl ?? "")
-  const [logoPosition, setLogoPosition] = useState<"top" | "below-description">(
+  const [logoPosition, setLogoPosition] = useState<"top" | "below-description" | "left" | "right" | "background">(
     initial?.logoPosition ?? "top"
   )
   const [rulebookUrl, setRulebookUrl] = useState(initial?.rulebookUrl ?? "")
@@ -48,17 +50,20 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
   const [uploadingRulebook, setUploadingRulebook] = useState(false)
   const [logoError, setLogoError] = useState<string | null>(null)
   const [rulebookError, setRulebookError] = useState<string | null>(null)
-  const [driveFolderUrl, setDriveFolderUrl] = useState(initial?.driveFolderId ?? "")
-  const [validatingFolder, setValidatingFolder] = useState(false)
-  const [folderValid, setFolderValid] = useState<boolean | null>(null)
-  const [folderError, setFolderError] = useState<string | null>(null)
-  const [folderName, setFolderName] = useState<string | null>(null)
   const [sheetUrl, setSheetUrl] = useState(initial?.sheetId ?? "")
   const [sheetName, setSheetName] = useState(initial?.sheetName ?? "Sheet1")
   const [submitLabel, setSubmitLabel] = useState(initial?.submitLabel ?? "Submit")
   const [successMessage, setSuccessMessage] = useState(
     initial?.successMessage ?? "Thank you! Your response has been recorded."
   )
+  const [successAction, setSuccessAction] = useState<"message" | "redirect">(
+    initial?.successAction ?? "message"
+  )
+  const [successImageUrl, setSuccessImageUrl] = useState(initial?.successImageUrl ?? "")
+  const [uploadingSuccessImage, setUploadingSuccessImage] = useState(false)
+  const [successImageError, setSuccessImageError] = useState<string | null>(null)
+  const [redirectUrl, setRedirectUrl] = useState(initial?.redirectUrl ?? "")
+  const [redirectDelaySeconds, setRedirectDelaySeconds] = useState(initial?.redirectDelaySeconds ?? 3)
   const [fields, setFields] = useState<FormField[]>(initial?.fields ?? [])
   const [pages, setPages] = useState(initial?.pages ?? [{ title: "Page 1" }])
   const [currentPage, setCurrentPage] = useState(0)
@@ -156,12 +161,12 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
     setDragOverIndex(null)
   }
 
-  // ── Logo / Rule book uploads ────────────────────────────────────
-  const uploadAsset = async (file: File, fieldId: "form-logo" | "form-rulebook") => {
+  // ── Logo / Rule book / Success image uploads (Supabase Storage) ─────────
+  const uploadAsset = async (file: File, fieldId: "form-logo" | "form-rulebook" | "form-success-image") => {
     const fd = new FormData()
     fd.append("file", file)
     fd.append("fieldId", fieldId)
-    fd.append("folderId", driveFolderUrl)
+    if (savedFormId) fd.append("formId", savedFormId)
     const res = await fetch("/api/upload", { method: "POST", body: fd })
     const json = await res.json()
     if (!res.ok || json.error) throw new Error(json.error ?? "Upload failed")
@@ -171,11 +176,6 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!driveFolderUrl.trim()) {
-      setLogoError("Add your Google Drive folder link below first — uploads are stored there.")
-      e.target.value = ""
-      return
-    }
     setUploadingLogo(true)
     setLogoError(null)
     try {
@@ -192,11 +192,6 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
   const handleRulebookChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!driveFolderUrl.trim()) {
-      setRulebookError("Add your Google Drive folder link below first — uploads are stored there.")
-      e.target.value = ""
-      return
-    }
     setUploadingRulebook(true)
     setRulebookError(null)
     try {
@@ -211,27 +206,19 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
     }
   }
 
-  const validateFolder = async () => {
-    if (!driveFolderUrl.trim()) return
-    setValidatingFolder(true)
-    setFolderError(null)
+  const handleSuccessImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingSuccessImage(true)
+    setSuccessImageError(null)
     try {
-      const params = new URLSearchParams({ folderId: driveFolderUrl })
-      const res = await fetch(`/api/drive/validate?${params}`)
-      const json = await res.json()
-      if (!res.ok || json.error) {
-        setFolderValid(false)
-        setFolderError(json.error ?? "Could not verify this folder")
-        setFolderName(null)
-      } else {
-        setFolderValid(true)
-        setFolderName(json.data?.name ?? null)
-      }
-    } catch {
-      setFolderValid(false)
-      setFolderError("Network error while verifying folder")
+      const { url } = await uploadAsset(file, "form-success-image")
+      setSuccessImageUrl(url)
+    } catch (err) {
+      setSuccessImageError(err instanceof Error ? err.message : "Upload failed")
     } finally {
-      setValidatingFolder(false)
+      setUploadingSuccessImage(false)
+      e.target.value = ""
     }
   }
 
@@ -272,13 +259,16 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
         logoPosition,
         rulebookUrl,
         rulebookFileName,
-        driveFolderId: driveFolderUrl,
         sheetId: sheetUrl,
         sheetName,
         fields,
         pages,
         submitLabel,
         successMessage,
+        successAction,
+        successImageUrl,
+        redirectUrl,
+        redirectDelaySeconds,
       })
       setSavedFormId(saved.id)
       setSaveStatus("success")
@@ -341,14 +331,19 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
             {logoError && <p className="text-[11px] text-destructive">{logoError}</p>}
             {logoUrl && (
               <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-0.5">
-                Logo position:
+                Banner position:
                 <select
                   value={logoPosition}
-                  onChange={(e) => setLogoPosition(e.target.value as "top" | "below-description")}
+                  onChange={(e) =>
+                    setLogoPosition(e.target.value as "top" | "below-description" | "left" | "right" | "background")
+                  }
                   className="text-[11px] border rounded px-1 py-0.5 bg-background"
                 >
                   <option value="top">Top, above title</option>
                   <option value="below-description">Below description</option>
+                  <option value="left">Left of title</option>
+                  <option value="right">Right of title</option>
+                  <option value="background">Background, behind title</option>
                 </select>
               </label>
             )}
@@ -384,12 +379,11 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
           {/* Form meta */}
           <Card>
             <CardContent className="pt-5 space-y-3">
-              <Textarea
+              <RichTextEditor
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Form description (optional)..."
-                rows={2}
-                className="resize-none border-none shadow-none focus-visible:ring-0 px-0 text-sm text-muted-foreground"
+                onChange={setDescription}
+                placeholder="Form description (optional)... paste from ChatGPT/Docs and formatting carries over"
+                className="border-none [&>div:first-child]:rounded-none [&>div:first-child]:border-x-0 [&>div:first-child]:border-t-0"
               />
 
               {/* Rule book / attachment PDF, shown alongside the description */}
@@ -443,11 +437,11 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
               {/* Setup instructions + the email that needs Editor access */}
               <div className="rounded-md border bg-muted/30 p-3 space-y-2">
                 <p className="text-xs font-medium flex items-center gap-1.5">
-                  <KeyRound className="h-3.5 w-3.5" /> Google Sheets & Drive access
+                  <KeyRound className="h-3.5 w-3.5" /> Google Sheets access
                 </p>
                 <ol className="text-[11px] text-muted-foreground list-decimal list-inside space-y-0.5">
                   <li>Create or open the Google Sheet you want responses saved to, and share it with the email below as <span className="font-medium">Editor</span>. Paste its URL and click Verify.</li>
-                  <li>Create (or pick) a Google Drive folder for uploads — logos, rule books, and any file/image fields people submit. Share that folder with the same email as <span className="font-medium">Editor</span>, then paste its URL and click Verify.</li>
+                  <li>Uploaded images and files (banner, rule book, file/image fields) are stored in Supabase automatically — no setup needed here.</li>
                 </ol>
                 {serviceAccountEmail && (
                   <div className="flex items-center gap-2">
@@ -518,40 +512,6 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
                     className="text-xs h-8"
                   />
                 </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Google Drive Folder URL or ID (for uploads)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={driveFolderUrl}
-                    onChange={(e) => {
-                      setDriveFolderUrl(e.target.value)
-                      setFolderValid(null)
-                    }}
-                    placeholder="Paste Drive folder URL..."
-                    className="text-xs h-8"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs shrink-0"
-                    onClick={validateFolder}
-                    disabled={validatingFolder || !driveFolderUrl.trim()}
-                  >
-                    {validatingFolder ? <Loader2 className="h-3 w-3 animate-spin" /> : "Verify"}
-                  </Button>
-                </div>
-                {folderValid === true && (
-                  <p className="text-xs text-green-600 flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> Connected{folderName ? ` to "${folderName}"` : ""}
-                  </p>
-                )}
-                {folderValid === false && (
-                  <p className="text-xs text-destructive flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" /> {folderError}
-                  </p>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -661,24 +621,128 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
               <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                 <Settings2 className="h-3.5 w-3.5" /> Submit Settings
               </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Button Label</Label>
-                  <Input
-                    value={submitLabel}
-                    onChange={(e) => setSubmitLabel(e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Success Message</Label>
-                  <Input
-                    value={successMessage}
-                    onChange={(e) => setSuccessMessage(e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                </div>
+              <div className="space-y-1 max-w-xs">
+                <Label className="text-xs">Button Label</Label>
+                <Input
+                  value={submitLabel}
+                  onChange={(e) => setSubmitLabel(e.target.value)}
+                  className="h-8 text-xs"
+                />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* After submission */}
+          <Card>
+            <CardContent className="pt-5 space-y-3">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <MessageSquare className="h-3.5 w-3.5" /> After Submission
+              </p>
+
+              <div className="flex gap-2">
+                {(
+                  [
+                    { value: "message", label: "Show a message" },
+                    { value: "redirect", label: "Redirect to a link" },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setSuccessAction(opt.value)}
+                    className={`flex-1 text-xs py-1.5 rounded border transition-colors ${
+                      successAction === opt.value
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-muted-foreground"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {successAction === "message" ? (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Success Message</Label>
+                    <RichTextEditor
+                      value={successMessage}
+                      onChange={setSuccessMessage}
+                      placeholder="Thank you! Your response has been recorded."
+                      minHeight="60px"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Success Image (optional)</Label>
+                    {successImageUrl ? (
+                      <div className="flex items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={successImageUrl}
+                          alt="Success"
+                          className="h-14 w-14 rounded object-cover border"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => setSuccessImageUrl("")}
+                        >
+                          <X className="h-3.5 w-3.5 mr-1" /> Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center gap-1.5 text-xs border rounded-md px-2.5 py-1.5 cursor-pointer hover:bg-muted/50 text-muted-foreground w-fit">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleSuccessImageChange}
+                          disabled={uploadingSuccessImage}
+                        />
+                        {uploadingSuccessImage ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <ImagePlus className="h-3.5 w-3.5" />
+                        )}
+                        {uploadingSuccessImage ? "Uploading..." : "Add Image"}
+                      </label>
+                    )}
+                    {successImageError && (
+                      <p className="text-[11px] text-destructive">{successImageError}</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs flex items-center gap-1">
+                      <Link2 className="h-3 w-3" /> Redirect URL
+                    </Label>
+                    <Input
+                      value={redirectUrl}
+                      onChange={(e) => setRedirectUrl(e.target.value)}
+                      placeholder="https://example.com/thank-you"
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Delay (seconds)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={30}
+                      value={redirectDelaySeconds}
+                      onChange={(e) => setRedirectDelaySeconds(Number(e.target.value))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground col-span-2">
+                    People briefly see a &quot;Redirecting...&quot; screen, then get sent to this URL automatically.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

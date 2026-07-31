@@ -3,8 +3,8 @@
 import { FormPage } from "@/types/form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import RichTextEditor from "@/components/form-builder/RichTextEditor"
 import { Plus, Trash2 } from "lucide-react"
 
 interface Props {
@@ -35,12 +35,11 @@ export default function PageManager({
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Instructions for this segment (optional)</Label>
-          <Textarea
+          <RichTextEditor
             value={pages[0]?.description ?? ""}
-            onChange={(e) => onUpdatePage(0, { description: e.target.value })}
+            onChange={(html) => onUpdatePage(0, { description: html })}
             placeholder="Anything the person filling this out should know before they start — e.g. what to prepare, deadlines, format expectations..."
-            rows={2}
-            className="text-xs resize-none"
+            minHeight="50px"
           />
         </div>
       </div>
@@ -90,12 +89,12 @@ export default function PageManager({
       {/* Edit current page instructions — shown to the person filling out this segment */}
       <div className="space-y-1">
         <Label className="text-xs">Instructions for this segment (optional)</Label>
-        <Textarea
+        <RichTextEditor
+          key={currentPage}
           value={pages[currentPage]?.description ?? ""}
-          onChange={(e) => onUpdatePage(currentPage, { description: e.target.value })}
+          onChange={(html) => onUpdatePage(currentPage, { description: html })}
           placeholder="Anything the person should know before filling out this page..."
-          rows={2}
-          className="text-xs resize-none"
+          minHeight="50px"
         />
       </div>
     </div>

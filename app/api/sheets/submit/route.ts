@@ -27,17 +27,15 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Uniqueness check
-  const unique = await checkUniqueness(form, values)
+  // Uniqueness check + header check are independent Sheets API calls — run them
+  // together instead of one after another to cut the round-trip time roughly in half.
+  const [unique] = await Promise.all([checkUniqueness(form, values), ensureHeaderRow(form)])
   if (!unique.ok) {
     return NextResponse.json(
       { data: null, error: `"${unique.conflictField}" with value "${unique.conflictValue}" already exists.` },
       { status: 409 }
     )
   }
-
-  // Ensure headers exist in sheet
-  await ensureHeaderRow(form)
 
   // Append row
   const submittedAt = new Date().toISOString()

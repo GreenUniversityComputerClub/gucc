@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type SetAllCookies } from "@supabase/ssr";
 import { allowedStudentDomains } from "@/lib/lost-found/config";
 import type { ContactMethod, LostFoundStatus, LostFoundType } from "@/lib/lost-found/types";
 
@@ -12,7 +12,7 @@ function createClient(req: NextRequest) {
     {
       cookies: {
         getAll: () => req.cookies.getAll().map((c) => ({ name: c.name, value: c.value })),
-        setAll: (cookiesToSet) => {
+        setAll: (cookiesToSet: Parameters<SetAllCookies>[0]) => {
           for (const { name, value, options } of cookiesToSet) {
             try {
               req.cookies.set({ name, value, ...options });
