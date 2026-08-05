@@ -30,7 +30,7 @@ export function Navbar() {
     return pathname === path;
   };
 
-  const isProjectsPath = pathname.startsWith("/scheduler");
+  const isProjectsPath = pathname.startsWith("/lost-found");
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60">
@@ -108,9 +108,9 @@ export function Navbar() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" sideOffset={8}>
-              <DropdownMenuItem asChild>
+              {/* <DropdownMenuItem asChild>
                 <Link href="/scheduler">Scheduler</Link>
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
               <DropdownMenuItem asChild>
                 <Link href="/lost-found">Lost & Found</Link>
               </DropdownMenuItem>
@@ -211,7 +211,7 @@ export function Navbar() {
               </button>
               {isProjectsMobileOpen && (
                 <div className="flex flex-col space-y-2 pl-2">
-                  <Link
+                  {/* <Link
                     href="/scheduler"
                     className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/scheduler") ? "text-primary" : "text-muted-foreground"}`}
                     onClick={() => {
@@ -220,7 +220,7 @@ export function Navbar() {
                     }}
                   >
                     Scheduler
-                  </Link>
+                  </Link> */}
                   <Link
                     href="/lost-found"
                     className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/lost-found") ? "text-primary" : "text-muted-foreground"}`}
