@@ -66,12 +66,12 @@ export function Navbar() {
           >
             Events
           </Link>
-          <Link
+          {/* <Link
             href="/contests"
             className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contests") ? "text-primary" : "text-muted-foreground"}`}
           >
             Contests
-          </Link>
+          </Link> */}
           {/* Lost & Found moved into Projects dropdown */}
           <Link
             href="/blog"
@@ -97,7 +97,7 @@ export function Navbar() {
           >
             Contact Us
           </Link>
-          <DropdownMenu>
+          {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
@@ -111,11 +111,11 @@ export function Navbar() {
               {/* <DropdownMenuItem asChild>
                 <Link href="/scheduler">Scheduler</Link>
               </DropdownMenuItem> */}
-              <DropdownMenuItem asChild>
+              {/* <DropdownMenuItem asChild>
                 <Link href="/lost-found">Lost & Found</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */} 
           <Button asChild>
             <Link href="/join">
               Join Us
@@ -162,13 +162,13 @@ export function Navbar() {
             >
               Events
             </Link>
-            <Link
+            {/* <Link
               href="/contests"
               className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contests") ? "text-primary" : "text-muted-foreground"}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Contests
-            </Link>
+            </Link>  */}
             {/* Lost & Found moved into Projects mobile list */}
             <Link
               href="/blog"
@@ -198,7 +198,7 @@ export function Navbar() {
             >
               Contact
             </Link>
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <button
                 type="button"
                 className="flex w-full items-center justify-between text-sm font-medium text-muted-foreground"
@@ -221,7 +221,7 @@ export function Navbar() {
                   >
                     Scheduler
                   </Link> */}
-                  <Link
+                  {/* <Link
                     href="/lost-found"
                     className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/lost-found") ? "text-primary" : "text-muted-foreground"}`}
                     onClick={() => {
@@ -233,7 +233,7 @@ export function Navbar() {
                   </Link>
                 </div>
               )}
-            </div>
+            </div> */}
             <Button asChild>
               <Link
                 href="/join"
