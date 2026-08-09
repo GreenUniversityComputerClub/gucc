@@ -7,6 +7,7 @@ import {
   type ElementType,
 } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   motion,
   MotionConfig,
@@ -18,31 +19,7 @@ import CountUp from "react-countup";
 import ReadingProgress from "@/components/reading-progress";
 import { AnimatedBackground } from "@/components/animated-background";
 import { TiltShapes } from "@/components/tilt-shapes";
-import {
-  Trophy,
-  Medal,
-  Award,
-  Calendar,
-  Users,
-  Megaphone,
-  Mail,
-  Sparkles,
-  Shirt,
-  Utensils,
-  Gift,
-  Server,
-  Code2,
-  ArrowRight,
-  Briefcase,
-  Share2,
-  MapPin,
-  GraduationCap,
-  Lightbulb,
-  ExternalLink,
-  Star,
-  Zap,
-  ChevronDown,
-} from "lucide-react";
+import { Trophy, Medal, Award, Calendar, Users, Megaphone, Mail, Sparkles, Shirt, Utensils, Gift, Server, Code2, ArrowRight, Briefcase, Share2, MapPin, GraduationCap, Lightbulb, ExternalLink, Star, Zap, ChevronDown, Mic, Phone, Check, X, Laptop, Calculator, Terminal, Shield, Hash, Sigma, Building2, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -84,6 +61,25 @@ interface OtherOpportunity {
   description: string;
 }
 
+interface Program {
+  id: string;
+  name: string;
+  shortName: string;
+  category: string;
+  featured: boolean;
+  description: string;
+  components?: string[];
+  sponsorValue: string[];
+  eventSlug: string;
+}
+
+interface ComparisonFeature {
+  feature: string;
+  gold: boolean;
+  silver: boolean;
+  bronze: boolean;
+}
+
 /* ─── Premium tier palette ───────────────────────────── */
 const TIER_CONFIG: Record<
   string,
@@ -107,50 +103,50 @@ const TIER_CONFIG: Record<
   "Gold Sponsor": {
     icon: Trophy,
     accentColor: "#C9A84C",
-    cardBg: "linear-gradient(145deg,#18181b 0%,#111112 60%,#0e0e10 100%)",
-    shadow: "0 0 0 1px rgba(201,168,76,0.4),0 0 40px 0 rgba(201,168,76,0.12),0 24px 48px -12px rgba(0,0,0,0.6)",
-    topGlow: "radial-gradient(ellipse 70% 40% at 50% 0%,rgba(201,168,76,0.18) 0%,transparent 70%)",
-    hoverGlow: "radial-gradient(ellipse 80% 50% at 50% 0%,rgba(201,168,76,0.28) 0%,transparent 70%)",
-    divider: "linear-gradient(to right,transparent,rgba(201,168,76,0.3),transparent)",
-    badgeBorder: "rgba(201,168,76,0.3)",
-    badgeBg: "rgba(201,168,76,0.12)",
-    checkBg: "rgba(201,168,76,0.15)",
-    checkBorder: "rgba(201,168,76,0.35)",
-    btnBg: "linear-gradient(135deg,#C9A84C 0%,#e8c96c 50%,#C9A84C 100%)",
+    cardBg: "rgba(255,255,255,0.02)",
+    shadow: "0 4px 24px -1px rgba(0,0,0,0.2)",
+    topGlow: "transparent",
+    hoverGlow: "radial-gradient(ellipse 60% 40% at 50% 0%, rgba(201,168,76,0.15) 0%, transparent 70%)",
+    divider: "rgba(255,255,255,0.1)",
+    badgeBorder: "rgba(201,168,76,0.5)",
+    badgeBg: "rgba(201,168,76,0.1)",
+    checkBg: "rgba(201,168,76,0.1)",
+    checkBorder: "rgba(201,168,76,0.3)",
+    btnBg: "#C9A84C",
     btnBorder: "transparent",
-    btnHoverBg: "",
+    btnHoverBg: "#D4B45A",
   },
   "Silver Sponsor": {
     icon: Medal,
     accentColor: "#94a3b8",
-    cardBg: "linear-gradient(145deg,#1c1c1f 0%,#161618 100%)",
-    shadow: "0 0 0 1px rgba(148,163,184,0.22),0 16px 40px -12px rgba(0,0,0,0.5)",
-    topGlow: "radial-gradient(ellipse 60% 35% at 50% 0%,rgba(148,163,184,0.09) 0%,transparent 70%)",
-    hoverGlow: "radial-gradient(ellipse 70% 50% at 50% 0%,rgba(148,163,184,0.14) 0%,transparent 70%)",
-    divider: "linear-gradient(to right,transparent,rgba(148,163,184,0.2),transparent)",
-    badgeBorder: "rgba(148,163,184,0.28)",
-    badgeBg: "rgba(148,163,184,0.1)",
-    checkBg: "rgba(148,163,184,0.12)",
-    checkBorder: "rgba(148,163,184,0.28)",
-    btnBg: "rgba(148,163,184,0.14)",
-    btnBorder: "rgba(148,163,184,0.28)",
-    btnHoverBg: "rgba(148,163,184,0.24)",
+    cardBg: "transparent",
+    shadow: "none",
+    topGlow: "transparent",
+    hoverGlow: "radial-gradient(ellipse 60% 40% at 50% 0%, rgba(148,163,184,0.1) 0%, transparent 70%)",
+    divider: "rgba(255,255,255,0.08)",
+    badgeBorder: "rgba(148,163,184,0.3)",
+    badgeBg: "transparent",
+    checkBg: "rgba(148,163,184,0.1)",
+    checkBorder: "rgba(148,163,184,0.2)",
+    btnBg: "rgba(255,255,255,0.05)",
+    btnBorder: "rgba(148,163,184,0.3)",
+    btnHoverBg: "rgba(255,255,255,0.1)",
   },
   "Bronze Sponsor": {
     icon: Award,
     accentColor: "#A0714F",
-    cardBg: "linear-gradient(145deg,#1a1714 0%,#141210 100%)",
-    shadow: "0 0 0 1px rgba(160,113,79,0.25),0 16px 40px -12px rgba(0,0,0,0.5)",
-    topGlow: "radial-gradient(ellipse 60% 35% at 50% 0%,rgba(160,113,79,0.09) 0%,transparent 70%)",
-    hoverGlow: "radial-gradient(ellipse 70% 50% at 50% 0%,rgba(160,113,79,0.14) 0%,transparent 70%)",
-    divider: "linear-gradient(to right,transparent,rgba(160,113,79,0.2),transparent)",
-    badgeBorder: "rgba(160,113,79,0.28)",
-    badgeBg: "rgba(160,113,79,0.1)",
-    checkBg: "rgba(160,113,79,0.12)",
-    checkBorder: "rgba(160,113,79,0.28)",
-    btnBg: "rgba(160,113,79,0.14)",
-    btnBorder: "rgba(160,113,79,0.28)",
-    btnHoverBg: "rgba(160,113,79,0.24)",
+    cardBg: "transparent",
+    shadow: "none",
+    topGlow: "transparent",
+    hoverGlow: "radial-gradient(ellipse 60% 40% at 50% 0%, rgba(160,113,79,0.1) 0%, transparent 70%)",
+    divider: "rgba(255,255,255,0.08)",
+    badgeBorder: "rgba(160,113,79,0.3)",
+    badgeBg: "transparent",
+    checkBg: "rgba(160,113,79,0.1)",
+    checkBorder: "rgba(160,113,79,0.2)",
+    btnBg: "rgba(255,255,255,0.05)",
+    btnBorder: "rgba(160,113,79,0.3)",
+    btnHoverBg: "rgba(255,255,255,0.1)",
   },
 };
 
@@ -169,6 +165,15 @@ const WHY_ICONS: Record<string, ElementType> = {
   MapPin,
   GraduationCap,
   Lightbulb,
+  Mic,
+};
+
+const PROGRAM_ICONS: Record<string, ElementType> = {
+  "cse-carnival": Sparkles,
+  iupc: Code2,
+  "ict-olympiad": Laptop,
+  "math-olympiad": Calculator,
+  workshops: GraduationCap,
 };
 
 /* ─── Animation variants ─────────────────────────────── */
@@ -202,10 +207,10 @@ const staggerFast: Variants = {
 
 /* ─── Terminal Typing Animation ──────────────────────── */
 const TYPING_PHRASES = [
-  "Inter Department Programming Contest",
-  "Competitive Programming Championship",
-  "Where Future Engineers Compete",
-  "Build · Code · Compete",
+  "Inter University Programming Contest",
+  "Cyber Security Contest (CTF)",
+  "ICT Olympiad",
+  "Math Olympiad",
 ];
 
 function TerminalTyping() {
@@ -402,28 +407,28 @@ function CodeVisual() {
         </div>
         <div className="px-5 py-4 font-mono text-xs leading-relaxed space-y-0.5">
           {[
-            { n: 1, c: "text-muted-foreground/50", t: "# IDPC 2026 · GUCC" },
+            { n: 1, c: "text-muted-foreground/50", t: "# CSE CARNIVAL 2026 · GUCC" },
             { n: 2, c: "", t: "" },
             {
               n: 3,
               c: "text-blue-400/80",
               t: "from",
-              rest: " gucc import Contest, Team, Problem",
+              rest: " gucc import Carnival, Contest",
             },
             { n: 4, c: "", t: "" },
             {
               n: 5,
               c: "text-violet-400/80",
-              t: "contest",
-              rest: " = Contest(",
+              t: "carnival",
+              rest: " = Carnival(",
             },
             {
               n: 6,
               c: "text-muted-foreground",
-              t: '    name="IDPC 2026",',
+              t: '    name="CSE Carnival 2026",',
             },
-            { n: 7, c: "text-muted-foreground", t: "    teams=100," },
-            { n: 8, c: "text-muted-foreground", t: "    problems=12," },
+            { n: 7, c: "text-muted-foreground", t: "    contests=4," },
+            { n: 8, c: "text-muted-foreground", t: "    participants=500," },
             {
               n: 9,
               c: "text-muted-foreground",
@@ -434,7 +439,7 @@ function CodeVisual() {
             {
               n: 12,
               c: "text-primary/80",
-              t: "contest.run()",
+              t: "carnival.run()",
               rest: "  # 🚀 starting...",
             },
           ].map((line) => (
@@ -451,42 +456,6 @@ function CodeVisual() {
             </div>
           ))}
         </div>
-      </motion.div>
-
-      {/* Leaderboard chip */}
-      <motion.div
-        className="absolute bottom-8 right-2 rounded-xl border border-border/60 bg-background/85 backdrop-blur-md shadow-lg px-4 py-3"
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0, y: [0, -5, 0] }}
-        transition={{
-          opacity: { duration: 0.5, delay: 0.9 },
-          x: { duration: 0.5, delay: 0.9 },
-          y: {
-            duration: 3.5,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1.1,
-          },
-        }}
-      >
-        <p className="text-[10px] font-mono text-muted-foreground mb-1">
-          leaderboard
-        </p>
-        {[
-          ["#1 Team Alpha", "3260 pts"],
-          ["#2 Team Beta", "3140 pts"],
-          ["#3 Team Gamma", "2980 pts"],
-        ].map(([name, pts]) => (
-          <div
-            key={name}
-            className="flex items-center justify-between gap-6 py-0.5"
-          >
-            <span className="text-xs font-medium text-foreground/80">
-              {name}
-            </span>
-            <span className="text-xs font-mono text-primary">{pts}</span>
-          </div>
-        ))}
       </motion.div>
 
       {/* Grid decoration */}
@@ -592,8 +561,8 @@ function PartnersMarquee({ partners }: { partners: Partner[] }) {
           </span>
         </SectionHeading>
         <p className="text-muted-foreground mt-3 text-base">
-          Leading brands and organizations that have trusted GUCC — hover to
-          reveal, drag to browse.
+          Leading brands and organizations that have trusted GUCC — drag
+          to browse.
         </p>
       </Reveal>
 
@@ -622,8 +591,17 @@ function PartnersMarquee({ partners }: { partners: Partner[] }) {
           {loop.map((p, i) => (
             <div
               key={`${p.name}-${i}`}
-              className="group flex items-center justify-center h-24 w-44 sm:w-48 shrink-0 rounded-2xl border border-border/60 bg-background/80 backdrop-blur-sm px-4 py-3 transition-all duration-300 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1"
+              className="group flex items-center justify-center h-24 w-44 sm:w-48 shrink-0 rounded-2xl border border-border/60 bg-background/80 backdrop-blur-sm px-4 py-3 transition-all duration-300 hover:border-primary/40 hover:-translate-y-1"
+              style={{ transition: "all 0.3s ease" }}
               title={p.name}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 20px rgba(34,197,94,0.25), 0 0 40px rgba(34,197,94,0.10)";
+                (e.currentTarget as HTMLDivElement).style.transform = "scale(1.05) translateY(-4px)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLDivElement).style.boxShadow = "";
+                (e.currentTarget as HTMLDivElement).style.transform = "";
+              }}
             >
               <div className="relative h-full w-full">
                 <Image
@@ -632,7 +610,7 @@ function PartnersMarquee({ partners }: { partners: Partner[] }) {
                   fill
                   sizes="(max-width: 640px) 176px, 192px"
                   draggable={false}
-                  className="object-contain opacity-80 sm:grayscale sm:opacity-60 transition-all duration-300 pointer-events-none select-none sm:group-hover:grayscale-0 sm:group-hover:opacity-100 group-hover:scale-105"
+                  className="object-contain opacity-90 transition-all duration-300 pointer-events-none select-none"
                 />
               </div>
             </div>
@@ -647,14 +625,15 @@ function PartnersMarquee({ partners }: { partners: Partner[] }) {
 const GALLERY_IMAGES = [65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 78];
 
 function Gallery() {
-  const [lightbox, setLightbox] = useState<number | null>(null);
+  const row1 = GALLERY_IMAGES.slice(0, 6);
+  const row2 = GALLERY_IMAGES.slice(6, 12);
+  
   return (
-    <section className="py-20 relative overflow-hidden">
-      <ParallaxBlob className="bottom-0 right-0 w-80 h-80 bg-emerald-400/10" duration={18} />
-      <div className="container mx-auto px-4 max-w-6xl">
-        <Reveal className="text-center mb-12">
+    <section id="gallery" className="py-24 relative overflow-hidden bg-background">
+      <div className="container mx-auto px-4 max-w-6xl relative z-10 mb-16">
+        <Reveal className="text-center">
           <SectionLabel>
-            <Sparkles className="w-3 h-3" /> Flashback
+            <Sparkles className="w-3 h-3" /> Flashbacks
           </SectionLabel>
           <SectionHeading>
             Moments from{" "}
@@ -662,73 +641,38 @@ function Gallery() {
               Our Events
             </span>
           </SectionHeading>
-          <p className="text-muted-foreground mt-3">
-            A glimpse into the energy, passion, and innovation at GUCC events.
-          </p>
         </Reveal>
-
+      </div>
+      
+      <div className="flex flex-col gap-6 overflow-hidden">
+        {/* Row 1 */}
         <motion.div
-          className="columns-2 sm:columns-3 lg:columns-4 gap-3 space-y-3"
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-80px" }}
-          variants={staggerFast}
+          className="flex gap-6 w-max"
+          animate={{ x: ["0%", "-50%"] }}
+          transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
         >
-          {GALLERY_IMAGES.map((n) => (
-            <motion.div
-              key={n}
-              variants={fadeUp}
-              className="break-inside-avoid group relative overflow-hidden rounded-2xl cursor-zoom-in"
-              onClick={() => setLightbox(n)}
-            >
-              <div className="relative w-full aspect-[4/3]">
-                <Image
-                  src={`/events/${n}.jpg`}
-                  alt={`GUCC event moment ${n}`}
-                  fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl flex items-end p-3">
-                <span className="text-white text-xs font-medium">GUCC Event</span>
-              </div>
-            </motion.div>
+          {[...row1, ...row1].map((n, idx) => (
+            <div key={`${n}-${idx}`} className="relative w-[280px] sm:w-[400px] aspect-[4/3] rounded-3xl overflow-hidden shadow-lg border border-border/40 shrink-0 group">
+              <Image src={`/events/${n}.jpg`} alt="Event" fill sizes="(max-width: 640px) 280px, 400px" className="object-cover transition-transform duration-700 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
+            </div>
+          ))}
+        </motion.div>
+        
+        {/* Row 2 */}
+        <motion.div
+          className="flex gap-6 w-max"
+          animate={{ x: ["-50%", "0%"] }}
+          transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
+        >
+          {[...row2, ...row2].map((n, idx) => (
+            <div key={`${n}-${idx}`} className="relative w-[240px] sm:w-[320px] aspect-video rounded-3xl overflow-hidden shadow-lg border border-border/40 shrink-0 group">
+              <Image src={`/events/${n}.jpg`} alt="Event" fill sizes="(max-width: 640px) 240px, 320px" className="object-cover transition-transform duration-700 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
+            </div>
           ))}
         </motion.div>
       </div>
-
-      {lightbox !== null && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          onClick={() => setLightbox(null)}
-        >
-          <motion.div
-            className="relative max-w-4xl w-full aspect-[4/3]"
-            initial={{ scale: 0.85, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Image
-              src={`/events/${lightbox}.jpg`}
-              alt="Event"
-              fill
-              className="object-contain rounded-2xl"
-              sizes="(max-width: 1024px) 100vw, 896px"
-            />
-          </motion.div>
-          <button
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-            onClick={() => setLightbox(null)}
-            aria-label="Close lightbox"
-          >
-            ✕
-          </button>
-        </motion.div>
-      )}
     </section>
   );
 }
@@ -768,6 +712,65 @@ function BenefitItem({
   );
 }
 
+function SponsorNav() {
+  const [active, setActive] = useState("");
+  const [isHidden, setIsHidden] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ["programs", "packages", "gallery"];
+      let current = "";
+      for (const section of sections) {
+        const el = document.getElementById(section);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 200 && rect.bottom >= 200) current = section;
+        }
+      }
+      setActive(current);
+
+      const scrolledToBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 300;
+      setIsHidden(scrolledToBottom);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  return (
+    <motion.div
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto"
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: isHidden ? 100 : 0, opacity: isHidden ? 0 : 1 }}
+      transition={{ delay: 0.1, duration: 0.3 }}
+    >
+      <div className="flex items-center gap-1 p-1.5 rounded-full bg-background/80 backdrop-blur-xl border border-border shadow-2xl">
+        {[
+          { id: "programs", icon: Star, label: "Programs" },
+          { id: "packages", icon: Gift, label: "Packages" },
+          { id: "gallery", icon: Sparkles, label: "Gallery" },
+        ].map((item) => {
+          const Icon = item.icon;
+          const isActive = active === item.id;
+          return (
+            <a
+              key={item.id}
+              href={`#${item.id}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span className="text-sm font-medium hidden sm:inline-block">{item.label}</span>
+            </a>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
+
 /* ─── Main Page ──────────────────────────────────────── */
 export default function SponsorsPage() {
   const {
@@ -780,6 +783,8 @@ export default function SponsorsPage() {
     packages,
     otherOpportunities,
     contacts,
+    programs,
+    comparisonFeatures,
   } = sponsorData as {
     event: typeof sponsorData.event;
     about: typeof sponsorData.about;
@@ -790,6 +795,8 @@ export default function SponsorsPage() {
     packages: Package[];
     otherOpportunities: OtherOpportunity[];
     contacts: Contact[];
+    programs: Program[];
+    comparisonFeatures: ComparisonFeature[];
   };
 
   const heroRef = useRef<HTMLElement>(null);
@@ -809,15 +816,16 @@ export default function SponsorsPage() {
 
   const stats = [
     { label: "Community Members", value: 7000, suffix: "+" },
-    { label: "Contestants", value: 100, suffix: "+" },
-    { label: "Active Teams", value: 30, suffix: "+" },
-    { label: "Past Partners", value: previousPartners.length, suffix: "+" },
+    { label: "University Connections", value: 50, suffix: "+" },
+    { label: "Club Partners", value: 10, suffix: "+" },
+    { label: "Company Collaborations", value: 12, suffix: "+" },
   ];
 
   return (
     <MotionConfig reducedMotion="user">
       <ReadingProgress />
       <AmbientBackground />
+      <SponsorNav />
 
       <div className="relative overflow-hidden">
         {/* ══ SECTION 1 — HERO ══════════════════════════════ */}
@@ -884,9 +892,7 @@ export default function SponsorsPage() {
                   className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-xl mb-3"
                   style={{ y: heroContentY, opacity: heroContentOpacity }}
                 >
-                  Partner with Green University Computer Club to inspire the
-                  next generation of software engineers, innovators and
-                  competitive programmers.
+                  Partner with Green University Computer Club to sponsor CSE Carnival 2026 — featuring IUPC, CTF, ICT Olympiad, and Math Olympiad.
                 </motion.p>
 
                 {/* Event badge + typing animation */}
@@ -989,151 +995,190 @@ export default function SponsorsPage() {
           </motion.div>
         </section>
 
-        {/* ══ SECTION 2 — ABOUT ════════════════════════════ */}
-        <section className="relative py-24 overflow-hidden bg-muted/20">
-          <ParallaxBlob className="top-0 right-0 w-72 h-72 bg-green-500/12" duration={16} />
-          <DotGrid className="text-primary" />
-          <div className="container mx-auto px-4 max-w-6xl">
+        {/* ══ RECOGNITION / AWARDS ════════════════════════════ */}
+        <section className="relative py-24 overflow-hidden">
+          <div className="container mx-auto px-4 max-w-5xl relative">
             <Reveal className="text-center mb-14">
               <SectionLabel>
-                <Sparkles className="w-3 h-3" /> About the Event
+                <Trophy className="w-3 h-3" /> Recognition
               </SectionLabel>
               <SectionHeading>
-                What is{" "}
-                <span className="bg-gradient-to-r from-green-500 to-emerald-400 bg-clip-text text-transparent">
-                  IDPC 2026?
+                Recognition That{" "}
+                <span className="bg-gradient-to-r from-amber-500 to-orange-400 bg-clip-text text-transparent">
+                  Speaks for Itself
                 </span>
               </SectionHeading>
-              <p className="text-muted-foreground mt-4 max-w-2xl mx-auto text-base leading-relaxed">
-                The biggest inter-departmental programming &amp; math event hosted
-                by GUCC — a platform for networking, innovation, and competitive
-                excellence.
-              </p>
             </Reveal>
-
-            <div className="grid lg:grid-cols-2 gap-10 items-start">
-              <motion.div
-                className="space-y-5"
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, margin: "-80px" }}
-                variants={staggerContainer}
-              >
-                {[
-                  { icon: Sparkles, title: "About the Events", body: about.eventDescription },
-                  { icon: Users, title: "About GUCC", body: about.clubDescription },
-                ].map((item) => (
-                  <motion.div key={item.title} variants={slideLeft} whileHover={{ y: -4 }}>
-                    <Card className="h-full border-green-200/50 dark:border-green-900/40 hover:border-primary/40 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5">
-                      <CardHeader>
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary shrink-0">
-                            <item.icon className="w-5 h-5" />
-                          </span>
-                          <h3 className="font-semibold text-lg">{item.title}</h3>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-muted-foreground leading-relaxed text-sm">
-                          {item.body}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </motion.div>
-
-              <motion.div
-                className="grid grid-cols-2 gap-4"
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, margin: "-80px" }}
-                variants={staggerContainer}
-              >
-                {[
-                  { icon: Users, value: 7000, suffix: "+", label: "Students", desc: "Thriving community members", color: "text-green-500", bg: "bg-green-500/10" },
-                  { icon: Code2, value: 100, suffix: "+", label: "Contestants", desc: "Competing across departments", color: "text-emerald-500", bg: "bg-emerald-500/10" },
-                  { icon: Trophy, value: null, label: "Programming Contest", desc: "Algorithmic problem solving", color: "text-amber-500", bg: "bg-amber-500/10" },
-                  { icon: Star, value: null, label: "Math Olympiad", desc: "Analytical & mathematical prowess", color: "text-blue-500", bg: "bg-blue-500/10" },
-                  { icon: Award, value: null, label: "University Recognition", desc: "Endorsed by GUB administration", color: "text-purple-500", bg: "bg-purple-500/10" },
-                  { icon: Zap, value: null, label: "Innovation Hub", desc: "Where ideas become solutions", color: "text-orange-500", bg: "bg-orange-500/10" },
-                ].map((item) => (
+            <Reveal>
+              <Link href="/events/gucc-receives-club-excellence-award-2026" className="block outline-none">
+                <motion.div
+                  className="relative max-w-2xl mx-auto rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent overflow-hidden group cursor-pointer"
+                  whileHover={{ y: -4, scale: 1.01 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                <div
+                  aria-hidden
+                  className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent"
+                />
+                <div className="p-8 sm:p-10 flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
                   <motion.div
-                    key={item.label}
-                    variants={fadeUp}
-                    whileHover={{ y: -5, scale: 1.02 }}
-                    className="group relative p-5 rounded-2xl border border-border/60 bg-background hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5"
+                    className="relative flex items-center justify-center w-20 h-20 rounded-2xl bg-amber-500/10 border border-amber-500/20 shrink-0"
+                    animate={{
+                      boxShadow: [
+                        "0 0 0px rgba(245,158,11,0)",
+                        "0 0 30px rgba(245,158,11,0.25)",
+                        "0 0 0px rgba(245,158,11,0)",
+                      ],
+                    }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                   >
-                    <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center mb-3 transition-transform group-hover:scale-110`}>
-                      <item.icon className={`w-5 h-5 ${item.color}`} />
-                    </div>
-                    {item.value !== null ? (
-                      <p className={`text-3xl font-extrabold ${item.color} leading-none mb-1`}>
-                        <CountUp end={item.value} duration={2} separator="," suffix={item.suffix} enableScrollSpy scrollSpyOnce />
-                      </p>
-                    ) : null}
-                    <p className="font-semibold text-sm">{item.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                    <Trophy className="w-10 h-10 text-amber-400" />
                   </motion.div>
-                ))}
+                  <div className="text-center sm:text-left">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border border-amber-500/20 bg-amber-500/10 text-amber-500 dark:text-amber-400 mb-3">
+                      2026
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
+                      Club Excellence Award
+                    </h3>
+                    <p className="text-base text-amber-600 dark:text-amber-200/60 font-medium mb-1">
+                      Best Computer Science & Programming Club
+                    </p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Recognized for outstanding contributions to technical
+                      education, community building, and student development at
+                      Green University of Bangladesh.
+                    </p>
+                  </div>
+                </div>
               </motion.div>
-            </div>
+              </Link>
+            </Reveal>
           </div>
         </section>
 
-        {/* ══ SECTION 3 — TIMELINE ══════════════════════════ */}
-        <section className="relative py-24 overflow-hidden">
-          <ParallaxBlob className="top-1/2 left-0 w-72 h-72 bg-teal-400/10" duration={20} />
-          <div className="container mx-auto px-4 max-w-3xl">
-            <Reveal className="text-center mb-14">
-              <SectionLabel>
-                <Calendar className="w-3 h-3" /> Event Timeline
-              </SectionLabel>
-              <SectionHeading>
-                Program{" "}
-                <span className="bg-gradient-to-r from-green-500 to-emerald-400 bg-clip-text text-transparent">
-                  Schedule
-                </span>
-              </SectionHeading>
-              <p className="text-muted-foreground mt-4">
-                Dates to be announced. Stay tuned for the official schedule.
+
+        {/* ══ PROGRAMS ════════════════════════════════════ */}
+        <section id="programs" className="relative py-24 overflow-hidden bg-[#0a0d12]">
+          <div className="container mx-auto px-4 max-w-6xl relative z-10">
+            <Reveal className="text-center mb-14 flex flex-col items-center">
+              <div className="flex items-center gap-2 px-3 py-1 mb-6 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-500">
+                <Star className="w-3.5 h-3.5" /> Programs
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-6 tracking-tight">
+                Sponsor the Programs That <span className="text-emerald-500">Matter</span>
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                GUCC organizes a diverse portfolio of technical programs — each offering unique brand exposure and student engagement opportunities.
               </p>
             </Reveal>
 
-            <motion.ol
-              ref={timelineRef}
-              className="relative ml-4"
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: "-80px" }}
-              variants={staggerContainer}
-            >
-              <span className="absolute left-0 top-2 bottom-2 w-px bg-border" />
-              <motion.span
-                className="absolute left-0 top-2 bottom-2 w-px bg-gradient-to-b from-primary via-emerald-400 to-teal-400 origin-top"
-                style={{ scaleY: timelineFill }}
-              />
-
-              {schedule.map((s, i) => (
-                <motion.li key={s.label} variants={fadeUp} className="relative mb-10 ml-8 last:mb-0">
-                  <span className="absolute -left-[41px] flex items-center justify-center w-7 h-7 rounded-full border-2 border-primary/40 bg-background text-primary shadow-sm shadow-primary/20">
-                    <span className="w-2.5 h-2.5 rounded-full bg-primary/60" />
-                  </span>
-                  <div className="group p-5 rounded-2xl border border-border/60 bg-background/70 backdrop-blur-sm hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-bold text-primary uppercase tracking-widest">
-                        Step {i + 1}
-                      </span>
-                      <Badge variant="outline" className="rounded-full px-2 py-0 text-[10px] border-muted-foreground/30 text-muted-foreground">
-                        TBA
-                      </Badge>
+            <Reveal className="mb-6">
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden p-8 sm:p-10 lg:p-12">
+                <div className="grid lg:grid-cols-[1.5fr,1fr] gap-12 lg:gap-20">
+                  {/* Left Column */}
+                  <div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-6 w-max">
+                      <Star className="w-3 h-3" /> Flagship Program
                     </div>
-                    <p className="font-semibold text-base">{s.label}</p>
-                    <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{s.description}</p>
+                    <h3 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight">
+                      CSE Carnival 2026
+                    </h3>
+                    <p className="text-muted-foreground text-base leading-relaxed mb-10 max-w-lg">
+                      A large-scale technology and student engagement initiative combining competitions, learning, innovation, community, and industry interaction across multiple days. The carnival features four core contests: IUPC, CTF (Cyber Security), ICT Olympiad, and Math Olympiad.
+                    </p>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="flex flex-col gap-2">
+                        <Users className="w-5 h-5 text-emerald-500" />
+                        <span className="text-sm font-semibold text-white">500+</span>
+                        <span className="text-xs text-muted-foreground">Participants</span>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Calendar className="w-5 h-5 text-emerald-500" />
+                        <span className="text-sm font-semibold text-white">Multi-day</span>
+                        <span className="text-xs text-muted-foreground">Event</span>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Trophy className="w-5 h-5 text-emerald-500" />
+                        <span className="text-sm font-semibold text-white">Competitions</span>
+                        <span className="text-xs text-muted-foreground">& Awards</span>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Building2 className="w-5 h-5 text-emerald-500" />
+                        <span className="text-sm font-semibold text-white">Sponsor</span>
+                        <span className="text-xs text-muted-foreground">Visibility</span>
+                      </div>
+                    </div>
                   </div>
-                </motion.li>
-              ))}
-            </motion.ol>
+
+                  {/* Right Column */}
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-white mb-6">
+                      Sponsor Value
+                    </p>
+                    <ul className="space-y-4">
+                      {[
+                        "Maximum brand exposure across all sub-events",
+                        "Multi-day campus activation opportunity",
+                        "Direct engagement with 500+ participants",
+                        "Speaking and judging opportunities",
+                        "Full digital and physical branding package"
+                      ].map((v, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <div className="mt-0.5 rounded-full border border-emerald-500/30 flex items-center justify-center p-0.5 shrink-0">
+                            <Check className="w-3 h-3 text-emerald-500" />
+                          </div>
+                          <span className="text-sm text-muted-foreground leading-snug">{v}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+
+            <Reveal>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { title: "IUPC", subtitle: "Inter University Programming Contest", desc: "A competitive platform bringing together the best problem solvers from universities across the country.", icon: Code2 },
+                  { title: "CTF", subtitle: "Cyber Security Contest", desc: "Capture The Flag competition designed to challenge and sharpen cybersecurity skills.", icon: Shield },
+                  { title: "ICT Olympiad", subtitle: "ICT Knowledge Competition", desc: "An academic and technical competition to encourage ICT knowledge and innovation.", icon: Laptop },
+                  { title: "Math Olympiad", subtitle: "Mathematics Competition", desc: "A problem-solving competition that promotes analytical thinking and mathematical excellence.", icon: Sigma },
+                  { title: "Workshops", subtitle: "Hands-on workshops", desc: "Build practical skills and industry relevant knowledge.", icon: Wrench },
+                  { title: "Industry Sessions", subtitle: "Learn from experts", desc: "Keynote talks and expert-led sessions.", icon: Mic },
+                  { title: "Networking", subtitle: "Connect and collaborate", desc: "Grow with peers, mentors and industry professionals.", icon: Users },
+                  { title: "Awards", subtitle: "Recognizing excellence", desc: "Celebrating innovation and outstanding performances.", icon: Trophy }
+                ].map((item, i) => {
+                  const Icon = item.icon;
+                  return (
+                    <motion.div
+                      key={i}
+                      className="group relative p-6 rounded-xl border border-white/[0.08] bg-white/[0.02] overflow-hidden hover:bg-white/[0.04] transition-all duration-300 flex flex-col h-full hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_0_20px_rgba(16,185,129,0.05)]"
+                    >
+                      <div className="flex items-start gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-full border border-white/[0.08] flex items-center justify-center shrink-0">
+                          <Icon className="w-5 h-5 text-emerald-500" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-white text-base">{item.title}</h4>
+                          <p className="text-[10px] font-semibold text-emerald-500 leading-tight mt-0.5">{item.subtitle}</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed flex-grow">
+                        {item.desc}
+                      </p>
+                      <div className="mt-4 flex justify-end">
+                        <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-emerald-500 transition-colors" />
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </Reveal>
+            
+            <div className="mt-8 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Calendar className="w-3.5 h-3.5 text-emerald-500" /> One Community. Multiple Programs. Limitless Impact.
+            </div>
           </div>
         </section>
 
@@ -1205,7 +1250,7 @@ export default function SponsorsPage() {
                 </span>
               </SectionHeading>
               <p className="text-muted-foreground mt-4">
-                A proven track record of organizing world-class events that make a real impact.
+                A proven track record of organizing world-class events that make a real impact. Click any card to explore the event.
               </p>
             </Reveal>
 
@@ -1216,29 +1261,39 @@ export default function SponsorsPage() {
               viewport={{ once: true, margin: "-80px" }}
               variants={staggerContainer}
             >
-              {achievements.map((a, i) => (
-                <motion.div
-                  key={a.title}
-                  variants={fadeUp}
-                  whileHover={{ y: -5 }}
-                  className="group relative flex gap-5 p-6 rounded-2xl bg-background border border-border/60 overflow-hidden hover:border-amber-400/50 hover:shadow-xl hover:shadow-amber-400/10 transition-all duration-300"
-                >
-                  <span className="absolute right-4 top-3 text-5xl font-black text-primary/5 select-none group-hover:text-primary/8 transition-colors">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <motion.span
-                    className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 shrink-0 mt-0.5 group-hover:bg-amber-500/20 transition-colors"
-                    animate={{ boxShadow: ["0 0 0px rgba(245,158,11,0)", "0 0 18px rgba(245,158,11,0.35)", "0 0 0px rgba(245,158,11,0)"] }}
-                    transition={{ duration: 2.5 + i * 0.5, repeat: Infinity, ease: "easeInOut" }}
+              {achievements.map((a: { title: string; description: string; eventSlug?: string }, i: number) => {
+                const cardContent = (
+                  <motion.div
+                    key={a.title}
+                    variants={fadeUp}
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    className="group relative flex gap-5 p-6 rounded-2xl bg-background border border-border/60 overflow-hidden hover:border-amber-400/50 hover:shadow-xl hover:shadow-amber-400/10 transition-all duration-300 cursor-pointer"
                   >
-                    <Trophy className="w-6 h-6" />
-                  </motion.span>
-                  <div className="relative">
-                    <p className="font-bold text-base mb-1.5">{a.title}</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{a.description}</p>
-                  </div>
-                </motion.div>
-              ))}
+                    <span className="absolute right-4 top-3 text-5xl font-black text-primary/5 select-none group-hover:text-primary/8 transition-colors">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <motion.span
+                      className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 shrink-0 mt-0.5 group-hover:bg-amber-500/20 transition-colors"
+                      animate={{ boxShadow: ["0 0 0px rgba(245,158,11,0)", "0 0 18px rgba(245,158,11,0.35)", "0 0 0px rgba(245,158,11,0)"] }}
+                      transition={{ duration: 2.5 + i * 0.5, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <Trophy className="w-6 h-6" />
+                    </motion.span>
+                    <div className="relative">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <p className="font-bold text-base">{a.title}</p>
+                        <ExternalLink className="w-3.5 h-3.5 text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{a.description}</p>
+                    </div>
+                  </motion.div>
+                );
+                return a.eventSlug ? (
+                  <Link key={a.title} href={`/events/${a.eventSlug}`} className="block">
+                    {cardContent}
+                  </Link>
+                ) : cardContent;
+              })}
             </motion.div>
           </div>
         </section>
@@ -1297,11 +1352,9 @@ export default function SponsorsPage() {
                   >
                     {/* ── Card shell ── */}
                     <div
-                      className="relative rounded-2xl overflow-hidden group"
-                      style={{
-                        background: cfg?.cardBg,
-                        boxShadow: cfg?.shadow,
-                      }}
+                      className={`relative rounded-2xl overflow-hidden group border transition-colors ${
+                        isGold ? "border-amber-500/30 bg-amber-500/5 shadow-2xl shadow-amber-500/10" : "border-border bg-card shadow-md hover:border-border/80"
+                      }`}
                     >
                       {/* Top glow */}
                       <div
@@ -1355,17 +1408,17 @@ export default function SponsorsPage() {
                           <Icon className="w-6 h-6" style={{ color: ac }} />
                         </motion.div>
 
-                        <h3 className="text-xl font-bold text-white mb-0.5">{pkg.tier}</h3>
+                        <h3 className="text-xl font-bold text-foreground mb-0.5">{pkg.tier}</h3>
 
                         <div className="flex items-baseline gap-1 mt-3 mb-5">
                           <span className="text-2xl font-bold" style={{ color: ac }}>৳</span>
-                          <span className={`font-extrabold text-white ${isGold ? "text-4xl" : "text-3xl"}`}>
+                          <span className={`font-extrabold text-foreground ${isGold ? "text-4xl" : "text-3xl"}`}>
                             <CountUp end={pkg.price} duration={1.6} separator="," enableScrollSpy scrollSpyOnce />
                           </span>
-                          <span className="text-xs text-zinc-500 font-normal ml-1">{pkg.currency}</span>
+                          <span className="text-xs text-muted-foreground font-normal ml-1">{pkg.currency}</span>
                         </div>
 
-                        <div className="h-px w-full" style={{ background: cfg?.divider }} />
+                        <div className="h-px w-full bg-border" />
                       </div>
 
                       {/* Benefits */}
@@ -1378,7 +1431,7 @@ export default function SponsorsPage() {
                               accentColor={ac}
                               checkBg={cfg?.checkBg ?? ""}
                               checkBorder={cfg?.checkBorder ?? ""}
-                              textClass={isGold ? "text-zinc-300" : "text-zinc-400"}
+                              textClass={isGold ? "text-foreground/90" : "text-muted-foreground"}
                             />
                           ))}
                         </ul>
@@ -1403,13 +1456,12 @@ export default function SponsorsPage() {
                         ) : (
                           <motion.a
                             href="#contact"
-                            className="group/btn flex items-center justify-center gap-2 w-full rounded-xl py-3 text-sm font-semibold text-white transition-all duration-200"
-                            style={{ background: cfg?.btnBg, border: `1px solid ${cfg?.btnBorder}` }}
-                            whileHover={{ background: cfg?.btnHoverBg, y: -1 }}
+                            className="group/btn flex items-center justify-center gap-2 w-full rounded-xl py-3 text-sm font-semibold transition-all duration-200 border border-border bg-muted/50 text-foreground hover:bg-muted"
+                            whileHover={{ y: -1 }}
                             whileTap={{ scale: 0.98 }}
                           >
                             Become a {pkg.tier.split(" ")[0]} Sponsor
-                            <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                            <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1 text-muted-foreground" />
                           </motion.a>
                         )}
                       </div>
@@ -1418,6 +1470,38 @@ export default function SponsorsPage() {
                 );
               })}
             </motion.div>
+
+            {/* Comparison Table */}
+            <Reveal>
+              <div className="max-w-4xl mx-auto overflow-x-auto pb-4 mt-20">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="py-2.5 px-4 text-sm font-semibold border-b border-border">Feature Comparison</th>
+                      <th className="py-2.5 px-4 text-sm font-semibold text-[#C9A84C] text-center border-b border-border">Gold</th>
+                      <th className="py-2.5 px-4 text-sm font-semibold text-slate-400 text-center border-b border-border">Silver</th>
+                      <th className="py-2.5 px-4 text-sm font-semibold text-[#A0714F] text-center border-b border-border">Bronze</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {comparisonFeatures.map((row) => (
+                      <tr key={row.feature} className="hover:bg-muted/30">
+                        <td className="py-2 px-4 text-sm text-muted-foreground">{row.feature}</td>
+                        <td className="py-2 px-4 text-center">
+                          {row.gold ? <Check className="w-4 h-4 text-[#C9A84C] mx-auto" /> : <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />}
+                        </td>
+                        <td className="py-2 px-4 text-center">
+                          {row.silver ? <Check className="w-4 h-4 text-slate-400 mx-auto" /> : <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />}
+                        </td>
+                        <td className="py-2 px-4 text-center">
+                          {row.bronze ? <Check className="w-4 h-4 text-[#A0714F] mx-auto" /> : <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Reveal>
           </div>
         </section>
 
@@ -1479,81 +1563,7 @@ export default function SponsorsPage() {
         {/* ══ SECTION 9 — GALLERY ══════════════════════════ */}
         <Gallery />
 
-        {/* ══ SECTION 10 — FINAL CTA ═══════════════════════ */}
-        <section className="relative py-28 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 dark:from-green-800 dark:via-emerald-800 dark:to-teal-800" />
-          <DotGrid className="text-white" />
-          <motion.div
-            className="absolute top-[-20%] left-[-10%] w-[36rem] h-[36rem] rounded-full bg-white/5 blur-[80px]"
-            animate={{ x: [0, 30, 0], y: [0, 20, 0] }}
-            transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            className="absolute bottom-[-20%] right-[-10%] w-[32rem] h-[32rem] rounded-full bg-white/5 blur-[80px]"
-            animate={{ x: [0, -25, 0], y: [0, -20, 0] }}
-            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-          />
 
-          <div className="container mx-auto px-4 max-w-4xl text-center relative z-10">
-            <motion.div
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: "-80px" }}
-              variants={staggerContainer}
-            >
-              <motion.div variants={fadeUp}>
-                <Badge className="mb-6 bg-white/20 hover:bg-white/20 text-white border-white/30 backdrop-blur-sm">
-                  <Sparkles className="w-3 h-3 mr-1.5" />
-                  Join Us Today
-                </Badge>
-              </motion.div>
-
-              <motion.h2
-                variants={fadeUp}
-                className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight mb-6"
-              >
-                Let&apos;s Build the{" "}
-                <span className="bg-gradient-to-r from-yellow-300 to-green-200 bg-clip-text text-transparent">
-                  Future Together
-                </span>
-              </motion.h2>
-
-              <motion.p
-                variants={fadeUp}
-                className="text-lg text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed"
-              >
-                Join us in empowering the next generation of programmers and
-                software engineers. Your brand, their future — together we shape
-                Bangladesh&apos;s tech landscape.
-              </motion.p>
-
-              <motion.div variants={fadeUp} className="flex flex-wrap gap-4 justify-center">
-                <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.97 }}>
-                  <Button
-                    size="lg"
-                    className="rounded-xl px-8 py-6 text-base font-semibold bg-white text-green-700 hover:bg-green-50 shadow-xl shadow-black/20 group"
-                    asChild
-                  >
-                    <a href="#packages">
-                      Become a Sponsor
-                      <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
-                    </a>
-                  </Button>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.97 }}>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="rounded-xl px-8 py-6 text-base font-semibold border-white/40 text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm"
-                    asChild
-                  >
-                    <a href="#contact">Contact Us</a>
-                  </Button>
-                </motion.div>
-              </motion.div>
-            </motion.div>
-          </div>
-        </section>
 
         {/* ══ CONTACT ═══════════════════════════════════════ */}
         <section
@@ -1577,8 +1587,23 @@ export default function SponsorsPage() {
             </p>
           </Reveal>
 
+          {/* Official Club Email CTA */}
+          <Reveal className="mb-10">
+            <div className="flex justify-center">
+              <motion.a
+                href="mailto:gucc@green.edu.bd"
+                className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-semibold text-lg text-black bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/40 transition-all duration-300"
+                whileHover={{ scale: 1.04, y: -2 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Mail className="w-5 h-5" />
+                Official Mail: gucc@green.edu.bd
+              </motion.a>
+            </div>
+          </Reveal>
+
           <motion.div
-            className="grid sm:grid-cols-2 gap-6 max-w-3xl mx-auto"
+            className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto"
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: "-80px" }}
@@ -1600,44 +1625,33 @@ export default function SponsorsPage() {
                       </div>
                     </div>
 
-                    <a
-                      href={`mailto:${c.email}`}
-                      className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors group/link"
-                    >
-                      <span className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 group-hover/link:bg-primary/10 transition-colors">
-                        <Mail className="w-4 h-4" />
-                      </span>
-                      <span className="break-all">{c.email}</span>
-                    </a>
+                    <div className="space-y-3">
+                      <a
+                        href={`mailto:${c.email}`}
+                        className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors group/link"
+                      >
+                        <span className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 group-hover/link:bg-primary/10 transition-colors">
+                          <Mail className="w-4 h-4" />
+                        </span>
+                        <span className="break-all">{c.email}</span>
+                      </a>
+                      <a
+                        href={`tel:${c.phone}`}
+                        className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors group/link"
+                      >
+                        <span className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 group-hover/link:bg-primary/10 transition-colors">
+                          <Phone className="w-4 h-4" />
+                        </span>
+                        <span>{c.phone}</span>
+                      </a>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
             ))}
           </motion.div>
 
-          <Reveal className="mt-10">
-            <div className="rounded-2xl border border-border/60 bg-muted/30 p-6 text-center">
-              <p className="text-muted-foreground text-sm">
-                You can also reach us at{" "}
-                <a
-                  href={`mailto:${sponsorData.event.email}`}
-                  className="text-primary font-semibold hover:underline"
-                >
-                  {sponsorData.event.email}
-                </a>{" "}
-                or visit{" "}
-                <a
-                  href={`https://${sponsorData.event.website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary font-semibold hover:underline inline-flex items-center gap-1"
-                >
-                  {sponsorData.event.website}
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </p>
-            </div>
-          </Reveal>
+
         </section>
       </div>
     </MotionConfig>
