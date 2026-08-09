@@ -19,7 +19,7 @@ import CountUp from "react-countup";
 import ReadingProgress from "@/components/reading-progress";
 import { AnimatedBackground } from "@/components/animated-background";
 import { TiltShapes } from "@/components/tilt-shapes";
-import { Trophy, Medal, Award, Calendar, Users, Megaphone, Mail, Sparkles, Shirt, Utensils, Gift, Server, Code2, ArrowRight, Briefcase, Share2, MapPin, GraduationCap, Lightbulb, ExternalLink, Star, Zap, ChevronDown, Mic, Phone, Check, X, Laptop, Calculator, Terminal, Shield, Hash } from "lucide-react";
+import { Trophy, Medal, Award, Calendar, Users, Megaphone, Mail, Sparkles, Shirt, Utensils, Gift, Server, Code2, ArrowRight, Briefcase, Share2, MapPin, GraduationCap, Lightbulb, ExternalLink, Star, Zap, ChevronDown, Mic, Phone, Check, X, Laptop, Calculator, Terminal, Shield, Hash, Sigma, Building2, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -1059,125 +1059,129 @@ export default function SponsorsPage() {
 
 
         {/* ══ PROGRAMS ════════════════════════════════════ */}
-        <section id="programs" className="relative py-24 overflow-hidden">
-          <ParallaxBlob className="top-1/4 right-0 w-72 h-72 bg-emerald-500/5" duration={20} />
-          <div className="container mx-auto px-4 max-w-6xl relative">
-            <Reveal className="text-center mb-14">
-              <SectionLabel>
-                <Star className="w-3 h-3" /> Programs
-              </SectionLabel>
-              <SectionHeading>
-                Sponsor the Programs That{" "}
-                <span className="bg-gradient-to-r from-green-500 to-emerald-400 bg-clip-text text-transparent">
-                  Matter
-                </span>
-              </SectionHeading>
-              <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
-                GUCC organizes a diverse portfolio of technical programs — each
-                offering unique brand exposure and student engagement
-                opportunities.
+        <section id="programs" className="relative py-24 overflow-hidden bg-[#0a0d12]">
+          <div className="container mx-auto px-4 max-w-6xl relative z-10">
+            <Reveal className="text-center mb-14 flex flex-col items-center">
+              <div className="flex items-center gap-2 px-3 py-1 mb-6 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-500">
+                <Star className="w-3.5 h-3.5" /> Programs
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-6 tracking-tight">
+                Sponsor the Programs That <span className="text-emerald-500">Matter</span>
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                GUCC organizes a diverse portfolio of technical programs — each offering unique brand exposure and student engagement opportunities.
               </p>
             </Reveal>
 
-            {programs.find(p => p.featured) && (
-              <Reveal className="mb-8">
-                <motion.div
-                  className="relative rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 via-transparent to-blue-500/5 overflow-hidden group"
-                  whileHover={{ y: -4 }}
-                >
-                  <div
-                    aria-hidden
-                    className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent"
-                  />
-                  <div className="p-8 sm:p-10">
-                    <div className="grid lg:grid-cols-2 gap-8 items-start">
-                      <div>
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-4 w-max">
-                          ✦ Flagship Program
-                        </div>
-                        <h3 className="text-2xl sm:text-3xl font-bold mb-3">
-                          {programs.find(p => p.featured)?.name}
-                        </h3>
-                        <p className="text-muted-foreground leading-relaxed mb-6">
-                          {programs.find(p => p.featured)?.description}
-                        </p>
-                        <div className="grid grid-cols-2 gap-3 mb-6">
-                          {programs.find(p => p.featured)?.components?.map((c: string) => {
-                            let Icon = Code2;
-                            if (c.includes("IUPC")) Icon = Terminal;
-                            else if (c.includes("CTF")) Icon = Shield;
-                            else if (c.includes("Math")) Icon = Hash;
-                            else if (c.includes("ICT")) Icon = Zap;
-                            
-                            return (
-                              <div key={c} className="flex items-start gap-2 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition-colors">
-                                <div className="mt-0.5 w-6 h-6 rounded-md bg-emerald-500/10 flex items-center justify-center shrink-0">
-                                  <Icon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                                </div>
-                                <span className="text-xs font-semibold text-foreground/90 leading-snug">{c}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
+            <Reveal className="mb-6">
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden p-8 sm:p-10 lg:p-12">
+                <div className="grid lg:grid-cols-[1.5fr,1fr] gap-12 lg:gap-20">
+                  {/* Left Column */}
+                  <div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-6 w-max">
+                      <Star className="w-3 h-3" /> Flagship Program
+                    </div>
+                    <h3 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight">
+                      CSE Carnival 2026
+                    </h3>
+                    <p className="text-muted-foreground text-base leading-relaxed mb-10 max-w-lg">
+                      A large-scale technology and student engagement initiative combining competitions, learning, innovation, community, and industry interaction across multiple days. The carnival features four core contests: IUPC, CTF (Cyber Security), ICT Olympiad, and Math Olympiad.
+                    </p>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="flex flex-col gap-2">
+                        <Users className="w-5 h-5 text-emerald-500" />
+                        <span className="text-sm font-semibold text-white">500+</span>
+                        <span className="text-xs text-muted-foreground">Participants</span>
                       </div>
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
-                          Sponsor Value
-                        </p>
-                        <ul className="space-y-2.5">
-                          {programs.find(p => p.featured)?.sponsorValue.map((v: string) => (
-                            <li key={v} className="flex items-start gap-2.5 text-sm text-foreground/80">
-                              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                              {v}
-                            </li>
-                          ))}
-                        </ul>
+                      <div className="flex flex-col gap-2">
+                        <Calendar className="w-5 h-5 text-emerald-500" />
+                        <span className="text-sm font-semibold text-white">Multi-day</span>
+                        <span className="text-xs text-muted-foreground">Event</span>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Trophy className="w-5 h-5 text-emerald-500" />
+                        <span className="text-sm font-semibold text-white">Competitions</span>
+                        <span className="text-xs text-muted-foreground">& Awards</span>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Building2 className="w-5 h-5 text-emerald-500" />
+                        <span className="text-sm font-semibold text-white">Sponsor</span>
+                        <span className="text-xs text-muted-foreground">Visibility</span>
                       </div>
                     </div>
                   </div>
-                </motion.div>
-              </Reveal>
-            )}
 
-            <motion.div
-              className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: "-60px" }}
-              variants={staggerContainer}
-            >
-              {programs.filter(p => !p.featured).map((program) => {
-                const Icon = PROGRAM_ICONS[program.id] || Code2;
-                return (
-                  <motion.div key={program.id} variants={fadeUp} whileHover={{ y: -5 }} className="group relative p-6 rounded-2xl border border-border bg-card/30 overflow-hidden hover:border-emerald-500/15 hover:bg-card/50 transition-all duration-300">
-                    <div className="relative">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center">
-                          <Icon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  {/* Right Column */}
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-white mb-6">
+                      Sponsor Value
+                    </p>
+                    <ul className="space-y-4">
+                      {[
+                        "Maximum brand exposure across all sub-events",
+                        "Multi-day campus activation opportunity",
+                        "Direct engagement with 500+ participants",
+                        "Speaking and judging opportunities",
+                        "Full digital and physical branding package"
+                      ].map((v, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <div className="mt-0.5 rounded-full border border-emerald-500/30 flex items-center justify-center p-0.5 shrink-0">
+                            <Check className="w-3 h-3 text-emerald-500" />
+                          </div>
+                          <span className="text-sm text-muted-foreground leading-snug">{v}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+
+            <Reveal>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { title: "IUPC", subtitle: "Inter University Programming Contest", desc: "A competitive platform bringing together the best problem solvers from universities across the country.", icon: Code2 },
+                  { title: "CTF", subtitle: "Cyber Security Contest", desc: "Capture The Flag competition designed to challenge and sharpen cybersecurity skills.", icon: Shield },
+                  { title: "ICT Olympiad", subtitle: "ICT Knowledge Competition", desc: "An academic and technical competition to encourage ICT knowledge and innovation.", icon: Laptop },
+                  { title: "Math Olympiad", subtitle: "Mathematics Competition", desc: "A problem-solving competition that promotes analytical thinking and mathematical excellence.", icon: Sigma },
+                  { title: "Workshops", subtitle: "Hands-on workshops", desc: "Build practical skills and industry relevant knowledge.", icon: Wrench },
+                  { title: "Industry Sessions", subtitle: "Learn from experts", desc: "Keynote talks and expert-led sessions.", icon: Mic },
+                  { title: "Networking", subtitle: "Connect and collaborate", desc: "Grow with peers, mentors and industry professionals.", icon: Users },
+                  { title: "Awards", subtitle: "Recognizing excellence", desc: "Celebrating innovation and outstanding performances.", icon: Trophy }
+                ].map((item, i) => {
+                  const Icon = item.icon;
+                  return (
+                    <motion.div
+                      key={i}
+                      className="group relative p-6 rounded-xl border border-white/[0.08] bg-white/[0.02] overflow-hidden hover:bg-white/[0.04] transition-all duration-300 flex flex-col h-full hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_0_20px_rgba(16,185,129,0.05)]"
+                    >
+                      <div className="flex items-start gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-full border border-white/[0.08] flex items-center justify-center shrink-0">
+                          <Icon className="w-5 h-5 text-emerald-500" />
                         </div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          {program.category}
-                        </span>
+                        <div>
+                          <h4 className="font-bold text-white text-base">{item.title}</h4>
+                          <p className="text-[10px] font-semibold text-emerald-500 leading-tight mt-0.5">{item.subtitle}</p>
+                        </div>
                       </div>
-                      <h3 className="font-semibold text-sm mb-2">{program.shortName}</h3>
-                      <p className="text-xs text-muted-foreground leading-relaxed mb-4">{program.description.slice(0, 100)}...</p>
-                      <ul className="space-y-1.5">
-                        {program.sponsorValue.slice(0, 2).map((v: string) => (
-                          <li key={v} className="flex items-start gap-2 text-[11px] text-muted-foreground">
-                            <span className="mt-1 w-1 h-1 rounded-full bg-emerald-500/60 shrink-0" />
-                            {v}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
+                      <p className="text-xs text-muted-foreground leading-relaxed flex-grow">
+                        {item.desc}
+                      </p>
+                      <div className="mt-4 flex justify-end">
+                        <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-emerald-500 transition-colors" />
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </Reveal>
+            
+            <div className="mt-8 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Calendar className="w-3.5 h-3.5 text-emerald-500" /> One Community. Multiple Programs. Limitless Impact.
+            </div>
           </div>
         </section>
 
-        
         {/* ══ SECTION 4 — WHY SPONSOR ══════════════════════ */}
         <section className="relative py-24 overflow-hidden bg-muted/20">
           <DotGrid className="text-primary" />
