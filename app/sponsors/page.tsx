@@ -7,6 +7,7 @@ import {
   type ElementType,
 } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   motion,
   MotionConfig,
@@ -42,6 +43,8 @@ import {
   Star,
   Zap,
   ChevronDown,
+  Mic,
+  Phone,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -169,6 +172,7 @@ const WHY_ICONS: Record<string, ElementType> = {
   MapPin,
   GraduationCap,
   Lightbulb,
+  Mic,
 };
 
 /* ─── Animation variants ─────────────────────────────── */
@@ -592,8 +596,8 @@ function PartnersMarquee({ partners }: { partners: Partner[] }) {
           </span>
         </SectionHeading>
         <p className="text-muted-foreground mt-3 text-base">
-          Leading brands and organizations that have trusted GUCC — hover to
-          reveal, drag to browse.
+          Leading brands and organizations that have trusted GUCC — drag
+          to browse.
         </p>
       </Reveal>
 
@@ -622,8 +626,17 @@ function PartnersMarquee({ partners }: { partners: Partner[] }) {
           {loop.map((p, i) => (
             <div
               key={`${p.name}-${i}`}
-              className="group flex items-center justify-center h-24 w-44 sm:w-48 shrink-0 rounded-2xl border border-border/60 bg-background/80 backdrop-blur-sm px-4 py-3 transition-all duration-300 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1"
+              className="group flex items-center justify-center h-24 w-44 sm:w-48 shrink-0 rounded-2xl border border-border/60 bg-background/80 backdrop-blur-sm px-4 py-3 transition-all duration-300 hover:border-primary/40 hover:-translate-y-1"
+              style={{ transition: "all 0.3s ease" }}
               title={p.name}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 20px rgba(34,197,94,0.25), 0 0 40px rgba(34,197,94,0.10)";
+                (e.currentTarget as HTMLDivElement).style.transform = "scale(1.05) translateY(-4px)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLDivElement).style.boxShadow = "";
+                (e.currentTarget as HTMLDivElement).style.transform = "";
+              }}
             >
               <div className="relative h-full w-full">
                 <Image
@@ -632,7 +645,7 @@ function PartnersMarquee({ partners }: { partners: Partner[] }) {
                   fill
                   sizes="(max-width: 640px) 176px, 192px"
                   draggable={false}
-                  className="object-contain opacity-80 sm:grayscale sm:opacity-60 transition-all duration-300 pointer-events-none select-none sm:group-hover:grayscale-0 sm:group-hover:opacity-100 group-hover:scale-105"
+                  className="object-contain opacity-90 transition-all duration-300 pointer-events-none select-none"
                 />
               </div>
             </div>
@@ -809,9 +822,9 @@ export default function SponsorsPage() {
 
   const stats = [
     { label: "Community Members", value: 7000, suffix: "+" },
-    { label: "Contestants", value: 100, suffix: "+" },
-    { label: "Active Teams", value: 30, suffix: "+" },
-    { label: "Past Partners", value: previousPartners.length, suffix: "+" },
+    { label: "University Connections", value: 50, suffix: "+" },
+    { label: "Club Partners", value: 10, suffix: "+" },
+    { label: "Company Collaborations", value: 12, suffix: "+" },
   ];
 
   return (
@@ -1205,7 +1218,7 @@ export default function SponsorsPage() {
                 </span>
               </SectionHeading>
               <p className="text-muted-foreground mt-4">
-                A proven track record of organizing world-class events that make a real impact.
+                A proven track record of organizing world-class events that make a real impact. Click any card to explore the event.
               </p>
             </Reveal>
 
@@ -1216,29 +1229,39 @@ export default function SponsorsPage() {
               viewport={{ once: true, margin: "-80px" }}
               variants={staggerContainer}
             >
-              {achievements.map((a, i) => (
-                <motion.div
-                  key={a.title}
-                  variants={fadeUp}
-                  whileHover={{ y: -5 }}
-                  className="group relative flex gap-5 p-6 rounded-2xl bg-background border border-border/60 overflow-hidden hover:border-amber-400/50 hover:shadow-xl hover:shadow-amber-400/10 transition-all duration-300"
-                >
-                  <span className="absolute right-4 top-3 text-5xl font-black text-primary/5 select-none group-hover:text-primary/8 transition-colors">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <motion.span
-                    className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 shrink-0 mt-0.5 group-hover:bg-amber-500/20 transition-colors"
-                    animate={{ boxShadow: ["0 0 0px rgba(245,158,11,0)", "0 0 18px rgba(245,158,11,0.35)", "0 0 0px rgba(245,158,11,0)"] }}
-                    transition={{ duration: 2.5 + i * 0.5, repeat: Infinity, ease: "easeInOut" }}
+              {achievements.map((a: { title: string; description: string; eventSlug?: string }, i: number) => {
+                const cardContent = (
+                  <motion.div
+                    key={a.title}
+                    variants={fadeUp}
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    className="group relative flex gap-5 p-6 rounded-2xl bg-background border border-border/60 overflow-hidden hover:border-amber-400/50 hover:shadow-xl hover:shadow-amber-400/10 transition-all duration-300 cursor-pointer"
                   >
-                    <Trophy className="w-6 h-6" />
-                  </motion.span>
-                  <div className="relative">
-                    <p className="font-bold text-base mb-1.5">{a.title}</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{a.description}</p>
-                  </div>
-                </motion.div>
-              ))}
+                    <span className="absolute right-4 top-3 text-5xl font-black text-primary/5 select-none group-hover:text-primary/8 transition-colors">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <motion.span
+                      className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 shrink-0 mt-0.5 group-hover:bg-amber-500/20 transition-colors"
+                      animate={{ boxShadow: ["0 0 0px rgba(245,158,11,0)", "0 0 18px rgba(245,158,11,0.35)", "0 0 0px rgba(245,158,11,0)"] }}
+                      transition={{ duration: 2.5 + i * 0.5, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <Trophy className="w-6 h-6" />
+                    </motion.span>
+                    <div className="relative">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <p className="font-bold text-base">{a.title}</p>
+                        <ExternalLink className="w-3.5 h-3.5 text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{a.description}</p>
+                    </div>
+                  </motion.div>
+                );
+                return a.eventSlug ? (
+                  <Link key={a.title} href={`/events/${a.eventSlug}`} className="block">
+                    {cardContent}
+                  </Link>
+                ) : cardContent;
+              })}
             </motion.div>
           </div>
         </section>
@@ -1577,8 +1600,23 @@ export default function SponsorsPage() {
             </p>
           </Reveal>
 
+          {/* Official Club Email CTA */}
+          <Reveal className="mb-10">
+            <div className="flex justify-center">
+              <motion.a
+                href="mailto:gucc@green.edu.bd"
+                className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-semibold text-lg text-black bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/40 transition-all duration-300"
+                whileHover={{ scale: 1.04, y: -2 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Mail className="w-5 h-5" />
+                Email Official Club: gucc@green.edu.bd
+              </motion.a>
+            </div>
+          </Reveal>
+
           <motion.div
-            className="grid sm:grid-cols-2 gap-6 max-w-3xl mx-auto"
+            className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto"
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: "-80px" }}
@@ -1600,15 +1638,26 @@ export default function SponsorsPage() {
                       </div>
                     </div>
 
-                    <a
-                      href={`mailto:${c.email}`}
-                      className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors group/link"
-                    >
-                      <span className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 group-hover/link:bg-primary/10 transition-colors">
-                        <Mail className="w-4 h-4" />
-                      </span>
-                      <span className="break-all">{c.email}</span>
-                    </a>
+                    <div className="space-y-3">
+                      <a
+                        href={`mailto:${c.email}`}
+                        className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors group/link"
+                      >
+                        <span className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 group-hover/link:bg-primary/10 transition-colors">
+                          <Mail className="w-4 h-4" />
+                        </span>
+                        <span className="break-all">{c.email}</span>
+                      </a>
+                      <a
+                        href={`tel:${c.phone}`}
+                        className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors group/link"
+                      >
+                        <span className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 group-hover/link:bg-primary/10 transition-colors">
+                          <Phone className="w-4 h-4" />
+                        </span>
+                        <span>{c.phone}</span>
+                      </a>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -1618,14 +1667,7 @@ export default function SponsorsPage() {
           <Reveal className="mt-10">
             <div className="rounded-2xl border border-border/60 bg-muted/30 p-6 text-center">
               <p className="text-muted-foreground text-sm">
-                You can also reach us at{" "}
-                <a
-                  href={`mailto:${sponsorData.event.email}`}
-                  className="text-primary font-semibold hover:underline"
-                >
-                  {sponsorData.event.email}
-                </a>{" "}
-                or visit{" "}
+                Visit our website{" "}
                 <a
                   href={`https://${sponsorData.event.website}`}
                   target="_blank"

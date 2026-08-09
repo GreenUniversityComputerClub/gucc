@@ -1,8 +1,8 @@
 {
   "event": {
-    "name": "IDPC 2026",
-    "fullName": "Inter Department Programming Contest",
-    "tagline": "Inter Department Programming Contest",
+    "name": "CSE CARNIVAL 2026",
+    "fullName": "CSE Carnival 2026",
+    "tagline": "CSE Carnival 2026",
     "organizer": "Green University Computer Club (GUCC)",
     "university": "Green University of Bangladesh",
     "website": "gucc.green.edu.bd",
@@ -15,23 +15,28 @@
   "achievements": [
     {
       "title": "HackTheAI 2025",
-      "description": "Organized one of Bangladesh's largest university AI hackathons, featuring nationwide participation, industry mentors, expert judges, and sponsorship from SmythOS."
+      "description": "Organized one of Bangladesh's largest university AI hackathons, featuring nationwide participation, industry mentors, expert judges, and sponsorship from SmythOS.",
+      "eventSlug": "hacktheai-final--award-ceremony"
     },
     {
       "title": "GUB CSE Carnival 2024",
-      "description": "Successfully organized a three-day flagship technology festival featuring programming contests, AI & cybersecurity talks, panel discussions, gaming competitions, and innovation showcases."
+      "description": "Successfully organized a three-day flagship technology festival featuring programming contests, AI & cybersecurity talks, panel discussions, gaming competitions, and innovation showcases.",
+      "eventSlug": "gub-cse-carnival-2024-inauguration-ceremony"
     },
     {
-      "title": "Inter Department Programming Contest (IDPC)",
-      "description": "Hosted one of the university's premier competitive programming contests, attracting hundreds of participants and promoting algorithmic problem-solving among students."
+      "title": "Best Programming & Computer Science Club Award",
+      "description": "Recognized as the best programming and computer science club for outstanding contributions to technical education and community building at Green University of Bangladesh.",
+      "eventSlug": "gucc-receives-club-excellence-award-2026"
     },
     {
-      "title": "Career & Industry Tech Summit",
-      "description": "Conducted high-impact seminars and workshops with experts from bKash, Google Developer Group (GDG), Erasmus Mundus Association, bongoDev, and other leading organizations."
+      "title": "Most Impactful Club in Green University of Bangladesh",
+      "description": "Awarded for creating the most significant positive impact on student development, career readiness, and the tech ecosystem within Green University of Bangladesh.",
+      "eventSlug": "gucc-12th-anniversary-celebration"
     },
     {
-      "title": "Competitive Programming & Tech Community",
-      "description": "Built a thriving programming community through beginner programming contests, weekly coding sessions, and mentorship programs, preparing students for national and international competitions."
+      "title": "Biggest Community of GUB",
+      "description": "Built the largest student community at Green University of Bangladesh with over 7,000+ members, fostering collaboration, learning, and innovation across departments.",
+      "eventSlug": "gucc-inauguration--farewell-ceremony-2026"
     }
   ],
   "schedule": [
@@ -62,14 +67,14 @@
     }
   ],
   "previousPartners": [
-    { "name": "SmythOS", "logo": "/sponsors/smythos.png" },
-    { "name": "GIGABYTE", "logo": "/sponsors/gigabyte.jpg" },
-    { "name": "AORUS", "logo": "/sponsors/aorus.png" },
+    { "name": "Google Developers", "logo": "/sponsors/google-developers.webp" },
     { "name": "GitHub", "logo": "/sponsors/github.png" },
     { "name": "Cursor", "logo": "/sponsors/cursor.webp" },
-    { "name": "Google Developers", "logo": "/sponsors/google-developers.webp" },
+    { "name": "AORUS", "logo": "/sponsors/aorus.png" },
     { "name": "NetCom Learning", "logo": "/sponsors/netcom-learning.webp" },
     { "name": "NextGen Xperience", "logo": "/sponsors/nextgen-xperience.png" },
+    { "name": "SmythOS", "logo": "/sponsors/smythos.png" },
+    { "name": "GIGABYTE", "logo": "/sponsors/gigabyte.jpg" },
     { "name": "ESN BD", "logo": "/sponsors/esn-bd.jpg" },
     { "name": "Trendbeat", "logo": "/sponsors/trendbeat.jpg" },
     { "name": "AMA Coffee", "logo": "/sponsors/ama-coffee.jpg" },
@@ -80,7 +85,7 @@
   "whySponsorReasons": [
     {
       "title": "Access Top Tech Talent",
-      "description": "Directly engage with 7,000+ technically sharp students and competitive programmers from GUCC's thriving community.",
+      "description": "Directly engage with competitive programmers, hackathon winners, and developers proficient in high-demand modern tech stacks.",
       "icon": "Users"
     },
     {
@@ -112,6 +117,11 @@
       "title": "Support Innovation",
       "description": "Empower the next generation of engineers and innovators while building goodwill in Bangladesh's tech ecosystem.",
       "icon": "Lightbulb"
+    },
+    {
+      "title": "Exclusive Perks",
+      "description": "Secure dedicated speaking slots, judging panel seats, and VIP access to key event segments.",
+      "icon": "Mic"
     }
   ],
   "packages": [
@@ -182,19 +192,27 @@
   ],
   "contacts": [
     {
-      "name": "Tanveer Ziad",
+      "name": "Tanveer Ahmed Ziad",
       "role": "President",
       "organization": "Green University Computer Club (GUCC)",
-      "phone": "+880 1XXX XXXXXX",
-      "email": "president.gucc@green.edu.bd",
+      "phone": "01970302328",
+      "email": "tanveer.ziad@gmail.com",
       "website": "gucc.green.edu.bd"
     },
     {
-      "name": "Galib",
+      "name": "ABDULLAH MD GALIB",
       "role": "Joint Information Secretary",
       "organization": "Green University Computer Club (GUCC)",
-      "phone": "+880 1XXX XXXXXX",
-      "email": "info.gucc@green.edu.bd",
+      "phone": "01521706927",
+      "email": "muhammad.cse.gub@gmail.com",
+      "website": "gucc.green.edu.bd"
+    },
+    {
+      "name": "Mymona Salim Phool",
+      "role": "Outreach Secretary",
+      "organization": "Green University Computer Club (GUCC)",
+      "phone": "01540567539",
+      "email": "mymonaphool@gmail.com",
       "website": "gucc.green.edu.bd"
     }
   ]
