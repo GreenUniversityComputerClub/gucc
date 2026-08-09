@@ -1610,7 +1610,7 @@ export default function SponsorsPage() {
                 whileTap={{ scale: 0.97 }}
               >
                 <Mail className="w-5 h-5" />
-                Email Official Club: gucc@green.edu.bd
+                Official Mail: gucc@green.edu.bd
               </motion.a>
             </div>
           </Reveal>
