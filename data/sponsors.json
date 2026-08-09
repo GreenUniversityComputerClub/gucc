@@ -66,6 +66,45 @@
       "description": "Main event — competitive algorithmic programming contest"
     }
   ],
+  "programs": [
+    {
+      "id": "cse-carnival",
+      "name": "CSE Carnival 2026",
+      "shortName": "CSE Carnival",
+      "category": "Flagship",
+      "featured": true,
+      "description": "A large-scale technology and student engagement initiative combining competitions, learning, innovation, community, and industry interaction across multiple days. The carnival features four core contests: IUPC, CTF (Cyber Security), ICT Olympiad, and Math Olympiad.",
+      "components": [
+        "IUPC (Inter University Programming Contest)",
+        "CTF (Cyber Security Contest)",
+        "ICT Olympiad",
+        "Math Olympiad",
+        "Workshops",
+        "Industry Sessions",
+        "Networking",
+        "Awards"
+      ],
+      "sponsorValue": [
+        "Maximum brand exposure across all sub-events",
+        "Multi-day campus activation opportunity",
+        "Direct engagement with 500+ participants",
+        "Speaking and judging opportunities",
+        "Full digital and physical branding package"
+      ],
+      "eventSlug": "gub-cse-carnival-2024-inauguration-ceremony"
+    }
+  ],
+  "comparisonFeatures": [
+    { "feature": "Logo Placement", "gold": true, "silver": true, "bronze": true },
+    { "feature": "Social Media Promotion", "gold": true, "silver": true, "bronze": true },
+    { "feature": "Event Branding", "gold": true, "silver": true, "bronze": false },
+    { "feature": "Booth Opportunity", "gold": true, "silver": true, "bronze": false },
+    { "feature": "Promotional Materials", "gold": true, "silver": true, "bronze": false },
+    { "feature": "Stage Visibility", "gold": true, "silver": false, "bronze": false },
+    { "feature": "Workshop/Session Opportunity", "gold": true, "silver": false, "bronze": false },
+    { "feature": "Recruitment Opportunity", "gold": true, "silver": false, "bronze": false },
+    { "feature": "Custom Activation", "gold": true, "silver": false, "bronze": false }
+  ],
   "previousPartners": [
     { "name": "Google Developers", "logo": "/sponsors/google-developers.webp" },
     { "name": "GitHub", "logo": "/sponsors/github.png" },
