@@ -683,7 +683,7 @@ function BenefitItem({
   accentColor,
   checkBg,
   checkBorder,
-  textClass = "text-zinc-300",
+  textClass = "text-foreground/80 dark:text-zinc-300",
 }: {
   text: string;
   accentColor: string;
@@ -1059,14 +1059,14 @@ export default function SponsorsPage() {
 
 
         {/* ══ PROGRAMS ════════════════════════════════════ */}
-        <section id="programs" className="relative py-24 overflow-hidden bg-[#0a0d12]">
+        <section id="programs" className="relative py-24 overflow-hidden bg-slate-100/70 dark:bg-[#0a0d12] border-y border-border/40 transition-colors duration-300">
           <div className="container mx-auto px-4 max-w-6xl relative z-10">
             <Reveal className="text-center mb-14 flex flex-col items-center">
-              <div className="flex items-center gap-2 px-3 py-1 mb-6 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-500">
+              <div className="flex items-center gap-2 px-3 py-1 mb-6 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-600 dark:text-emerald-400">
                 <Star className="w-3.5 h-3.5" /> Programs
               </div>
-              <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-6 tracking-tight">
-                Sponsor the Programs That <span className="text-emerald-500">Matter</span>
+              <h2 className="text-4xl sm:text-5xl font-extrabold text-foreground dark:text-white mb-6 tracking-tight">
+                Sponsor the Programs That <span className="bg-gradient-to-r from-green-600 to-emerald-500 dark:from-green-500 dark:to-emerald-400 bg-clip-text text-transparent">Matter</span>
               </h2>
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
                 GUCC organizes a diverse portfolio of technical programs — each offering unique brand exposure and student engagement opportunities.
@@ -1074,14 +1074,14 @@ export default function SponsorsPage() {
             </Reveal>
 
             <Reveal className="mb-6">
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden p-8 sm:p-10 lg:p-12">
+              <div className="rounded-2xl border border-border/80 dark:border-white/[0.08] bg-card/90 dark:bg-white/[0.02] shadow-sm dark:shadow-none overflow-hidden p-8 sm:p-10 lg:p-12">
                 <div className="grid lg:grid-cols-[1.5fr,1fr] gap-12 lg:gap-20">
                   {/* Left Column */}
                   <div>
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-6 w-max">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-6 w-max">
                       <Star className="w-3 h-3" /> Flagship Program
                     </div>
-                    <h3 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight">
+                    <h3 className="text-3xl sm:text-4xl font-bold text-foreground dark:text-white mb-4 tracking-tight">
                       CSE Carnival 2026
                     </h3>
                     <p className="text-muted-foreground text-base leading-relaxed mb-10 max-w-lg">
@@ -1089,23 +1089,23 @@ export default function SponsorsPage() {
                     </p>
                     <div className="grid grid-cols-4 gap-4">
                       <div className="flex flex-col gap-2">
-                        <Users className="w-5 h-5 text-emerald-500" />
-                        <span className="text-sm font-semibold text-white">500+</span>
+                        <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-sm font-semibold text-foreground dark:text-white">500+</span>
                         <span className="text-xs text-muted-foreground">Participants</span>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <Calendar className="w-5 h-5 text-emerald-500" />
-                        <span className="text-sm font-semibold text-white">Multi-day</span>
+                        <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-sm font-semibold text-foreground dark:text-white">Multi-day</span>
                         <span className="text-xs text-muted-foreground">Event</span>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <Trophy className="w-5 h-5 text-emerald-500" />
-                        <span className="text-sm font-semibold text-white">Competitions</span>
+                        <Trophy className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-sm font-semibold text-foreground dark:text-white">Competitions</span>
                         <span className="text-xs text-muted-foreground">& Awards</span>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <Building2 className="w-5 h-5 text-emerald-500" />
-                        <span className="text-sm font-semibold text-white">Sponsor</span>
+                        <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-sm font-semibold text-foreground dark:text-white">Sponsor</span>
                         <span className="text-xs text-muted-foreground">Visibility</span>
                       </div>
                     </div>
@@ -1113,7 +1113,7 @@ export default function SponsorsPage() {
 
                   {/* Right Column */}
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-white mb-6">
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-foreground dark:text-white mb-6">
                       Sponsor Value
                     </p>
                     <ul className="space-y-4">
@@ -1125,8 +1125,8 @@ export default function SponsorsPage() {
                         "Full digital and physical branding package"
                       ].map((v, i) => (
                         <li key={i} className="flex items-start gap-3">
-                          <div className="mt-0.5 rounded-full border border-emerald-500/30 flex items-center justify-center p-0.5 shrink-0">
-                            <Check className="w-3 h-3 text-emerald-500" />
+                          <div className="mt-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-center p-0.5 shrink-0">
+                            <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                           </div>
                           <span className="text-sm text-muted-foreground leading-snug">{v}</span>
                         </li>
@@ -1153,22 +1153,22 @@ export default function SponsorsPage() {
                   return (
                     <motion.div
                       key={i}
-                      className="group relative p-6 rounded-xl border border-white/[0.08] bg-white/[0.02] overflow-hidden hover:bg-white/[0.04] transition-all duration-300 flex flex-col h-full hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_0_20px_rgba(16,185,129,0.05)]"
+                      className="group relative p-6 rounded-xl border border-border/80 dark:border-white/[0.08] bg-card/80 dark:bg-white/[0.02] overflow-hidden hover:bg-card dark:hover:bg-white/[0.04] transition-all duration-300 flex flex-col h-full hover:-translate-y-1 hover:border-emerald-500/40 dark:hover:border-emerald-500/20 hover:shadow-md dark:hover:shadow-[0_0_20px_rgba(16,185,129,0.05)]"
                     >
                       <div className="flex items-start gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-full border border-white/[0.08] flex items-center justify-center shrink-0">
-                          <Icon className="w-5 h-5 text-emerald-500" />
+                        <div className="w-10 h-10 rounded-full border border-border/60 dark:border-white/[0.08] bg-emerald-500/10 dark:bg-transparent flex items-center justify-center shrink-0">
+                          <Icon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-white text-base">{item.title}</h4>
-                          <p className="text-[10px] font-semibold text-emerald-500 leading-tight mt-0.5">{item.subtitle}</p>
+                          <h4 className="font-bold text-foreground dark:text-white text-base">{item.title}</h4>
+                          <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 leading-tight mt-0.5">{item.subtitle}</p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed flex-grow">
                         {item.desc}
                       </p>
                       <div className="mt-4 flex justify-end">
-                        <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-emerald-500 transition-colors" />
+                        <ArrowRight className="w-4 h-4 text-muted-foreground/30 dark:text-white/20 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" />
                       </div>
                     </motion.div>
                   )
@@ -1177,7 +1177,7 @@ export default function SponsorsPage() {
             </Reveal>
             
             <div className="mt-8 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              <Calendar className="w-3.5 h-3.5 text-emerald-500" /> One Community. Multiple Programs. Limitless Impact.
+              <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> One Community. Multiple Programs. Limitless Impact.
             </div>
           </div>
         </section>
@@ -1479,7 +1479,7 @@ export default function SponsorsPage() {
                     <tr>
                       <th className="py-2.5 px-4 text-sm font-semibold border-b border-border">Feature Comparison</th>
                       <th className="py-2.5 px-4 text-sm font-semibold text-[#C9A84C] text-center border-b border-border">Gold</th>
-                      <th className="py-2.5 px-4 text-sm font-semibold text-slate-400 text-center border-b border-border">Silver</th>
+                      <th className="py-2.5 px-4 text-sm font-semibold text-slate-600 dark:text-slate-400 text-center border-b border-border">Silver</th>
                       <th className="py-2.5 px-4 text-sm font-semibold text-[#A0714F] text-center border-b border-border">Bronze</th>
                     </tr>
                   </thead>
@@ -1491,7 +1491,7 @@ export default function SponsorsPage() {
                           {row.gold ? <Check className="w-4 h-4 text-[#C9A84C] mx-auto" /> : <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />}
                         </td>
                         <td className="py-2 px-4 text-center">
-                          {row.silver ? <Check className="w-4 h-4 text-slate-400 mx-auto" /> : <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />}
+                          {row.silver ? <Check className="w-4 h-4 text-slate-600 dark:text-slate-400 mx-auto" /> : <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />}
                         </td>
                         <td className="py-2 px-4 text-center">
                           {row.bronze ? <Check className="w-4 h-4 text-[#A0714F] mx-auto" /> : <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />}
