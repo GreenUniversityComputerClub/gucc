@@ -1525,7 +1525,7 @@ export default function SponsorsPage() {
                 brand touchpoints beyond traditional sponsorship.
               </p>
             </Reveal>
-
+{/* hellooooo */}
             <motion.div
               className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5"
               initial="hidden"
