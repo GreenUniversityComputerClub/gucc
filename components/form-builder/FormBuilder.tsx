@@ -337,6 +337,9 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
               className="text-lg font-semibold border-none shadow-none focus-visible:ring-0 px-0 h-auto"
               placeholder="Form title..."
             />
+            {initial?.createdByEmail && (
+              <p className="text-[11px] text-muted-foreground">Created by {initial.createdByEmail}</p>
+            )}
             {logoError && <p className="text-[11px] text-destructive">{logoError}</p>}
             {logoUrl && (
               <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-0.5">

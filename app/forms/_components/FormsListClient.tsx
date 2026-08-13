@@ -15,7 +15,7 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
 }
 
-export default function FormsListClient({ forms }: { forms: FormConfig[] }) {
+export default function FormsListClient({ forms, currentUserEmail }: { forms: FormConfig[]; currentUserEmail: string }) {
   const [query, setQuery] = useState("")
 
   const filtered = useMemo(() => {
@@ -55,7 +55,7 @@ export default function FormsListClient({ forms }: { forms: FormConfig[] }) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((form) => (
-            <FormCard key={form.id} form={form} />
+            <FormCard key={form.id} form={form} currentUserEmail={currentUserEmail} />
           ))}
         </div>
       )}
@@ -63,7 +63,7 @@ export default function FormsListClient({ forms }: { forms: FormConfig[] }) {
   )
 }
 
-function FormCard({ form }: { form: FormConfig }) {
+function FormCard({ form, currentUserEmail }: { form: FormConfig; currentUserEmail: string }) {
   const preview = stripHtml(form.description ?? "")
   const updated = new Date(form.updatedAt)
   const updatedLabel = Number.isNaN(updated.getTime())
@@ -90,9 +90,10 @@ function FormCard({ form }: { form: FormConfig }) {
             </Badge>
           )}
         </div>
-        {updatedLabel && (
-          <p className="text-[10px] text-muted-foreground">Updated {updatedLabel}</p>
-        )}
+        <div className="text-[10px] text-muted-foreground space-y-0.5">
+          {updatedLabel && <p>Updated {updatedLabel}</p>}
+          {form.createdByEmail && <p className="truncate">Created by {form.createdByEmail}</p>}
+        </div>
         <div className="flex items-center gap-2 pt-1">
           <Button asChild size="sm" variant="outline" className="flex-1 h-8 text-xs">
             <Link href={`/forms/${form.id}/edit`}>
@@ -109,7 +110,7 @@ function FormCard({ form }: { form: FormConfig }) {
               <ExternalLink className="h-3.5 w-3.5" />
             </Link>
           </Button>
-          <DeleteFormButton formId={form.id} />
+          <DeleteFormButton form={form} currentUserEmail={currentUserEmail} />
         </div>
       </CardContent>
     </Card>

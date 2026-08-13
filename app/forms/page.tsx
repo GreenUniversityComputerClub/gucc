@@ -26,7 +26,7 @@ export default async function FormsPage() {
         </Button>
       </div>
 
-      <FormsListClient forms={forms} />
+      <FormsListClient forms={forms} currentUserEmail={user.email ?? ""} />
 
       <div className="flex items-center justify-between border-t pt-4 text-xs text-muted-foreground">
         <span>Signed in as {user.email}</span>
