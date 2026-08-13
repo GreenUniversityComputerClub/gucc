@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { getForm } from "@/lib/forms"
+import { requireExecutive } from "@/lib/auth/require-executive"
 import FormRenderer from "@/components/form-renderer/FormRenderer"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,6 +11,7 @@ interface Props { params: Promise<{ formId: string }> }
 
 export default async function PreviewPage({ params }: Props) {
   const { formId } = await params
+  await requireExecutive(`/forms/${formId}/preview`)
   const form = await getForm(formId)
   if (!form) notFound()
 
