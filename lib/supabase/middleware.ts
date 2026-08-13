@@ -1,5 +1,6 @@
 import { createServerClient, type SetAllCookies } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isExecutiveEmail } from '@/lib/auth/executive-access'
 
 export async function updateSession(request: NextRequest) {
   // Check if Supabase environment variables are available
@@ -48,12 +49,22 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  console.log(request.nextUrl.pathname)
+  const { pathname } = request.nextUrl
 
-  if (
-    !user &&
-    isProtectedPath(request.nextUrl.pathname)
-  ) {
+  if (isExecutiveOnlyPath(pathname)) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/auth/login'
+      url.searchParams.set('next', pathname)
+      return NextResponse.redirect(url)
+    }
+    if (!isExecutiveEmail(user.email)) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/forms/access-denied'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+  } else if (!user && isProtectedPath(pathname)) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
@@ -77,7 +88,7 @@ export async function updateSession(request: NextRequest) {
 }
 
 const PROTECTED_PATHS = [
-  // '/executives.*', '/contests.*', '/events.*', '/collaborations.*', '/forms.*', '^/$'
+  // '/executives.*', '/contests.*', '/events.*', '/collaborations.*', '^/$'
   '/admin.*'
 ];
 
@@ -87,4 +98,20 @@ function isProtectedPath(path: string) {
     const regex = new RegExp(p)
     return regex.test(path)
   })
+}
+
+// The form builder itself is executive-only; the public submit page under the
+// same /forms/[id]/... tree must stay open to anyone, so these are listed
+// explicitly rather than matched with a single /forms.* wildcard. This is a
+// fast edge-level check — lib/auth/require-executive.ts enforces the same
+// rule again at the page level as the source of truth.
+const EXECUTIVE_ONLY_PATHS = [
+  '^/forms$',
+  '^/forms/new(/.*)?$',
+  '^/forms/[^/]+/edit(/.*)?$',
+  '^/forms/[^/]+/preview(/.*)?$',
+]
+
+function isExecutiveOnlyPath(path: string) {
+  return EXECUTIVE_ONLY_PATHS.some((p) => new RegExp(p).test(path))
 }
