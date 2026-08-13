@@ -89,7 +89,8 @@ export async function updateSession(request: NextRequest) {
 
 const PROTECTED_PATHS = [
   // '/executives.*', '/contests.*', '/events.*', '/collaborations.*', '^/$'
-  '/admin.*'
+  '/admin.*',
+  '^/profile$',
 ];
 
 function isProtectedPath(path: string) {

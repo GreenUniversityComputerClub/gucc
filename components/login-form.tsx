@@ -37,7 +37,7 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
         password,
       })
       if (error) throw error
-      router.push(next && next.startsWith('/') ? next : '/protected')
+      router.push(next && next.startsWith('/') ? next : '/profile')
       router.refresh()
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')

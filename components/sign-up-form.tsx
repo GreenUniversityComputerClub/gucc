@@ -51,7 +51,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
             student_id: studentId,
             department,
           },
-          emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(next && next.startsWith('/') ? next : '/protected')}`,
+          emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(next && next.startsWith('/') ? next : '/profile')}`,
         },
       })
       if (error) throw error
