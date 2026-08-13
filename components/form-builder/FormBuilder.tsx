@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
+import Link from "next/link"
 import { v4 as uuidv4 } from "uuid"
 import { FormConfig, FormField, FieldType } from "@/types/form"
 import FieldPalette from "./FieldPalette"
@@ -29,6 +30,7 @@ import {
   KeyRound,
   Link2,
   MessageSquare,
+  ArrowLeft,
 } from "lucide-react"
 
 interface FormBuilderProps {
@@ -291,6 +293,13 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
       <main className="flex-1 overflow-y-auto flex flex-col">
         {/* Top bar */}
         <div className="sticky top-0 z-10 bg-background border-b px-6 py-3 flex items-center gap-3">
+          <Link
+            href="/forms"
+            className="shrink-0 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Forms
+          </Link>
+          <Separator orientation="vertical" className="h-5" />
           {/* Logo */}
           <label className="relative shrink-0 h-10 w-10 rounded-md border border-dashed flex items-center justify-center cursor-pointer hover:bg-muted/50 overflow-hidden group">
             <input
