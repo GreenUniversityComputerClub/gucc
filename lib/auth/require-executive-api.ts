@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
+import type { User } from "@supabase/supabase-js"
 import { isExecutiveEmail } from "./executive-access"
 
 /**
  * Route Handler guard for executive-only API endpoints (form definitions —
  * not the public submit/upload endpoints, which stay open to anyone).
- * Returns a NextResponse to short-circuit with when access should be denied,
- * or null when the caller is cleared to proceed.
+ * Returns { denied } to short-circuit with, or { user } when cleared to proceed.
  */
-export async function requireExecutiveApi(req: NextRequest): Promise<NextResponse | null> {
+export async function requireExecutiveApi(
+  req: NextRequest
+): Promise<{ user: User; denied?: undefined } | { user?: undefined; denied: NextResponse }> {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -21,10 +23,10 @@ export async function requireExecutiveApi(req: NextRequest): Promise<NextRespons
 
   const { data } = await supabase.auth.getUser()
   if (!data.user) {
-    return NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 })
+    return { denied: NextResponse.json({ data: null, error: "Unauthorized" }, { status: 401 }) }
   }
   if (!isExecutiveEmail(data.user.email)) {
-    return NextResponse.json({ data: null, error: "Forbidden — executives only" }, { status: 403 })
+    return { denied: NextResponse.json({ data: null, error: "Forbidden — executives only" }, { status: 403 }) }
   }
-  return null
+  return { user: data.user }
 }
