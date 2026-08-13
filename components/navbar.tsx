@@ -175,6 +175,11 @@ export function Navbar() {
                   <div className="px-2 py-1.5 text-xs text-muted-foreground truncate max-w-[200px]">
                     {userEmail}
                   </div>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <UserRound className="h-3.5 w-3.5 mr-1.5" /> Profile
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                     <LogOut className="h-3.5 w-3.5 mr-1.5" /> Logout
                   </DropdownMenuItem>
@@ -319,11 +324,20 @@ export function Navbar() {
             </Button>
             <div className="pt-2 border-t border-border">
               {userEmail ? (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground truncate max-w-[180px]">{userEmail}</span>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" onClick={handleLogout}>
-                    <LogOut className="h-3.5 w-3.5 mr-1" /> Logout
-                  </Button>
+                <div className="space-y-2">
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <UserRound className="h-3.5 w-3.5" /> Profile
+                  </Link>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground truncate max-w-[180px]">{userEmail}</span>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" onClick={handleLogout}>
+                      <LogOut className="h-3.5 w-3.5 mr-1" /> Logout
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <Link
