@@ -40,6 +40,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
+    "framer-motion": "^12.42.2",
     "googleapis": "^173.0.0",
     "html2canvas": "^1.4.1",
     "isomorphic-dompurify": "^3.21.0",

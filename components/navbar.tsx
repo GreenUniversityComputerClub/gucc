@@ -54,7 +54,7 @@ export function Navbar() {
     return pathname === path;
   };
 
-  const isProjectsPath = pathname.startsWith("/scheduler");
+  const isProjectsPath = pathname.startsWith("/lost-found");
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60">
@@ -90,12 +90,12 @@ export function Navbar() {
           >
             Events
           </Link>
-          <Link
+          {/* <Link
             href="/contests"
             className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contests") ? "text-primary" : "text-muted-foreground"}`}
           >
             Contests
-          </Link>
+          </Link> */}
           {/* Lost & Found moved into Projects dropdown */}
           <Link
             href="/blog"
@@ -109,7 +109,19 @@ export function Navbar() {
           >
             Executives
           </Link>
-          <DropdownMenu>
+          <Link
+            href="/sponsors"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/sponsors") ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Sponsors
+          </Link>
+          <Link
+            href="/contact"
+            className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contact") ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Contact Us
+          </Link>
+          {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
@@ -120,14 +132,14 @@ export function Navbar() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" sideOffset={8}>
-              <DropdownMenuItem asChild>
+              {/* <DropdownMenuItem asChild>
                 <Link href="/scheduler">Scheduler</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
+              </DropdownMenuItem> */}
+              {/* <DropdownMenuItem asChild>
                 <Link href="/lost-found">Lost & Found</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */} 
           {isExecutive && (
             <Link
               href="/forms"
@@ -215,13 +227,13 @@ export function Navbar() {
             >
               Events
             </Link>
-            <Link
+            {/* <Link
               href="/contests"
               className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contests") ? "text-primary" : "text-muted-foreground"}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Contests
-            </Link>
+            </Link>  */}
             {/* Lost & Found moved into Projects mobile list */}
             <Link
               href="/blog"
@@ -237,7 +249,21 @@ export function Navbar() {
             >
               Executives
             </Link>
-            <div className="space-y-2">
+            <Link
+              href="/sponsors"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/sponsors") ? "text-primary" : "text-muted-foreground"}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Sponsors
+            </Link>
+            <Link
+              href="/contact"
+              className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/contact") ? "text-primary" : "text-muted-foreground"}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Contact
+            </Link>
+            {/* <div className="space-y-2">
               <button
                 type="button"
                 className="flex w-full items-center justify-between text-sm font-medium text-muted-foreground"
@@ -250,7 +276,7 @@ export function Navbar() {
               </button>
               {isProjectsMobileOpen && (
                 <div className="flex flex-col space-y-2 pl-2">
-                  <Link
+                  {/* <Link
                     href="/scheduler"
                     className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/scheduler") ? "text-primary" : "text-muted-foreground"}`}
                     onClick={() => {
@@ -259,8 +285,8 @@ export function Navbar() {
                     }}
                   >
                     Scheduler
-                  </Link>
-                  <Link
+                  </Link> */}
+                  {/* <Link
                     href="/lost-found"
                     className={`text-sm font-medium transition-colors hover:text-primary ${isActive("/lost-found") ? "text-primary" : "text-muted-foreground"}`}
                     onClick={() => {
@@ -272,7 +298,7 @@ export function Navbar() {
                   </Link>
                 </div>
               )}
-            </div>
+            </div> */}
             {isExecutive && (
               <Link
                 href="/forms"
