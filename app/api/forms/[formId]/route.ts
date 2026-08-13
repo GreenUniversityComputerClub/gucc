@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { getForm, saveForm, deleteForm } from "@/lib/forms"
 import { extractSheetId } from "@/lib/sheets"
 import { extractFolderId } from "@/lib/drive"
+import { requireExecutiveApi } from "@/lib/auth/require-executive-api"
 
 interface Params { params: Promise<{ formId: string }> }
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const denied = await requireExecutiveApi(req)
+  if (denied) return denied
+
   const { formId } = await params
   const form = await getForm(formId)
   if (!form) return NextResponse.json({ data: null, error: "Form not found" }, { status: 404 })
@@ -13,6 +17,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 }
 
 export async function PUT(req: NextRequest, { params }: Params) {
+  const denied = await requireExecutiveApi(req)
+  if (denied) return denied
+
   const { formId } = await params
   const existing = await getForm(formId)
   if (!existing) return NextResponse.json({ data: null, error: "Form not found" }, { status: 404 })
@@ -32,7 +39,10 @@ export async function PUT(req: NextRequest, { params }: Params) {
   return NextResponse.json({ data: updated, error: null })
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const denied = await requireExecutiveApi(req)
+  if (denied) return denied
+
   const { formId } = await params
   const existing = await getForm(formId)
   if (!existing) return NextResponse.json({ data: null, error: "Form not found" }, { status: 404 })

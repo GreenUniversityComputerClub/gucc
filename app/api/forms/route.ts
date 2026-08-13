@@ -2,13 +2,20 @@ import { NextRequest, NextResponse } from "next/server"
 import { listForms, saveForm } from "@/lib/forms"
 import { extractSheetId } from "@/lib/sheets"
 import { extractFolderId } from "@/lib/drive"
+import { requireExecutiveApi } from "@/lib/auth/require-executive-api"
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const denied = await requireExecutiveApi(req)
+  if (denied) return denied
+
   const forms = await listForms()
   return NextResponse.json({ data: forms, error: null })
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await requireExecutiveApi(req)
+  if (denied) return denied
+
   const body = await req.json()
   const sheetId = extractSheetId(body.sheetId ?? "")
   if (!sheetId) {
