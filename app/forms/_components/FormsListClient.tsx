@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Search, ExternalLink, Edit, Eye, AlertTriangle } from "lucide-react"
+import { Search, ExternalLink, Edit, Eye, AlertTriangle, Clock, XCircle } from "lucide-react"
 import { FormConfig } from "@/types/form"
+import { getFormAvailability } from "@/lib/form-status"
 import DeleteFormButton from "./DeleteFormButton"
 
 /** Descriptions are sanitized rich-text HTML — strip tags for the plain-text card preview. */
@@ -69,6 +70,7 @@ function FormCard({ form, currentUserEmail }: { form: FormConfig; currentUserEma
   const updatedLabel = Number.isNaN(updated.getTime())
     ? null
     : updated.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+  const availability = getFormAvailability(form)
 
   return (
     <Card className="group hover:shadow-md transition-shadow">
@@ -78,6 +80,24 @@ function FormCard({ form, currentUserEmail }: { form: FormConfig; currentUserEma
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
+          {availability.open ? (
+            <Badge variant="outline" className="text-xs text-green-700 border-green-300 bg-green-50">
+              Accepting responses
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-xs text-muted-foreground gap-1">
+              {availability.reason === "not-started" ? (
+                <Clock className="h-3 w-3" />
+              ) : (
+                <XCircle className="h-3 w-3" />
+              )}
+              {availability.reason === "not-started"
+                ? "Not open yet"
+                : availability.reason === "expired"
+                  ? "Expired"
+                  : "Closed"}
+            </Badge>
+          )}
           <Badge variant="secondary" className="text-xs">
             {form.fields.length} field{form.fields.length !== 1 ? "s" : ""}
           </Badge>

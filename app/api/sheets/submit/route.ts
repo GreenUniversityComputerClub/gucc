@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { getFormById } from "@/lib/forms"
 import { checkUniqueness, ensureHeaderRow, appendRow } from "@/lib/sheets"
 import { validateFields } from "@/lib/validation"
+import { getFormAvailability } from "@/lib/form-status"
+
+const CLOSED_MESSAGES = {
+  closed: "This form is no longer accepting responses.",
+  "not-started": "This form isn't open yet.",
+  expired: "This form's response window has closed.",
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.formData()
@@ -11,6 +18,12 @@ export async function POST(req: NextRequest) {
 
   const form = await getFormById(formId)
   if (!form) return NextResponse.json({ data: null, error: "Form not found" }, { status: 404 })
+
+  // Never trust the client's rendered state alone — someone could hit this route directly.
+  const availability = getFormAvailability(form)
+  if (!availability.open) {
+    return NextResponse.json({ data: null, error: CLOSED_MESSAGES[availability.reason] }, { status: 403 })
+  }
 
   // Build values map: fieldId -> string value (file fields already come as URLs from client)
   const values: Record<string, string> = {}

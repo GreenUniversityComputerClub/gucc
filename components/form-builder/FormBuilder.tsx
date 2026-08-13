@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
 import {
   GripVertical,
   Trash2,
@@ -31,7 +32,10 @@ import {
   Link2,
   MessageSquare,
   ArrowLeft,
+  Power,
+  CalendarClock,
 } from "lucide-react"
+import { getFormAvailability } from "@/lib/form-status"
 
 interface FormBuilderProps {
   initial?: FormConfig
@@ -66,6 +70,9 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
   const [successImageError, setSuccessImageError] = useState<string | null>(null)
   const [redirectUrl, setRedirectUrl] = useState(initial?.redirectUrl ?? "")
   const [redirectDelaySeconds, setRedirectDelaySeconds] = useState(initial?.redirectDelaySeconds ?? 3)
+  const [status, setStatus] = useState<"active" | "closed">(initial?.status ?? "active")
+  const [opensAt, setOpensAt] = useState(toDatetimeLocal(initial?.opensAt))
+  const [closesAt, setClosesAt] = useState(toDatetimeLocal(initial?.closesAt))
   const [fields, setFields] = useState<FormField[]>(initial?.fields ?? [])
   const [pages, setPages] = useState(initial?.pages ?? [{ title: "Page 1" }])
   const [currentPage, setCurrentPage] = useState(0)
@@ -94,6 +101,11 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
 
   const pageFields = fields.filter((f) => f.pageIndex === currentPage)
   const selectedField = fields.find((f) => f.id === selectedFieldId) ?? null
+  const availability = getFormAvailability({
+    status,
+    opensAt: fromDatetimeLocal(opensAt),
+    closesAt: fromDatetimeLocal(closesAt),
+  } as FormConfig)
 
   // ── Field operations ──────────────────────────────────────────
   const addField = useCallback(
@@ -265,6 +277,9 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
         sheetName,
         fields,
         pages,
+        status,
+        opensAt: fromDatetimeLocal(opensAt),
+        closesAt: fromDatetimeLocal(closesAt),
         submitLabel,
         successMessage,
         successAction,
@@ -528,6 +543,63 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
             </CardContent>
           </Card>
 
+          {/* Availability */}
+          <Card>
+            <CardContent className="pt-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Power className="h-3.5 w-3.5" /> Accepting Responses
+                </p>
+                <Switch
+                  checked={status === "active"}
+                  onCheckedChange={(checked) => setStatus(checked ? "active" : "closed")}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs flex items-center gap-1">
+                    <CalendarClock className="h-3 w-3" /> Opens at (optional)
+                  </Label>
+                  <Input
+                    type="datetime-local"
+                    value={opensAt}
+                    onChange={(e) => setOpensAt(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs flex items-center gap-1">
+                    <CalendarClock className="h-3 w-3" /> Closes at (optional)
+                  </Label>
+                  <Input
+                    type="datetime-local"
+                    value={closesAt}
+                    onChange={(e) => setClosesAt(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+
+              <p
+                className={`text-[11px] flex items-center gap-1 ${
+                  availability.open ? "text-green-600" : "text-amber-700"
+                }`}
+              >
+                {availability.open
+                  ? "Currently accepting responses."
+                  : availability.reason === "not-started"
+                    ? "Currently closed — hasn't reached its opening date yet."
+                    : availability.reason === "expired"
+                      ? "Currently closed — past its closing date."
+                      : "Currently closed — responses turned off."}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Even if the link is shared, visitors see a &quot;not accepting responses&quot; screen instead of the form while closed. Leave the dates blank for no schedule limit.
+              </p>
+            </CardContent>
+          </Card>
+
           {/* Page Manager */}
           <PageManager
             pages={pages}
@@ -777,6 +849,22 @@ export default function FormBuilder({ initial, onSave, onPreview }: FormBuilderP
       </aside>
     </div>
   )
+}
+
+/** ISO string -> value for an <input type="datetime-local">, in the browser's local timezone. */
+function toDatetimeLocal(iso?: string): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** <input type="datetime-local"> value -> ISO string (empty string stays empty, i.e. "no limit"). */
+function fromDatetimeLocal(value: string): string {
+  if (!value) return ""
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString()
 }
 
 function labelFor(type: FieldType): string {

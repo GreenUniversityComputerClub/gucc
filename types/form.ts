@@ -102,6 +102,12 @@ export interface FormConfig {
   sheetName: string
   fields: FormField[]
   pages: FormPage[]
+  /** Manual accepting-responses toggle, independent of the open/close dates below. Defaults to "active". */
+  status?: "active" | "closed"
+  /** ISO datetime — responses aren't accepted before this. Leave unset for "opens immediately". */
+  opensAt?: string
+  /** ISO datetime — responses aren't accepted after this. Leave unset for "never expires". */
+  closesAt?: string
   submitLabel?: string
   /** Sanitized rich-text HTML shown after submission when successAction is "message" */
   successMessage?: string

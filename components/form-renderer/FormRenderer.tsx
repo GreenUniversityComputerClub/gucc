@@ -1,14 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { FormConfig } from "@/types/form"
 import { validateFields } from "@/lib/validation"
+import { getFormAvailability } from "@/lib/form-status"
 import FormPage from "./FormPage"
 import SubmitHandler from "./SubmitHandler"
 import RichText from "./RichText"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { CheckCircle2, FileText, Loader2 } from "lucide-react"
+import { CheckCircle2, Clock, FileText, Loader2, XCircle } from "lucide-react"
 
 interface Props {
   form: FormConfig
@@ -45,6 +46,8 @@ export default function FormRenderer({ form, preview = false }: Props) {
       return next
     })
   }
+
+  const availability = useMemo(() => getFormAvailability(form), [form])
 
   const totalPages = form.pages.length
   const progress = ((currentPage + 1) / totalPages) * 100
@@ -88,6 +91,10 @@ export default function FormRenderer({ form, preview = false }: Props) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (!availability.open && !preview) {
+    return <ClosedScreen form={form} reason={availability.reason} />
   }
 
   if (submitted) {
@@ -135,6 +142,11 @@ export default function FormRenderer({ form, preview = false }: Props) {
 
   return (
     <div className="max-w-2xl mx-auto w-full space-y-6 py-8 px-4">
+      {preview && !availability.open && (
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5">
+          Preview mode — on the live form this would show a &quot;{CLOSED_REASON_LABEL[availability.reason]}&quot; screen instead, since {CLOSED_REASON_HINT[availability.reason]}.
+        </p>
+      )}
       {/* Header */}
       <div className="space-y-3">
         {form.logoUrl && (!form.logoPosition || form.logoPosition === "top") && (
@@ -255,6 +267,48 @@ export default function FormRenderer({ form, preview = false }: Props) {
             Saving your response — this can take a few seconds, please don&apos;t close this page.
           </p>
         )}
+      </div>
+    </div>
+  )
+}
+
+const CLOSED_REASON_LABEL: Record<"closed" | "not-started" | "expired", string> = {
+  closed: "Form Closed",
+  "not-started": "Not Open Yet",
+  expired: "Responses Closed",
+}
+
+const CLOSED_REASON_HINT: Record<"closed" | "not-started" | "expired", string> = {
+  closed: "the owner turned off responses",
+  "not-started": "it hasn't reached its opening date yet",
+  expired: "its response window has ended",
+}
+
+function ClosedScreen({ form, reason }: { form: FormConfig; reason: "closed" | "not-started" | "expired" }) {
+  const message =
+    reason === "not-started"
+      ? form.opensAt
+        ? `This form will open on ${new Date(form.opensAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}.`
+        : "This form isn't open yet."
+      : reason === "expired"
+        ? form.closesAt
+          ? `This form stopped accepting responses on ${new Date(form.closesAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}.`
+          : "This form's response window has closed."
+        : "This form is no longer accepting responses."
+
+  return (
+    <div className="max-w-2xl mx-auto w-full py-8 px-4">
+      <div className="min-h-[400px] flex flex-col items-center justify-center text-center p-8 space-y-4 border rounded-xl">
+        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+          {reason === "not-started" ? (
+            <Clock className="h-8 w-8 text-muted-foreground" />
+          ) : (
+            <XCircle className="h-8 w-8 text-muted-foreground" />
+          )}
+        </div>
+        <h1 className="text-xl font-semibold">{form.title}</h1>
+        <h2 className="text-lg font-medium">{CLOSED_REASON_LABEL[reason]}</h2>
+        <p className="text-muted-foreground max-w-sm">{message}</p>
       </div>
     </div>
   )
