@@ -5,7 +5,7 @@ import { extractFolderId } from "@/lib/drive"
 import { requireExecutiveApi } from "@/lib/auth/require-executive-api"
 
 export async function GET(req: NextRequest) {
-  const denied = await requireExecutiveApi(req)
+  const { denied } = await requireExecutiveApi(req)
   if (denied) return denied
 
   const forms = await listForms()
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const denied = await requireExecutiveApi(req)
+  const { user, denied } = await requireExecutiveApi(req)
   if (denied) return denied
 
   const body = await req.json()
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     driveFolderId = extracted
   }
 
-  const form = await saveForm({ ...body, sheetId, driveFolderId })
+  // Always the real creator's email — never trust a client-supplied value here.
+  const form = await saveForm({ ...body, sheetId, driveFolderId, createdByEmail: user.email ?? "" })
   return NextResponse.json({ data: form, error: null }, { status: 201 })
 }
