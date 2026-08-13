@@ -79,6 +79,15 @@ export interface FormPage {
 export interface FormConfig {
   id: string
   userId: string
+  /** Email of the executive who created this form. Powers "Created by" display and the delete-approval flow. */
+  createdByEmail?: string
+  /** Email of whoever last requested to delete this form (someone other than the creator) */
+  pendingDeleteRequestedByEmail?: string
+  /** Secret token emailed to the creator; must match for approve-delete to take effect */
+  pendingDeleteToken?: string
+  /** Set once the creator approves the pending delete request, unlocking deletion for pendingDeleteRequestedByEmail */
+  pendingDeleteApproved?: boolean
+  pendingDeleteRequestedAt?: string
   title: string
   /** Sanitized rich-text HTML (bold, lists, links, etc.), not plain text */
   description?: string
