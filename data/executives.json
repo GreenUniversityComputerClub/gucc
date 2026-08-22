@@ -2200,10 +2200,21 @@
             "avatarScale": 0.8
           },
           {
-            "position": "Deputy Moderator",
+            "position": "Former Deputy Moderator",
             "name": "Feroza Naznin",
             "designation": "Lecturer",
             "avatarUrl": "/executives/feroza.png",
+            "avatarPosition": {
+              "x": 0,
+              "y": -15
+            },
+            "avatarScale": 0.8
+          },
+           {
+            "position": "Deputy Moderator",
+            "name": "Sagufta Sabah Nakshi",
+            "designation": "Lecturer",
+            "avatarUrl": "/executives/nakshi.png",
             "avatarPosition": {
               "x": 0,
               "y": -15
