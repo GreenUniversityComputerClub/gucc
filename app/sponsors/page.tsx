@@ -799,15 +799,6 @@ export default function SponsorsPage() {
     comparisonFeatures: ComparisonFeature[];
   };
 
-  const heroRef = useRef<HTMLElement>(null);
-  const { scrollYProgress: heroProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const heroBgY = useTransform(heroProgress, [0, 1], [0, 140]);
-  const heroContentY = useTransform(heroProgress, [0, 1], [0, -90]);
-  const heroContentOpacity = useTransform(heroProgress, [0, 1], [1, 0]);
-
   const timelineRef = useRef<HTMLOListElement>(null);
   const { scrollYProgress: timelineFill } = useScroll({
     target: timelineRef,
@@ -830,7 +821,6 @@ export default function SponsorsPage() {
       <div className="relative overflow-hidden">
         {/* ══ SECTION 1 — HERO ══════════════════════════════ */}
         <section
-          ref={heroRef}
           className="relative min-h-screen flex items-center overflow-hidden"
           aria-label="Hero — Become our partner"
         >
@@ -838,7 +828,7 @@ export default function SponsorsPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-green-50/80 via-background to-background dark:from-green-950/25 dark:via-background dark:to-background" />
           <DotGrid className="text-green-800 dark:text-green-100" />
 
-          <motion.div className="absolute inset-0" style={{ y: heroBgY }}>
+          <motion.div className="absolute inset-0">
             <motion.div
               className="absolute -top-32 -left-32 w-[36rem] h-[36rem] bg-green-500/12 rounded-full blur-[100px]"
               animate={{ x: [0, 30, 0], y: [0, 20, 0] }}
@@ -879,7 +869,6 @@ export default function SponsorsPage() {
                 <motion.h1
                   variants={fadeUp}
                   className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.05] mb-6"
-                  style={{ y: heroContentY, opacity: heroContentOpacity }}
                 >
                   Become{" "}
                   <span className="bg-gradient-to-r from-green-500 via-emerald-400 to-teal-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-shift_5s_ease_infinite]">
@@ -890,7 +879,6 @@ export default function SponsorsPage() {
                 <motion.p
                   variants={fadeUp}
                   className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-xl mb-3"
-                  style={{ y: heroContentY, opacity: heroContentOpacity }}
                 >
                   Partner with Green University Computer Club to sponsor CSE Carnival 2026 — featuring IUPC, CTF, ICT Olympiad, and Math Olympiad.
                 </motion.p>
@@ -899,7 +887,6 @@ export default function SponsorsPage() {
                 <motion.div
                   variants={fadeUp}
                   className="flex flex-wrap items-center gap-3 mb-8"
-                  style={{ y: heroContentY, opacity: heroContentOpacity }}
                 >
                   <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-primary/8 border border-primary/20 backdrop-blur-sm">
                     <Zap className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -914,7 +901,6 @@ export default function SponsorsPage() {
                 <motion.div
                   variants={fadeUp}
                   className="flex flex-wrap gap-3 mb-14"
-                  style={{ y: heroContentY, opacity: heroContentOpacity }}
                 >
                   <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
                     <Button
