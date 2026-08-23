@@ -2,9 +2,33 @@ import { unstable_ViewTransition as ViewTransition } from "react";
 import Link from "next/link";
 import { gqlClient } from "@/lib/blog";
 import { queries } from "@/lib/blog";
-import { PostsResponse } from "./types";
+import { PostEdge, PostsResponse } from "./types";
 import { BlogPostMeta } from "./component";
 import { Metadata } from "next";
+
+const customBlogPosts: PostEdge[] = [
+  {
+    node: {
+      id: "neurogebra",
+      slug: "neurogebra",
+      title: "Neurogebra",
+      subtitle:
+        "A reflective exploration of intelligence, learning, and the elegance of mathematical thought.",
+      brief:
+        "A featured article from Fahim American’s Substack, exploring the ideas behind Neurogebra through a blend of reasoning, creativity, and learning.",
+      publishedAt: "2025-01-15T00:00:00.000Z",
+      readTimeInMinutes: 6,
+      views: 0,
+      url: "https://fahimerican.substack.com/p/neurogebra?r=35a5fa&triedRedirect=true",
+      coverImage: {
+        url: "/blog/neurogebra-cover.jpg",
+      },
+      author: {
+        name: "Fahim American",
+      },
+    },
+  },
+];
 
 export const metadata: Metadata = {
   title: "Blog | Green University Computer Club",
@@ -17,7 +41,7 @@ export default async function Blog() {
     const host = process.env.HASHNODE_HOST || "gucc.hashnode.dev";
     const response = await gqlClient(queries.getPosts(host))();
     const posts = response as PostsResponse;
-    const postsData = posts.data.publication.posts.edges;
+    const postsData = [...customBlogPosts, ...posts.data.publication.posts.edges];
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
@@ -164,7 +188,9 @@ export default async function Blog() {
   } catch (error) {
     console.warn('Failed to fetch blog posts from Hashnode API:', error);
     
-    // Fallback UI when blog API is not accessible
+    // When the external API is down, still show any local/custom posts so the site isn't empty.
+    const fallbackPosts = customBlogPosts;
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
         <div className="container mx-auto px-4 py-16 max-w-4xl">
@@ -185,26 +211,78 @@ export default async function Blog() {
             <div className="mt-8 h-1 w-24 bg-gradient-to-r from-green-500 to-emerald-500 mx-auto rounded-full"></div>
           </div>
 
-          {/* Service Unavailable State */}
-          <div className="text-center py-24">
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900 dark:to-orange-800 rounded-3xl mb-8 shadow-lg">
-              <svg className="w-12 h-12 text-orange-500 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
-              Service Temporarily Unavailable
-            </h3>
-            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-              We're unable to load blog content at the moment. Please check back later for our latest articles and insights.
+          {/* Notice about external service */}
+          {/* <div className="mb-8 px-6 py-4 rounded-lg bg-orange-50 dark:bg-orange-900/30 border border-orange-100 dark:border-orange-800 text-center">
+            <p className="text-sm text-orange-700 dark:text-orange-300">
+              Unable to load external blog posts right now — showing local featured posts instead.
             </p>
-            <div className="mt-8">
-              <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                <span>Service will be restored soon</span>
-              </div>
+          </div> */}
+
+          {/* Show fallback local posts */}
+          {fallbackPosts.length > 0 ? (
+            <div className="space-y-12">
+              {fallbackPosts.map((edge, index) => {
+                const post = edge.node;
+                return (
+                  <article key={post.id} className="group">
+                    <Link href={`/blog/${post.slug}`} className="block">
+                      <div className="bg-white/80 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-200/60 dark:border-slate-700/40 hover:border-green-300/60 dark:hover:border-green-600/40 transition-all duration-300 overflow-hidden hover:shadow-lg hover:shadow-green-500/5">
+                        {post.coverImage && (
+                          <div className="relative overflow-hidden">
+                            <div className="aspect-[2/1] sm:aspect-[3/1] relative">
+                              <img
+                                src={post.coverImage.url}
+                                alt={post.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                loading={index < 3 ? "eager" : "lazy"}
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent"></div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="p-8 lg:p-10">
+                          <div className="flex items-center gap-4 mb-4">
+                            {post.publishedAt && (
+                              <time
+                                dateTime={post.publishedAt}
+                                className="text-sm font-medium text-green-600 dark:text-green-400 uppercase tracking-wide"
+                              >
+                                {new Date(post.publishedAt).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })}
+                              </time>
+                            )}
+                          </div>
+
+                          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-300 leading-tight mb-4">
+                            {post.title}
+                          </h2>
+
+                          <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-6 line-clamp-3">
+                            {post.subtitle || post.brief}
+                          </p>
+
+                          <div className="flex items-center">
+                            <span className="inline-flex items-center rounded-full bg-emerald-600 px-4 py-2 text-white font-medium">
+                              Read on Substack
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  </article>
+                );
+              })}
             </div>
-          </div>
+          ) : (
+            <div className="text-center py-24">
+              <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">No Posts Available</h3>
+              <p className="text-lg text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">No blog posts are available right now.</p>
+            </div>
+          )}
         </div>
       </div>
     );
