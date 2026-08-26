@@ -170,7 +170,7 @@ export default async function BlogPost({
           rel="noreferrer"
           className="inline-flex items-center rounded-full bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-500"
         >
-          Read the full article on Substack
+          Read Full Article
         </a>
       </div>
     );
