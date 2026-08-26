@@ -267,7 +267,7 @@ export default async function Blog() {
 
                           <div className="flex items-center">
                             <span className="inline-flex items-center rounded-full bg-emerald-600 px-4 py-2 text-white font-medium">
-                              Read on Substack
+                              Read Full Article
                             </span>
                           </div>
                         </div>
