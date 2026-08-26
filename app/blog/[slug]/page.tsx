@@ -1,10 +1,12 @@
 import { gqlClient } from "@/lib/blog";
 import { queries } from "@/lib/blog";
-import { mdxToHtml } from "./util";
+import { fetchSubstackArticle, mdxToHtml } from "./util";
 import PostContent from "../component";
 import { Post, PostResponse } from "../types";
 import { Metadata } from "next";
 import { generateOGImage } from "@/lib/blog/og";
+
+export const dynamic = "force-dynamic";
 
 const customBlogPosts: Post[] = [
   {
@@ -33,24 +35,19 @@ function getCustomBlogPost(slug: string) {
 }
 
 export async function generateStaticParams() {
-  const localSlugs = customBlogPosts.map((post) => ({ slug: post.slug }));
-
   try {
     const host = process.env.HASHNODE_HOST || "gucc.hashnode.dev";
     const response = await gqlClient(queries.getPosts(host))();
     const posts = response as {
       data: { publication: { posts: { edges: { node: { slug: string } }[] } } };
     };
-    return [
-      ...localSlugs,
-      ...posts.data.publication.posts.edges.map((post) => ({
-        slug: post.node.slug,
-      })),
-    ];
+    return posts.data.publication.posts.edges.map((post) => ({
+      slug: post.node.slug,
+    }));
   } catch (error) {
     console.warn('Failed to fetch blog posts from Hashnode API:', error);
     // Return empty array as fallback when API is not accessible
-    return localSlugs;
+    return [];
   }
 }
 
@@ -148,23 +145,25 @@ export default async function BlogPost({
   const customPost = getCustomBlogPost(slug);
 
   if (customPost) {
-    const mdx = (
+    let articleHtml: string | null = null;
+
+    try {
+      articleHtml = await fetchSubstackArticle(customPost.url);
+    } catch (error) {
+      console.warn("Failed to fetch custom Substack article:", error);
+    }
+
+    const mdx = articleHtml ? (
+      <div
+        className="substack-article"
+        dangerouslySetInnerHTML={{ __html: articleHtml }}
+      />
+    ) : (
       <div className="space-y-6 text-slate-700 dark:text-slate-200">
         <p>
-          This article is published on Substack. To read the full piece and continue exploring the ideas behind
-          Neurogebra, follow the link below.
+          This article is temporarily unavailable on the GUCC website. You
+          can still read the full article on Substack.
         </p>
-
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-800 dark:bg-emerald-950/30">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
-            Featured article
-          </p>
-          <h2 className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">Neurogebra</h2>
-          <p className="mt-3 text-base leading-relaxed">
-            A reflective exploration of intelligence, learning, and the elegance of mathematical thought.
-          </p>
-        </div>
-
         <a
           href={customPost.url}
           target="_blank"
