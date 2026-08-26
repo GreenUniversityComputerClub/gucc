@@ -683,7 +683,7 @@ function BenefitItem({
   accentColor,
   checkBg,
   checkBorder,
-  textClass = "text-zinc-300",
+  textClass = "text-foreground/80 dark:text-zinc-300",
 }: {
   text: string;
   accentColor: string;
@@ -1511,7 +1511,7 @@ export default function SponsorsPage() {
                 brand touchpoints beyond traditional sponsorship.
               </p>
             </Reveal>
-
+{/* hellooooo */}
             <motion.div
               className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5"
               initial="hidden"

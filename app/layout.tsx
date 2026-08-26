@@ -1,6 +1,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import "./globals.css";
+import "./blog/[slug]/blog.css";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import FloatingChatbot from "@/components/chatbot/floating-chatbot";

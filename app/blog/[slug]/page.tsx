@@ -1,11 +1,38 @@
 import { gqlClient } from "@/lib/blog";
 import { queries } from "@/lib/blog";
-import { mdxToHtml } from "./util";
+import { fetchSubstackArticle, mdxToHtml } from "./util";
 import PostContent from "../component";
-import { PostResponse } from "../types";
+import { Post, PostResponse } from "../types";
 import { Metadata } from "next";
 import { generateOGImage } from "@/lib/blog/og";
-import "./blog.css";
+
+export const dynamic = "force-dynamic";
+
+const customBlogPosts: Post[] = [
+  {
+    id: "neurogebra",
+    slug: "neurogebra",
+    title: "Neurogebra",
+    subtitle:
+      "A reflective exploration of intelligence, learning, and the elegance of mathematical thought.",
+    brief:
+      "A featured article from Fahim American’s Substack, exploring the ideas behind Neurogebra through a blend of reasoning, creativity, and learning.",
+    publishedAt: "2025-01-15T00:00:00.000Z",
+    readTimeInMinutes: 6,
+    views: 0,
+    url: "https://fahimerican.substack.com/p/neurogebra?r=35a5fa&triedRedirect=true",
+    coverImage: {
+      url: "/blog/neurogebra-cover.jpg",
+    },
+    author: {
+      name: "Fahim American",
+    },
+  },
+];
+
+function getCustomBlogPost(slug: string) {
+  return customBlogPosts.find((post) => post.slug === slug) ?? null;
+}
 
 export async function generateStaticParams() {
   try {
@@ -30,7 +57,32 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const slug = (await params).slug;
-  
+  const customPost = getCustomBlogPost(slug);
+
+  if (customPost) {
+    return {
+      title: customPost.title,
+      description: customPost.brief,
+      metadataBase: new URL(
+        process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:3000"
+      ),
+      openGraph: {
+        title: customPost.title,
+        description: customPost.brief,
+        type: "article",
+        publishedTime: customPost.publishedAt,
+        authors: [customPost.author.name],
+        images: [customPost.coverImage.url],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: customPost.title,
+        description: customPost.brief,
+        images: [customPost.coverImage.url],
+      },
+    };
+  }
+
   try {
     const host = process.env.HASHNODE_HOST || "gucc.hashnode.dev";
     const response = await gqlClient<PostResponse>(queries.getPostBySlug(host))({
@@ -90,7 +142,48 @@ export default async function BlogPost({
   params: Promise<{ slug: string }>;
 }) {
   const slug = (await params).slug;
-  
+  const customPost = getCustomBlogPost(slug);
+
+  if (customPost) {
+    let articleHtml: string | null = null;
+
+    try {
+      articleHtml = await fetchSubstackArticle(customPost.url);
+    } catch (error) {
+      console.warn("Failed to fetch custom Substack article:", error);
+    }
+
+    const mdx = articleHtml ? (
+      <div
+        className="substack-article"
+        dangerouslySetInnerHTML={{ __html: articleHtml }}
+      />
+    ) : (
+      <div className="space-y-6 text-slate-700 dark:text-slate-200">
+        <p>
+          This article is temporarily unavailable on the GUCC website. You
+          can still read the full article on Substack.
+        </p>
+        <a
+          href={customPost.url}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center rounded-full bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-500"
+        >
+          Read Full Article
+        </a>
+      </div>
+    );
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <div className="container mx-auto px-4 py-12 max-w-4xl">
+          <PostContent post={customPost} mdx={mdx} />
+        </div>
+      </div>
+    );
+  }
+
   try {
     const host = process.env.HASHNODE_HOST || "gucc.hashnode.dev";
     const response = await gqlClient<PostResponse>(queries.getPostBySlug(host))({
@@ -133,9 +226,9 @@ export default async function BlogPost({
             <h1 className="text-4xl font-bold mb-4 text-black dark:text-white">
               Service Temporarily Unavailable
             </h1>
-            <p className="text-lg text-neutral-600 dark:text-neutral-400">
+            {/* <p className="text-lg text-neutral-600 dark:text-neutral-400">
               We're unable to fetch blog content at the moment. Please try again later.
-            </p>
+            </p> */}
           </div>
         </div>
       </div>
