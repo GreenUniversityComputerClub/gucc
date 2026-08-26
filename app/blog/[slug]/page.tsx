@@ -15,9 +15,11 @@ const customBlogPosts: Post[] = [
     title: "Neurogebra",
     subtitle:
       "A reflective exploration of intelligence, learning, and the elegance of mathematical thought.",
+    category: "Research & Open Source",
+    tags: ["Machine Learning", "SymPy", "PyTorch", "Python", "Deep Learning"],
     brief:
-      "A featured article from Fahim American’s Substack, exploring the ideas behind Neurogebra through a blend of reasoning, creativity, and learning.",
-    publishedAt: "2025-01-15T00:00:00.000Z",
+      "A featured article from Md. Fahim Sarker Mridul’s Substack, exploring the ideas behind Neurogebra through a blend of reasoning, creativity, and learning.",
+    publishedAt: "2026-08-03T00:00:00.000Z",
     readTimeInMinutes: 6,
     views: 0,
     url: "https://fahimerican.substack.com/p/neurogebra?r=35a5fa&triedRedirect=true",
@@ -25,7 +27,8 @@ const customBlogPosts: Post[] = [
       url: "/blog/neurogebra-cover.jpg",
     },
     author: {
-      name: "Fahim American",
+      name: "Md. Fahim Sarker Mridul",
+      github: "https://github.com/fahiiim",
     },
   },
 ];
@@ -72,13 +75,13 @@ export async function generateMetadata({
         type: "article",
         publishedTime: customPost.publishedAt,
         authors: [customPost.author.name],
-        images: [customPost.coverImage.url],
+        images: customPost.coverImage?.url ? [customPost.coverImage.url] : [],
       },
       twitter: {
         card: "summary_large_image",
         title: customPost.title,
         description: customPost.brief,
-        images: [customPost.coverImage.url],
+        images: customPost.coverImage?.url ? [customPost.coverImage.url] : [],
       },
     };
   }

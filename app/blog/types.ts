@@ -4,9 +4,11 @@ export interface CoverImage {
 
 export interface Post {
   id: string;
-  coverImage: CoverImage;
+  coverImage?: CoverImage | null;
   slug: string;
   subtitle: string | null;
+  category?: string;
+  tags?: string[];
   views: number;
   title: string;
   brief: string;
@@ -20,6 +22,10 @@ export interface Post {
   };
   author: {
     name: string;
+    avatarUrl?: string;
+    role?: string;
+    github?: string;
+    url?: string;
   };
 }
 
