@@ -14,9 +14,11 @@ const customBlogPosts: PostEdge[] = [
       title: "Neurogebra",
       subtitle:
         "A reflective exploration of intelligence, learning, and the elegance of mathematical thought.",
+      category: "Research & Open Source",
+      tags: ["Machine Learning", "SymPy", "PyTorch", "Python", "Deep Learning"],
       brief:
-        "A featured article from Fahim American’s Substack, exploring the ideas behind Neurogebra through a blend of reasoning, creativity, and learning.",
-      publishedAt: "2025-01-15T00:00:00.000Z",
+        "A featured article from Md. Fahim Sarker Mridul’s Substack, exploring the ideas behind Neurogebra through a blend of reasoning, creativity, and learning.",
+      publishedAt: "2026-08-03T00:00:00.000Z",
       readTimeInMinutes: 6,
       views: 0,
       url: "https://fahimerican.substack.com/p/neurogebra?r=35a5fa&triedRedirect=true",
@@ -24,7 +26,8 @@ const customBlogPosts: PostEdge[] = [
         url: "/blog/neurogebra-cover.jpg",
       },
       author: {
-        name: "Fahim American",
+        name: "Md. Fahim Sarker Mridul",
+        github: "https://github.com/fahiiim",
       },
     },
   },
@@ -57,7 +60,7 @@ export default async function Blog() {
               Our Blog
             </h1>
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
-              Discover insights, tutorials, and stories from the Green University Computer Club community. 
+              Discover insights, tutorials, and stories from the Green University Computer Club community.
               Stay updated with the latest in technology, programming, and innovation.
             </p>
             <div className="mt-8 h-1 w-24 bg-gradient-to-r from-green-500 to-emerald-500 mx-auto rounded-full"></div>
@@ -70,7 +73,7 @@ export default async function Blog() {
                 <article key={post.node.id} className="group">
                   <Link href={`/blog/${post.node.slug}`} className="block">
                     <div className="bg-white/80 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-200/60 dark:border-slate-700/40 hover:border-green-300/60 dark:hover:border-green-600/40 transition-all duration-300 overflow-hidden hover:shadow-lg hover:shadow-green-500/5">
-                      
+
                       {/* Cover Image */}
                       {post.node.coverImage && (
                         <div className="relative overflow-hidden">
@@ -82,7 +85,7 @@ export default async function Blog() {
                               loading={index < 3 ? "eager" : "lazy"}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent"></div>
-                            
+
                             {/* Reading Time Badge */}
                             <div className="absolute top-6 right-6">
                               <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/95 dark:bg-slate-800/95 text-slate-700 dark:text-slate-300 backdrop-blur-sm shadow-lg">
@@ -112,7 +115,7 @@ export default async function Blog() {
                               })}
                             </time>
                           )}
-                          
+
                           {!post.node.coverImage && (
                             <>
                               <span className="text-slate-300 dark:text-slate-600">•</span>
@@ -187,7 +190,7 @@ export default async function Blog() {
     );
   } catch (error) {
     console.warn('Failed to fetch blog posts from Hashnode API:', error);
-    
+
     // When the external API is down, still show any local/custom posts so the site isn't empty.
     const fallbackPosts = customBlogPosts;
 
@@ -205,7 +208,7 @@ export default async function Blog() {
               Our Blog
             </h1>
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
-              Discover insights, tutorials, and stories from the Green University Computer Club community. 
+              Discover insights, tutorials, and stories from the Green University Computer Club community.
               Stay updated with the latest in technology, programming, and innovation.
             </p>
             <div className="mt-8 h-1 w-24 bg-gradient-to-r from-green-500 to-emerald-500 mx-auto rounded-full"></div>
