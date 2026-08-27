@@ -8,11 +8,15 @@ import FloatingChatbot from "@/components/chatbot/floating-chatbot";
 import { ThemeProvider } from "@/components/theme-provider";
 import DeadlinePopup from "@/components/DeadlinePopup";
 
+const siteBaseUrl = (
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.SITE_URL ||
+  "https://gucc.green.edu.bd"
+).replace(/\/+$/, "");
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://gucc.green.edu.bd")
-  ),
+  metadataBase: new URL(siteBaseUrl),
   title: "Green University Computer Club",
   description: "Official website of Green University Computer Club (GUCC)",
 };

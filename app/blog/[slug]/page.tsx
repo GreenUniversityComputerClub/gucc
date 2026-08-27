@@ -62,9 +62,12 @@ export async function generateStaticParams() {
   }
 }
 
-const siteBaseUrl =
+const siteBaseUrl = (
   process.env.NEXT_PUBLIC_BASE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://gucc.green.edu.bd");
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.SITE_URL ||
+  "https://gucc.green.edu.bd"
+).replace(/\/+$/, "");
 
 function buildPostMetadata(post: Post): Metadata {
   const description =
