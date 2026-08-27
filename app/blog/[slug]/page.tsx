@@ -54,6 +54,10 @@ export async function generateStaticParams() {
   }
 }
 
+const siteBaseUrl =
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://gucc.green.edu.bd");
+
 export async function generateMetadata({
   params,
 }: {
@@ -61,27 +65,35 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const slug = (await params).slug;
   const customPost = getCustomBlogPost(slug);
-// kdkgk
+
   if (customPost) { 
+    const coverImageUrl = customPost.coverImage?.url || "/blog/neurogebra-cover.jpg";
     return {
       title: customPost.title,
       description: customPost.brief,
-      metadataBase: new URL(
-        process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:3000"
-      ),
+      metadataBase: new URL(siteBaseUrl),
       openGraph: {
         title: customPost.title,
         description: customPost.brief,
+        url: `/blog/${customPost.slug}`,
+        siteName: "Green University Computer Club",
         type: "article",
         publishedTime: customPost.publishedAt,
         authors: [customPost.author.name],
-        images: customPost.coverImage?.url ? [customPost.coverImage.url] : [],
+        images: [
+          {
+            url: coverImageUrl,
+            width: 1200,
+            height: 630,
+            alt: customPost.title,
+          },
+        ],
       },
       twitter: {
         card: "summary_large_image",
         title: customPost.title,
         description: customPost.brief,
-        images: customPost.coverImage?.url ? [customPost.coverImage.url] : [],
+        images: [coverImageUrl],
       },
     };
   }
@@ -112,16 +124,23 @@ export async function generateMetadata({
     return {
       title: post.title,
       description: post.brief,
-      metadataBase: new URL(
-        process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:3000"
-      ),
+      metadataBase: new URL(siteBaseUrl),
       openGraph: {
         title: post.title,
         description: post.brief,
+        url: `/blog/${post.slug}`,
+        siteName: "Green University Computer Club",
         type: "article",
         publishedTime: post.publishedAt,
         authors: [post.author.name],
-        images: [ogImage],
+        images: [
+          {
+            url: ogImage,
+            width: 1200,
+            height: 630,
+            alt: post.title,
+          },
+        ],
       },
       twitter: {
         card: "summary_large_image",
