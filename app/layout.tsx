@@ -9,6 +9,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import DeadlinePopup from "@/components/DeadlinePopup";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_BASE_URL || "https://gucc.green.edu.bd"
+  ),
   title: "Green University Computer Club",
   description: "Official website of Green University Computer Club (GUCC)",
 };

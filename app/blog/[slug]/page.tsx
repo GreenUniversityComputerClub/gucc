@@ -33,6 +33,10 @@ const customBlogPosts: Post[] = [
   },
 ];
 
+const metadataBase = new URL(
+  process.env.NEXT_PUBLIC_BASE_URL || "https://gucc.green.edu.bd"
+);
+
 function getCustomBlogPost(slug: string) {
   return customBlogPosts.find((post) => post.slug === slug) ?? null;
 }
@@ -66,9 +70,7 @@ export async function generateMetadata({
     return {
       title: customPost.title,
       description: customPost.brief,
-      metadataBase: new URL(
-        process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:3000"
-      ),
+      metadataBase,
       openGraph: {
         title: customPost.title,
         description: customPost.brief,
@@ -112,9 +114,7 @@ export async function generateMetadata({
     return {
       title: post.title,
       description: post.brief,
-      metadataBase: new URL(
-        process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:3000"
-      ),
+      metadataBase,
       openGraph: {
         title: post.title,
         description: post.brief,
