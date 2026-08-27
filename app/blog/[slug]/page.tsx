@@ -61,8 +61,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const slug = (await params).slug;
   const customPost = getCustomBlogPost(slug);
-
-  if (customPost) {
+// kdkgk
+  if (customPost) { 
     return {
       title: customPost.title,
       description: customPost.brief,
