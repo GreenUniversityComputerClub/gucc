@@ -40,12 +40,22 @@ export const metadata: Metadata = {
 };
 
 export default async function Blog() {
-  try {
-    const host = process.env.HASHNODE_HOST || "gucc.hashnode.dev";
-    const response = await gqlClient(queries.getPosts(host))();
-    const posts = response as PostsResponse;
-    const postsData = [...customBlogPosts, ...posts.data.publication.posts.edges];
+  const host = process.env.HASHNODE_HOST;
+  let postsData = customBlogPosts;
 
+  if (host) {
+    try {
+      const response = await gqlClient(queries.getPosts(host))();
+      const posts = response as PostsResponse;
+      if (posts?.data?.publication?.posts?.edges) {
+        postsData = [...customBlogPosts, ...posts.data.publication.posts.edges];
+      }
+    } catch (error) {
+      console.warn("Failed to fetch blog posts from Hashnode API:", error);
+    }
+  }
+
+  try {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
         <div className="container mx-auto px-4 py-16 max-w-4xl">
