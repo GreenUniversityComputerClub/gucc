@@ -48,9 +48,11 @@ export function cleanSubstackContent(rawHtml: string): string {
   html = html.replace(/<p\b[^>]*>\s*<em>\s*<strong>\s*Author:[\s\S]*?<\/p>/gi, "");
   html = html.replace(/<p\b[^>]*>\s*<strong>\s*Links:\s*<\/strong>[\s\S]*?<\/p>/gi, "");
 
-  // Remove duplicate top banner image if present (d8cd3082 banner)
+  // Remove images that are already represented by the article's local cover.
+  // Substack may place target before href, so match the full container instead
+  // of depending on a specific attribute order.
   html = html.replace(
-    /<div\b[^>]*class=["'][^"']*captioned-image-container[^"']*["'][^>]*>\s*<figure>\s*<a\b[^>]*href=["'][^"']*d8cd3082-e9b2-446d-99ff-893807594138[^"']*["'][^>]*>[\s\S]*?<\/figure>\s*<\/div>/gi,
+    /<div\b(?=[^>]*class=["'][^"']*captioned-image-container[^"']*["'])[^>]*>[\s\S]*?(?:d8cd3082-e9b2-446d-99ff-893807594138|3c3492ae-31d6-42f1-bc22-5d249f61413a)[\s\S]*?<\/figure>\s*<\/div>/gi,
     ""
   );
 
