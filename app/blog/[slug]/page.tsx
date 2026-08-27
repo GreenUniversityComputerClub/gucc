@@ -57,7 +57,7 @@ export async function generateStaticParams() {
 const siteBaseUrl =
   process.env.NEXT_PUBLIC_BASE_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://gucc.green.edu.bd");
-
+// djshs
 export async function generateMetadata({
   params,
 }: {
