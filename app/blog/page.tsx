@@ -37,6 +37,25 @@ export const metadata: Metadata = {
   title: "Blog | Green University Computer Club",
   description:
     "Explore articles, insights, and stories from the Green University Computer Club - sharing knowledge in technology, programming, and innovation.",
+  openGraph: {
+    title: "Blog | Green University Computer Club",
+    description:
+      "Explore articles, insights, and stories from the Green University Computer Club - sharing knowledge in technology, programming, and innovation.",
+    type: "website",
+    images: [
+      {
+        url: "/blog/neurogebra-cover.jpg",
+        alt: "Neurogebra blog cover",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Blog | Green University Computer Club",
+    description:
+      "Explore articles, insights, and stories from the Green University Computer Club - sharing knowledge in technology, programming, and innovation.",
+    images: ["/blog/neurogebra-cover.jpg"],
+  },
 };
 
 export default async function Blog() {
