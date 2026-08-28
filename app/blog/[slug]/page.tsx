@@ -119,56 +119,6 @@ function buildPostMetadata(post: Post): Metadata {
   };
 }
 
-function buildPostMetadata(post: Post): Metadata {
-  const description =
-    post.brief?.trim() ||
-    post.subtitle?.trim() ||
-    "Official article from Green University Computer Club (GUCC)";
-
-  const rawImageUrl = post.coverImage?.url || "/blog/neurogebra-cover.jpg";
-  const imageUrl =
-    rawImageUrl.startsWith("http://") || rawImageUrl.startsWith("https://")
-      ? rawImageUrl
-      : `${siteBaseUrl}${rawImageUrl.startsWith("/") ? "" : "/"}${rawImageUrl}`;
-
-  const postUrl = `${siteBaseUrl}/blog/${post.slug}`;
-  const authorName = post.author?.name || "Green University Computer Club";
-
-  return {
-    title: `${post.title} | Green University Computer Club`,
-    description,
-    metadataBase: new URL(siteBaseUrl),
-    alternates: {
-      canonical: postUrl,
-    },
-    openGraph: {
-      title: post.title,
-      description,
-      url: postUrl,
-      siteName: "Green University Computer Club",
-      type: "article",
-      publishedTime: post.publishedAt,
-      modifiedTime: post.updatedAt || post.publishedAt,
-      authors: [authorName],
-      tags: post.tags,
-      images: [
-        {
-          url: imageUrl,
-          width: 1600,
-          height: 900,
-          alt: post.title,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: post.title,
-      description,
-      images: [imageUrl],
-    },
-  };
-}
-
 export async function generateMetadata({
   params,
 }: {
