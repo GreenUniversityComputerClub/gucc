@@ -26,7 +26,14 @@ import {
 
 // Generate static params for available committee years; individual student profiles render on-demand
 export async function generateStaticParams() {
-  return getAvailableYears().map((year) => ({ year }));
+  // This segment serves two shapes: a committee year ("2026") and a nine-digit
+  // student ID ("232002184"). Both are prerendered — the roster is static JSON,
+  // and without the IDs here every one of the ~154 profile pages costs a cold
+  // render on first hit, including for each page Google crawls.
+  return [
+    ...getAvailableYears().map((year) => ({ year })),
+    ...getAllExecutiveStudentIds().map((studentId) => ({ year: studentId })),
+  ];
 }
 
 function profilePath(person: { studentId?: string }): string | undefined {

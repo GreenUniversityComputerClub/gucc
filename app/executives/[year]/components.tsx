@@ -618,7 +618,8 @@ function formatCampusLabel(campusKey: string) {
 export function ExecutiveProfile({ executives }: { executives: import("@/app/executives/util").ExecutiveWithYear[] }) {
   const [isResizeMode, setIsResizeMode] = useState(false);
 
-  const sortedExecutives = executives.sort((a, b) => {
+  // Copy first: sorting a prop in place mutates the caller's array.
+  const sortedExecutives = [...executives].sort((a, b) => {
     // Sort by year descending (most recent first)
     return parseInt(b.year) - parseInt(a.year);
   });

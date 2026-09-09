@@ -52,17 +52,6 @@ export const metadata: Metadata = {
   },
 };
 
-const upcomingEvents = eventsData.filter(
-  (event) => new Date(event.date) > new Date()
-);
-// Events of this year
-const recentEvents = eventsData.filter((event) => {
-  const eventDate = new Date(event.date);
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-  return eventDate >= sixMonthsAgo;
-});
-
 export default function Home() {
   const faq = getHomeFaq();
   const roster = getYearRoster(latestYear);
@@ -380,7 +369,7 @@ export default function Home() {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-            {eventsData
+            {[...eventsData]
               .sort(
                 (a, b) =>
                   new Date(b.date).getTime() - new Date(a.date).getTime()
