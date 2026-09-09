@@ -3,7 +3,23 @@ import fs from "fs";
 import path from "path";
 import executivesData from "@/data/executives.json";
 
+/**
+ * Local authoring tool for the avatar-positioning mode (`RESIZE_AVATAR`).
+ * It takes no authentication and writes to `data/`, so it is refused outside
+ * development: in production the filesystem is read-only and content changes
+ * go through git, not through a public POST endpoint.
+ */
+function devOnlyGuard() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  return null;
+}
+
 export async function POST(request: Request) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const { studentId, avatarPosition, avatarScale } = await request.json();
 

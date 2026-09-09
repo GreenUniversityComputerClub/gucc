@@ -44,9 +44,6 @@ const hasScheduleConflict = (section1: SectionWithCourse, section2: SectionWithC
   for (const schedule1 of section1.schedule) {
     for (const schedule2 of section2.schedule) {
       if (schedule1.day === schedule2.day && hasTimeConflict(schedule1.time, schedule2.time)) {
-        console.log(`Time conflict detected:`)
-        console.log(`${section1.courseCode}: ${schedule1.day} ${schedule1.time}`)
-        console.log(`${section2.courseCode}: ${schedule2.day} ${schedule2.time}`)
         return true
       }
     }
@@ -56,18 +53,9 @@ const hasScheduleConflict = (section1: SectionWithCourse, section2: SectionWithC
 
 // Check if a section conflicts with any section in the current combination
 const hasConflictWithCombination = (section: SectionWithCourse, combination: SectionWithCourse[]): boolean => {
-  // Track all conflicts for logging purposes
-  const conflicts = combination.filter((existingSection) => hasScheduleConflict(section, existingSection))
-
-  if (conflicts.length > 0) {
-    console.log(`Section ${section.courseCode} conflicts with ${conflicts.length} courses:`)
-    conflicts.forEach((conflict) => {
-      console.log(`- ${conflict.courseCode}`)
-    })
-    return true
-  }
-
-  return false
+  // `some` short-circuits on the first conflict; this runs in the innermost
+  // loop of combination generation, so checking every section is wasted work.
+  return combination.some((existingSection) => hasScheduleConflict(section, existingSection))
 }
 
 // Count unique days in a combination

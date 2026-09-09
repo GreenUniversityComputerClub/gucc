@@ -145,7 +145,6 @@ export default function Page() {
     setTimeout(() => {
       try {
         const selectedCoursesList = coursesArray.filter((course) => selectedCourses.has(course.formalCode))
-        console.log("Selected courses:", selectedCoursesList)
 
         const coursesWithFilteredSections = selectedCoursesList.map((course) => {
           const selectedSections = sectionFilters[course.formalCode] || []
@@ -163,18 +162,15 @@ export default function Page() {
           }
         })
 
-        console.log("Filtered courses:", coursesWithFilteredSections)
 
         // You can optionally add a seed for reproducible results
         const seed = Date.now() // Use current timestamp as seed
         const newCombinations = generateCombinations(coursesWithFilteredSections, maxDays, selectedDays, { seed })
 
-        console.log("Generated combinations:", newCombinations)
 
         const validCombinations = newCombinations.filter(
           (combination) => combination.length === selectedCoursesList.length,
         )
-        console.log("Valid combinations:", validCombinations)
 
         setCombinations(validCombinations)
         setCurrentCombinationIndex(0)
