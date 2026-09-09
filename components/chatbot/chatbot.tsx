@@ -35,7 +35,6 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [screenSize, setScreenSize] = useState<"small" | "medium" | "large">("medium")
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Load messages from sessionStorage on mount
