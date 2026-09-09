@@ -804,12 +804,6 @@ export default function SponsorsPage() {
     comparisonFeatures: ComparisonFeature[];
   };
 
-  const timelineRef = useRef<HTMLOListElement>(null);
-  const { scrollYProgress: timelineFill } = useScroll({
-    target: timelineRef,
-    offset: ["start 0.8", "end 0.4"],
-  });
-
   const stats = [
     { label: "Community Members", value: 7000, suffix: "+" },
     { label: "University Connections", value: 50, suffix: "+" },
@@ -1078,7 +1072,7 @@ export default function SponsorsPage() {
                     <p className="text-muted-foreground text-base leading-relaxed mb-10 max-w-lg">
                       A large-scale technology and student engagement initiative combining competitions, learning, innovation, community, and industry interaction across multiple days. The carnival features four core contests: IUPC, CTF (Cyber Security), ICT Olympiad, and Math Olympiad.
                     </p>
-                    <div className="grid grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                       <div className="flex flex-col gap-2">
                         <Users className="w-5 h-5 text-emerald-500" />
                         <span className="text-sm font-semibold text-white">500+</span>
