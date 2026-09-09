@@ -16,6 +16,19 @@ type Entry = MetadataRoute.Sitemap[number];
 
 const now = new Date();
 
+/**
+ * Newest date present in the content, used as `lastModified` for index pages
+ * that list it. Stamping every URL with the build time tells Google the whole
+ * site changed on every deploy, which teaches it to ignore our lastmod
+ * entirely — the opposite of what the field is for.
+ */
+const latestContentDate = (() => {
+  const times = getAllEvents()
+    .map((event) => new Date(event.date).getTime())
+    .filter((time) => Number.isFinite(time));
+  return times.length ? new Date(Math.max(...times)) : now;
+})();
+
 /** Static, hand-curated routes with the priority we want Google to see. */
 const STATIC_ROUTES: Array<{
   path: string;
@@ -81,7 +94,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticEntries: Entry[] = STATIC_ROUTES.map((route) => ({
     url: absoluteUrl(route.path),
-    lastModified: now,
+    lastModified: latestContentDate,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));
@@ -89,7 +102,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // One entry per committee year; the current committee outranks the archive.
   const yearEntries: Entry[] = getAvailableYears().map((year) => ({
     url: absoluteUrl(`/executives/${year}`),
-    lastModified: now,
+    lastModified: latestContentDate,
     changeFrequency: year === latestYear ? "weekly" : "yearly",
     priority: year === latestYear ? 0.95 : 0.6,
   }));
@@ -105,7 +118,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [
       {
         url: absoluteUrl(`/executives/${studentId}`),
-        lastModified: now,
+        lastModified: latestContentDate,
         changeFrequency: "monthly",
         priority: primary.year === latestYear ? 0.9 : 0.65,
         ...(avatar ? { images: [absoluteUrl(avatar)] } : {}),
@@ -124,7 +137,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     contestsData.contests as Array<{ id: number }>
   ).map((contest) => ({
     url: absoluteUrl(`/contests/${contest.id}`),
-    lastModified: now,
+    lastModified: latestContentDate,
     changeFrequency: "yearly",
     priority: 0.5,
   }));
