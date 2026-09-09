@@ -89,7 +89,40 @@ export function cleanSubstackContent(rawHtml: string): string {
   // Clean empty paragraphs
   html = html.replace(/<p>\s*<\/p>/gi, "");
 
-  return html.trim();
+  return sanitizeExternalHtml(html.trim());
+}
+
+/**
+ * Strips active content from third-party HTML before it is injected with
+ * `dangerouslySetInnerHTML`.
+ *
+ * The article body is fetched from an external Substack page and rendered on
+ * our origin, so anything executable in it would run with access to the
+ * visitor's session on gucc.green.edu.bd. The cleanup above is cosmetic; this
+ * is the security boundary. It removes whole executable elements, inline event
+ * handlers and script-bearing URLs, which covers the ways markup can execute.
+ *
+ * This is deliberately conservative rather than a full HTML parser — if the
+ * blog ever renders genuinely untrusted submissions, move to a real sanitiser
+ * (DOMPurify / sanitize-html) instead of extending these patterns.
+ */
+export function sanitizeExternalHtml(html: string): string {
+  return (
+    html
+      // Elements that can execute or load active content, with their contents.
+      .replace(/<script\b[\s\S]*?<\/script\s*>/gi, "")
+      .replace(/<style\b[\s\S]*?<\/style\s*>/gi, "")
+      .replace(/<(iframe|object|embed|form|link|meta|base)\b[\s\S]*?(?:<\/\1\s*>|>)/gi, "")
+      // Inline handlers: onclick=, onerror=, onload=… quoted or bare.
+      .replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, "")
+      .replace(/\son[a-z]+\s*=\s*'[^']*'/gi, "")
+      .replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, "")
+      // javascript:/vbscript: and data: URLs in href/src/srcset.
+      .replace(
+        /\s(?:href|src|srcset|xlink:href)\s*=\s*(?:"\s*(?:javascript|vbscript|data):[^"]*"|'\s*(?:javascript|vbscript|data):[^']*')/gi,
+        ""
+      )
+  );
 }
 
 export async function fetchSubstackArticle(url: string): Promise<string> {

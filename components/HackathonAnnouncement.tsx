@@ -220,7 +220,7 @@ export default function HackathonAnnouncement() {
 
             <Link
               href="https://smythos.com/hacktheai/"
-              target="_blank"
+              target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-slate-100 to-gray-100 dark:from-slate-800 dark:to-gray-800 px-4 py-2 border border-slate-200/60 dark:border-slate-700/60 shadow-lg"
             >
               <span className="text-xs text-gray-600 dark:text-gray-300">Powered by</span>
@@ -422,7 +422,7 @@ export default function HackathonAnnouncement() {
                   >
                     <Link
                       href="https://forms.gle/QvzXYQ3hdAHPkkWVA" 
-                      target="_blank"
+                      target="_blank" rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2"
                     >
                       <Award className="h-4 w-4 group-hover/btn:animate-bounce" />
@@ -722,7 +722,7 @@ export default function HackathonAnnouncement() {
                   size="lg" 
                   className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 font-bold shadow-xl hover:shadow-2xl px-8 py-4 text-base transition-all duration-500 transform hover:scale-110 hover:-translate-y-1 group/btn"
                 >
-                  <Link href="https://forms.gle/QvzXYQ3hdAHPkkWVA" target="_blank" className="flex items-center gap-2">
+                  <Link href="https://forms.gle/QvzXYQ3hdAHPkkWVA" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                     <Award className="h-5 w-5 group-hover/btn:animate-bounce" />
                     Register Your Team Now
                     <ExternalLink className="h-4 w-4 group-hover/btn:rotate-45 transition-transform duration-300" />
@@ -734,7 +734,7 @@ export default function HackathonAnnouncement() {
                   size="lg" 
                   className="border-2 border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 font-bold px-8 py-4 text-base shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-110 hover:-translate-y-1 group/btn2"
                 >
-                  <Link href="https://smythos.com/hacktheai/" target="_blank" className="flex items-center gap-2">
+                  <Link href="https://smythos.com/hacktheai/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                     <span className="group-hover/btn2:animate-pulse">📖</span>
                     Learn More
                   </Link>
@@ -762,7 +762,7 @@ export default function HackathonAnnouncement() {
                 <span className="opacity-80">Powered by</span>
                 <Link
                   href="https://smythos.com/hacktheai/"
-                  target="_blank"
+                  target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 font-semibold hover:underline"
                 >
                   <span>SmythOS</span>
