@@ -39,12 +39,11 @@ export const HeroSection = () => {
               Empowering Future Technologists
             </Badge>
 
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight">
-              <span className="bg-gradient-to-r from-green-600 via-green-500 to-green-400 bg-clip-text text-transparent animate-pulse">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-balance">
+              <span className="block bg-gradient-to-r from-green-600 via-green-500 to-green-400 bg-clip-text text-transparent">
                 Green University
               </span>
-              <br />
-              <span className="text-[60px] text-foreground">Computer Club</span>
+              <span className="block text-foreground">Computer Club</span>
             </h1>
 
             <p className="text-xl sm:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
@@ -54,31 +53,33 @@ export const HeroSection = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/executives">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-8 py-6 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group transform hover:scale-105"
-              >
+            <Button
+              asChild
+              size="lg"
+              className="w-full sm:w-auto bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-8 py-6 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group transform hover:scale-105"
+            >
+              <Link href="/executives">
                 Our Community
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-200" />
-              </Button>
-            </Link>
-            <Link href="/events">
-              <Button
-                variant="outline"
-                size="lg"
-                className="px-8 py-6 text-lg rounded-xl border-2 hover:bg-accent transition-all duration-300 transform hover:scale-105 backdrop-blur-sm"
-              >
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto px-8 py-6 text-lg rounded-xl border-2 hover:bg-accent transition-all duration-300 transform hover:scale-105 backdrop-blur-sm"
+            >
+              <Link href="/events">
                 Explore Events
                 <Calendar className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce" aria-hidden="true">
         <div className="w-6 h-10 border-2 border-muted-foreground/30 rounded-full flex justify-center">
           <div className="w-1 h-3 bg-muted-foreground/50 rounded-full mt-2 animate-pulse"></div>
         </div>
