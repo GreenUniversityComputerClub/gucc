@@ -1,46 +1,9 @@
 import { ImageResponse } from "next/og";
-import fs from "node:fs";
-import path from "node:path";
-import { SITE } from "./site";
+import { SITE, absoluteUrl } from "./site";
+import { SITE_LOGO_DATA_URI } from "./logo-data";
 
 export const OG_SIZE = { width: 1200, height: 630 } as const;
 export const OG_CONTENT_TYPE = "image/png";
-
-const PUBLIC_DIR = path.join(process.cwd(), "public");
-const MIME: Record<string, string> = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-};
-
-/**
- * Inlines an image from `public/` as a data URI. Satori cannot resolve relative
- * URLs, and reading from disk keeps card rendering free of network round-trips.
- * Returns undefined for anything outside `public/` or any unreadable file.
- */
-export function inlinePublicImage(relativePath: string): string | undefined {
-  try {
-    const decoded = decodeURIComponent(relativePath.split("?")[0]);
-    const resolved = path.resolve(
-      PUBLIC_DIR,
-      `.${path.posix.normalize(`/${decoded}`)}`
-    );
-    if (!resolved.startsWith(PUBLIC_DIR + path.sep)) return undefined;
-
-    const mime = MIME[path.extname(resolved).toLowerCase()];
-    if (!mime) return undefined;
-
-    const bytes = fs.readFileSync(resolved);
-    // Well past what a card needs; keeps a stray huge asset from stalling render.
-    if (bytes.byteLength > 6_000_000) return undefined;
-
-    return `data:${mime};base64,${bytes.toString("base64")}`;
-  } catch {
-    return undefined;
-  }
-}
 
 function initialsOf(name: string): string {
   return name
@@ -75,10 +38,10 @@ export function renderOgCard(options: OgCardOptions): ImageResponse {
   const photo = options.photo
     ? /^https?:\/\//i.test(options.photo)
       ? options.photo
-      : inlinePublicImage(options.photo)
+      : absoluteUrl(options.photo)
     : undefined;
 
-  const logo = inlinePublicImage(SITE.logo);
+  const logo = SITE_LOGO_DATA_URI;
   const hasPortrait = variant === "portrait" && Boolean(photo);
   const titleSize = title.length > 46 ? 60 : title.length > 28 ? 74 : 88;
 

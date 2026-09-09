@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "50mb",
     },
   },
+  outputFileTracingExcludes: {
+    "*": ["public/**/*", "./public/**/*"],
+  },
   images: {
     // Executive portraits and event covers are large PNG/JPEGs; AVIF/WebP cut
     // them enough to matter for Largest Contentful Paint, which feeds ranking.

@@ -2,8 +2,12 @@ import { ArrowRight, Calendar, Code } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import Link from "next/link";
-import { AnimatedBackground } from "./animated-background";
+import dynamic from "next/dynamic";
 import { TiltShapes } from "./tilt-shapes";
+
+const AnimatedBackground = dynamic(
+  () => import("./animated-background").then((mod) => mod.AnimatedBackground)
+);
 
 export const HeroSection = () => {
   return (

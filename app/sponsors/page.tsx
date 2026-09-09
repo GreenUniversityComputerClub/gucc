@@ -17,8 +17,13 @@ import {
 } from "framer-motion";
 import CountUp from "react-countup";
 import ReadingProgress from "@/components/reading-progress";
-import { AnimatedBackground } from "@/components/animated-background";
+import dynamic from "next/dynamic";
 import { TiltShapes } from "@/components/tilt-shapes";
+
+const AnimatedBackground = dynamic(
+  () => import("@/components/animated-background").then((mod) => mod.AnimatedBackground),
+  { ssr: false }
+);
 import { Trophy, Medal, Award, Calendar, Users, Megaphone, Mail, Sparkles, Shirt, Utensils, Gift, Server, Code2, ArrowRight, Briefcase, Share2, MapPin, GraduationCap, Lightbulb, ExternalLink, Star, Zap, ChevronDown, Mic, Phone, Check, X, Laptop, Calculator, Terminal, Shield, Hash, Sigma, Building2, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

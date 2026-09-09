@@ -24,12 +24,9 @@ import {
   profilePageSchema,
 } from "@/lib/seo/schema";
 
-// Generate static params for all available years and student IDs
+// Generate static params for available committee years; individual student profiles render on-demand
 export async function generateStaticParams() {
-  return [
-    ...getAvailableYears().map((year) => ({ year })),
-    ...getAllExecutiveStudentIds().map((studentId) => ({ year: studentId })),
-  ];
+  return getAvailableYears().map((year) => ({ year }));
 }
 
 function profilePath(person: { studentId?: string }): string | undefined {
