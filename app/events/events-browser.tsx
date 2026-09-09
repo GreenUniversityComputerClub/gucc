@@ -9,7 +9,7 @@ import { EventCard } from "./components";
 
 const events = eventsData;
 
-export default function EventsPage() {
+export function EventsBrowser() {
   //Adding Filtering and Search Features.
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<"all" | "upcoming" | "past">("all");

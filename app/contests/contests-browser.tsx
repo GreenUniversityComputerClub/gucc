@@ -129,7 +129,7 @@ function ContestCard({ contest }: { contest: Contest }) {
   );
 }
 
-export default function ContestsPage() {
+export function ContestsBrowser() {
   const contests = (contestsData.contests as unknown as Contest[]).filter(
     (contest) => contest.teams?.length > 0
   );

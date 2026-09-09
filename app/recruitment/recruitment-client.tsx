@@ -315,7 +315,7 @@ function AnimatedCard({
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function RecruitmentPage() {
+export function RecruitmentClient() {
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     studentId: "",
