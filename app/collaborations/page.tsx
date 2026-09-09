@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbSchema, graph, webPageSchema } from "@/lib/seo/schema";
 
 export const metadata: Metadata = buildMetadata({
   title: "Collaborations & Partner Clubs",
@@ -52,8 +54,23 @@ const featuredCollaborations = [
   },
 ];
 
+const structuredData = graph(
+  breadcrumbSchema([
+    { name: "Home", path: "/" },
+    { name: "Collaborations", path: "/collaborations" },
+  ]),
+  webPageSchema({
+    name: "Collaborations & Partner Clubs",
+    description:
+      "University clubs and organisations that partner with the Green University Computer Club on hackathons, contests and joint events.",
+    path: "/collaborations",
+  })
+);
+
 export default function CollaborationsPage() {
   return (
+    <>
+      <JsonLd id="collaborations-schema" data={structuredData} />
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="w-full py-16 md:py-24 bg-gradient-to-b from-primary/20 via-primary/10 to-background">
@@ -111,6 +128,7 @@ export default function CollaborationsPage() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

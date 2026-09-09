@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbSchema, graph, webPageSchema } from "@/lib/seo/schema";
 
 export const metadata: Metadata = buildMetadata({
   title: "Pohela Boishakh at GUCC",
@@ -13,6 +15,24 @@ export const metadata: Metadata = buildMetadata({
   },
 });
 
+const structuredData = graph(
+  breadcrumbSchema([
+    { name: "Home", path: "/" },
+    { name: "Events", path: "/events" },
+    { name: "Pohela Boishakh", path: "/events/boishakh" },
+  ]),
+  webPageSchema({
+    name: "Pohela Boishakh at GUCC",
+    description: "Pohela Boishakh celebrations hosted by the Green University Computer Club — the Bengali New Year programme at Green University of Bangladesh.",
+    path: "/events/boishakh",
+  })
+);
+
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <JsonLd id="events-boishakh-schema" data={structuredData} />
+      {children}
+    </>
+  );
 }

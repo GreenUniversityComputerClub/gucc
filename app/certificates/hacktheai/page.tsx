@@ -2,6 +2,8 @@ import { VerificationForm } from './components/verification-form'
 
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbSchema, graph, webPageSchema } from "@/lib/seo/schema";
 
 export const metadata: Metadata = buildMetadata({
   title: "HackTheAI Certificate Verification",
@@ -22,9 +24,23 @@ export const metadata: Metadata = buildMetadata({
 });
 
 
+const structuredData = graph(
+  breadcrumbSchema([
+    { name: "Home", path: "/" },
+    { name: "HackTheAI Certificates", path: "/certificates/hacktheai" },
+  ]),
+  webPageSchema({
+    name: "HackTheAI Certificate Verification",
+    description:
+      "Verify a HackTheAI participation certificate issued by the Green University Computer Club.",
+    path: "/certificates/hacktheai",
+  })
+);
+
 export default function CertificateVerificationPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white py-6 sm:py-12 px-4">
+      <JsonLd id="hacktheai-schema" data={structuredData} />
       <div className="container mx-auto max-w-4xl">
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-2 sm:mb-4">
