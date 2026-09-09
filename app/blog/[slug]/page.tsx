@@ -8,7 +8,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { brandTitle } from "@/lib/seo/metadata";
 import { articleSchema, breadcrumbSchema, graph } from "@/lib/seo/schema";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 const customBlogPosts: Post[] = [
   {

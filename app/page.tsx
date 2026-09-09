@@ -1,5 +1,9 @@
-import PohelaBoishakhGreeting from "@/components/PohelaBoishakhGreeting";
+import dynamic from "next/dynamic";
 import { HeroSection } from "@/components/hero";
+
+const PohelaBoishakhGreeting = dynamic(
+  () => import("@/components/PohelaBoishakhGreeting")
+);
 import { Button } from "@/components/ui/button";
 import {
   Card,
