@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "node scripts/optimize-images.mjs && next build --turbopack",
+    "optimize:images": "node scripts/optimize-images.mjs",
+    "optimize:images:check": "node scripts/optimize-images.mjs --dry-run",
     "start": "next start",
     "lint": "next lint",
     "fmt": "prettier --write .",
