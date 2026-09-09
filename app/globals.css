@@ -213,3 +213,29 @@ body {
     background-position: 100% 50%;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Reduced motion
+
+   The site leans on continuous motion — marquees, pulses, the bouncing scroll
+   cue, the WebGL hero background. Users who ask their OS to reduce motion get
+   a static site instead: animations collapse to a single frame rather than
+   being removed, so nothing that relies on an end state disappears.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Marquees translate off-screen, so freezing them mid-run would hide content. */
+  .animate-marquee,
+  .animate-marquee2 {
+    animation: none !important;
+    transform: none !important;
+  }
+}

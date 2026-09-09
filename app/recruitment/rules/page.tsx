@@ -516,23 +516,22 @@ export default function RecruitmentRulesPage() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:shrink-0">
-                  <Link href="/recruitment">
-                    <Button
-                      className={`h-10 px-6 text-sm font-medium text-white ${TEAL.btnBg}`}
-                    >
-                      Apply Now
-                    </Button>
-                  </Link>
-                  <a
-                    href="https://drive.google.com/file/d/1VJZBZSLUVl7FFsYLDYZuW1aCPaLAWN2h/view?usp=sharing"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Button
+                    asChild
+                    className={`h-10 px-6 text-sm font-medium text-white ${TEAL.btnBg}`}
                   >
-                    <Button variant="outline" className="h-10 px-5 text-sm">
+                    <Link href="/recruitment">Apply Now</Link>
+                  </Button>
+                  <Button asChild variant="outline" className="h-10 px-5 text-sm">
+                    <a
+                      href="https://drive.google.com/file/d/1VJZBZSLUVl7FFsYLDYZuW1aCPaLAWN2h/view?usp=sharing"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                       Main Circular
-                    </Button>
-                  </a>
+                    </a>
+                  </Button>
                 </div>
               </div>
             </CardContent>
