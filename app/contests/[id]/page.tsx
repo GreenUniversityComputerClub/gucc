@@ -217,6 +217,7 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
                     src={image}
                     alt={`Contest photo ${index + 1}`}
                     fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     className="object-cover"
                   />
                 </div>

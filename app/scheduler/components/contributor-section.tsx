@@ -19,7 +19,13 @@ const Contributor = ({ name, role, image, github, linkedin, email }: Contributor
   return (
     <div className="flex items-center gap-2 sm:gap-3">
       <div className="relative h-10 w-10 sm:h-12 sm:w-12 overflow-hidden rounded-full border-2 border-primary/20 flex-shrink-0">
-        <Image src={image || "/placeholder.svg"} alt={name} fill className="object-cover" />
+        <Image
+        src={image || "/placeholder.svg"}
+        alt={name}
+        fill
+        sizes="(max-width: 640px) 40px, 48px"
+        className="object-cover"
+      />
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="font-medium text-xs sm:text-sm truncate">{name}</h3>

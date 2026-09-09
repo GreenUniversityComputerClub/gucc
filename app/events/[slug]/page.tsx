@@ -76,6 +76,7 @@ export default function EventDetailsPage() {
               src={`/events/${event.sl}.jpg`}
               alt={event.name}
               fill
+              sizes="(max-width: 1024px) 100vw, 1024px"
               className="w-full h-full object-cover"
               priority
             />
