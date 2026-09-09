@@ -1,15 +1,12 @@
 "use client";
+
 import Link from "next/link";
 import { Github } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { STATIC_CONTRIBUTORS, type Contributor } from "@/data/contributors";
 
-export interface Contributor {
-  login: string;
-  avatar_url: string;
-  html_url: string;
-  contributions: number;
-}
+export type { Contributor };
 
 export function ContributorCard({ contributor }: { contributor: Contributor }) {
   const [isHovering, setIsHovering] = useState(false);
@@ -24,45 +21,59 @@ export function ContributorCard({ contributor }: { contributor: Contributor }) {
         href={contributor.html_url}
         target="_blank"
         rel="noopener noreferrer"
+        aria-label={`${contributor.name || contributor.login} - ${contributor.contributions} contributions`}
+        className="block"
       >
         <Image
           src={contributor.avatar_url}
-          alt={contributor.login}
+          alt={contributor.name || contributor.login}
           width={28}
           height={28}
-          className="rounded-full transition-transform group-hover:scale-110"
+          className="rounded-full ring-1 ring-border hover:ring-2 hover:ring-primary/80 transition-all duration-200 group-hover:scale-110 object-cover"
         />
       </Link>
 
       {isHovering && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-popover shadow-md rounded-md p-2 text-left z-50 border border-border">
-          <div className="flex items-center gap-2 mb-1">
+        <div
+          role="tooltip"
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 w-52 bg-popover text-popover-foreground shadow-lg rounded-lg p-3 text-left z-50 border border-border animate-in fade-in zoom-in-95 duration-150"
+        >
+          <div className="flex items-center gap-2.5 mb-2">
             <Image
               src={contributor.avatar_url}
-              alt={contributor.login}
-              width={20}
-              height={20}
-              className="rounded-full"
+              alt={contributor.name || contributor.login}
+              width={28}
+              height={28}
+              className="rounded-full ring-1 ring-border object-cover"
             />
-            <span className="font-medium text-sm truncate">
-              {contributor.login}
-            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-xs truncate leading-tight text-foreground">
+                {contributor.name || contributor.login}
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate">
+                @{contributor.login}
+              </p>
+            </div>
           </div>
-          <div className="text-xs text-muted-foreground">
-            <p className="flex items-center gap-1">
-              <span>Contributions: {contributor.contributions}</span>
+          <div className="text-xs text-muted-foreground space-y-1.5 pt-1 border-t border-border/50">
+            <p className="flex items-center justify-between text-[11px]">
+              <span>Contributions:</span>
+              <span className="font-semibold text-primary">
+                {contributor.contributions}
+              </span>
             </p>
             <Link
               href={contributor.html_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 mt-1 text-primary hover:underline"
+              className="flex items-center gap-1.5 text-[11px] text-primary hover:underline font-medium pt-0.5"
             >
               <Github size={12} />
-              View GitHub Profile
+              <span>View GitHub Profile</span>
             </Link>
           </div>
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-popover border-r border-b border-border"></div>
+          {/* Arrow */}
+          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 rotate-45 w-2 h-2 bg-popover border-r border-b border-border" />
         </div>
       )}
     </div>
@@ -75,9 +86,9 @@ export function ContributorsWrapper({
   contributors: Contributor[];
 }) {
   return (
-    <div className="text-center">
+    <div className="text-center w-full">
       {contributors.length > 0 ? (
-        <div className="flex flex-wrap justify-center gap-2">
+        <div className="flex flex-wrap justify-center items-center gap-2 max-w-xl mx-auto">
           {contributors.map((contributor) => (
             <ContributorCard
               key={contributor.login}
@@ -85,11 +96,11 @@ export function ContributorsWrapper({
             />
           ))}
           <Link
-            href="https://github.com/green-university-computer-club/gucc/graphs/contributors"
+            href="https://github.com/GreenUniversityComputerClub/gucc/graphs/contributors"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center w-7 h-7 rounded-full bg-muted text-muted-foreground hover:bg-primary/10 transition-colors"
-            title="View all contributors"
+            className="flex items-center justify-center w-7 h-7 rounded-full bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors text-xs font-semibold ring-1 ring-border"
+            title="View all contributors on GitHub"
           >
             <span>+</span>
           </Link>
@@ -100,21 +111,32 @@ export function ContributorsWrapper({
 }
 
 export function Contributors() {
-  const [contributors, setContributors] = useState<Contributor[]>([]);
+  const [contributors, setContributors] =
+    useState<Contributor[]>(STATIC_CONTRIBUTORS);
+
   useEffect(() => {
-    if (contributors.length === 0) {
-      getContributors().then(setContributors);
+    let isMounted = true;
+
+    async function fetchLiveContributors() {
+      try {
+        const res = await fetch("/api/contributors");
+        if (res.ok) {
+          const data = (await res.json()) as Contributor[];
+          if (isMounted && Array.isArray(data) && data.length > 0) {
+            setContributors(data);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch fresh contributors:", err);
+      }
     }
+
+    fetchLiveContributors();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return <ContributorsWrapper contributors={contributors} />;
-}
-
-async function getContributors() {
-  const response = await fetch(
-    "https://api.github.com/repos/green-university-computer-club/gucc/contributors",
-  );
-  const data = (await response.json()) as Contributor[];
-
-  return data.slice(0, 8);
 }
