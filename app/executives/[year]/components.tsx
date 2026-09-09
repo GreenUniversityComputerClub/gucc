@@ -40,7 +40,7 @@ import {
   Facebook,
   Mail,
 } from "lucide-react";
-import type { Executive } from "@/app/executives/util";
+import { getExecutiveAvatar, type Executive } from "@/app/executives/util";
 import { mailtoHref } from "@/lib/utils";
 
 export function ExecutiveCard({
@@ -51,6 +51,7 @@ export function ExecutiveCard({
   isResizeMode: boolean;
 }) {
   const router = useRouter();
+  const avatar = getExecutiveAvatar(executive);
   const [position, setPosition] = useState(
     executive.avatarPosition || { x: 0, y: 0 }
   );
@@ -160,19 +161,19 @@ export function ExecutiveCard({
         <div className="relative">
           <CardHeader className="flex flex-row items-center gap-4 relative">
             {/* Avatar */}
-            <div
-              ref={imageRef}
-              className={`absolute -right-8 -top-4 w-40 h-40 opacity-100 transition-opacity ${
-                isResizeMode ? "cursor-move" : ""
-              }`}
-              style={{
-                transform: `translate(${position.x}px, ${position.y}px)`,
-              }}
-              onMouseDown={handleMouseDown}
-            >
-              {executive.avatarUrl && (
+            {avatar && (
+              <div
+                ref={imageRef}
+                className={`absolute -right-8 -top-4 w-40 h-40 opacity-100 transition-opacity ${
+                  isResizeMode ? "cursor-move" : ""
+                }`}
+                style={{
+                  transform: `translate(${position.x}px, ${position.y}px)`,
+                }}
+                onMouseDown={handleMouseDown}
+              >
                 <Image
-                  src={executive.avatarUrl}
+                  src={avatar}
                   alt={`${executive.name} — ${executive.position}, GUCC executive`}
                   width={160}
                   height={160}
@@ -183,23 +184,8 @@ export function ExecutiveCard({
                     target.style.display = "none";
                   }}
                 />
-              )}
-
-              {!executive.avatarUrl && executive.studentId && (
-                <Image
-                  src={`/executives/${executive.studentId}.png`}
-                  alt={`${executive.name} — ${executive.position}, GUCC executive`}
-                  width={160}
-                  height={160}
-                  className="object-contain"
-                  style={{ transform: `scale(${scale})` }}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = "none";
-                  }}
-                />
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Name & Role */}
             <div className="relative z-10 max-w-[calc(100%-80px)] pr-4">
@@ -637,29 +623,19 @@ export function ExecutiveProfile({ executives }: { executives: import("@/app/exe
     return parseInt(b.year) - parseInt(a.year);
   });
 
+  const primaryExecutive = sortedExecutives[0];
+  const avatar = getExecutiveAvatar(primaryExecutive);
+
   return (
     <div className="container py-4 md:py-8">
       {/* Header with executive's main info */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-6">
           <div className="relative">
-            {sortedExecutives[0].avatarUrl ? (
+            {avatar ? (
               <Image
-                src={sortedExecutives[0].avatarUrl}
-                alt={`${sortedExecutives[0].name} — ${sortedExecutives[0].position}, GUCC ${sortedExecutives[0].year}`}
-                priority
-                width={120}
-                height={120}
-                className="rounded-full object-cover border-4 border-primary/20"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = "none";
-                }}
-              />
-            ) : sortedExecutives[0].studentId ? (
-              <Image
-                src={`/executives/${sortedExecutives[0].studentId}.png`}
-                alt={`${sortedExecutives[0].name} — ${sortedExecutives[0].position}, GUCC ${sortedExecutives[0].year}`}
+                src={avatar}
+                alt={`${primaryExecutive.name} — ${primaryExecutive.position}, GUCC ${primaryExecutive.year}`}
                 priority
                 width={120}
                 height={120}
