@@ -71,7 +71,7 @@ export default function EventDetailsPage() {
               </p>
             </div>
           </div>
-          <div className="relative h-[450px] rounded-3xl overflow-hidden shadow-lg">
+          <div className="relative h-[220px] sm:h-[320px] md:h-[450px] rounded-3xl overflow-hidden shadow-lg">
             <Image
               src={`/events/${event.sl}.jpg`}
               alt={event.name}
