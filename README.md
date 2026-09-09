@@ -46,14 +46,16 @@ are actually working on.
 
 ### Scripts
 
-| Command          | What it does                          |
-| ---------------- | ------------------------------------- |
-| `bun dev`        | Development server (Turbopack)        |
-| `bun run build`  | Production build                      |
-| `bun start`      | Serve the production build            |
-| `bun run lint`   | ESLint                                |
-| `bun run fmt`    | Prettier across the repo              |
-| `bun run deploy` | Build and deploy to Vercel production |
+| Command                         | What it does                                                            |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| `bun dev`                       | Development server (Turbopack)                                          |
+| `bun run build`                 | Optimises images, then builds for production                            |
+| `bun start`                     | Serve the production build                                              |
+| `bun run optimize:images`       | Re-encode oversized images in `public/` (runs automatically in `build`) |
+| `bun run optimize:images:check` | Report what would be optimised, changing nothing                        |
+| `bun run lint`                  | ESLint                                                                  |
+| `bun run fmt`                   | Prettier across the repo                                                |
+| `bun run deploy`                | Build and deploy to Vercel production                                   |
 
 ---
 
@@ -95,6 +97,36 @@ Most of the site is driven by JSON, so updating content needs no React work:
 
 Executive portraits go in `public/executives/` named after the student ID
 (`232002184.png`), or set `avatarUrl` explicitly.
+
+---
+
+## Images
+
+`public/` originally shipped ~400 MB of source images — event photos straight
+off a camera (up to 6000 px and 38 MB each, several of them PNGs saved with a
+`.jpg` extension) and executive portraits at ~940 px that render at 160 px.
+`scripts/optimize-images.mjs` normalises them, and runs as the first step of
+`bun run build` so an oversized upload can never reach production.
+
+| Directory                                                    | Max width    | Format    | Notes                                                                                      |
+| ------------------------------------------------------------ | ------------ | --------- | ------------------------------------------------------------------------------------------ |
+| `public/events`                                              | 1600 px      | JPEG q75  | Event covers; PNGs mislabelled `.jpg` become real JPEGs                                    |
+| `public/executives`                                          | 800 px       | PNG       | Portraits are transparent cut-outs, so PNG is kept — JPEG would flatten the alpha to black |
+| `public/collaborators`, `public/sponsors`, `public/contests` | 1200–1600 px | unchanged | Logos keep their original container                                                        |
+
+The script is **idempotent**. It skips anything already within budget, refuses
+to write a result larger than the original, and records the digest of every file
+it produces in `public/.image-optimized.json` — some images cannot be squeezed
+under their byte budget at any setting, and without that ledger they would be
+re-encoded on every build and lose a little quality each time. Commit that file.
+
+Drop new images into the right folder at whatever size; the build handles the
+rest. To preview what it would do: `bun run optimize:images:check`.
+
+> Static assets are excluded from serverless function bundles via
+> `outputFileTracingExcludes` in `next.config.ts`. Reference images by string
+> path (`/events/12.jpg`), never by `import`, or the binaries get traced into
+> every function that touches them and count against Vercel's 250 MB limit.
 
 ---
 

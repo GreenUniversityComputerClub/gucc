@@ -18,6 +18,16 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "50mb",
     },
   },
+  /*
+   * Keep static assets out of every serverless function bundle.
+   *
+   * `public/` is uploaded to Vercel's static layer, not into functions, and
+   * pages reference these images by string path, so nothing traces them today
+   * (verified: /collaborations traces 0 public assets, largest function 5.5 MB).
+   * This keeps it that way — a future `import logo from "../../public/…"` would
+   * otherwise pull binaries into every function that touches it and eat into
+   * the 250 MB limit.
+   */
   outputFileTracingExcludes: {
     "*": ["public/**/*", "./public/**/*"],
   },
