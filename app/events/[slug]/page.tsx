@@ -3,6 +3,7 @@ import { useParams, useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import eventsData from "@/data/events.json";
+import { eventSlug } from "@/lib/events";
 import DateIcon from "@/components/svgIcon/Date";
 import Time from "@/components/svgIcon/Time";
 import Location from "@/components/svgIcon/Location";
@@ -15,13 +16,7 @@ export default function EventDetailsPage() {
   const { slug } = useParams();
   const router = useRouter();
 
-  const event = events.find(
-    (e) =>
-      e.name
-        .toLowerCase()
-        .replace(/\s+/g, "-")
-        .replace(/[^\w-]+/g, "") === slug,
-  ) as (typeof events)[number] & {
+  const event = events.find((e) => eventSlug(e.name) === slug) as (typeof events)[number] & {
     category: string;
     organizer?: string;
     description: string;

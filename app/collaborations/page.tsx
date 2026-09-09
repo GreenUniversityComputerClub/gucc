@@ -2,6 +2,27 @@ import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo/metadata";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Collaborations & Partner Clubs",
+  description:
+    "University clubs and organisations that partner with the Green University Computer Club on hackathons, contests and joint events — including UAP EEE, AUST PIC, IIEC-IUBAT and HackCSB.",
+  path: "/collaborations",
+  keywords: [
+    "GUCC collaborations",
+    "GUCC partners",
+    "inter university club collaboration Bangladesh",
+    "student club partnership Dhaka",
+    "Green University Computer Club partners",
+  ],
+  image: {
+    eyebrow: "Collaborations",
+    title: "Partner Clubs",
+    subtitle: "Joint events with clubs across Bangladesh",
+  },
+});
 
 const featuredCollaborations = [
   {

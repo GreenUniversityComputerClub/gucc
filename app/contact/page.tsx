@@ -1,6 +1,29 @@
 import Link from "next/link";
 import { Facebook, Github, Linkedin, Mail, MapPin } from "lucide-react";
 import { ContactForm } from "@/components/contact-form";
+import type { Metadata } from "next";
+import { JsonLd } from "@/components/seo/json-ld";
+import { buildMetadata } from "@/lib/seo/metadata";
+import { ADDRESS, PARENT_ORGANIZATION, SITE } from "@/lib/seo/site";
+import { breadcrumbSchema, graph, webPageSchema } from "@/lib/seo/schema";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Contact GUCC",
+  description: `Get in touch with the Green University Computer Club. Email ${SITE.email}, use the contact form, or find us at ${PARENT_ORGANIZATION.name}, ${ADDRESS.addressLocality}, Bangladesh.`,
+  path: "/contact",
+  keywords: [
+    "contact GUCC",
+    "GUCC email",
+    "Green University Computer Club contact",
+    "GUCC address",
+    "Green University of Bangladesh CSE club",
+  ],
+  image: {
+    eyebrow: "Contact",
+    title: "Contact GUCC",
+    subtitle: `${SITE.email} · ${PARENT_ORGANIZATION.name}`,
+  },
+});
 
 const socials = [
   {
@@ -23,6 +46,21 @@ const socials = [
 export default function ContactPage() {
   return (
     <main className="bg-background">
+      <JsonLd
+        id="contact-schema"
+        data={graph(
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Contact", path: "/contact" },
+          ]),
+          webPageSchema({
+            name: "Contact GUCC",
+            description: `Contact details for the ${SITE.name}.`,
+            path: "/contact",
+            type: "ContactPage",
+          })
+        )}
+      />
       <section className="container mx-auto px-4 py-16 sm:py-24">
         <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div>

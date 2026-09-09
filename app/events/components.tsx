@@ -8,6 +8,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import eventsData from "@/data/events.json";
+import { eventSlug } from "@/lib/events";
 import { CalendarIcon, UserIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,10 +21,7 @@ export function EventCard({
   event: (typeof eventsData)[number];
   index: number;
 }) {
-  const slug = event.name
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^\w-]+/g, "");
+  const slug = eventSlug(event.name);
 
   // Determine event status
   const eventDate = new Date(event.date);
@@ -39,7 +37,7 @@ export function EventCard({
         <Link href={`/events/${slug}`} className="block h-full">
           <Image
             src={`/events/${event.sl}.jpg`}
-            alt={event.name}
+            alt={`${event.name} — GUCC event at Green University of Bangladesh`}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             priority={index < 6}

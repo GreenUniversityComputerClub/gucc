@@ -5,6 +5,15 @@ import { queries } from "@/lib/blog";
 import { PostEdge, PostsResponse } from "./types";
 import { BlogPostMeta } from "./component";
 import { Metadata } from "next";
+import { JsonLd } from "@/components/seo/json-ld";
+import { buildMetadata } from "@/lib/seo/metadata";
+import { SITE_URL } from "@/lib/seo/site";
+import {
+  ORGANIZATION_ID,
+  WEBSITE_ID,
+  breadcrumbSchema,
+  graph,
+} from "@/lib/seo/schema";
 
 const customBlogPosts: PostEdge[] = [
   {
@@ -33,11 +42,43 @@ const customBlogPosts: PostEdge[] = [
   },
 ];
 
-export const metadata: Metadata = {
-  title: "Blog | Green University Computer Club",
+export const metadata: Metadata = buildMetadata({
+  title: "Blog — Technology, Programming & Club Stories",
   description:
-    "Explore articles, insights, and stories from the Green University Computer Club - sharing knowledge in technology, programming, and innovation.",
-};
+    "Articles, tutorials and stories from the Green University Computer Club: machine learning, open source, competitive programming, career advice and behind-the-scenes writing from GUCC members.",
+  path: "/blog",
+  keywords: [
+    "GUCC blog",
+    "Green University Computer Club blog",
+    "programming articles Bangladesh",
+    "machine learning blog Bangladesh",
+    "CSE student blog",
+    "tech tutorials Bangladesh",
+  ],
+  image: {
+    eyebrow: "Blog",
+    title: "GUCC Blog",
+    subtitle: "Technology, programming and club stories",
+  },
+});
+
+const blogSchema = graph(
+  breadcrumbSchema([
+    { name: "Home", path: "/" },
+    { name: "Blog", path: "/blog" },
+  ]),
+  {
+    "@type": "Blog",
+    "@id": `${SITE_URL}/blog#blog`,
+    url: `${SITE_URL}/blog`,
+    name: "Green University Computer Club Blog",
+    description:
+      "Articles, tutorials and stories from the Green University Computer Club.",
+    inLanguage: "en",
+    publisher: { "@id": ORGANIZATION_ID },
+    isPartOf: { "@id": WEBSITE_ID },
+  }
+);
 
 export default async function Blog() {
   const host = process.env.HASHNODE_HOST;
@@ -58,6 +99,7 @@ export default async function Blog() {
   try {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
+        <JsonLd id="blog-schema" data={blogSchema} />
         <div className="container mx-auto px-4 py-16 max-w-4xl">
           {/* Header Section */}
           <div className="text-center mb-20">

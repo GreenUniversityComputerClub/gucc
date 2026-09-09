@@ -4,6 +4,9 @@ import { fetchSubstackArticle, mdxToHtml } from "./util";
 import PostContent from "../component";
 import { Post, PostResponse } from "../types";
 import { Metadata } from "next";
+import { JsonLd } from "@/components/seo/json-ld";
+import { brandTitle } from "@/lib/seo/metadata";
+import { articleSchema, breadcrumbSchema, graph } from "@/lib/seo/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -85,7 +88,7 @@ function buildPostMetadata(post: Post): Metadata {
   const authorName = post.author?.name || "Green University Computer Club";
 
   return {
-    title: `${post.title} | Green University Computer Club`,
+    title: { absolute: brandTitle(post.title) },
     description,
     metadataBase: new URL(siteBaseUrl),
     alternates: {
@@ -128,7 +131,7 @@ export async function generateMetadata({
     const slug = (await params)?.slug;
     if (!slug) {
       return {
-        title: "Blog Post | Green University Computer Club",
+        title: { absolute: brandTitle("Blog Post") },
         description: "Explore articles and tutorials from Green University Computer Club.",
         metadataBase: new URL(siteBaseUrl),
       };
@@ -152,18 +155,42 @@ export async function generateMetadata({
     }
 
     return {
-      title: "Post Not Found | Green University Computer Club",
+      title: { absolute: brandTitle("Post Not Found") },
+      robots: { index: false, follow: true },
       description: "The post you are looking for does not exist.",
       metadataBase: new URL(siteBaseUrl),
     };
   } catch (error) {
     console.warn("Failed to fetch blog post metadata from Hashnode API:", error);
     return {
-      title: "Blog Post | Green University Computer Club",
+      title: { absolute: brandTitle("Blog Post") },
       description: "Explore articles and tutorials from Green University Computer Club.",
       metadataBase: new URL(siteBaseUrl),
     };
   }
+}
+
+/** BlogPosting + breadcrumb graph for a post, whatever source it came from. */
+function postSchema(post: Post) {
+  const path = `/blog/${post.slug}`;
+  return graph(
+    breadcrumbSchema([
+      { name: "Home", path: "/" },
+      { name: "Blog", path: "/blog" },
+      { name: post.title, path },
+    ]),
+    articleSchema({
+      title: post.title,
+      path,
+      description: post.brief || post.subtitle || undefined,
+      image: post.coverImage?.url || undefined,
+      authorName: post.author?.name,
+      publishedTime: post.publishedAt,
+      modifiedTime: post.updatedAt || post.publishedAt,
+      tags: post.tags,
+      canonicalElsewhere: post.url,
+    })
+  );
 }
 
 export default async function BlogPost({
@@ -208,6 +235,7 @@ export default async function BlogPost({
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
         <div className="container mx-auto px-4 py-12 max-w-4xl">
+          <JsonLd id={`post-${customPost.slug}-schema`} data={postSchema(customPost)} />
           <PostContent post={customPost} mdx={mdx} />
         </div>
       </div>
@@ -228,6 +256,7 @@ export default async function BlogPost({
         return (
           <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
             <div className="container mx-auto px-4 py-12 max-w-4xl">
+              <JsonLd id={`post-${post.slug}-schema`} data={postSchema(post)} />
               <PostContent post={post} mdx={mdx} />
             </div>
           </div>

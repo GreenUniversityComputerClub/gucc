@@ -1263,9 +1263,9 @@ export default function RecruitmentPage() {
         <Card className="rounded-none rounded-b-none border-t-0 shadow-sm">
           <div className={`border-t-4 ${TEAL.border}`} />
           <CardContent className="px-4 py-5 sm:px-6 sm:py-6">
-            <h2 className="mb-4 text-xl font-bold leading-tight text-foreground sm:text-2xl lg:text-[26px]">
+            <h1 className="mb-4 text-xl font-bold leading-tight text-foreground sm:text-2xl lg:text-[26px]">
               Call for Executive Members: GUCC ExCom 2026-27
-            </h2>
+            </h1>
             <div className="space-y-3 text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
               <p>
                 The inception of the{" "}

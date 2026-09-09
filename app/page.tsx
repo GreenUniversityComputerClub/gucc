@@ -10,10 +10,43 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import eventsData from "@/data/events.json";
 import { Award, BookOpen, CalendarDays, Users } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AnimatedStat } from "./component";
 import { CollaborationScroll } from "./components/collaboration-scroll";
 import { EventCard } from "./events/components";
+import { JsonLd } from "@/components/seo/json-ld";
+import { getHomeFaq } from "@/lib/seo/faq";
+import { buildMetadata } from "@/lib/seo/metadata";
+import { SITE, SITE_KEYWORDS } from "@/lib/seo/site";
+import {
+  faqSchema,
+  graph,
+  itemListSchema,
+  personSchema,
+  webPageSchema,
+} from "@/lib/seo/schema";
+import {
+  getExecutiveAvatar,
+  getLatestExecutiveYear,
+  getYearRoster,
+  isStudentId,
+} from "@/app/executives/util";
+
+const latestYear = getLatestExecutiveYear();
+
+export const metadata: Metadata = {
+  ...buildMetadata({
+    title: `${SITE.name} (${SITE.shortName})`,
+    description: SITE.description,
+    path: "/",
+    keywords: SITE_KEYWORDS,
+  }),
+  // The home page owns the brand query, so it skips the "| GUCC" template.
+  title: {
+    absolute: `${SITE.name} (${SITE.shortName}) — Official Website`,
+  },
+};
 
 const upcomingEvents = eventsData.filter(
   (event) => new Date(event.date) > new Date()
@@ -27,8 +60,48 @@ const recentEvents = eventsData.filter((event) => {
 });
 
 export default function Home() {
+  const faq = getHomeFaq();
+  const roster = getYearRoster(latestYear);
+  const leadership = [
+    ...(roster?.facultyMembers ?? []),
+    ...(roster?.studentExecutives ?? []),
+  ];
+
+  const structuredData = graph(
+    webPageSchema({
+      name: `${SITE.name} (${SITE.shortName})`,
+      description: SITE.description,
+      path: "/",
+    }),
+    faqSchema(faq),
+    itemListSchema(
+      `GUCC Executive Committee ${latestYear}`,
+      leadership.map((person) => ({
+        name: person.name,
+        path:
+          person.studentId && isStudentId(person.studentId)
+            ? `/executives/${person.studentId}`
+            : undefined,
+        image: getExecutiveAvatar(person),
+        node: personSchema({
+          name: person.name,
+          path:
+            person.studentId && isStudentId(person.studentId)
+              ? `/executives/${person.studentId}`
+              : undefined,
+          position: person.position,
+          designation: person.designation,
+          image: getExecutiveAvatar(person),
+          year: person.year,
+          sameAs: [person.linkedin, person.github, person.facebook, person.twitter],
+        }),
+      }))
+    )
+  );
+
   return (
     <div className="flex flex-col min-h-screen">
+      <JsonLd id="home-schema" data={structuredData} />
       {new Date().getMonth() === 3 && new Date().getDate() === 14 && (
         <PohelaBoishakhGreeting />
       )}
@@ -325,6 +398,68 @@ export default function Home() {
           <Link href="/events">View All Events</Link>
         </Button>
       </div>
+
+      {/* Leadership — a keyword-anchored path into the executives section. */}
+      <section className="w-full py-12 md:py-16">
+        <div className="container px-4 md:px-6">
+          <div className="rounded-2xl border border-primary/10 bg-primary/5 p-8 text-center md:p-12">
+            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
+              Meet the GUCC Executives
+            </h2>
+            <p className="mx-auto mt-4 max-w-[720px] text-muted-foreground md:text-lg">
+              The {latestYear} executive committee of the Green University
+              Computer Club — {leadership.length} faculty advisors and student
+              executives — plus every committee since 2016, each with a full
+              profile.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-4">
+              <Button asChild>
+                <Link href="/executives">GUCC Executive Committee</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href={`/executives/${latestYear}`}>
+                  {latestYear} Committee
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ — visible answers backing the FAQPage structured data above. */}
+      <section
+        className="w-full py-12 md:py-16 lg:py-20"
+        aria-labelledby="faq-heading"
+      >
+        <div className="container px-4 md:px-6">
+          <div className="text-center space-y-4">
+            <h2
+              id="faq-heading"
+              className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl"
+            >
+              Frequently Asked Questions
+            </h2>
+            <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
+              Everything people usually want to know about GUCC
+            </p>
+          </div>
+          <div className="mx-auto mt-10 max-w-3xl space-y-4">
+            {faq.map((item) => (
+              <details
+                key={item.question}
+                className="group rounded-lg border bg-card p-5 transition-colors hover:border-primary/40"
+              >
+                <summary className="cursor-pointer list-none text-lg font-semibold marker:hidden">
+                  <h3 className="inline">{item.question}</h3>
+                </summary>
+                <p className="mt-3 leading-relaxed text-muted-foreground">
+                  {item.answer}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

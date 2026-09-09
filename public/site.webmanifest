@@ -1,19 +1,39 @@
 {
-  "name": "",
-  "short_name": "",
+  "name": "Green University Computer Club",
+  "short_name": "GUCC",
+  "description": "Official website of Green University Computer Club (GUCC), the flagship student-run technology club of Green University of Bangladesh.",
+  "id": "/",
+  "start_url": "/?utm_source=pwa",
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["education", "technology", "social"],
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
+  "shortcuts": [
+    { "name": "Executives", "url": "/executives" },
+    { "name": "Events", "url": "/events" },
+    { "name": "Blog", "url": "/blog" }
+  ],
+  "theme_color": "#16a34a",
+  "background_color": "#020617",
   "display": "standalone"
 }

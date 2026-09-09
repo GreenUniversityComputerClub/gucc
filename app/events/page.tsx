@@ -29,6 +29,16 @@ export default function EventsPage() {
 
   return (
     <div className="container mt-8 mb-12">
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+          GUCC Events
+        </h1>
+        <p className="mt-2 max-w-3xl text-muted-foreground">
+          Seminars, workshops, programming contests, hackathons and cultural
+          programmes hosted by the Green University Computer Club at Green
+          University of Bangladesh — {events.length} events and counting.
+        </p>
+      </header>
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1">
            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>

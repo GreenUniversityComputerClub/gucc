@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RESIZE_AVATAR } from "@/app/config";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ import {
   Mail,
 } from "lucide-react";
 import type { Executive } from "@/app/executives/util";
+import { mailtoHref } from "@/lib/utils";
 
 export function ExecutiveCard({
   executive,
@@ -140,7 +142,9 @@ export function ExecutiveCard({
   }, [isDragging, startPos, isResizeMode]);
 
   // Card Hover Effect for Social Media Icons
-  const hasSocialLinks = executive.linkedin || executive.github || executive.facebook || executive.twitter || executive.mail;
+  const hasSocialLinks = executive.linkedin || executive.github || executive.facebook || executive.twitter || mailtoHref(executive.mail);
+  const hasProfile =
+    !isResizeMode && Boolean(executive.studentId && executive.studentId.length === 9);
   
   return (
     <div className="relative group">
@@ -169,7 +173,7 @@ export function ExecutiveCard({
               {executive.avatarUrl && (
                 <Image
                   src={executive.avatarUrl}
-                  alt={executive.name}
+                  alt={`${executive.name} — ${executive.position}, GUCC executive`}
                   width={160}
                   height={160}
                   className="object-contain"
@@ -184,7 +188,7 @@ export function ExecutiveCard({
               {!executive.avatarUrl && executive.studentId && (
                 <Image
                   src={`/executives/${executive.studentId}.png`}
-                  alt={executive.name}
+                  alt={`${executive.name} — ${executive.position}, GUCC executive`}
                   width={160}
                   height={160}
                   className="object-contain"
@@ -201,9 +205,18 @@ export function ExecutiveCard({
             <div className="relative z-10 max-w-[calc(100%-80px)] pr-4">
               <CardTitle className="text-lg flex items-center gap-2">
                 {getRoleIcon(executive.position)}
-                <span className="line-clamp-2 overflow-hidden text-ellipsis">
-                  {executive.name}
-                </span>
+                {hasProfile ? (
+                  <Link
+                    href={`/executives/${executive.studentId}`}
+                    className="line-clamp-2 overflow-hidden text-ellipsis hover:text-primary transition-colors"
+                  >
+                    {executive.name}
+                  </Link>
+                ) : (
+                  <span className="line-clamp-2 overflow-hidden text-ellipsis">
+                    {executive.name}
+                  </span>
+                )}
               </CardTitle>
               <CardDescription className="line-clamp-1 overflow-hidden text-ellipsis">
                 {getRoleName(executive.position)}
@@ -265,9 +278,9 @@ export function ExecutiveCard({
               <Twitter className="h-3.5 w-3.5 text-muted-foreground group-hover/link:text-[#1da1f2] transition-colors" />
             </a>
           )}
-          {executive.mail && (
+          {mailtoHref(executive.mail) && (
             <a 
-              href={`mailto:${executive.mail}`} 
+              href={mailtoHref(executive.mail)} 
               target="_blank" 
               rel="noopener noreferrer"
               className="p-1.5 rounded-full hover:bg-accent transition-all duration-200 group/link hover:scale-110"
@@ -633,7 +646,8 @@ export function ExecutiveProfile({ executives }: { executives: import("@/app/exe
             {sortedExecutives[0].avatarUrl ? (
               <Image
                 src={sortedExecutives[0].avatarUrl}
-                alt={sortedExecutives[0].name}
+                alt={`${sortedExecutives[0].name} — ${sortedExecutives[0].position}, GUCC ${sortedExecutives[0].year}`}
+                priority
                 width={120}
                 height={120}
                 className="rounded-full object-cover border-4 border-primary/20"
@@ -645,7 +659,8 @@ export function ExecutiveProfile({ executives }: { executives: import("@/app/exe
             ) : sortedExecutives[0].studentId ? (
               <Image
                 src={`/executives/${sortedExecutives[0].studentId}.png`}
-                alt={sortedExecutives[0].name}
+                alt={`${sortedExecutives[0].name} — ${sortedExecutives[0].position}, GUCC ${sortedExecutives[0].year}`}
+                priority
                 width={120}
                 height={120}
                 className="rounded-full object-cover border-4 border-primary/20"
@@ -663,8 +678,14 @@ export function ExecutiveProfile({ executives }: { executives: import("@/app/exe
           
           <div>
             <h1 className="text-3xl font-bold mb-2">{sortedExecutives[0].name}</h1>
-            <p className="text-xl text-muted-foreground mb-2">
-              Student ID: {sortedExecutives[0].studentId}
+            {/* Keyword-rich subtitle: role, club and university in the first line of copy. */}
+            <p className="text-xl text-muted-foreground mb-1">
+              {sortedExecutives[0].position}, Green University Computer Club{" "}
+              {sortedExecutives[0].year}
+            </p>
+            <p className="text-sm text-muted-foreground mb-3">
+              Green University of Bangladesh · Student ID:{" "}
+              {sortedExecutives[0].studentId}
             </p>
             
             {/* Social Media Links */}
@@ -709,9 +730,9 @@ export function ExecutiveProfile({ executives }: { executives: import("@/app/exe
                   <Twitter className="h-5 w-5" />
                 </a>
               )}
-              {sortedExecutives[0].mail && (
+              {mailtoHref(sortedExecutives[0].mail) && (
                 <a 
-                  href={sortedExecutives[0].mail} 
+                  href={mailtoHref(sortedExecutives[0].mail)} 
                   className="text-red-600 hover:text-red-800 transition-colors"
                 >
                   <Mail className="h-5 w-5" />
