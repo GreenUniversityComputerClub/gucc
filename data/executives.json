@@ -133,7 +133,8 @@
         "position": "Moderator",
         "name": "Ahmed Iqbal Pritom",
         "designation": "Lecturer",
-        "contact": "01726718569"
+        "contact": "01726718569",
+        "avatarUrl": "/executives/iqbal.cse.png"
       },
       {
         "position": "Deputy Moderator",
@@ -242,7 +243,8 @@
         "position": "Moderator",
         "name": "Ahmed Iqbal Pritom",
         "designation": "Sr. Lecturer",
-        "contact": "01726718569"
+        "contact": "01726718569",
+        "avatarUrl": "/executives/iqbal.cse.png"
       },
       {
         "position": "Deputy Moderator",
@@ -552,7 +554,8 @@
       {
         "position": "Office Secretary & Graphic Designer",
         "name": "Fahad Bin Kamal Anik",
-        "studentId": "183002xxx"
+        "studentId": "183002xxx",
+        "avatarUrl": "/executives/183002xxx.png"
       },
       {
         "position": "Sports Secretary",
@@ -585,14 +588,14 @@
             "position": "Moderator",
             "name": "Md. Solaiman Mia",
             "designation": "Lecturer",
-            "avatarUrl": "/executives/solaiman.cse.png",
+            "avatarUrl": "/executives/Solaiman.cse.png",
             "avatarScale": 0.8
           },
           {
             "position": "Deputy Moderator",
             "name": "Monoshi Kumar Roy",
             "designation": "Lecturer",
-            "avatarUrl": "/executives/monoshi.cse.png",
+            "avatarUrl": "/executives/Monoshi.cse.png",
             "avatarScale": 0.8
           }
         ],

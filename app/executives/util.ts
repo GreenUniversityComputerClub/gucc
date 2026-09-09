@@ -1,4 +1,5 @@
 import executivesData from "../../data/executives.json";
+import { getAvailableExecutiveAvatar } from "./avatars";
 
 export interface Executive {
   position: string
@@ -104,6 +105,40 @@ export function getExecutivesByStudentId(studentId: string): ExecutiveWithYear[]
         }
       }
     }
+
+    // Check wing-based structure if it exists (e.g. 2024 & 2025 VGS)
+    if ('wings' in yearData && yearData.wings) {
+      const wings = yearData.wings as any;
+      for (const wingKey of Object.keys(wings)) {
+        const wing = wings[wingKey];
+
+        // Check student executives in wing
+        if (wing.studentExecutives) {
+          for (const executive of wing.studentExecutives) {
+            if (executive.studentId === studentId) {
+              executives.push({
+                ...executive,
+                year: yearData.year,
+                campus: wingKey.toUpperCase()
+              } as ExecutiveWithYear);
+            }
+          }
+        }
+
+        // Check faculty members in wing
+        if (wing.facultyMembers) {
+          for (const faculty of wing.facultyMembers) {
+            if ((faculty as any).studentId === studentId) {
+              executives.push({
+                ...faculty,
+                year: yearData.year,
+                campus: wingKey.toUpperCase()
+              } as ExecutiveWithYear);
+            }
+          }
+        }
+      }
+    }
   }
   
   return executives;
@@ -200,6 +235,10 @@ export function getYearRoster(year: string): YearRoster | undefined {
       string,
       { facultyMembers?: Executive[]; studentExecutives?: Executive[] }
     >;
+    wings?: Record<
+      string,
+      { facultyMembers?: Executive[]; studentExecutives?: Executive[] }
+    >;
   };
 
   faculty.push(...withYear(flat.facultyMembers, year));
@@ -208,6 +247,11 @@ export function getYearRoster(year: string): YearRoster | undefined {
   for (const [campusKey, campus] of Object.entries(flat.campuses ?? {})) {
     faculty.push(...withYear(campus.facultyMembers, year, campusKey));
     students.push(...withYear(campus.studentExecutives, year, campusKey));
+  }
+
+  for (const [wingKey, wing] of Object.entries(flat.wings ?? {})) {
+    faculty.push(...withYear(wing.facultyMembers, year, wingKey.toUpperCase()));
+    students.push(...withYear(wing.studentExecutives, year, wingKey.toUpperCase()));
   }
 
   return { year, facultyMembers: faculty, studentExecutives: students };
@@ -237,13 +281,24 @@ export function getAllExecutiveStudentIds(): string[] {
   return Array.from(ids);
 }
 
-/** Portrait for an executive, falling back to the student-ID convention. */
+/** Portrait for an executive, resolving against available photos in public/executives/. */
 export function getExecutiveAvatar(
-  executive: Pick<Executive, "avatarUrl" | "studentId">
+  executive: Partial<Pick<Executive, "avatarUrl" | "studentId" | "name">>
 ): string | undefined {
-  if (executive.avatarUrl) return executive.avatarUrl;
-  if (executive.studentId && isStudentId(executive.studentId)) {
-    return `/executives/${executive.studentId}.png`;
+  if (executive.avatarUrl) {
+    if (/^https?:\/\//i.test(executive.avatarUrl)) {
+      return executive.avatarUrl;
+    }
+    const matched = getAvailableExecutiveAvatar(executive.avatarUrl);
+    if (matched) return matched;
+  }
+  if (executive.studentId) {
+    const matched = getAvailableExecutiveAvatar(`${executive.studentId}.png`);
+    if (matched) return matched;
+  }
+  if (executive.name === "Ahmed Iqbal Pritom") {
+    const matched = getAvailableExecutiveAvatar("iqbal.cse.png");
+    if (matched) return matched;
   }
   return undefined;
 }
