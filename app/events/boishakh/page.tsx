@@ -142,8 +142,9 @@ export default function PohelaBoishakh() {
 
 
     // --- Animation Loop ---
+    let frameId = 0;
     const animate = () => {
-      requestAnimationFrame(animate);
+      frameId = requestAnimationFrame(animate);
 
       // Animate individual shapes
       shapes.forEach(shape => {
@@ -173,14 +174,16 @@ export default function PohelaBoishakh() {
 
     // --- Cleanup ---
     return () => {
+      cancelAnimationFrame(frameId);
       window.removeEventListener('resize', handleResize);
-      // Dispose geometries and materials if needed for larger scenes
-       scene.remove(shapesGroup);
-       redMaterial.dispose();
-       whiteMaterial.dispose();
-       shapeGeometrySphere.dispose();
-       shapeGeometryCone.dispose();
-      // Consider disposing renderer context if component unmounts frequently
+      controls.dispose();
+      scene.remove(shapesGroup);
+      redMaterial.dispose();
+      whiteMaterial.dispose();
+      shapeGeometrySphere.dispose();
+      shapeGeometryCone.dispose();
+      // Frees the WebGL context; browsers cap how many may be live at once.
+      renderer.dispose();
     };
   }, []);
 
