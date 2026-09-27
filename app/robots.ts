@@ -9,7 +9,9 @@ export default function robots(): MetadataRoute.Robots {
   const disallow = [
     "/api/",
     "/auth/",
-    "/protected/",
+    "/dashboard",
+    "/admin",
+    "/account",
     "/forms/dashboard",
     "/executives/certs/",
     "/certificates/hacktheai/verify",
@@ -19,11 +21,12 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/api/og"],
+        // Social cards: X and others obey robots.txt, and the longer rule wins over "/api/".
+        allow: ["/", "/og-default.png", "/api/og"],
         disallow,
       },
       // Explicitly welcome the crawlers that matter, with no crawl delay.
-      { userAgent: ["Googlebot", "Googlebot-Image", "Bingbot"], allow: ["/", "/api/og"], disallow },
+      { userAgent: ["Googlebot", "Googlebot-Image", "Bingbot"], allow: ["/", "/og-default.png", "/api/og"], disallow },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
     host: SITE_URL,

@@ -1,11 +1,11 @@
 import Image from "next/image";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { JsonLd } from "@/components/seo/json-ld";
 import { breadcrumbSchema, graph, webPageSchema } from "@/lib/seo/schema";
+import { getPublicSetting } from "@/lib/public/data";
 
 export const metadata: Metadata = buildMetadata({
   title: "Collaborations & Partner Clubs",
@@ -26,33 +26,14 @@ export const metadata: Metadata = buildMetadata({
   },
 });
 
-const featuredCollaborations = [
-  {
-    name: 'UAP EEE',
-    image: '/collaborators/uap-eee.png',
-    description: 'Collaboration with UAP EEE Club',
-  },
-  {
-    name: 'AUST PIC',
-    image: '/collaborators/aust-pic.jpg',
-    description: 'Partnership with AUST Programming & Informatics Club',
-  },
-  {
-    name: 'IIEC-IUBAT',
-    image: '/collaborators/iiec-iubat.png',
-    description: 'Joint initiatives with IIEC-IUBAT',
-  },
-  {
-    name: 'HackCSB',
-    image: '/collaborators/hack-csb.png',
-    description: 'Collaboration with HackCSB',
-  },
-  {
-    name: 'AUST RPC',
-    image: '/collaborators/aust-rpc.jpg',
-    description: 'Partnership with AUST Robotics & Programming Club',
-  },
-];
+interface Partner {
+  name: string;
+  image: string;
+  description: string;
+}
+
+// Partner clubs are the organization setting "page.collaborations" (editable in /admin/settings).
+export const revalidate = 21600;
 
 const structuredData = graph(
   breadcrumbSchema([
@@ -67,7 +48,8 @@ const structuredData = graph(
   })
 );
 
-export default function CollaborationsPage() {
+export default async function CollaborationsPage() {
+  const featuredCollaborations = (await getPublicSetting<{ partners: Partner[] }>("page.collaborations"))?.partners ?? [];
   return (
     <>
       <JsonLd id="collaborations-schema" data={structuredData} />
@@ -120,7 +102,7 @@ export default function CollaborationsPage() {
               Want to Collaborate?
             </h2>
             <p className="mx-auto max-w-[600px] text-muted-foreground">
-              We're always open to new partnerships that align with our mission of empowering students in technology.
+              We&apos;re always open to new partnerships that align with our mission of empowering students in technology.
             </p>
             <Button asChild size="lg">
               <a href="mailto:gucc@green.edu.bd">Get in Touch</a>

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { submitContactForm } from "@/lib/contact/actions";
+import { Turnstile } from "@/components/turnstile";
 
 type FormState = {
   name: string;
@@ -27,6 +28,8 @@ export function ContactForm() {
   const [form, setForm] = useState<FormState>(initialFormState);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [token, setToken] = useState<string | null>(null);
+  const [website, setWebsite] = useState("");
 
   const isSubmitting = submitState === "submitting";
 
@@ -34,7 +37,7 @@ export function ContactForm() {
     return (
       form.name.trim().length >= 1 &&
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()) &&
-      form.message.trim().length >= 1
+      form.message.trim().length >= 10
     );
   }, [form]);
 
@@ -51,7 +54,7 @@ export function ContactForm() {
 
     if (!isValid) {
       setSubmitState("error");
-      setErrorMessage("Please enter your name, a valid email, and a message.");
+      setErrorMessage("Please enter your name, a valid email, and a message of at least 10 characters.");
       return;
     }
 
@@ -62,6 +65,8 @@ export function ContactForm() {
       name: form.name,
       email: form.email,
       message: form.message,
+      website,
+      turnstileToken: token,
     });
 
     if (!result.success) {
@@ -77,7 +82,7 @@ export function ContactForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8"
+      className="relative rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8"
     >
       <div className="space-y-5">
         <div className="space-y-2">
@@ -142,6 +147,11 @@ export function ContactForm() {
           <p className="text-sm font-medium text-destructive">{errorMessage}</p>
         )}
 
+        {/* Honeypot: hidden from people, filled only by bots. */}
+        <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+          <label>Website<input tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} /></label>
+        </div>
+        <Turnstile onToken={setToken} />
         <Button type="submit" className="w-full gap-2" disabled={isSubmitting}>
           {isSubmitting ? (
             <>

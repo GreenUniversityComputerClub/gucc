@@ -9,14 +9,10 @@ import { format } from "date-fns"
 import { MessageModal } from "./message-modal"
 import Image from "next/image"
 
-// RAG API endpoint
-const RAG_API_URL = "https://andrewvelox-gucc-rag-agent.hf.space"
-
 interface Message {
   text: string
   role: "user" | "model"
   timestamp: Date
-  sources?: string[]
 }
 
 interface PredefinedQuestion {
@@ -33,7 +29,6 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
   const [showSuggestions, setShowSuggestions] = useState(true)
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [screenSize, setScreenSize] = useState<"small" | "medium" | "large">("medium")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -46,7 +41,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
       if (savedMessages) {
         const parsed = JSON.parse(savedMessages)
         // Convert timestamp strings back to Date objects
-        const messagesWithDates = parsed.map((msg: any) => ({
+        const messagesWithDates = parsed.map((msg: Message & { timestamp: string }) => ({
           ...msg,
           timestamp: new Date(msg.timestamp)
         }))
@@ -112,92 +107,16 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
     },
   ]
 
-  // Check screen size
+  // The assistant is stateless (the browser sends recent turns with each message), so the
+  // conversation id is made here: opening the chat costs no request.
   useEffect(() => {
-    const checkScreenSize = () => {
-      if (window.innerWidth < 640) {
-        setScreenSize("small")
-      } else if (window.innerWidth < 1024) {
-        setScreenSize("medium")
-      } else {
-        setScreenSize("large")
-      }
-    }
-
-    // Initial check
-    checkScreenSize()
-
-    // Add event listener for window resize
-    window.addEventListener("resize", checkScreenSize)
-
-    // Cleanup
-    return () => window.removeEventListener("resize", checkScreenSize)
-  }, [])
-
-  // Initialize chat session
-  useEffect(() => {
-    let isMounted = true
-
-    const initChat = async () => {
-      if (!isMounted) return
-
-      setIsLoading(true)
-      try {
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ message: null }),
-        })
-
-        if (!response.ok) {
-          // If chat API fails, just create a dummy session ID
-          // The RAG API will still work
-          console.warn("Chat API unavailable, using RAG-only mode")
-          if (isMounted) {
-            setSessionId(Date.now().toString())
-            setIsLoading(false)
-          }
-          return
-        }
-
-        const data = await response.json()
-
-        if (data.error) {
-          // If there's an error, still allow using RAG API
-          console.warn("Chat API error, using RAG-only mode:", data.error)
-          if (isMounted) {
-            setSessionId(Date.now().toString())
-            setIsLoading(false)
-          }
-          return
-        }
-
-        if (isMounted) {
-          setSessionId(data.sessionId)
-          setIsLoading(false)
-        }
-      } catch (err: any) {
-        // If initialization fails, create a session ID anyway for RAG
-        console.warn("Chat initialization failed, using RAG-only mode:", err.message)
-        if (isMounted) {
-          setSessionId(Date.now().toString())
-          setIsLoading(false)
-        }
-      }
-    }
-
-    initChat()
+    setSessionId((current) => current ?? (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Date.now().toString()))
 
     // Focus the input field when the component mounts
-    setTimeout(() => {
+    const focus = setTimeout(() => {
       inputRef.current?.focus()
     }, 100)
-
-    return () => {
-      isMounted = false
-    }
+    return () => clearTimeout(focus)
   }, [])
 
   // Scroll to bottom when messages change
@@ -276,87 +195,32 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
       // For non-predefined questions, make the API call
       setIsLoading(true)
       try {
-        // First, try to query the RAG API for document-based answers
-        let ragResponse = null
-        let ragError = null
-        
-        try {
-          const ragApiResponse = await fetch(`${RAG_API_URL}/rag/queries/ask/`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              question: messageToSend,
-            }),
-          })
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: messageToSend,
+            sessionId: sessionId,
+            // The assistant is stateless: send the recent conversation for context.
+            history: messages.slice(-10).map((m) => ({ role: m.role === "user" ? "user" : "model", text: m.text })),
+          }),
+        })
+        const data = (await response.json().catch(() => null)) as { response?: string; error?: string } | null
 
-          if (ragApiResponse.ok) {
-            ragResponse = await ragApiResponse.json()
-          } else {
-            ragError = "RAG API unavailable"
-          }
-        } catch (err) {
-          ragError = "RAG API connection failed"
-          console.log("RAG API error:", err)
+        const botMessage: Message = {
+          text:
+            response.ok && data?.response
+              ? data.response
+              : data?.error || "I can't answer that right now. Please try again later, or reach the club from the contact page.",
+          role: "model",
+          timestamp: new Date(),
         }
-
-        // If RAG API returned a valid answer, use it
-        if (ragResponse && ragResponse.answer && ragResponse.answer.trim()) {
-          const botMessage: Message = {
-            text: ragResponse.answer,
-            role: "model",
-            timestamp: new Date(),
-            sources: ragResponse.sources || [],
-          }
-
-          setMessages((prevMessages) => [...prevMessages, botMessage])
-          setShowSuggestions(true)
-        } else {
-          // Fall back to the general chat API
-          try {
-            const response = await fetch("/api/chat", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                message: messageToSend,
-                sessionId: sessionId,
-              }),
-            })
-
-            if (!response.ok) {
-              throw new Error("Chat API unavailable. Please try uploading documents to the RAG system.")
-            }
-
-            const data = await response.json()
-
-            if (data.error) {
-              throw new Error(data.error)
-            }
-
-            const botMessage: Message = {
-              text: data.response,
-              role: "model",
-              timestamp: new Date(),
-            }
-
-            setMessages((prevMessages) => [...prevMessages, botMessage])
-            setShowSuggestions(true)
-          } catch (fallbackErr: any) {
-            // If both APIs fail, show helpful error
-            const errorMessage: Message = {
-              text: "I'm currently unable to answer that question. The document search system didn't find relevant information, and the general assistant is unavailable. Please try asking about uploaded documents or check back later.",
-              role: "model",
-              timestamp: new Date(),
-            }
-            setMessages((prevMessages) => [...prevMessages, errorMessage])
-            setShowSuggestions(true)
-          }
-        }
-      } catch (err: any) {
-        setError("Failed to send message: " + err.message)
+        setMessages((prevMessages) => [...prevMessages, botMessage])
+        setShowSuggestions(true)
+      } catch (err: unknown) {
+        setError("Failed to send message: " + (err instanceof Error ? err.message : String(err)))
       } finally {
         setIsLoading(false)
         // Focus the input field after sending a message
@@ -369,7 +233,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
         }, 100)
       }
     },
-    [sessionId, userInput, handlePredefinedQuestion],
+    [sessionId, userInput, handlePredefinedQuestion, messages],
   )
 
   const handleKeyDown = useCallback(
@@ -512,15 +376,6 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                     <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
                       {msg.text}
                     </div>
-                    {msg.sources && msg.sources.length > 0 && (
-                      <div className={cn(
-                        "mt-1.5 pt-1.5 border-t text-[10px]",
-                        isChatbotDark ? "border-emerald-950/40 text-emerald-400/80" : "border-zinc-100 text-zinc-550"
-                      )}>
-                        <span className="font-semibold text-emerald-605">Sources:</span>{" "}
-                        {msg.sources.join(", ")}
-                      </div>
-                    )}
                     <div className="flex items-center justify-end mt-1.5">
                       <span
                         className={cn(
@@ -629,7 +484,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
       </div>
 
       {/* Custom Modal */}
-      <MessageModal isOpen={isModalOpen} onClose={closeModal} message={selectedMessage} screenSize={screenSize} />
+      <MessageModal isOpen={isModalOpen} onClose={closeModal} message={selectedMessage} />
     </div>
   )
 }

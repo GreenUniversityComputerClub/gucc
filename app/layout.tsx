@@ -6,10 +6,12 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import FloatingChatbot from "@/components/chatbot/floating-chatbot";
 import { ThemeProvider } from "@/components/theme-provider";
-import DeadlinePopup from "@/components/DeadlinePopup";
 import { JsonLd } from "@/components/seo/json-ld";
 import { SITE, SITE_KEYWORDS, SITE_URL } from "@/lib/seo/site";
 import { graph, organizationSchema, websiteSchema } from "@/lib/seo/schema";
+import { getLatestExecutiveYear } from "@/app/executives/util";
+import { getPublicSetting } from "@/lib/public/data";
+import { MEDIA_BASE_URL } from "@/lib/api/config";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -90,16 +92,22 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The navbar's Executives link opens the current committee, as it always has.
+  const [executivesYear, services] = await Promise.all([
+    getLatestExecutiveYear().catch(() => null),
+    // The Services menu (lost & found, scheduler, …) is edited by leaders in the dashboard.
+    getPublicSetting<{ items?: Array<{ label: string; href: string; description?: string; visible?: boolean }> }>("nav.services").catch(() => null),
+  ]);
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <head>
-        {/* Warm up the origins the first paint depends on. */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        {/* Warm up the origins the first paint depends on: club photos come from the media origin. */}
+        {MEDIA_BASE_URL.startsWith("https://") && <link rel="preconnect" href={new URL(MEDIA_BASE_URL).origin} />}
         <link rel="dns-prefetch" href="https://github.com" />
       </head>
       <body style={{ fontFamily: 'var(--font-sans)' }} suppressHydrationWarning>{/* Using system font fallback */}
@@ -112,11 +120,11 @@ export default function RootLayout({
           disableTransitionOnChange={false}
         >
           <div className="flex min-h-screen flex-col">
-            <Navbar />
-            <main className="flex-1">{children}</main>
+            <Navbar executivesHref={executivesYear ? `/executives/${executivesYear}` : "/executives"}
+              services={(services?.items ?? []).filter((i) => i.visible !== false && typeof i.href === "string" && i.href.startsWith("/"))} />
+            <main id="main-content" className="flex-1">{children}</main>
             <Footer />
             <FloatingChatbot />
-            <DeadlinePopup />
           </div>
         </ThemeProvider>
       </body>

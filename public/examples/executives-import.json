@@ -1,0 +1,31 @@
+[
+  {
+    "name": "Example Person",
+    "studentId": "232000001",
+    "position": "General Secretary",
+    "committee": "2027",
+    "unit": "gucc",
+    "photo": "/executives/232000001.png",
+    "linkedin": "https://www.linkedin.com/in/example",
+    "github": "https://github.com/example",
+    "profileUrl": "https://example.com",
+    "bio": "Short bio shown on the profile.",
+    "order": 1
+  },
+  {
+    "name": "Dr. Example Faculty",
+    "position": "Moderator",
+    "section": "faculty",
+    "designation": "Associate Professor",
+    "committee": "2027",
+    "unit": "gucc"
+  },
+  {
+    "name": "Another Member",
+    "studentId": "232000002",
+    "position": "Executive Member",
+    "committee": "2027",
+    "unit": "css",
+    "startDate": "2027-01-01"
+  }
+]

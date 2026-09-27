@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SITE, SITE_KEYWORDS, SITE_URL, absoluteUrl } from "./site";
+import { ogCanonical, signOg } from "./og-sign";
 
 type OgType = "website" | "article" | "profile";
 
@@ -17,8 +18,9 @@ export interface OgImageOptions {
 }
 
 /**
- * URL of the on-demand Open Graph card renderer.
- * Absolute, because crawlers never resolve relative og:image values reliably.
+ * URL of the on-demand Open Graph card (app/api/og, rendered on Vercel and
+ * cached by its CDN). Absolute, because crawlers never resolve relative
+ * og:image values reliably.
  */
 export function ogImageUrl(options: OgImageOptions): string {
   const params = new URLSearchParams();
@@ -27,7 +29,9 @@ export function ogImageUrl(options: OgImageOptions): string {
   if (options.eyebrow) params.set("eyebrow", options.eyebrow);
   if (options.photo) params.set("photo", options.photo);
   if (options.variant) params.set("variant", options.variant);
-  return `${SITE_URL}/api/og?${params.toString()}`;
+  const canonical = ogCanonical(params);
+  const sig = signOg(canonical);
+  return `${SITE_URL}/api/og?${canonical}${sig ? `&s=${sig}` : ""}`;
 }
 
 /** Google shows roughly this much of a title; longer is silently clipped. */
@@ -122,7 +126,9 @@ export function buildMetadata({
       ...(publishedTime ? { publishedTime } : {}),
       ...(modifiedTime ? { modifiedTime } : {}),
       ...(authors ? { authors } : {}),
-      images: [{ url: imageUrl, width: 1200, height: 630, alt: title }],
+      // The generated card is always 1200×630 PNG; an explicit image keeps its own size, which
+      // crawlers read from the file (a wrong declared size makes some of them crop or skip it).
+      images: [typeof image === "string" ? { url: imageUrl, alt: title } : { url: imageUrl, width: 1200, height: 630, alt: title, type: "image/png" }],
     },
     twitter: {
       card: "summary_large_image",

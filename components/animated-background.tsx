@@ -17,6 +17,23 @@ import * as THREE from 'three';
 const PALETTE_DARK = ['#22c55e', '#10b981', '#4ade80', '#34d399'];
 const PALETTE_LIGHT = ['#15803d', '#047857', '#16a34a', '#0f766e'];
 
+/**
+ * Kept soft on purpose: with additive blending, brighter values washed out the headline
+ * that sits on top of the field.
+ */
+const OPACITY = {
+  dark: { dust: 0.45, node: 0.55, link: 0.1 },
+  light: { dust: 0.4, node: 0.5, link: 0.08 },
+};
+
+type DeviceHints = Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } };
+
+/** Low-end phones and data-saver mode get the static hero instead of a GPU loop. */
+function shouldSkip(): boolean {
+  const nav = navigator as DeviceHints;
+  return Boolean(nav.connection?.saveData) || (nav.deviceMemory ?? 8) <= 2 || (navigator.hardwareConcurrency ?? 8) <= 2;
+}
+
 export const AnimatedBackground = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -27,6 +44,7 @@ export const AnimatedBackground = () => {
     // Respect the OS "reduce motion" setting: this is a continuously animating
     // decorative background, exactly what that preference is for.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (shouldSkip()) return;
 
     const isSmallScreen = window.innerWidth < 768;
 
@@ -35,7 +53,8 @@ export const AnimatedBackground = () => {
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !isSmallScreen });
 
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const maxPixelRatio = isSmallScreen ? 1.5 : 2;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
     container.appendChild(renderer.domElement);
 
     const isDark = () => document.documentElement.classList.contains('dark');
@@ -85,7 +104,7 @@ export const AnimatedBackground = () => {
       size: 0.012,
       vertexColors: true,
       transparent: true,
-      opacity: isDark() ? 0.85 : 0.75,
+      opacity: OPACITY[isDark() ? 'dark' : 'light'].dust,
       blending: THREE.AdditiveBlending,
       sizeAttenuation: true,
       depthWrite: false,
@@ -120,7 +139,7 @@ export const AnimatedBackground = () => {
       size: 0.03,
       color: new THREE.Color(isDark() ? '#4ade80' : '#15803d'),
       transparent: true,
-      opacity: isDark() ? 0.95 : 0.8,
+      opacity: OPACITY[isDark() ? 'dark' : 'light'].node,
       blending: THREE.AdditiveBlending,
       sizeAttenuation: true,
       depthWrite: false,
@@ -136,7 +155,7 @@ export const AnimatedBackground = () => {
     const linkMaterial = new THREE.LineBasicMaterial({
       color: new THREE.Color(isDark() ? '#22c55e' : '#15803d'),
       transparent: true,
-      opacity: isDark() ? 0.16 : 0.13,
+      opacity: OPACITY[isDark() ? 'dark' : 'light'].link,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -200,9 +219,11 @@ export const AnimatedBackground = () => {
     scene.add(group);
 
     let frameId = 0;
+    let running = false;
     const clock = new THREE.Clock();
 
     const animate = () => {
+      if (!running) return;
       frameId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
 
@@ -221,40 +242,53 @@ export const AnimatedBackground = () => {
 
       renderer.render(scene, camera);
     };
-    animate();
 
-    // No point burning frames while the tab is in the background.
-    const handleVisibility = () => {
-      if (document.hidden) {
-        cancelAnimationFrame(frameId);
-      } else {
+    // No point burning frames while the tab is hidden or the hero is scrolled away.
+    let onScreen = true;
+    const update = () => {
+      const shouldRun = onScreen && !document.hidden;
+      if (shouldRun && !running) {
+        running = true;
         frameId = requestAnimationFrame(animate);
+      } else if (!shouldRun && running) {
+        running = false;
+        cancelAnimationFrame(frameId);
       }
     };
+    const handleVisibility = () => update();
     document.addEventListener('visibilitychange', handleVisibility);
+    const viewport = new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+      update();
+    });
+    viewport.observe(container);
+    update();
 
     const handleResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
     };
     window.addEventListener('resize', handleResize);
 
     const applyTheme = () => {
       const dark = isDark();
       writeDustColours(dark);
-      dustMaterial.opacity = dark ? 0.85 : 0.75;
+      const o = OPACITY[dark ? 'dark' : 'light'];
+      dustMaterial.opacity = o.dust;
       nodeMaterial.color.set(dark ? '#4ade80' : '#15803d');
-      nodeMaterial.opacity = dark ? 0.95 : 0.8;
+      nodeMaterial.opacity = o.node;
       linkMaterial.color.set(dark ? '#22c55e' : '#15803d');
-      linkMaterial.opacity = dark ? 0.16 : 0.13;
+      linkMaterial.opacity = o.link;
     };
     const observer = new MutationObserver(applyTheme);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
     return () => {
+      running = false;
       cancelAnimationFrame(frameId);
+      viewport.disconnect();
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('visibilitychange', handleVisibility);

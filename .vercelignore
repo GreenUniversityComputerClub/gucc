@@ -1,0 +1,9 @@
+# Never upload local secrets, databases or backups with `vercel deploy`.
+.dev.vars*
+.env*.local
+.wrangler
+.e2e
+.next-e2e
+migration/backup
+test-results
+playwright-report

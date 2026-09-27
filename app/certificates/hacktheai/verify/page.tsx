@@ -1,9 +1,11 @@
-import { findParticipantByCredentials } from '@/lib/certificates/hacktheai'
+import { rpc } from '@/lib/api/session'
 import { CertificateVerifyClient } from './certificate-verify-client'
 
 interface VerifyPageProps {
   searchParams: Promise<{ team?: string; email?: string }>
 }
+
+export const dynamic = 'force-dynamic'
 
 export default async function CertificateVerifyPage({ searchParams }: VerifyPageProps) {
   const params = await searchParams
@@ -33,7 +35,8 @@ export default async function CertificateVerifyPage({ searchParams }: VerifyPage
   }
 
   // Server-side lookup - FAST!
-  const participant = findParticipantByCredentials(teamName, email)
+  const res = await rpc<Record<string, unknown> | null>('certificates.verify', { programKey: 'hacktheai-2025', teamName, email })
+  const participant = res.ok ? (res.data as Parameters<typeof CertificateVerifyClient>[0]['participant'] | null) : null
 
   if (!participant) {
     return (

@@ -1,6 +1,10 @@
 import { JsonLd } from "@/components/seo/json-ld";
 import { breadcrumbSchema, graph, webPageSchema } from "@/lib/seo/schema";
-import { RecruitmentClient } from "./recruitment-client";
+import { getRecruitment } from "@/lib/public/data";
+import { RecruitmentClosed, RecruitmentForm } from "./recruitment-client";
+
+// Campaign status comes from the database; refreshed every few minutes and when admins save.
+export const revalidate = 300;
 
 /**
  * Server wrapper so this page's structured data does not leak onto
@@ -19,11 +23,12 @@ const structuredData = graph(
   })
 );
 
-export default function RecruitmentPage() {
+export default async function RecruitmentPage() {
+  const { open, upcoming, semesters, genders } = await getRecruitment();
   return (
     <>
       <JsonLd id="recruitment-schema" data={structuredData} />
-      <RecruitmentClient />
+      {open ? <RecruitmentForm campaign={open} semesters={semesters} genders={genders} /> : <RecruitmentClosed upcoming={upcoming} />}
     </>
   );
 }

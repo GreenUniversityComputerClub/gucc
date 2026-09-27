@@ -20,9 +20,12 @@ import {
   personSchema,
 } from "@/lib/seo/schema";
 
-const latestYear = getLatestExecutiveYear();
+// Rendered from D1 per request (data cached and invalidated on edits).
+export const revalidate = 21600;
 
-export const metadata: Metadata = buildMetadata({
+export async function generateMetadata(): Promise<Metadata> {
+  const latestYear = await getLatestExecutiveYear();
+  return buildMetadata({
   title: `GUCC Executives — Every Committee Since 2016`,
   description: `Meet the executives of the Green University Computer Club. Browse the ${latestYear} executive committee — President, General Secretary, Treasurer and every other role — plus the full archive of past GUCC committees and faculty advisors.`,
   path: "/executives",
@@ -42,7 +45,8 @@ export const metadata: Metadata = buildMetadata({
     title: "GUCC Executives",
     subtitle: `Every committee of the Green University Computer Club since 2016`,
   },
-});
+  });
+}
 
 function profilePath(person: ExecutiveWithYear): string | undefined {
   return person.studentId && isStudentId(person.studentId)
@@ -92,11 +96,13 @@ function PersonCard({ person }: { person: ExecutiveWithYear }) {
   );
 }
 
-export default function ExecutivesIndexPage() {
-  const years = getAvailableYears().sort(
+export default async function ExecutivesIndexPage() {
+  const latestYear = await getLatestExecutiveYear();
+  const years = (await getAvailableYears()).sort(
     (a, b) => Number.parseInt(b) - Number.parseInt(a)
   );
-  const current = getYearRoster(latestYear);
+  const rosters = new Map(await Promise.all(years.map(async (y) => [y, await getYearRoster(y)] as const)));
+  const current = rosters.get(latestYear);
   const currentRoster = [
     ...(current?.facultyMembers ?? []),
     ...(current?.studentExecutives ?? []),
@@ -189,7 +195,7 @@ export default function ExecutivesIndexPage() {
           {years
             .filter((year) => year !== latestYear)
             .map((year) => {
-              const roster = getYearRoster(year);
+              const roster = rosters.get(year);
               const people = [
                 ...(roster?.facultyMembers ?? []),
                 ...(roster?.studentExecutives ?? []),

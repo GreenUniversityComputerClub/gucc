@@ -5,35 +5,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
-const collaborators = [
-  {
-    name: 'UAP EEE',
-    image: '/collaborators/uap-eee.png',
-    description: 'Collaboration with UAP EEE Club',
-  },
-  {
-    name: 'AUST PIC',
-    image: '/collaborators/aust-pic.jpg',
-    description: 'Partnership with AUST Programming & Informatics Club',
-  },
-  {
-    name: 'IIEC-IUBAT',
-    image: '/collaborators/iiec-iubat.png',
-    description: 'Joint initiatives with IIEC-IUBAT',
-  },
-  {
-    name: 'HackCSB',
-    image: '/collaborators/hack-csb.png',
-    description: 'Collaboration with HackCSB',
-  },
-  {
-    name: 'AUST RPC',
-    image: '/collaborators/aust-rpc.jpg',
-    description: 'Partnership with AUST Robotics & Programming Club',
-  },
-];
+export interface Partner {
+  name: string;
+  image: string;
+  description: string;
+}
 
-export function CollaborationScroll() {
+export function CollaborationScroll({ partners: collaborators }: { partners: Partner[] }) {
   return (
     <section className="w-full py-12 bg-primary/5">
       <div className="container px-4 md:px-6">

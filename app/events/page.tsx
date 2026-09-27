@@ -1,5 +1,5 @@
 import { JsonLd } from "@/components/seo/json-ld";
-import { eventSlug, getAllEvents } from "@/lib/events";
+import { getPublicEvents } from "@/lib/public/data";
 import {
   breadcrumbSchema,
   collectionPageSchema,
@@ -14,12 +14,15 @@ import { EventsBrowser } from "./events-browser";
  * onto every event detail page, which also inherits that layout.
  */
 
-/** Newest first, so the list Google reads matches what the page shows. */
-const events = [...getAllEvents()].sort(
-  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-);
+export const revalidate = 3600;
 
-const structuredData = graph(
+export default async function EventsPage() {
+  /** Newest first, so the list Google reads matches what the page shows. */
+  const events = [...(await getPublicEvents())].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
+  const structuredData = graph(
   breadcrumbSchema([
     { name: "Home", path: "/" },
     { name: "Events", path: "/events" },
@@ -33,18 +36,17 @@ const structuredData = graph(
       "Green University Computer Club events",
       events.map((event) => ({
         name: event.name,
-        path: `/events/${eventSlug(event.name)}`,
-        image: `/events/${event.sl}.jpg`,
+        path: `/events/${event.slug}`,
+        image: event.image,
       }))
     ),
   })
-);
+  );
 
-export default function EventsPage() {
   return (
     <>
       <JsonLd id="events-schema" data={structuredData} />
-      <EventsBrowser />
+      <EventsBrowser events={events} />
     </>
   );
 }

@@ -2,10 +2,14 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { unstable_ViewTransition as ViewTransition } from "react";
 import ReadingProgress from "@/components/reading-progress";
 import CodeBlockEnhancer from "@/components/blog/code-block-enhancer";
 import { Post, PostEdge } from "./types";
+
+/** Plain wrapper: React view transitions need React's experimental build, which Next only ships behind a flag. */
+function ViewTransition({ children }: { name?: string; children: React.ReactNode }) {
+  return <>{children}</>;
+}
 
 interface PostContentProps {
   post: Post;

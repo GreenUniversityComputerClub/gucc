@@ -36,4 +36,9 @@ export const allowedStudentDomains = [
   "@student.green.ac.bd",
 ];
 
-export const adminEmails = ["232002256@student.green.ac.bd"];
+/**
+ * Moderators are no longer a hard-coded email list: anyone holding the
+ * lostfound.moderate permission (Administrator role, President, General Secretary, or a
+ * position an administrator grants it to) can review posts. The migration
+ * reports the previous list so its owner can be granted the permission.
+ */

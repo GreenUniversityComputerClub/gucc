@@ -1,5 +1,6 @@
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
+/** html2canvas and jsPDF are loaded on demand in the browser, keeping them out of the server bundle. */
+const loadHtml2canvas = async () => (await import("html2canvas")).default
+const loadJsPDF = async () => (await import("jspdf")).default
 
 export async function downloadAsPNG(
   elementId: string,
@@ -12,7 +13,7 @@ export async function downloadAsPNG(
   }
 
   try {
-    const canvas = await html2canvas(element, {
+    const canvas = await (await loadHtml2canvas())(element, {
       scale: 2, // Higher quality
       useCORS: true,
       logging: false,
@@ -42,7 +43,7 @@ export async function downloadAsPDF(
   }
 
   try {
-    const canvas = await html2canvas(element, {
+    const canvas = await (await loadHtml2canvas())(element, {
       scale: 2,
       useCORS: true,
       logging: false,
@@ -63,7 +64,7 @@ export async function downloadAsPDF(
     const pdfWidth = imgWidth * 0.75 // Convert pixels to points (approx)
     const pdfHeight = imgHeight * 0.75
 
-    const pdf = new jsPDF({
+    const pdf = new (await loadJsPDF())({
       orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
       unit: 'px',
       format: [pdfWidth, pdfHeight],

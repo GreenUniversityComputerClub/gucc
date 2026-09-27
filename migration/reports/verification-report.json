@@ -1,0 +1,149 @@
+{
+  "target": "local",
+  "checks": [
+    {
+      "name": "No imported rows missing",
+      "status": "PASS",
+      "detail": "21 tables compared"
+    },
+    {
+      "name": "Foreign keys",
+      "status": "PASS",
+      "detail": "no violations"
+    },
+    {
+      "name": "Exactly one current committee",
+      "status": "PASS",
+      "detail": "1 current"
+    },
+    {
+      "name": "Event slugs unique",
+      "status": "PASS",
+      "detail": "unique"
+    },
+    {
+      "name": "Student IDs unique across profiles",
+      "status": "PASS",
+      "detail": "unique"
+    },
+    {
+      "name": "No duplicate active executive assignments",
+      "status": "PASS",
+      "detail": "none"
+    },
+    {
+      "name": "Every event has a banner",
+      "status": "PASS",
+      "detail": "0 without banner"
+    },
+    {
+      "name": "Published events have title and date",
+      "status": "PASS",
+      "detail": "0 incomplete"
+    },
+    {
+      "name": "STATIC media files exist in public/",
+      "status": "PASS",
+      "detail": "1 files present"
+    },
+    {
+      "name": "R2 media have object keys",
+      "status": "PASS",
+      "detail": "0 missing"
+    },
+    {
+      "name": "Unreferenced media (informational)",
+      "status": "PASS",
+      "detail": "27 media rows not referenced by any record (sponsor/partner logos are referenced from settings JSON, unused portraits are listed in the migration report)"
+    },
+    {
+      "name": "Every source record maps to an existing row",
+      "status": "PASS",
+      "detail": "0 dangling of 1099 entries"
+    },
+    {
+      "name": "Committees rebuilt from D1 match executives.json",
+      "status": "PASS",
+      "detail": "334 listings compared across 10 committees"
+    },
+    {
+      "name": "Events rebuilt from D1 match events.json",
+      "status": "PASS",
+      "detail": "81 of 81 events compared"
+    },
+    {
+      "name": "Contests rebuilt from D1 match contests.json",
+      "status": "PASS",
+      "detail": "23 contests compared"
+    },
+    {
+      "name": "Forms match forms.json",
+      "status": "PASS",
+      "detail": "7 of 7"
+    },
+    {
+      "name": "Sponsorship page content matches sponsors.json",
+      "status": "PASS",
+      "detail": "deep-equal"
+    },
+    {
+      "name": "Chatbot knowledge matches predefined.json",
+      "status": "PASS",
+      "detail": "deep-equal"
+    },
+    {
+      "name": "Partner clubs match the hard-coded list",
+      "status": "PASS",
+      "detail": "deep-equal"
+    },
+    {
+      "name": "Certificate recipients imported",
+      "status": "PASS",
+      "detail": "146"
+    },
+    {
+      "name": "No private data in public columns",
+      "status": "PASS",
+      "detail": "public builders select no private columns; verified above per record"
+    }
+  ],
+  "allowed": [
+    [
+      "portrait resolved (student-ID file or profile photo)",
+      155
+    ],
+    [
+      "portrait now served from R2",
+      110
+    ],
+    [
+      "event cover now served from R2",
+      81
+    ],
+    [
+      "private field removed from public output",
+      50
+    ],
+    [
+      "empty value omitted",
+      18
+    ],
+    [
+      "shared student ID held back pending review",
+      17
+    ],
+    [
+      "placeholder student ID dropped (was a broken profile link)",
+      12
+    ],
+    [
+      "surrounding whitespace trimmed",
+      4
+    ],
+    [
+      "contest image now served from R2",
+      1
+    ]
+  ],
+  "unexpected": []
+}

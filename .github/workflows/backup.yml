@@ -1,0 +1,64 @@
+name: Weekly database backup
+
+# An encrypted copy of the production database every week, kept for 90 days as a workflow
+# artifact. The repository is public, so backups are only ever uploaded encrypted: without the
+# BACKUP_PASSPHRASE secret this workflow fails instead of uploading anything.
+#
+# Each backup is also restore-tested: the encrypted file is decrypted again, loaded into a
+# throwaway SQLite database on the runner (no Cloudflare database or quota), checked with
+# integrity_check and foreign_key_check, and its row counts are compared with production
+# (read-only). A backup that doesn't restore turns this workflow red.
+#
+# Restore: download the artifact, then
+#   openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -in backup.sql.enc -out backup.sql
+#   (enter the passphrase) and follow docs/platform/DATABASE.md, "Restore".
+on:
+  schedule:
+    - cron: '30 21 * * 5' # Saturday 03:30 Dhaka time
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.11.0'
+      - run: bun install --frozen-lockfile
+      - name: Secrets are configured
+        run: |
+          for v in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID BACKUP_PASSPHRASE; do
+            [ -n "${!v}" ] || { echo "::error::Add the $v secret (docs/platform/DEPLOYMENT.md, 'Backups')."; exit 1; }
+          done
+      - name: Export the production database
+        run: bunx wrangler d1 export DB --remote --env production --output backup.sql
+      - name: Encrypt, and remove the plain copy
+        run: |
+          openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -in backup.sql -out backup.sql.enc -pass env:BACKUP_PASSPHRASE
+          shred -u backup.sql
+          sha256sum backup.sql.enc
+      # Kept first, so the backup exists even if the restore test below fails.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d1-weekly-backup-${{ github.run_id }}
+          path: backup.sql.enc
+          retention-days: 90
+          if-no-files-found: error
+      # Restore test from the encrypted file (what a real restore would start from).
+      - name: Restore test (decrypt, load, check, compare, delete)
+        run: |
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -in backup.sql.enc -out "$RUNNER_TEMP/restore.sql" -pass env:BACKUP_PASSPHRASE
+          status=0
+          bun scripts/platform/restore-check.ts "$RUNNER_TEMP/restore.sql" --compare production || status=$?
+          shred -u "$RUNNER_TEMP/restore.sql"
+          exit $status

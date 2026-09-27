@@ -11,13 +11,10 @@ interface CertificateViewerProps {
 }
 
 export function CertificateViewer({ participant, verifiedEmail }: CertificateViewerProps) {
-  // Find the member index that matches the verified email
+  // The server marks the member whose email was used to verify.
   const defaultMemberIndex = useMemo(() => {
-    if (!verifiedEmail) return 0
-    const emailLower = verifiedEmail.toLowerCase().trim()
-    const index = participant.members.findIndex(
-      (member) => member.email.toLowerCase().trim() === emailLower
-    )
+    void verifiedEmail
+    const index = participant.members.findIndex((member) => member.verified)
     return index >= 0 ? index : 0
   }, [participant.members, verifiedEmail])
 

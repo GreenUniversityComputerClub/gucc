@@ -2,12 +2,8 @@ import { ArrowRight, Calendar, Code } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { TiltShapes } from "./tilt-shapes";
-
-const AnimatedBackground = dynamic(
-  () => import("./animated-background").then((mod) => mod.AnimatedBackground)
-);
+import { AnimatedBackgroundClient as AnimatedBackground } from "./client-only";
 
 export const HeroSection = () => {
   return (
@@ -17,6 +13,13 @@ export const HeroSection = () => {
       {/* Enhanced gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-green-50/60 via-background/60 to-green-50/20 dark:from-green-950/40 dark:via-background/80 dark:to-green-950/20" />
       
+      {/* Soft scrim above the particle field (z-index 1) and below the text, so the
+          headline keeps its contrast in both themes. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[2] bg-[radial-gradient(ellipse_60%_55%_at_50%_48%,hsl(var(--background)/0.82)_0%,hsl(var(--background)/0.55)_45%,transparent_80%)]"
+      />
+
       {/* Enhanced floating orbs */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-10 w-72 h-72 bg-green-500/10 rounded-full blur-3xl animate-pulse" />

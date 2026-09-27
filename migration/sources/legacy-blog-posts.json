@@ -1,0 +1,20 @@
+{
+  "_source": "Extracted verbatim from the customBlogPosts arrays in app/blog/page.tsx and app/blog/[slug]/page.tsx (identical in both files) at commit eb33507.",
+  "posts": [
+    {
+      "id": "neurogebra",
+      "slug": "neurogebra",
+      "title": "Neurogebra",
+      "subtitle": "A reflective exploration of intelligence, learning, and the elegance of mathematical thought.",
+      "category": "Research & Open Source",
+      "tags": ["Machine Learning", "SymPy", "PyTorch", "Python", "Deep Learning"],
+      "brief": "A featured article from Md. Fahim Sarker Mridul’s Substack, exploring the ideas behind Neurogebra through a blend of reasoning, creativity, and learning.",
+      "publishedAt": "2026-08-03T00:00:00.000Z",
+      "readTimeInMinutes": 6,
+      "views": 0,
+      "url": "https://fahimerican.substack.com/p/neurogebra?r=35a5fa&triedRedirect=true",
+      "coverImage": { "url": "/blog/neurogebra-cover.jpg" },
+      "author": { "name": "Md. Fahim Sarker Mridul", "github": "https://github.com/fahiiim" }
+    }
+  ]
+}

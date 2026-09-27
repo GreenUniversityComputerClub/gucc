@@ -19,8 +19,6 @@ interface CombinationsDialogProps {
   courses: Course[]
   currentIndex: number
   onIndexChange: (index: number) => void
-  selectedCombinationIndex: number
-  onSelectCombination: (index: number) => void
   className?: string
 }
 
@@ -31,8 +29,6 @@ export default function CombinationsDialog({
   courses,
   currentIndex,
   onIndexChange,
-  selectedCombinationIndex,
-  onSelectCombination,
   className = "",
 }: CombinationsDialogProps) {
   // Use media query to detect mobile screens
@@ -80,7 +76,6 @@ export default function CombinationsDialog({
 
   const selectedCoursesMap = new Map(
     currentCombination.map((section) => {
-      const course = courses.find((c) => c.formalCode === section.courseCode)
       const uniqueKey = `${section.courseCode}_${section.section}`
       return [uniqueKey, section]
     }),

@@ -9,8 +9,8 @@ export interface FaqEntry {
   answer: string;
 }
 
-function nameFor(year: string, pattern: RegExp): string | undefined {
-  const roster = getYearRoster(year);
+async function nameFor(year: string, pattern: RegExp): Promise<string | undefined> {
+  const roster = await getYearRoster(year);
   return roster?.studentExecutives.find((person) => pattern.test(person.position))
     ?.name;
 }
@@ -20,10 +20,10 @@ function nameFor(year: string, pattern: RegExp): string | undefined {
  * structured data — Google requires the answers to be on the page, so these
  * must never diverge.
  */
-export function getHomeFaq(): FaqEntry[] {
-  const year = getLatestExecutiveYear();
-  const president = nameFor(year, /^President$/i);
-  const generalSecretary = nameFor(year, /^General Secretary$/i);
+export async function getHomeFaq(): Promise<FaqEntry[]> {
+  const year = await getLatestExecutiveYear();
+  const president = await nameFor(year, /^President$/i);
+  const generalSecretary = await nameFor(year, /^General Secretary$/i);
 
   const leadership = [
     president && `${president} (President)`,

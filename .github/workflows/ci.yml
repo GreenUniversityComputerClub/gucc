@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, database]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.11.0'
+      - run: bun install --frozen-lockfile
+
+      # Fails on critical advisories. Remaining high/moderate ones are in build and lint tooling
+      # pulled in by Next.js and ESLint (not shipped to browsers); they're listed in the log.
+      - name: Dependency audit
+        run: |
+          bun audit --audit-level=high || true
+          bun audit --audit-level=critical
+
+      - name: Typecheck (frontend and API Worker)
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Unit and integration tests
+        run: bun run test
+
+      - name: Governance seed matches the catalog
+        run: bun scripts/platform/render-seed.ts --check
+
+      - name: API Worker fits the free-plan size limit (3 MiB gzip)
+        run: |
+          out=$(bunx wrangler deploy --dry-run --outdir /tmp/worker 2>&1 | grep "Total Upload")
+          echo "$out"
+          kib=$(echo "$out" | sed -E 's/.*gzip: ([0-9.]+) KiB.*/\1/')
+          awk -v k="$kib" 'BEGIN { if (k > 3072) { print "Worker is " k " KiB gzip, over the 3072 KiB free-plan limit"; exit 1 } }'
+
+      - name: Local database round trip and verification
+        run: |
+          bunx wrangler d1 migrations apply DB --local
+          bun scripts/platform/migrate.ts --target local
+          bun scripts/platform/verify.ts --target local --strict --idempotency
+
+      # Without API credentials the build renders pages from empty data; this
+      # only proves the frontend compiles. Vercel builds against the live API.
+      - name: Frontend production build
+        run: bunx next build

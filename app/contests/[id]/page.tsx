@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import Link from "next/link";
-import contestsData from "@/data/contests.json";
+import { getPublicContests } from "@/lib/public/data";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -35,16 +35,19 @@ interface Contest {
   standingsLink: string;
   editorialLink?: string;
   practiceLink?: string;
+  event?: { slug: string; name: string };
 }
 
-const allContests = contestsData.contests as unknown as Contest[];
-
-function findContest(id: string): Contest | undefined {
-  return allContests.find((contest) => contest.id === parseInt(id));
+async function findContest(id: string): Promise<Contest | undefined> {
+  const all = (await getPublicContests()) as unknown as Contest[];
+  return all.find((contest) => contest.id === parseInt(id));
 }
+
+export const revalidate = 21600;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  return allContests.map((contest) => ({ id: String(contest.id) }));
+  return (await getPublicContests()).map((c) => ({ id: String(c.id) }));
 }
 
 /** "GubZeroFactorial (rank 95)" — the detail that makes a snippet useful. */
@@ -61,7 +64,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const contest = findContest(id);
+  const contest = await findContest(id);
 
   if (!contest) {
     return buildMetadata({
@@ -98,7 +101,7 @@ export async function generateMetadata({
 
 export default async function ContestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const contest = findContest(id);
+  const contest = await findContest(id);
 
   if (!contest) {
     notFound();
@@ -197,6 +200,11 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
               {contest.practiceLink && (
                 <Button variant="outline" asChild>
                   <Link href={contest.practiceLink}>Practice</Link>
+                </Button>
+              )}
+              {contest.event && (
+                <Button variant="outline" asChild>
+                  <Link href={`/events/${contest.event.slug}`}>Event: {contest.event.name}</Link>
                 </Button>
               )}
             </div>

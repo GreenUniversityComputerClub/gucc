@@ -1,0 +1,16 @@
+import { ANNOUNCEMENTS, PostDetail, detailMetadata } from "@/components/content/post-pages";
+
+export const revalidate = 3600;
+
+/** Rendered on the first visit, then served from the cache until a change or the hour is up. */
+export async function generateStaticParams() {
+  return [];
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  return detailMetadata(ANNOUNCEMENTS, (await params).slug);
+}
+
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  return <PostDetail kind={ANNOUNCEMENTS} slug={(await params).slug} />;
+}

@@ -19,7 +19,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { formatTeacherName } from "../lib/utils/capitalize"
 import {
-  getDepartmentCardClass,
   getDepartmentBgColor,
   getCreditIndicatorClass,
   getDepartmentTextColor,
@@ -161,8 +160,6 @@ export default function CourseList({
           }
         })
 
-        // Get department-specific styling
-        const deptCardClass = getDepartmentCardClass(course.formalCode)
         const creditIndicatorClass = getCreditIndicatorClass(course.credits)
 
         return (
@@ -337,9 +334,6 @@ export default function CourseList({
                                   {sections.map((section: string) => {
                                     const sectionInfo = course.sections.find((s) => s.section === section)
                                     if (!sectionInfo) return null
-
-                                    // Extract section batch for display
-                                    const sectionBatch = extractSectionBatch(section)
 
                                     return (
                                       <CommandItem
