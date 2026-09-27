@@ -1,0 +1,102 @@
+/**
+ * The context every service function receives. Built per request by the
+ * Next.js glue (lib/server/request-context.ts) or directly by tests.
+ */
+import type { Rule, Subject } from "../governance/types";
+import type { Db } from "./db";
+
+export interface RequestMeta {
+  requestId: string;
+  ipHash: string | null;
+  userAgent: string | null;
+  origin: string | null;
+}
+
+export interface UserRow {
+  id: string;
+  email: string;
+  status: Subject["status"];
+  email_verified_at: string | null;
+  password_hash: string | null;
+  failed_login_count: number;
+  locked_until: string | null;
+  last_login_at: string | null;
+  created_at: string;
+}
+
+export interface Actor {
+  user: Pick<UserRow, "id" | "email" | "status">;
+  profile: { id: string; full_name: string } | null;
+  subject: Subject;
+  rules: Rule[];
+  /** Two-factor state. `mfaBlocked`: sensitive permissions are withheld until two-factor is on. */
+  security?: { mfaEnabled: boolean; holdsSensitive: boolean; mfaRequired: boolean; mfaDeadline: string | null; mfaBlocked: boolean };
+}
+
+/** The signed-in session behind this request (absent for tests, cron and upload tokens). */
+export interface SessionInfo {
+  id: string;
+  userId: string;
+  createdAt: string;
+  lastSeenAt: string | null;
+  reauthAt: string | null;
+  /** Settings for idle sign-out of accounts with sensitive permissions. */
+  idleHoursSensitive: number;
+}
+
+/** Minimal R2 surface we use, so tests can pass an in-memory bucket. */
+export interface BucketLike {
+  put(key: string, value: ArrayBuffer | Uint8Array | ReadableStream | string, options?: { httpMetadata?: { contentType?: string; cacheControl?: string }; customMetadata?: Record<string, string> }): Promise<unknown>;
+  get(key: string): Promise<{ body: ReadableStream; httpMetadata?: { contentType?: string }; size: number; httpEtag?: string } | null>;
+  delete(key: string | string[]): Promise<void>;
+  head(key: string): Promise<{ size: number } | null>;
+}
+
+export interface ServiceEnv {
+  APP_ENV?: string;
+  /** Public site origin (the Vercel frontend), used in email links. */
+  PUBLIC_BASE_URL?: string;
+  /** Origin that serves /media/* (the API Worker, or an R2 custom domain). */
+  MEDIA_BASE_URL?: string;
+  AUTH_SECRET?: string;
+  /** Secret mixed into every password hash; never stored in the database. */
+  PASSWORD_PEPPER?: string;
+  TURNSTILE_SECRET_KEY?: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
+  CONTACT_EMAIL?: string;
+  /** Google Gemini key for the site assistant (optional). */
+  GOOGLE_API_KEY?: string;
+  GEMINI_MODEL?: string;
+  AUTH_SECRET_PREVIOUS?: string;
+  PASSWORD_PEPPER_PREVIOUS?: string;
+  CF_ANALYTICS_TOKEN?: string;
+  CF_ACCOUNT_ID?: string;
+  CF_D1_DATABASE_ID?: string;
+  CF_WORKER_NAME?: string;
+  CF_R2_BUCKETS?: string;
+}
+
+/** Public and private objects live in separate buckets, so a public bucket domain can never expose private files. */
+export interface MediaBuckets {
+  public: BucketLike;
+  private: BucketLike;
+}
+
+export interface Ctx {
+  db: Db;
+  env: ServiceEnv;
+  meta: RequestMeta;
+  actor: Actor | null;
+  session?: SessionInfo;
+  media?: MediaBuckets;
+  /** Outgoing email hook; defaults to Resend or the console. Tests capture it. */
+  sendEmail?: (msg: { to: string; subject: string; text: string; html?: string; replyTo?: string }) => Promise<void>;
+  /** Called after writes so cached public pages refresh. */
+  revalidate?: (tags: string[]) => void;
+  /**
+   * Ids of the notifications this request creates. After it succeeds, the ones that were really
+   * written are emailed (lib/server/email-outbox.ts). Absent where nothing flushes it.
+   */
+  outbox?: string[];
+}

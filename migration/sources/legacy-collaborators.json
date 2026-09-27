@@ -1,0 +1,10 @@
+{
+  "_source": "Extracted verbatim from the collaborators arrays in app/components/collaboration-scroll.tsx and app/collaborations/page.tsx (identical in both files) at commit eb33507.",
+  "partners": [
+    { "name": "UAP EEE", "image": "/collaborators/uap-eee.png", "description": "Collaboration with UAP EEE Club" },
+    { "name": "AUST PIC", "image": "/collaborators/aust-pic.jpg", "description": "Partnership with AUST Programming & Informatics Club" },
+    { "name": "IIEC-IUBAT", "image": "/collaborators/iiec-iubat.png", "description": "Joint initiatives with IIEC-IUBAT" },
+    { "name": "HackCSB", "image": "/collaborators/hack-csb.png", "description": "Collaboration with HackCSB" },
+    { "name": "AUST RPC", "image": "/collaborators/aust-rpc.jpg", "description": "Partnership with AUST Robotics & Programming Club" }
+  ]
+}

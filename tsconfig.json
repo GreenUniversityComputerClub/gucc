@@ -29,13 +29,19 @@
     "target": "ES2017"
   },
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    ".next-e2e/types/**/*.ts",
+    ".next-prodcheck/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    "next-env.d.ts",
+    ".next-cmp/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "workers",
+    ".next-e2e",
+    ".e2e"
   ]
 }

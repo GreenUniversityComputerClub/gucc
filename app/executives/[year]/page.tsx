@@ -11,7 +11,7 @@ import {
   isStudentId,
   type ExecutiveWithYear,
 } from "@/app/executives/util";
-import { CampusTabs, AdminPanel, ExecutiveProfile } from "./components";
+import { CampusTabs, AdminPanel, ExecutiveProfile, ExecutivesEditorProvider } from "./components";
 import { JsonLd } from "@/components/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { PARENT_ORGANIZATION, SITE } from "@/lib/seo/site";
@@ -24,16 +24,17 @@ import {
   profilePageSchema,
 } from "@/lib/seo/schema";
 
-// Generate static params for available committee years; individual student profiles render on-demand
+// Cached and refreshed when admins edit committees; new years and profiles render on first visit.
+export const revalidate = 21600;
+export const dynamicParams = true;
+
 export async function generateStaticParams() {
   // This segment serves two shapes: a committee year ("2026") and a nine-digit
-  // student ID ("232002184"). Both are prerendered — the roster is static JSON,
-  // and without the IDs here every one of the ~154 profile pages costs a cold
-  // render on first hit, including for each page Google crawls.
-  return [
-    ...getAvailableYears().map((year) => ({ year })),
-    ...getAllExecutiveStudentIds().map((studentId) => ({ year: studentId })),
-  ];
+  // student ID ("232002184"). Both are prerendered, as before: without the IDs
+  // here every profile page costs a cold render on first hit, including for
+  // each page Google crawls.
+  const [years, ids] = await Promise.all([getAvailableYears(), getAllExecutiveStudentIds()]);
+  return [...years.map((year) => ({ year })), ...ids.map((studentId) => ({ year: studentId }))];
 }
 
 function profilePath(person: { studentId?: string }): string | undefined {
@@ -60,7 +61,7 @@ export async function generateMetadata({
 
   // ── Individual executive profile ──────────────────────────────────────
   if (isStudentId(year)) {
-    const roles = getExecutivesByStudentId(year);
+    const roles = await getExecutivesByStudentId(year);
     if (roles.length === 0) {
       return buildMetadata({
         title: "Executive not found",
@@ -106,7 +107,7 @@ export async function generateMetadata({
   }
 
   // ── Committee year page ───────────────────────────────────────────────
-  const roster = getYearRoster(year);
+  const roster = await getYearRoster(year);
   if (!roster) {
     return buildMetadata({
       title: "Committee not found",
@@ -158,7 +159,7 @@ export default async function ExecutivesYearPage({
 
   // Check if the parameter is a 9-digit student ID
   if (isStudentId(year)) {
-    const executives = getExecutivesByStudentId(year);
+    const executives = await getExecutivesByStudentId(year);
 
     // If no executives found with this student ID, show 404
     if (executives.length === 0) {
@@ -198,14 +199,14 @@ export default async function ExecutivesYearPage({
   }
 
   // Otherwise, treat it as a year
-  const yearData = getExecutivesByYear(year);
+  const yearData = await getExecutivesByYear(year);
 
   // If the requested year doesn't exist, show 404
   if (!yearData) {
     notFound();
   }
 
-  const roster = getYearRoster(year);
+  const roster = await getYearRoster(year);
   const people = [
     ...(roster?.facultyMembers ?? []),
     ...(roster?.studentExecutives ?? []),
@@ -250,10 +251,11 @@ export default async function ExecutivesYearPage({
           })
         )}
       />
-      {/* Admin UI is client-side for interactivity */}
-      <AdminPanel year={year} />
-      {/* All executive and campus UI is client-side for interactivity */}
-      <CampusTabs year={year} yearData={yearData} />
+      <ExecutivesEditorProvider year={year}>
+        {/* Portrait framing tools appear only for people allowed to edit this committee. */}
+        <AdminPanel year={year} />
+        <CampusTabs year={year} yearData={yearData as Parameters<typeof CampusTabs>[0]["yearData"]} />
+      </ExecutivesEditorProvider>
     </div>
   );
 }

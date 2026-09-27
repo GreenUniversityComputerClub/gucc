@@ -69,46 +69,52 @@ export function Footer() {
               <div className="flex space-x-4 mt-4">
                 <Link
                   href="https://www.facebook.com/GreenUniversityComputerClub/"
+                  aria-label="GUCC on Facebook"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
-                  <Facebook size={20} />
+                  <Facebook size={20} aria-hidden />
                 </Link>
 
                 <Link
                   href="https://www.linkedin.com/company/greenuniversitycomputerclub/"
+                  aria-label="GUCC on LinkedIn"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
-                  <Linkedin size={20} />
+                  <Linkedin size={20} aria-hidden />
                 </Link>
                 <Link
                   href="mailto:gucc@green.edu.bd"
+                  aria-label="Email GUCC"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
-                  <Mail size={20} />
+                  <Mail size={20} aria-hidden />
                 </Link>
                 <Link
                   href="https://www.instagram.com/gucc__official/"
+                  aria-label="GUCC on Instagram"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
-                  <Instagram size={20} />
+                  <Instagram size={20} aria-hidden />
                 </Link>
                 <Link
                   href="https://www.youtube.com/@GreenUniversityComputerClub"
+                  aria-label="GUCC on YouTube"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
-                  <Youtube size={20} />
+                  <Youtube size={20} aria-hidden />
                 </Link>
                 <Link
                   href="https://github.com/GreenUniversityComputerClub"
+                  aria-label="GUCC on GitHub"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
-                  <Github size={20} />
+                  <Github size={20} aria-hidden />
                 </Link>
               </div>
             </div>

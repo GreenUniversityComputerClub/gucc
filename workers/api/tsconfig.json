@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "lib": ["ES2023"],
+    "types": ["@cloudflare/workers-types"]
+  },
+  "include": ["src", "../../lib/server/**/*.ts", "../../lib/governance/**/*.ts", "../../lib/public/read.ts", "../../lib/public/shapes.ts", "../../lib/public/queries.ts", "../../lib/media/bytes.ts"],
+  "exclude": ["../../lib/public/data.ts"]
+}

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, createContext, useContext, useTransition } from "react";
+import { useSession } from "@/lib/api/use-session";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RESIZE_AVATAR } from "@/app/config";
+const RESIZE_AVATAR = false;
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,7 +22,6 @@ import {
   Code2,
   Crown,
   GraduationCap,
-  Loader2,
   Save,
   UserCog,
   Users,
@@ -40,7 +40,29 @@ import {
   Facebook,
   Mail,
 } from "lucide-react";
-import { getExecutiveAvatar, type Executive } from "@/app/executives/util";
+import { getExecutiveAvatar, type Executive, type ExecutiveWithYear } from "@/app/executives/shared";
+import { saveAvatarCrop } from "@/app/executives/actions";
+
+/**
+ * Portrait framing is an admin tool. Whether it is available comes from the
+ * server (executives.assign); saving is a server action that re-checks it.
+ */
+interface EditorState {
+  year: string;
+  canEdit: boolean;
+  resizeMode: boolean;
+  setResizeMode: (v: boolean) => void;
+}
+const EditorContext = createContext<EditorState>({ year: "", canEdit: false, resizeMode: RESIZE_AVATAR, setResizeMode: () => {} });
+
+export function ExecutivesEditorProvider({ year, children }: { year: string; children: React.ReactNode }) {
+  // The page is static; whether the viewer may frame portraits is checked in the browser
+  // (for showing the toolbar) and again by the API when they save.
+  const session = useSession();
+  const canEdit = Boolean(session?.caps?.["executives.assign"]);
+  const [resizeMode, setResizeMode] = useState(false);
+  return <EditorContext.Provider value={{ year, canEdit, resizeMode: canEdit && resizeMode, setResizeMode }}>{children}</EditorContext.Provider>;
+}
 import { mailtoHref } from "@/lib/utils";
 
 export function ExecutiveCard({
@@ -97,37 +119,13 @@ export function ExecutiveCard({
     }
   };
 
+  const editor = useContext(EditorContext);
+  const [saveState, setSaveState] = useState<string | null>(null);
   const saveAvatarSettings = async () => {
     if (!isResizeMode) return;
-
-    try {
-      const response = await fetch("/api/save-avatar", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          studentId: executive.studentId,
-          avatarPosition: position,
-          avatarScale: scale,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save avatar settings");
-      }
-
-      const data = await response.json();
-      alert(`Avatar settings for ${executive.name} saved successfully!`);
-    } catch (error) {
-      console.error("Error saving avatar settings:", error);
-      alert(
-        `Error saving avatar settings: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
-    }
+    setSaveState("Saving…");
+    const res = await saveAvatarCrop({ year: editor.year, name: executive.name, position: executive.position, avatarPosition: position, avatarScale: scale });
+    setSaveState(res.ok ? "Saved" : res.error);
   };
 
   useEffect(() => {
@@ -301,6 +299,7 @@ export function ExecutiveCard({
             <Button onClick={saveAvatarSettings} className="w-full">
               <Save className="h-4 w-4 mr-2" /> Save Avatar Settings
             </Button>
+            {saveState && <p role="status" className="mt-2 text-xs text-muted-foreground">{saveState}</p>}
           </div>
         </div>
       )}
@@ -309,167 +308,93 @@ export function ExecutiveCard({
 }
 
 export function AdminPanel({ year }: { year: string }) {
-  const [isResizeMode, setIsResizeMode] = useState(RESIZE_AVATAR);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Simple admin check - in a real app, this would use authentication
-  const checkAdminStatus = () => {
-    const password = prompt("Enter admin password:");
-    if (password === "gucc-admin") {
-      // This is just for demo purposes
-      setIsAdmin(true);
-      return true;
-    }
-    return false;
-  };
-
-  const toggleResizeMode = () => {
-    if (!isAdmin && !checkAdminStatus()) {
-      return;
-    }
-    setIsResizeMode(!isResizeMode);
-  };
-
-  // Function to save all changes to executives.json
-  const saveAllChanges = async () => {
-    if (!isAdmin && !checkAdminStatus()) {
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const response = await fetch("/api/save-all-changes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          year,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save changes");
-      }
-
-      alert("All changes saved successfully!");
-    } catch (error) {
-      console.error("Error saving changes:", error);
-      alert(
-        `Error saving changes: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
+  const { canEdit, resizeMode, setResizeMode } = useContext(EditorContext);
+  const [, startTransition] = useTransition();
   return (
     <>
-      {isAdmin && (
+      {canEdit && (
         <div className="mb-4 p-4 bg-yellow-50/80 dark:bg-yellow-950/20 border border-yellow-200/50 dark:border-yellow-800/30 rounded-lg backdrop-blur-sm">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div className="text-sm text-yellow-800 dark:text-yellow-200">
-              <span className="font-medium">Admin Mode</span> - You can{" "}
-              {isResizeMode ? "disable" : "enable"} avatar resize mode
+              <span className="font-medium">Editing {year}</span> — {resizeMode ? "drag and zoom portraits, then save each card." : "adjust how portraits are framed."}{" "}
+              <Link href="/dashboard/committees" className="underline underline-offset-2">Manage this committee</Link>
             </div>
             <Button
-              variant={isResizeMode ? "destructive" : "outline"}
+              variant={resizeMode ? "destructive" : "outline"}
               size="sm"
-              onClick={toggleResizeMode}
+              onClick={() => startTransition(() => setResizeMode(!resizeMode))}
               className="border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
             >
-              {isResizeMode ? "Disable Resize Mode" : "Enable Resize Mode"}
+              {resizeMode ? "Done" : "Frame portraits"}
             </Button>
           </div>
         </div>
       )}
 
+      {/* The original layout's spacer above the tabs, kept so the page lines up as before. */}
       <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-2">
-          {isResizeMode && (
-            <Button
-              variant="default"
-              onClick={saveAllChanges}
-              disabled={isSaving}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save All Changes
-                </>
-              )}
-            </Button>
-          )}
-        </div>
+        <div className="flex items-center gap-2" />
       </div>
     </>
   );
 }
 
-export function CampusTabs({ year, yearData }: { year: string; yearData: any }) {
-  const [activeCampus, setActiveCampus] = useState("permanent");
-  const [isResizeMode] = useState(RESIZE_AVATAR);
+type Unit = { name?: string; facultyMembers?: Executive[]; studentExecutives?: Executive[] };
+type CommitteeData = Unit & { year: string; campuses?: Record<string, Unit>; wings?: Record<string, Unit> };
 
-  if (yearData?.campuses) {
-    const campusKeys = Object.keys(yearData.campuses);
-    const defaultCampus =
-      year === "2023"
-        ? "merged"
-        : campusKeys.includes("city")
-          ? "city"
-          : campusKeys[0];
+export function CampusTabs({ year, yearData }: { year: string; yearData: CommitteeData }) {
+  const { resizeMode: isResizeMode } = useContext(EditorContext);
+  // People listed outside any campus/wing (e.g. added in the admin without a unit).
+  const hasMain = (yearData?.facultyMembers?.length ?? 0) + (yearData?.studentExecutives?.length ?? 0) > 0;
+
+  const campuses = yearData.campuses;
+  const wings = yearData.wings;
+  if (campuses && Object.keys(campuses).length > 0) {
+    const campusKeys = Object.keys(campuses);
+    const tabs = [...(hasMain ? ["__main"] : []), ...campusKeys];
+    // Same default as the original page: a real campus, never the fallback tab.
+    const defaultCampus = year === "2023" && campusKeys.includes("merged") ? "merged" : campusKeys.includes("city") ? "city" : campusKeys[0];
 
     return (
-      <Tabs
-        defaultValue={defaultCampus}
-        className="mt-8"
-        onValueChange={setActiveCampus}
-      >
+      <Tabs defaultValue={defaultCampus} className="mt-8">
         <div className="flex justify-center mb-8">
           <TabsList>
-            {campusKeys.map((campusKey) => (
+            {tabs.map((campusKey) => (
               <TabsTrigger key={campusKey} value={campusKey}>
-                {formatCampusLabel(campusKey)}
+                {campusKey === "__main" ? "Main committee" : campuses[campusKey]?.name ?? formatCampusLabel(campusKey)}
               </TabsTrigger>
             ))}
           </TabsList>
         </div>
 
-        {campusKeys.map((campusKey) => (
+        {tabs.map((campusKey) => (
           <TabsContent key={campusKey} value={campusKey}>
-            {renderCampusContent(yearData.campuses[campusKey], isResizeMode)}
+            {renderCampusContent(campusKey === "__main" ? yearData : campuses[campusKey], isResizeMode)}
           </TabsContent>
         ))}
       </Tabs>
     );
   }
 
-  if (yearData?.wings) {
+  if (wings && Object.keys(wings).length > 0) {
+    const wingKeys = Object.keys(wings);
     return (
-      <Tabs defaultValue={"gucc"} className="mt-8" onValueChange={setActiveCampus}>
+      <Tabs defaultValue="gucc" className="mt-8">
         <div className="flex justify-center mb-8">
           <TabsList>
-            <TabsTrigger value={"gucc"}>GUCC</TabsTrigger>
-            <TabsTrigger value="vgs">VGS</TabsTrigger>
+            <TabsTrigger value="gucc">GUCC</TabsTrigger>
+            {wingKeys.map((k) => (
+              <TabsTrigger key={k} value={k}>{wings[k]?.name ?? formatCampusLabel(k).toUpperCase()}</TabsTrigger>
+            ))}
           </TabsList>
         </div>
 
-        <TabsContent value="gucc">
-          {renderCampusContent(yearData, isResizeMode)}
-        </TabsContent>
-        <TabsContent value="vgs">
-          {renderCampusContent(yearData.wings.vgs, isResizeMode)}
-        </TabsContent>
+        <TabsContent value="gucc">{renderCampusContent(yearData, isResizeMode)}</TabsContent>
+        {wingKeys.map((k) => (
+          <TabsContent key={k} value={k}>
+            {renderCampusContent(wings[k], isResizeMode)}
+          </TabsContent>
+        ))}
       </Tabs>
     );
   }
@@ -477,14 +402,14 @@ export function CampusTabs({ year, yearData }: { year: string; yearData: any }) 
   // For years without campus or wings structure, use the simple format
   return (
     <>
-      {yearData.facultyMembers.length > 0 && (
+      {(yearData.facultyMembers?.length ?? 0) > 0 && (
         <section className="mb-12">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <GraduationCap className="h-6 w-6 text-primary" />
             Faculty Advisors
           </h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {yearData.facultyMembers.map((faculty: any, index: number) => (
+            {(yearData.facultyMembers ?? []).map((faculty, index) => (
               <ExecutiveCard
                 key={index}
                 executive={faculty}
@@ -495,14 +420,14 @@ export function CampusTabs({ year, yearData }: { year: string; yearData: any }) 
         </section>
       )}
 
-      {yearData.studentExecutives.length > 0 && (
+      {(yearData.studentExecutives?.length ?? 0) > 0 && (
         <section>
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <Users className="h-6 w-6 text-primary" />
             Student Executives
           </h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {yearData.studentExecutives.map((executive: any, index: number) => (
+            {(yearData.studentExecutives ?? []).map((executive, index) => (
               <ExecutiveCard
                 key={index}
                 executive={executive}
@@ -516,7 +441,7 @@ export function CampusTabs({ year, yearData }: { year: string; yearData: any }) 
   );
 }
 
-export function renderCampusContent(campus: any, isResizeMode: boolean) {
+export function renderCampusContent(campus: Unit | undefined, isResizeMode: boolean) {
   return (
     <>
       <section className="mb-12">
@@ -525,7 +450,7 @@ export function renderCampusContent(campus: any, isResizeMode: boolean) {
           Faculty Advisors
         </h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {campus.facultyMembers.map((faculty: any, index: number) => (
+          {(campus?.facultyMembers ?? []).map((faculty, index) => (
             <ExecutiveCard
               key={index}
               executive={faculty}
@@ -541,7 +466,7 @@ export function renderCampusContent(campus: any, isResizeMode: boolean) {
           Student Executives
         </h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {campus.studentExecutives.map((executive: any, index: number) => (
+          {(campus?.studentExecutives ?? []).map((executive, index) => (
             <ExecutiveCard
               key={index}
               executive={executive}
@@ -595,8 +520,6 @@ export function getRoleIcon(position: string) {
 }
 
 export function getRoleName(position: string) {
-  const normalizedPosition = position.toLowerCase();
-  
   // For presentation purposes, capitalize first letter of each word
   return position
     .split(' ')
@@ -615,9 +538,7 @@ function formatCampusLabel(campusKey: string) {
 }
 
 // New component for displaying executive profiles
-export function ExecutiveProfile({ executives }: { executives: import("@/app/executives/util").ExecutiveWithYear[] }) {
-  const [isResizeMode, setIsResizeMode] = useState(false);
-
+export function ExecutiveProfile({ executives }: { executives: ExecutiveWithYear[] }) {
   // Copy first: sorting a prop in place mutates the caller's array.
   const sortedExecutives = [...executives].sort((a, b) => {
     // Sort by year descending (most recent first)

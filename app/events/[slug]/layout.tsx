@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
-import { eventSlug, getAllEvents, getEventBySlug } from "@/lib/events";
+import { getPublicEventBySlug } from "@/lib/public/data";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { breadcrumbSchema, eventSchema, graph } from "@/lib/seo/schema";
 
-export async function generateStaticParams() {
-  return getAllEvents().map((event) => ({ slug: eventSlug(event.name) }));
-}
+export const revalidate = 3600;
 
 /** First sentence or two of the event write-up, cleaned up for a meta tag. */
 function summarize(text: string | undefined, fallback: string): string {
@@ -25,7 +23,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const event = getEventBySlug(slug);
+  const event = await getPublicEventBySlug(slug);
 
   if (!event) {
     return buildMetadata({
@@ -60,7 +58,7 @@ export async function generateMetadata({
       "Green University Computer Club",
       "Green University of Bangladesh",
     ],
-    image: `/events/${event.sl}.jpg`,
+    image: event.image,
   });
 }
 
@@ -72,7 +70,7 @@ export default async function EventLayout({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const event = getEventBySlug(slug);
+  const event = await getPublicEventBySlug(slug);
 
   return (
     <>
@@ -94,9 +92,9 @@ export default async function EventLayout({
                 ? new Date(event.endDate).toISOString()
                 : undefined,
               location: event.location,
-              image: `/events/${event.sl}.jpg`,
+              image: event.image,
               organizer: event.organizer,
-              attendees: event.participants,
+              attendees: typeof event.participants === "number" ? event.participants : undefined,
             })
           )}
         />

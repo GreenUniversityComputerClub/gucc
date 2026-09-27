@@ -156,21 +156,34 @@
 @tailwind components; */
 @tailwind utilities;
 
-/* 🌙 Dark Mode Custom Styling */
+/* 🌙 Dark Mode Custom Styling
+ * Page colours: white / black by day, #121212 / white by night. They are written as HSL
+ * parts because the theme above wraps every token in hsl(); hex values here made every
+ * `bg-background` utility (inputs, dropdowns, the navbar, the hero overlay) transparent.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #000000;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  color-scheme: light;
 }
 
 .dark {
-  --background: #121212;
-  --foreground: #ffffff;
+  --background: 0 0% 7.1%;
+  --foreground: 0 0% 100%;
+  color-scheme: dark;
+}
+
+/* Native dropdown lists follow the theme instead of the operating system's. */
+option,
+optgroup {
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
 }
 
 /* Apply background and text color */
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
   transition:
     background-color 0.3s,
     color 0.3s;

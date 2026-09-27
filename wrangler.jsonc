@@ -1,0 +1,95 @@
+/**
+ * GUCC API Worker (the whole backend). The Next.js frontend runs on Vercel
+ * and calls this Worker; browsers only reach /media/* and /v1/upload directly.
+ *
+ * Three environments, each with its own D1 database and R2 buckets so a
+ * mistake in one can never touch another:
+ *
+ *   (top level)   development  `wrangler dev` on :8787, state in .wrangler/state
+ *   env.staging   staging      gucc-api-staging.<account>.workers.dev
+ *   env.production production  gucc-api.<account>.workers.dev (or api.<domain>)
+ *
+ * Bindings are NOT inherited by environments, so every block repeats them.
+ * Database IDs and bucket names are not secrets. Secrets are set with
+ * `wrangler secret put <NAME> --env <env>` (API_SHARED_SECRET, AUTH_SECRET,
+ * PASSWORD_PEPPER, TURNSTILE_SECRET_KEY, RESEND_API_KEY, GOOGLE_API_KEY).
+ * Locally `wrangler dev` reads them from .env.local; the "secrets" list below
+ * makes it take only these, never the website's or Cloudflare's values.
+ * See docs/platform/DEPLOYMENT.md.
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gucc-api-dev",
+  "main": "workers/api/src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["global_fetch_strictly_public"],
+  "observability": { "enabled": true },
+  "triggers": { "crons": ["17 * * * *", "43 21 * * *"] },
+  "vars": {
+    "APP_ENV": "development",
+    "PUBLIC_BASE_URL": "http://localhost:3000",
+    "FRONTEND_ORIGIN": "http://localhost:3000",
+    "MEDIA_BASE_URL": "http://localhost:8787",
+    "RESEND_FROM_EMAIL": "gucc@green.edu.bd",
+    "CONTACT_EMAIL": "gucc@green.edu.bd"
+  },
+  "secrets": {
+    "required": ["API_SHARED_SECRET", "AUTH_SECRET", "PASSWORD_PEPPER", "TURNSTILE_SECRET_KEY", "RESEND_API_KEY", "GOOGLE_API_KEY"]
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "gucc-db-dev", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+  ],
+  "r2_buckets": [
+    { "binding": "MEDIA_PUBLIC", "bucket_name": "gucc-media-public-dev" },
+    { "binding": "MEDIA_PRIVATE", "bucket_name": "gucc-media-private-dev" }
+  ],
+
+  "env": {
+    "staging": {
+      "name": "gucc-api-staging",
+      "triggers": { "crons": ["17 * * * *", "43 21 * * *"] },
+      "vars": {
+        "APP_ENV": "staging",
+        "PUBLIC_BASE_URL": "https://gucc-staging.vercel.app",
+        "FRONTEND_ORIGIN": "https://gucc-staging.vercel.app",
+        "MEDIA_BASE_URL": "https://gucc-api-staging.gucc.workers.dev",
+        "RESEND_FROM_EMAIL": "",
+        "CONTACT_EMAIL": ""
+      },
+      "d1_databases": [
+        { "binding": "DB", "database_name": "gucc-db-staging", "database_id": "REPLACE_WITH_STAGING_DATABASE_ID", "migrations_dir": "migrations" }
+      ],
+      "r2_buckets": [
+        { "binding": "MEDIA_PUBLIC", "bucket_name": "gucc-media-public-staging" },
+        { "binding": "MEDIA_PRIVATE", "bucket_name": "gucc-media-private-staging" }
+      ]
+    },
+
+    "production": {
+      "name": "gucc-api",
+      "triggers": { "crons": ["17 * * * *", "43 21 * * *"] },
+      "vars": {
+        "APP_ENV": "production",
+        "PUBLIC_BASE_URL": "https://gucc.green.edu.bd",
+        // localhost:3000: the local site uses the live API too (browser uploads need CORS).
+        // Uploads still need a short-lived token that only a signed-in session gets.
+        "FRONTEND_ORIGIN": "https://gucc.green.edu.bd,https://gucc.vercel.app,http://localhost:3000",
+        "MEDIA_BASE_URL": "https://gucc-api.gucc.workers.dev",
+        "RESEND_FROM_EMAIL": "",
+        "CONTACT_EMAIL": "",
+        // Ids for the usage monitor in System health (not secrets; the token is CF_ANALYTICS_TOKEN).
+        "CF_ACCOUNT_ID": "c1b05716895cd372f5520dde62e5f68b",
+        "CF_D1_DATABASE_ID": "b7ce366a-30d0-4a4c-a4ab-5cf079bb8d8a",
+        "CF_WORKER_NAME": "gucc-api",
+        "CF_R2_BUCKETS": "gucc-media-public-production,gucc-media-private-production"
+      },
+      "d1_databases": [
+        { "binding": "DB", "database_name": "gucc", "database_id": "b7ce366a-30d0-4a4c-a4ab-5cf079bb8d8a", "migrations_dir": "migrations" }
+      ],
+      "r2_buckets": [
+        { "binding": "MEDIA_PUBLIC", "bucket_name": "gucc-media-public-production" },
+        { "binding": "MEDIA_PRIVATE", "bucket_name": "gucc-media-private-production" }
+      ]
+    }
+  }
+}

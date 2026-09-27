@@ -1,68 +1,19 @@
-import { gqlClient } from "@/lib/blog";
-import { queries } from "@/lib/blog";
-import { fetchSubstackArticle, mdxToHtml } from "./util";
+import { listBlogPosts } from "../data";
+import { fetchSubstackArticle, markdownToReact } from "./util";
 import PostContent from "../component";
-import { Post, PostResponse } from "../types";
+import { Post } from "../types";
 import { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
 import { brandTitle } from "@/lib/seo/metadata";
 import { articleSchema, breadcrumbSchema, graph } from "@/lib/seo/schema";
+import { findBlogPost } from "../data";
 
+// Posts come from D1 (published only); the query is cached and invalidated on publish.
 export const revalidate = 3600;
-
-const customBlogPosts: Post[] = [
-  {
-    id: "neurogebra",
-    slug: "neurogebra",
-    title: "Neurogebra",
-    subtitle:
-      "A reflective exploration of intelligence, learning, and the elegance of mathematical thought.",
-    category: "Research & Open Source",
-    tags: ["Machine Learning", "SymPy", "PyTorch", "Python", "Deep Learning"],
-    brief:
-      "A featured article from Md. Fahim Sarker Mridul’s Substack, exploring the ideas behind Neurogebra through a blend of reasoning, creativity, and learning.",
-    publishedAt: "2026-08-03T00:00:00.000Z",
-    readTimeInMinutes: 6,
-    views: 0,
-    url: "https://fahimerican.substack.com/p/neurogebra?r=35a5fa&triedRedirect=true",
-    coverImage: {
-      url: "/blog/neurogebra-cover.jpg",
-    },
-    author: {
-      name: "Md. Fahim Sarker Mridul",
-      github: "https://github.com/fahiiim",
-    },
-  },
-];
-
-function getCustomBlogPost(slug: string) {
-  return customBlogPosts.find((post) => post.slug === slug) ?? null;
-}
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const localParams = customBlogPosts.map((post) => ({
-    slug: post.slug,
-  }));
-
-  const host = process.env.HASHNODE_HOST;
-  if (!host) {
-    return localParams;
-  }
-
-  try {
-    const response = await gqlClient(queries.getPosts(host))();
-    const posts = response as {
-      data?: { publication?: { posts?: { edges?: { node: { slug: string } }[] } } };
-    };
-    const edges = posts?.data?.publication?.posts?.edges ?? [];
-    const remoteParams = edges.map((post) => ({
-      slug: post.node.slug,
-    }));
-    return [...localParams, ...remoteParams];
-  } catch (error) {
-    console.warn("Failed to fetch blog posts from Hashnode API:", error);
-    return localParams;
-  }
+  return (await listBlogPosts()).map((p) => ({ slug: p.slug }));
 }
 
 const siteBaseUrl = (
@@ -137,21 +88,9 @@ export async function generateMetadata({
       };
     }
 
-    const customPost = getCustomBlogPost(slug);
-    if (customPost) {
-      return buildPostMetadata(customPost);
-    }
-
-    const host = process.env.HASHNODE_HOST;
-    if (host) {
-      const response = await gqlClient<PostResponse>(queries.getPostBySlug(host))({
-        slug,
-      });
-      const post = response?.data?.publication?.post;
-
-      if (post) {
-        return buildPostMetadata(post);
-      }
+    const post = await findBlogPost(slug);
+    if (post) {
+      return buildPostMetadata(post);
     }
 
     return {
@@ -161,7 +100,7 @@ export async function generateMetadata({
       metadataBase: new URL(siteBaseUrl),
     };
   } catch (error) {
-    console.warn("Failed to fetch blog post metadata from Hashnode API:", error);
+    console.warn("Failed to load blog post metadata:", error);
     return {
       title: { absolute: brandTitle("Blog Post") },
       description: "Explore articles and tutorials from Green University Computer Club.",
@@ -199,15 +138,28 @@ export default async function BlogPost({
   params: Promise<{ slug: string }>;
 }) {
   const slug = (await params).slug;
-  const customPost = getCustomBlogPost(slug);
+  const customPost = await findBlogPost(slug);
 
+  if (customPost && customPost.body) {
+    const mdx = await markdownToReact(customPost.body);
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <div className="container mx-auto px-4 py-12 max-w-4xl">
+          <JsonLd id={`post-${customPost.slug}-schema`} data={postSchema(customPost)} />
+          <PostContent post={customPost} mdx={mdx} />
+        </div>
+      </div>
+    );
+  }
+
+  // Articles whose home is elsewhere (e.g. Substack) are fetched from their canonical URL, as before.
   if (customPost) {
     let articleHtml: string | null = null;
 
     try {
-      articleHtml = await fetchSubstackArticle(customPost.url);
+      articleHtml = customPost.url ? await fetchSubstackArticle(customPost.url) : null;
     } catch (error) {
-      console.warn("Failed to fetch custom Substack article:", error);
+      console.warn("Failed to fetch external article:", error);
     }
 
     const mdx = articleHtml ? (
@@ -242,31 +194,6 @@ export default async function BlogPost({
     );
   }
 
-  const host = process.env.HASHNODE_HOST;
-  if (host) {
-    try {
-      const response = await gqlClient<PostResponse>(queries.getPostBySlug(host))({
-        slug,
-      });
-      const post = response?.data?.publication?.post;
-
-      if (post && post.content) {
-        const mdx = await mdxToHtml(post.content.markdown);
-
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-            <div className="container mx-auto px-4 py-12 max-w-4xl">
-              <JsonLd id={`post-${post.slug}-schema`} data={postSchema(post)} />
-              <PostContent post={post} mdx={mdx} />
-            </div>
-          </div>
-        );
-      }
-    } catch (error) {
-      console.warn("Failed to fetch blog post from Hashnode API:", error);
-    }
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <div className="container mx-auto px-4 py-12 max-w-4xl">
@@ -275,7 +202,7 @@ export default async function BlogPost({
             Post Not Found
           </h1>
           <p className="text-lg text-neutral-600 dark:text-neutral-400">
-            The post you're looking for doesn't exist.
+            The post you’re looking for doesn’t exist.
           </p>
         </div>
       </div>

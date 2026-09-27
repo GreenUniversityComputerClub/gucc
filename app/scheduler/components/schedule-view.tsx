@@ -69,8 +69,8 @@ const calculateTimeSlotSpan = (startTime: string, endTime: string): number => {
 }
 
 const isWithinTimeSlot = (classTime: string, slotTime: string): boolean => {
-  const [classStart, classEnd] = classTime.split(" - ")
-  const [slotStart, slotEnd] = slotTime.split(" - ")
+  const [classStart] = classTime.split(" - ")
+  const [slotStart] = slotTime.split(" - ")
 
   const classStartMinutes = timeToMinutes(classStart)
   const slotStartMinutes = timeToMinutes(slotStart)
@@ -122,15 +122,6 @@ const getCoursesForSlot = (
   return result
 }
 
-// Increase the minimum heights for course blocks to make them more visible in exports
-const COURSE_BLOCK_SIZE_MAP: Record<string, string> = {
-  "1": "course-block-1",
-  "1.5": "course-block-1-5",
-  "2": "course-block-2",
-  "3": "course-block-3",
-  "4": "course-block-4",
-}
-
 // Update the ScheduleView component to add classes for export identification
 export default function ScheduleView({ selectedCourses, courses }: ScheduleViewProps) {
   // Use state instead of hook for initial render to avoid hydration mismatch
@@ -177,7 +168,7 @@ export default function ScheduleView({ selectedCourses, courses }: ScheduleViewP
   }
 
   const computeCoursesByDayAndSlot = (days: string[], timeSlots: string[]) => {
-    const coursesByDayAndSlot = new Map<string, Array<any>>()
+    const coursesByDayAndSlot = new Map<string, ReturnType<typeof getCoursesForSlot>>()
 
     days.forEach((day) => {
       timeSlots.forEach((timeSlot) => {

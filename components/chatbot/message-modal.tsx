@@ -16,10 +16,9 @@ interface MessageModalProps {
   isOpen: boolean
   onClose: () => void
   message: Message | null
-  screenSize: "small" | "medium" | "large"
 }
 
-export function MessageModal({ isOpen, onClose, message, screenSize }: MessageModalProps) {
+export function MessageModal({ isOpen, onClose, message }: MessageModalProps) {
   if (!isOpen || !message) return null
 
   return (

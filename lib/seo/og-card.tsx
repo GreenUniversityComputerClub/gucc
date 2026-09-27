@@ -1,5 +1,7 @@
-import { ImageResponse } from "next/og";
-import { SITE, absoluteUrl } from "./site";
+/** @jsxRuntime automatic */
+/** @jsxImportSource react */
+import type { ReactElement } from "react";
+import { SITE, SITE_URL, absoluteUrl } from "./site";
 import { SITE_LOGO_DATA_URI } from "./logo-data";
 
 export const OG_SIZE = { width: 1200, height: 630 } as const;
@@ -28,25 +30,35 @@ export interface OgCardOptions {
   variant?: "default" | "portrait";
 }
 
-/** Renders the shared GUCC social card. Used by both the static and API routes. */
-export function renderOgCard(options: OgCardOptions): ImageResponse {
+/**
+ * Only images from our own site are composited in, so the renderer can't be
+ * used to fetch arbitrary URLs.
+ */
+function safePhoto(photo: string | undefined): string | undefined {
+  if (!photo) return undefined;
+  // Pre-fetched and converted by the /api/og route.
+  if (/^data:image\/(png|jpeg);base64,/.test(photo)) return photo;
+  if (photo.startsWith("/") && !photo.startsWith("//")) return absoluteUrl(photo);
+  return photo.startsWith(`${SITE_URL}/`) ? photo : undefined;
+}
+
+/**
+ * The shared GUCC social card as a JSX element, rendered to PNG by
+ * app/api/og (next/og on Vercel).
+ */
+export function ogCardElement(options: OgCardOptions): ReactElement {
   const title = (options.title || SITE.name).slice(0, 120);
   const subtitle = (options.subtitle || "").slice(0, 180);
   const eyebrow = (options.eyebrow || SITE.shortName).slice(0, 60);
   const variant = options.variant === "portrait" ? "portrait" : "default";
 
-  const photo = options.photo
-    ? /^https?:\/\//i.test(options.photo)
-      ? options.photo
-      : absoluteUrl(options.photo)
-    : undefined;
+  const photo = safePhoto(options.photo);
 
   const logo = SITE_LOGO_DATA_URI;
   const hasPortrait = variant === "portrait" && Boolean(photo);
   const titleSize = title.length > 46 ? 60 : title.length > 28 ? 74 : 88;
 
-  return new ImageResponse(
-    (
+  return (
       <div
         style={{
           width: "100%",
@@ -171,7 +183,5 @@ export function renderOgCard(options: OgCardOptions): ImageResponse {
           <span style={{ fontSize: 24, color: MUTED }}>gucc.green.edu.bd</span>
         </div>
       </div>
-    ),
-    { ...OG_SIZE }
   );
 }

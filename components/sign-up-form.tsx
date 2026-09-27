@@ -1,154 +1,114 @@
 'use client'
 
+import { PasswordInput } from "@/components/ui/password-input";
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Turnstile } from '@/components/turnstile'
+import { registerAction } from '@/app/auth/actions'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useCallback, useState, useTransition } from 'react'
 
 export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
   const [fullName, setFullName] = useState('')
   const [studentId, setStudentId] = useState('')
   const [department, setDepartment] = useState('')
+  const [batch, setBatch] = useState('')
+  const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [repeatPassword, setRepeatPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [fields, setFields] = useState<Record<string, string>>({})
+  const [token, setToken] = useState<string | null>(null)
+  const [pending, start] = useTransition()
+  const onToken = useCallback((t: string | null) => setToken(t), [])
   const router = useRouter()
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
-    setIsLoading(true)
     setError(null)
-
     if (password !== repeatPassword) {
-      setError('Passwords do not match')
-      setIsLoading(false)
+      setFields({ repeatPassword: 'Passwords do not match' })
       return
     }
-
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            student_id: studentId,
-            department,
-          },
-          emailRedirectTo: `${window.location.origin}/protected`,
-        },
-      })
-      if (error) throw error
-      router.push('/auth/sign-up-success')
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
-    } finally {
-      setIsLoading(false)
-    }
+    start(async () => {
+      const res = await registerAction({ email, password, fullName, studentId: studentId || undefined, department: department || undefined, batch: batch || undefined, phone: phone || undefined, turnstileToken: token ?? undefined })
+      if (res.ok) router.push('/auth/sign-up-success')
+      else {
+        setError(res.error)
+        setFields(res.fields ?? {})
+      }
+    })
   }
+
+  const hint = (k: string) => (fields[k] ? <p className="text-sm text-red-500">{fields[k]}</p> : null)
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Sign up</CardTitle>
-          <CardDescription>Create a new account</CardDescription>
+          <CardDescription>Apply for GUCC membership. After you verify your email, a club administrator reviews your application.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignUp}>
+          <form onSubmit={handleSignUp} noValidate>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="full-name">Full name</Label>
-                <Input
-                  id="full-name"
-                  type="text"
-                  placeholder="Your name"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
+                <Input id="full-name" type="text" placeholder="Your name" required autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} aria-invalid={Boolean(fields.fullName)} />
+                {hint('fullName')}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="student-id">Student ID</Label>
-                <Input
-                  id="student-id"
-                  type="text"
-                  placeholder="221-XX-XXXX"
-                  required
-                  value={studentId}
-                  onChange={(e) => setStudentId(e.target.value)}
-                />
+                <Input id="student-id" type="text" inputMode="numeric" placeholder="9 digits, e.g. 232002184" maxLength={9} value={studentId} onChange={(e) => setStudentId(e.target.value.replace(/\D/g, ''))} aria-invalid={Boolean(fields.studentId)} />
+                {hint('studentId')}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="department">Department</Label>
+                  <Input id="department" type="text" placeholder="CSE" autoComplete="organization-title" value={department} onChange={(e) => setDepartment(e.target.value)} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="batch">Batch</Label>
+                  <Input id="batch" type="text" placeholder="e.g. 232" value={batch} onChange={(e) => setBatch(e.target.value)} aria-invalid={Boolean(fields.batch)} />
+                  {hint('batch')}
+                </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="department">Department</Label>
-                <Input
-                  id="department"
-                  type="text"
-                  placeholder="CSE"
-                  required
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                />
+                <Label htmlFor="phone">Phone <span className="font-normal text-muted-foreground">(optional, private)</span></Label>
+                <Input id="phone" type="tel" placeholder="01XXXXXXXXX" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} aria-invalid={Boolean(fields.phone)} />
+                <p className="text-xs text-muted-foreground">Only club administrators can see it.</p>
+                {hint('phone')}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+                <Input id="email" type="email" placeholder="you@student.green.ac.bd" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={Boolean(fields.email)} />
+                {hint('email')}
               </div>
               <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <Label htmlFor="password">Password</Label>
+                <PasswordInput id="password" required autoComplete="new-password" minLength={10} value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={Boolean(fields.password)} aria-describedby="pw-hint" />
+                <p id="pw-hint" className="text-xs text-muted-foreground">At least 10 characters.</p>
+                {hint('password')}
               </div>
               <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="repeat-password">Repeat Password</Label>
-                </div>
-                <Input
-                  id="repeat-password"
-                  type="password"
-                  required
-                  value={repeatPassword}
-                  onChange={(e) => setRepeatPassword(e.target.value)}
-                />
+                <Label htmlFor="repeat-password">Repeat Password</Label>
+                <PasswordInput id="repeat-password" required autoComplete="new-password" value={repeatPassword} onChange={(e) => setRepeatPassword(e.target.value)} />
+                {hint('repeatPassword')}
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Creating an account...' : 'Sign up'}
+              <Turnstile onToken={onToken} />
+              {error && <p className="text-sm text-red-500" role="alert">{error}</p>}
+              <Button type="submit" className="w-full" disabled={pending}>
+                {pending ? 'Creating an account...' : 'Sign up'}
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
               Already have an account?{' '}
-              <Link href="/auth/login" className="underline underline-offset-4">
-                Login
-              </Link>
+              <Link href="/auth/login" className="underline underline-offset-4">Login</Link>
             </div>
           </form>
         </CardContent>

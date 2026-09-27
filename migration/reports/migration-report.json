@@ -1,0 +1,2046 @@
+{
+  "runId": "run_2026-09-27T16-43-29-271Z_c6efef3b",
+  "started": "2026-09-27T16:43:29.271Z",
+  "target": "production",
+  "mode": "insert-missing",
+  "counts": {
+    "media": {
+      "source": 268,
+      "migrated": 268,
+      "merged": 0,
+      "skipped": 0,
+      "failed": 0,
+      "duplicates": 0,
+      "conflicts": 0
+    },
+    "profiles": {
+      "source": 224,
+      "migrated": 224,
+      "merged": 0,
+      "skipped": 0,
+      "failed": 0,
+      "duplicates": 0,
+      "conflicts": 57
+    },
+    "executive_assignments": {
+      "source": 334,
+      "migrated": 334,
+      "merged": 0,
+      "skipped": 0,
+      "failed": 0,
+      "duplicates": 0,
+      "conflicts": 0
+    },
+    "committees": {
+      "source": 10,
+      "migrated": 10,
+      "merged": 0,
+      "skipped": 0,
+      "failed": 0,
+      "duplicates": 0,
+      "conflicts": 0
+    },
+    "events": {
+      "source": 81,
+      "migrated": 81,
+      "merged": 0,
+      "skipped": 0,
+      "failed": 0,
+      "duplicates": 0,
+      "conflicts": 2
+    },
+    "categories": {
+      "source": 0,
+      "migrated": 33,
+      "merged": 0,
+      "skipped": 0,
+      "failed": 0,
+      "duplicates": 0,
+      "conflicts": 0
+    },
+    "contests": {
+      "source": 23,
+      "migrated": 23,
+      "merged": 0,
+      "skipped": 0,
+      "failed": 0,
+      "duplicates": 0,
+      "conflicts": 0
+    },
+    "posts": {
+      "source": 1,
+      "migrated": 1,
+      "merged": 0,
+      "skipped": 0,
+      "failed": 0,
+      "duplicates": 0,
+      "conflicts": 0
+    },
+    "external_forms": {
+      "source": 7,
+      "migrated": 7,
+      "merged": 0,
+      "skipped": 0,
+      "failed": 0,
+      "duplicates": 0,
+      "conflicts": 0
+    },
+    "certificate_recipients": {
+      "source": 146,
+      "migrated": 146,
+      "merged": 0,
+      "skipped": 0,
+      "failed": 0,
+      "duplicates": 0,
+      "conflicts": 0
+    },
+    "organization_settings": {
+      "source": 5,
+      "migrated": 5,
+      "merged": 0,
+      "skipped": 0,
+      "failed": 0,
+      "duplicates": 0,
+      "conflicts": 0
+    },
+    "positions": {
+      "source": 0,
+      "migrated": 0,
+      "merged": 0,
+      "skipped": 0,
+      "failed": 0,
+      "duplicates": 0,
+      "conflicts": 0
+    }
+  },
+  "expectedRows": {
+    "media": 268,
+    "committees": 10,
+    "committee_members": 334,
+    "profiles": 224,
+    "categories": 33,
+    "events": 81,
+    "event_media": 81,
+    "event_people": 216,
+    "contests": 23,
+    "contest_teams": 33,
+    "contest_media": 1,
+    "posts": 1,
+    "post_revisions": 1,
+    "tags": 5,
+    "post_tags": 5,
+    "external_forms": 7,
+    "certificate_programs": 1,
+    "certificate_recipients": 146,
+    "organization_settings": 5,
+    "migration_source_map": 1099,
+    "migration_conflicts": 59
+  },
+  "positionMappings": [
+    {
+      "title": "Blue Team Secretary",
+      "positionKey": "blue-team-secretary",
+      "via": "name",
+      "occurrences": 1
+    },
+    {
+      "title": "Chair",
+      "positionKey": "chair",
+      "via": "name",
+      "occurrences": 3
+    },
+    {
+      "title": "Content Writer",
+      "positionKey": "content-writer",
+      "via": "name",
+      "occurrences": 1
+    },
+    {
+      "title": "CTF Secretary",
+      "positionKey": "ctf-secretary",
+      "via": "name",
+      "occurrences": 1
+    },
+    {
+      "title": "Cultural Secretary",
+      "positionKey": "cultural-secretary",
+      "via": "name",
+      "occurrences": 11
+    },
+    {
+      "title": "Deputy Moderator",
+      "positionKey": "deputy-moderator",
+      "via": "name",
+      "occurrences": 22
+    },
+    {
+      "title": "E-Sports Gaming Secretary",
+      "positionKey": "esports-secretary",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Esports Secretary",
+      "positionKey": "esports-secretary",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Event Coordinator",
+      "positionKey": "event-coordinator",
+      "via": "name",
+      "occurrences": 4
+    },
+    {
+      "title": "Executive Member",
+      "positionKey": "executive-member",
+      "via": "name",
+      "occurrences": 12
+    },
+    {
+      "title": "Executive Member – 1",
+      "positionKey": "executive-member",
+      "via": "pattern",
+      "occurrences": 1
+    },
+    {
+      "title": "Executive Member – 2",
+      "positionKey": "executive-member",
+      "via": "pattern",
+      "occurrences": 1
+    },
+    {
+      "title": "Executive Member-1",
+      "positionKey": "executive-member",
+      "via": "pattern",
+      "occurrences": 3
+    },
+    {
+      "title": "Executive Member-2",
+      "positionKey": "executive-member",
+      "via": "pattern",
+      "occurrences": 3
+    },
+    {
+      "title": "Executive Member-3",
+      "positionKey": "executive-member",
+      "via": "pattern",
+      "occurrences": 2
+    },
+    {
+      "title": "Executive Member-4",
+      "positionKey": "executive-member",
+      "via": "pattern",
+      "occurrences": 2
+    },
+    {
+      "title": "Executive Member-5",
+      "positionKey": "executive-member",
+      "via": "pattern",
+      "occurrences": 1
+    },
+    {
+      "title": "Executive Member-6",
+      "positionKey": "executive-member",
+      "via": "pattern",
+      "occurrences": 1
+    },
+    {
+      "title": "Executive Member-7",
+      "positionKey": "executive-member",
+      "via": "pattern",
+      "occurrences": 1
+    },
+    {
+      "title": "Former Deputy Moderator",
+      "positionKey": "former-deputy-moderator",
+      "via": "name",
+      "occurrences": 1
+    },
+    {
+      "title": "General Secretary",
+      "positionKey": "general-secretary",
+      "via": "name",
+      "occurrences": 15
+    },
+    {
+      "title": "Assistant Graphics Designer",
+      "positionKey": "graphics-designer",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Graphic Designer",
+      "positionKey": "graphics-designer",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Graphics Designer",
+      "positionKey": "graphics-designer",
+      "via": "name",
+      "occurrences": 3
+    },
+    {
+      "title": "Graphics and Multimedia Coordinator",
+      "positionKey": "graphics-multimedia-coordinator",
+      "via": "alias",
+      "occurrences": 3
+    },
+    {
+      "title": "Graphics and Multimedia Coordinators",
+      "positionKey": "graphics-multimedia-coordinator",
+      "via": "alias",
+      "occurrences": 3
+    },
+    {
+      "title": "Graphics and Multimedia Coordinators -1",
+      "positionKey": "graphics-multimedia-coordinator",
+      "via": "pattern",
+      "occurrences": 1
+    },
+    {
+      "title": "Graphics and Multimedia Coordinators -2",
+      "positionKey": "graphics-multimedia-coordinator",
+      "via": "pattern",
+      "occurrences": 1
+    },
+    {
+      "title": "Graphics and Multimedia Secretary",
+      "positionKey": "graphics-multimedia-coordinator",
+      "via": "alias",
+      "occurrences": 4
+    },
+    {
+      "title": "Graphics and Multimedia Coordinators (Lead)",
+      "positionKey": "graphics-multimedia-coordinator-lead",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Information Secretary",
+      "positionKey": "information-secretary",
+      "via": "name",
+      "occurrences": 12
+    },
+    {
+      "title": "Deputy Cultural Secretary",
+      "positionKey": "joint-cultural-secretary",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Joint Cultural Secretary",
+      "positionKey": "joint-cultural-secretary",
+      "via": "name",
+      "occurrences": 8
+    },
+    {
+      "title": "Assistant General Secretary",
+      "positionKey": "joint-general-secretary",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Joint General Secretary",
+      "positionKey": "joint-general-secretary",
+      "via": "name",
+      "occurrences": 9
+    },
+    {
+      "title": "Joint General Secretary (Activity)",
+      "positionKey": "joint-general-secretary-activity",
+      "via": "name",
+      "occurrences": 3
+    },
+    {
+      "title": "Joint General Secretary (Technical)",
+      "positionKey": "joint-general-secretary-technical",
+      "via": "name",
+      "occurrences": 3
+    },
+    {
+      "title": "Deputy Information Secretary",
+      "positionKey": "joint-information-secretary",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Joint Information Secretary",
+      "positionKey": "joint-information-secretary",
+      "via": "name",
+      "occurrences": 11
+    },
+    {
+      "title": "Deputy Organization Secretary",
+      "positionKey": "joint-organizing-secretary",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Joint Organizing Secretary",
+      "positionKey": "joint-organizing-secretary",
+      "via": "name",
+      "occurrences": 12
+    },
+    {
+      "title": "Deputy Programming Secretary",
+      "positionKey": "joint-programming-secretary",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Joint Programming Secretary",
+      "positionKey": "joint-programming-secretary",
+      "via": "name",
+      "occurrences": 8
+    },
+    {
+      "title": "Deputy Publication Secretary",
+      "positionKey": "joint-publication-secretary",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Joint Publication Secretary",
+      "positionKey": "joint-publication-secretary",
+      "via": "name",
+      "occurrences": 11
+    },
+    {
+      "title": "Deputy Sports Secretary",
+      "positionKey": "joint-sports-secretary",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Joint Sports Secretary",
+      "positionKey": "joint-sports-secretary",
+      "via": "name",
+      "occurrences": 5
+    },
+    {
+      "title": "Deputy Treasurer",
+      "positionKey": "joint-treasurer",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Joint Treasurer",
+      "positionKey": "joint-treasurer",
+      "via": "name",
+      "occurrences": 11
+    },
+    {
+      "title": "Media Production Coordinator",
+      "positionKey": "media-production-coordinator",
+      "via": "name",
+      "occurrences": 1
+    },
+    {
+      "title": "Moderator",
+      "positionKey": "moderator",
+      "via": "name",
+      "occurrences": 15
+    },
+    {
+      "title": "Office Secretary",
+      "positionKey": "office-secretary",
+      "via": "name",
+      "occurrences": 1
+    },
+    {
+      "title": "Office Secretary & Graphic Designer",
+      "positionKey": "office-secretary",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Organization Secretary",
+      "positionKey": "organizing-secretary",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Organizing Secretary",
+      "positionKey": "organizing-secretary",
+      "via": "name",
+      "occurrences": 14
+    },
+    {
+      "title": "Outreach Secretary",
+      "positionKey": "outreach-secretary",
+      "via": "name",
+      "occurrences": 4
+    },
+    {
+      "title": "Photography Secretary",
+      "positionKey": "photography-secretary",
+      "via": "name",
+      "occurrences": 2
+    },
+    {
+      "title": "President",
+      "positionKey": "president",
+      "via": "name",
+      "occurrences": 12
+    },
+    {
+      "title": "Programming and Development Secretary",
+      "positionKey": "programming-secretary",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Programming Secretary",
+      "positionKey": "programming-secretary",
+      "via": "name",
+      "occurrences": 11
+    },
+    {
+      "title": "Programming and Development Secretary (Activity)",
+      "positionKey": "programming-secretary-activity",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Programming Secretary (Activity)",
+      "positionKey": "programming-secretary-activity",
+      "via": "name",
+      "occurrences": 1
+    },
+    {
+      "title": "Programming and Development Secretary (Technical)",
+      "positionKey": "programming-secretary-technical",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Programming Secretary (Technical)",
+      "positionKey": "programming-secretary-technical",
+      "via": "name",
+      "occurrences": 1
+    },
+    {
+      "title": "Publication & Publicity Secretary",
+      "positionKey": "publication-secretary",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Publication Secretary",
+      "positionKey": "publication-secretary",
+      "via": "name",
+      "occurrences": 12
+    },
+    {
+      "title": "Red Team Secretary",
+      "positionKey": "red-team-secretary",
+      "via": "name",
+      "occurrences": 1
+    },
+    {
+      "title": "Sports Secretary",
+      "positionKey": "sports-secretary",
+      "via": "name",
+      "occurrences": 10
+    },
+    {
+      "title": "Treasurer",
+      "positionKey": "treasurer",
+      "via": "name",
+      "occurrences": 15
+    },
+    {
+      "title": "Vice Chair",
+      "positionKey": "vice-chair",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Vice-Chair",
+      "positionKey": "vice-chair",
+      "via": "name",
+      "occurrences": 2
+    },
+    {
+      "title": "Vice President",
+      "positionKey": "vice-president",
+      "via": "alias",
+      "occurrences": 4
+    },
+    {
+      "title": "Vice-President",
+      "positionKey": "vice-president",
+      "via": "name",
+      "occurrences": 4
+    },
+    {
+      "title": "Vice President (Activities)",
+      "positionKey": "vice-president-activities",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Vice President (Activity)",
+      "positionKey": "vice-president-activities",
+      "via": "alias",
+      "occurrences": 3
+    },
+    {
+      "title": "Vice-President (Activity)",
+      "positionKey": "vice-president-activities",
+      "via": "alias",
+      "occurrences": 1
+    },
+    {
+      "title": "Vice President (Technical)",
+      "positionKey": "vice-president-technical",
+      "via": "alias",
+      "occurrences": 4
+    },
+    {
+      "title": "Vice-President (Technical)",
+      "positionKey": "vice-president-technical",
+      "via": "name",
+      "occurrences": 1
+    }
+  ],
+  "issues": [
+    {
+      "entity": "profiles",
+      "key": "sid:151002009",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Abdullah Al Mashuk (2016)",
+        "others": [
+          "S.M. Emon (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:141002029",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Saleh Al Hasan (2016)",
+        "others": [
+          "Bulbul Ahmed (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:143002037",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Md. Asif Bashar (2016)",
+        "others": [
+          "Mostafiz Babu (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:143002026",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "A.K.M. Ashek Farahi (2016)",
+        "others": [
+          "Arafat Hossain Rana (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:151002010",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Bulbul Ahmed (2016)",
+        "others": [
+          "Tamim Hossain (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:151002022",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "S.M EMON (2016)",
+        "others": [
+          "Kaushik Ahmed Apu (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:153002007",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Shah Adil (2016)",
+        "others": [
+          "Razibur Rahman (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:151002017",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Muhammad Tareq Hossain (2016)",
+        "others": [
+          "Gulzar Hossain (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:151002096",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Gulzar Hossain (2016)",
+        "others": [
+          "Md. Khaled (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:162002013",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Tamim Hossen (2016, 2019)",
+        "others": [
+          "Angshu Adhikary (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:162002004",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Omar Faruk (2016)",
+        "others": [
+          "Rushmita Halim (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:161002026",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Angshu Adhikary (2016)",
+        "others": [
+          "Omar Faruk (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:161002019",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Arnob Mirza (2016, 2019)",
+        "others": [
+          "Md. Miraz (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:161002080",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Sajjad Sobuj (2016)",
+        "others": [
+          "Ashfaqur Rahman (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:162002001",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Rajibul Palas (2016, 2019)",
+        "others": [
+          "Munibul Islam (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:161002032",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Kaushik Ahmed Apu (2016, 2019)",
+        "others": [
+          "Sajjad Sobuj (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:161002043",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "student_id_shared",
+        "owner": "Arafat Hossain Rana (2016, 2019)",
+        "others": [
+          "Roman (2018)"
+        ]
+      },
+      "resolution": "One student ID is listed for different people. They are kept as separate profiles; the ID (and its /executives/<id> page) stays with the person listed most often, earliest on ties. The others keep their committee listings but have no profile link until an administrator confirms their real ID."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:161002019",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "Mirza Saifullah Zaman Arnob",
+        "alternatives": [
+          "Arnob Mirza"
+        ],
+        "years": [
+          "2016",
+          "2019"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:162002001",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "Md. Rajibul Palas",
+        "alternatives": [
+          "Rajibul Palas"
+        ],
+        "years": [
+          "2016",
+          "2019"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:161002043",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "Md. Arafat Hossen",
+        "alternatives": [
+          "Arafat Hossain Rana"
+        ],
+        "years": [
+          "2016",
+          "2019"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "faculty:ahmed iqbal pritom",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "designation",
+        "chosen": "Sr. Lecturer",
+        "alternatives": [
+          "Lecturer",
+          "Senior Lecturer"
+        ],
+        "years": [
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:151002009:s-m-emon",
+      "kind": "NOTE",
+      "detail": {
+        "name": "S.M. Emon",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "151002009"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:141002029:bulbul-ahmed",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Bulbul Ahmed",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "141002029"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:143002037:mostafiz-babu",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Mostafiz Babu",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "143002037"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:143002026:arafat-hossain-rana",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Arafat Hossain Rana",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "143002026"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:151002010:tamim-hossain",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Tamim Hossain",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "151002010"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:151002022:kaushik-ahmed-apu",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Kaushik Ahmed Apu",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "151002022"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:153002007:razibur-rahman",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Razibur Rahman",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "153002007"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:151002017:gulzar-hossain",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Gulzar Hossain",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "151002017"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:151002096:md-khaled",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Md. Khaled",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "151002096"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:162002013:angshu-adhikary",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Angshu Adhikary",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "162002013"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:162002004:rushmita-halim",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Rushmita Halim",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "162002004"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:161002026:omar-faruk",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Omar Faruk",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "161002026"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:161002019:md-miraz",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Md. Miraz",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "161002019"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:161002080:ashfaqur-rahman",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Ashfaqur Rahman",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "161002080"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:162002001:munibul-islam",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Munibul Islam",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "162002001"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:161002032:sajjad-sobuj",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Sajjad Sobuj",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "161002032"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sidshared:161002043:roman",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Roman",
+        "years": [
+          "2018"
+        ],
+        "studentIdGiven": [
+          "161002043"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:193015047",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "MD Mohtamim Islam Nayeem",
+        "alternatives": [
+          "Md. Mohtamim Islam Nayeem"
+        ],
+        "years": [
+          "2020",
+          "2021",
+          "2022"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:183002076",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "Md. Zahidul Hasan",
+        "alternatives": [
+          "Md Zahidul Hasan",
+          "MD Zahidul Hasan"
+        ],
+        "years": [
+          "2020",
+          "2021",
+          "2022"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:191002281",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "Md. Iqbal Jahan",
+        "alternatives": [
+          "Md.Iqbal Jahan",
+          "MD. Iqbal Jahan"
+        ],
+        "years": [
+          "2020",
+          "2021",
+          "2022"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:173002044",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "MD. Nasir Hossain Hridoy",
+        "alternatives": [
+          "Md. Nasir Hossain Hridoy"
+        ],
+        "years": [
+          "2020",
+          "2021"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:191002067",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "Md. Rahul Reza",
+        "alternatives": [
+          "MD. Rahul Reza"
+        ],
+        "years": [
+          "2020",
+          "2021",
+          "2022"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:201002463",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "Md. Jahid Hassan",
+        "alternatives": [
+          "MD. Jahid Hassan"
+        ],
+        "years": [
+          "2020",
+          "2021",
+          "2022",
+          "2023"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:201002311",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "Sakhawat Hossain Rabbi",
+        "alternatives": [
+          "MD Sakhawat Hossain Rabbi"
+        ],
+        "years": [
+          "2020",
+          "2021",
+          "2022",
+          "2023"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "name:fahad bin kamal anik",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Fahad Bin Kamal Anik",
+        "years": [
+          "2021"
+        ],
+        "studentIdGiven": [
+          "183002xxx"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "name:kazi hasnayeen emad",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Kazi Hasnayeen Emad",
+        "years": [
+          "2022"
+        ],
+        "studentIdGiven": [
+          "201902xxx"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "name:md ariful islam",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Md. Ariful Islam",
+        "years": [
+          "2022"
+        ],
+        "studentIdGiven": [
+          "201902xxx"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "name:ahsanul karim",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Ahsanul Karim",
+        "years": [
+          "2022"
+        ],
+        "studentIdGiven": [
+          "201902xxx"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "name:md neamot ullah okib",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Md. Neamot Ullah Okib",
+        "years": [
+          "2022"
+        ],
+        "studentIdGiven": [
+          "201902xxx"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "name:nasir uddin foysal",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Nasir Uddin Foysal",
+        "years": [
+          "2022"
+        ],
+        "studentIdGiven": [
+          "201902xxx"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "name:mohammad nazmul hossain",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Mohammad Nazmul Hossain",
+        "years": [
+          "2022"
+        ],
+        "studentIdGiven": [
+          "201902xxx"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "name:farjana afrin maria",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Farjana Afrin Maria",
+        "years": [
+          "2022"
+        ],
+        "studentIdGiven": [
+          "201902xxx"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:201902145",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "Abdullah al kafi",
+        "alternatives": [
+          "Abdullah Al Kafi"
+        ],
+        "years": [
+          "2022",
+          "2023"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "name:md jubayer",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Md. Jubayer",
+        "years": [
+          "2022"
+        ],
+        "studentIdGiven": [
+          "201902xxx"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "name:rayhan kobir",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Rayhan Kobir",
+        "years": [
+          "2022"
+        ],
+        "studentIdGiven": [
+          "201902xxx"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "name:amitav roy chowdhury",
+      "kind": "NOTE",
+      "detail": {
+        "name": "Amitav Roy Chowdhury",
+        "years": [
+          "2022"
+        ],
+        "studentIdGiven": [
+          "201902xxx"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "faculty:md abu rumman refat",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "designation",
+        "chosen": "Lecturer",
+        "alternatives": [
+          "Lecturer, CSE"
+        ],
+        "years": [
+          "2023",
+          "2023"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:221902188",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "public_email",
+        "chosen": "mailto::mermaidriyahasan188@gmail.com",
+        "alternatives": [
+          "riyahasan6754@gmail.com"
+        ],
+        "years": [
+          "2023",
+          "2025"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:221902084",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "public_email",
+        "chosen": "mailto::tanveer.cse69@gmail.com",
+        "alternatives": [
+          "tanveer.cse69@gmail.com"
+        ],
+        "years": [
+          "2023",
+          "2025"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "faculty:md monirul islam",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "designation",
+        "chosen": "Assistant Professor",
+        "alternatives": [
+          "Lecturer"
+        ],
+        "years": [
+          "2023",
+          "2024",
+          "2024",
+          "2025",
+          "2025",
+          "2026",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:222002062",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "M. Tahsinur Rahman",
+        "alternatives": [
+          "M. Tahsinur Rahiman"
+        ],
+        "years": [
+          "2024",
+          "2025"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:222002062",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "linkedin_url",
+        "chosen": "https://www.linkedin.com/in/m-tahsinur-rahman62/",
+        "alternatives": [
+          "https://www.linkedin.com/in/m-tahsinur-rahman62"
+        ],
+        "years": [
+          "2024",
+          "2025"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:222002062",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "github_url",
+        "chosen": "https://github.com/Aruuu62/",
+        "alternatives": [
+          "https://github.com/Aruuu62"
+        ],
+        "years": [
+          "2024",
+          "2025"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:222002062",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "facebook_url",
+        "chosen": "https://www.facebook.com/iqbal.abdullah.3572",
+        "alternatives": [
+          "https://m.facebook.com/iqbal.abdullah.3572/"
+        ],
+        "years": [
+          "2024",
+          "2025"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:221902015",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "linkedin_url",
+        "chosen": "https://www.linkedin.com/in/heaven-bawm-4a79a1295?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
+        "alternatives": [
+          "https://www.linkedin.com/in/heaven-bawm-4a79a1295"
+        ],
+        "years": [
+          "2024",
+          "2025"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:221902015",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "facebook_url",
+        "chosen": "https://www.facebook.com/share/1JnVDFQ5ab/",
+        "alternatives": [
+          "https://www.facebook.com/share/1G7uEH4JYD/"
+        ],
+        "years": [
+          "2024",
+          "2025"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "name:md sazib",
+      "kind": "NOTE",
+      "detail": {
+        "name": "MD. Sazib",
+        "years": [
+          "2024"
+        ],
+        "studentIdGiven": [
+          "23190200S"
+        ]
+      },
+      "resolution": "No valid student ID; records merged by exact name. Review if two different people share this name."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:222002112",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "linkedin_url",
+        "chosen": "https://www.linkedin.com/in/afiya-humaira-13a396285?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
+        "alternatives": [
+          "https://www.linkedin.com/in/afiya-humaira-13a396285"
+        ],
+        "years": [
+          "2024",
+          "2025"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:222002112",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "facebook_url",
+        "chosen": "https://www.facebook.com/share/19kEy4L1xy/",
+        "alternatives": [
+          "https://www.facebook.com/share/1A8KwRUow2/"
+        ],
+        "years": [
+          "2024",
+          "2025"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:231902048",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "public_email",
+        "chosen": "tanveer.ziad@gmail.com",
+        "alternatives": [
+          "mailto::tanveer.ziad@gmail.com"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:231902048",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "linkedin_url",
+        "chosen": "https://www.linkedin.com/in/tanveer-ziad07",
+        "alternatives": [
+          "https://www.linkedin.com/in/tanveer-ziad-785855246/"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:232002184",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "public_email",
+        "chosen": "mailto::bakul.ahmedd@gmail.com",
+        "alternatives": [
+          "mailto::bokula88@gmail.com"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:232002184",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "github_url",
+        "chosen": "https://github.com/bakulbd",
+        "alternatives": [
+          "https://github.com/BakulBd"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:223902001",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "public_email",
+        "chosen": "mailto::tasmianoortama@gmail.com",
+        "alternatives": [
+          "mailto::ttasmianoor@gmail.com"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:241002036",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "linkedin_url",
+        "chosen": "https://www.linkedin.com/in/shakib-hasan-118571193/",
+        "alternatives": [
+          "https://www.linkedin.com/in/shakib-hasan-118571193"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:241002036",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "facebook_url",
+        "chosen": "https://www.facebook.com/shakibhasan101",
+        "alternatives": [
+          "https://facebook.com/shakibhasan101"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:241002002",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "MD. Jawadul Hasan Sowmik",
+        "alternatives": [
+          "Md. Jawadul Hassan Sowmik"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:241002002",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "public_email",
+        "chosen": "mailto::jhsowmik35@gmail.com",
+        "alternatives": [
+          "mailto::jhsowmik35@gamil.com"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:241002002",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "linkedin_url",
+        "chosen": "https://www.linkedin.com/in/jawadul-hasan-sowmik-2775342a4/",
+        "alternatives": [
+          "https://www.linkedin.com/in/jawadul-hasan-sowmik-13028b355"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:241002002",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "facebook_url",
+        "chosen": "https://www.facebook.com/JawadulHasanSowmik/",
+        "alternatives": [
+          "https://www.facebook.com/jawadulhasan04/"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:241002017",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "full_name",
+        "chosen": "Md. Farhad",
+        "alternatives": [
+          "Md Farhad"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:241002017",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "public_email",
+        "chosen": "mailto::mdfarhad24100@gmail.com",
+        "alternatives": [
+          "mailto::md1660782@gmail.com"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:241002017",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "facebook_url",
+        "chosen": "https://www.facebook.com/md.rimonbhuiyanfarhad/",
+        "alternatives": [
+          "https://www.facebook.com/share/1AE1weBiBN/"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:242002167",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "linkedin_url",
+        "chosen": "https://www.linkedin.com/in/nusrat-jahan-sumaiya-242002167gub",
+        "alternatives": [
+          "https://www.linkedin.com/in/nusrat-jahan-sumaiya-8aba342a6?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "profiles",
+      "key": "sid:242002167",
+      "kind": "CONFLICT",
+      "detail": {
+        "field": "facebook_url",
+        "chosen": "https://www.facebook.com/share/1GKDwFPYNn/",
+        "alternatives": [
+          "https://www.facebook.com/share/1A5Fc8GwrY/"
+        ],
+        "years": [
+          "2025",
+          "2026"
+        ]
+      },
+      "resolution": "Used the value from the most recent committee year; every original value is preserved in committee_members.legacy_json."
+    },
+    {
+      "entity": "events",
+      "key": "sl:53",
+      "kind": "CONFLICT",
+      "detail": {
+        "sl": 53,
+        "events": [
+          "Celebration of Pohela Boishakh 1432 with বৈশাখী ত্রিধারা and Boishakh Fusion",
+          "CSE Fresher's Orientation Spring 2025"
+        ]
+      },
+      "resolution": "Legacy id 53 is used by 2 events, so they shared one cover image (/events/53.jpg). Both imported as separate events; both still point at that image. Upload a correct cover for one of them."
+    },
+    {
+      "entity": "events",
+      "key": "cse-freshers-orientation-spring-2025",
+      "kind": "CONFLICT",
+      "detail": {
+        "slug": "cse-freshers-orientation-spring-2025",
+        "keptBy": "CSE Fresher's Orientation Spring 2025",
+        "renamed": "CSE Fresher's Orientation Spring 2025",
+        "newSlug": "cse-freshers-orientation-spring-2025-2"
+      },
+      "resolution": "Two events share the URL /events/cse-freshers-orientation-spring-2025. The first keeps it (as before, the second was unreachable); the second now lives at /events/cse-freshers-orientation-spring-2025-2."
+    },
+    {
+      "entity": "posts",
+      "key": "neurogebra",
+      "kind": "NOTE",
+      "detail": {
+        "canonical": "https://fahimerican.substack.com/p/neurogebra?r=35a5fa&triedRedirect=true"
+      },
+      "resolution": "Article body lives at its canonical URL and is fetched there at render time, as before."
+    },
+    {
+      "entity": "media",
+      "key": "/executives/231902305.png",
+      "kind": "NOTE",
+      "detail": {
+        "path": "/executives/231902305.png"
+      },
+      "resolution": "Portrait not referenced by any committee record. Kept (never auto-deleted); review whether it belongs to someone."
+    },
+    {
+      "entity": "media",
+      "key": "/executives/aminur.cse.png",
+      "kind": "NOTE",
+      "detail": {
+        "path": "/executives/aminur.cse.png"
+      },
+      "resolution": "Portrait not referenced by any committee record. Kept (never auto-deleted); review whether it belongs to someone."
+    },
+    {
+      "entity": "media",
+      "key": "/executives/kabir.cse.png",
+      "kind": "NOTE",
+      "detail": {
+        "path": "/executives/kabir.cse.png"
+      },
+      "resolution": "Portrait not referenced by any committee record. Kept (never auto-deleted); review whether it belongs to someone."
+    },
+    {
+      "entity": "media",
+      "key": "/executives/mahabib.cse.png",
+      "kind": "NOTE",
+      "detail": {
+        "path": "/executives/mahabib.cse.png"
+      },
+      "resolution": "Portrait not referenced by any committee record. Kept (never auto-deleted); review whether it belongs to someone."
+    },
+    {
+      "entity": "lostfound",
+      "key": "adminEmails",
+      "kind": "NOTE",
+      "detail": {
+        "accounts": 1
+      },
+      "resolution": "Hard-coded lost & found admin emails are replaced by the lostfound.moderate permission. Grant it (e.g. via a position or the Administrator role) once that person registers."
+    }
+  ],
+  "sourceMapEntries": 1099
+}

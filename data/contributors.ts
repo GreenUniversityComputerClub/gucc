@@ -3,7 +3,13 @@ export interface Contributor {
   name: string;
   avatar_url: string;
   html_url: string;
+  /** Commits. */
   contributions: number;
+  /** Lines added and deleted in authored files (when the ranking was computed from history). */
+  additions?: number;
+  deletions?: number;
+  /** Fair-ranking score, 0–100 (lib/contributors/score.ts). */
+  score?: number;
 }
 
 /**

@@ -7,8 +7,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import eventsData from "@/data/events.json";
-import { eventSlug } from "@/lib/events";
+import type { ClubEvent } from "@/lib/events";
 import { CalendarIcon, UserIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,17 +17,16 @@ export function EventCard({
   event,
   index,
 }: {
-  event: (typeof eventsData)[number];
+  event: ClubEvent;
   index: number;
 }) {
-  const slug = eventSlug(event.name);
+  const slug = event.slug;
 
   // Determine event status
   const eventDate = new Date(event.date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const isUpcoming = eventDate >= today;
-  const isPast = eventDate < today;
 
   return (
     <Card className="group overflow-hidden flex flex-col h-full transition-all duration-300 hover:shadow-lg border-border/50 hover:border-border">
@@ -36,7 +34,7 @@ export function EventCard({
       <div className="relative h-52 w-full overflow-hidden">
         <Link href={`/events/${slug}`} className="block h-full">
           <Image
-            src={`/events/${event.sl}.jpg`}
+            src={event.image}
             alt={`${event.name} — GUCC event at Green University of Bangladesh`}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"

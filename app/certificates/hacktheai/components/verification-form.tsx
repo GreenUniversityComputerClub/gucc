@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { searchParticipant, Participant } from '@/lib/certificates/hacktheai'
+import type { Participant } from '@/lib/certificates/hacktheai'
 
 export function VerificationForm() {
   const router = useRouter()
@@ -25,23 +25,10 @@ export function VerificationForm() {
     setLoading(true)
 
     try {
-      const searchResults = searchParticipant(
-        teamName.trim(),
-        email.trim()
+      // The lookup runs on the server; participant data never ships to the browser.
+      router.push(
+        `/certificates/hacktheai/verify?team=${encodeURIComponent(teamName.trim())}&email=${encodeURIComponent(email.trim())}`
       )
-
-      if (searchResults.length === 0) {
-        setError('Verification failed. Please ensure both the team name and email address are correct and match a registered participant.')
-      } else if (searchResults.length === 1) {
-        // Single result - go directly to certificate
-        const participant = searchResults[0]
-        router.push(
-          `/certificates/hacktheai/verify?team=${encodeURIComponent(participant.teamName)}&email=${encodeURIComponent(email.trim() || participant.members[0].email)}`
-        )
-      } else {
-        // Multiple results - show selection
-        setResults(searchResults)
-      }
     } catch (err) {
       setError('An error occurred while searching. Please try again.')
       console.error(err)

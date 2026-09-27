@@ -6,7 +6,9 @@ export type ContactMethod = "email" | "phone" | "in_app";
 
 export interface LostFoundPost {
   id: string;
-  user_id: string;
+  /** Never sent to the browser; ownership is expressed by is_owner. */
+  user_id?: string;
+  is_owner?: boolean;
   type: LostFoundType;
   title: string;
   category: string;
@@ -18,6 +20,8 @@ export interface LostFoundPost {
   contact_value: string | null;
   status: LostFoundStatus;
   created_at: string;
+  /** Shown to the author (and moderators) when a moderator asks for changes. */
+  reject_reason?: string | null;
 }
 
 export interface LostFoundMessage {
@@ -27,6 +31,9 @@ export interface LostFoundMessage {
   sender_email: string;
   body: string;
   created_at: string;
+  /** The conversation in Messages this message belongs to. */
+  conversation_id?: string;
+  post_title?: string;
   post?: {
     id: string;
     title: string;

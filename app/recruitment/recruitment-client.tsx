@@ -42,60 +42,24 @@ import {
   Mail,
   BookOpen,
 } from "lucide-react";
+import { Turnstile } from "@/components/turnstile";
+import { imageForm, sendUpload } from "@/lib/media/client";
+import { recruitmentUploadTokenAction } from "@/lib/media/actions";
+import type { PublicCampaign } from "@/lib/public/data";
+import { submitApplicationAction } from "./actions";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const POSITIONS = [
-  "President",
-  "Vice-President",
-  "General Secretary",
-  "Joint General Secretary",
-  "Treasurer",
-  "Organizing Secretary",
-  "Joint Organizing Secretary",
-  "Event Coordinator",
-  "Programming Secretary",
-  "Information Secretary",
-  "Joint Information Secretary",
-  "Outreach Secretary",
-  "Publication Secretary",
-  "Joint Publication Secretary",
-  "Cultural Secretary",
-  "Graphics and Multimedia Coordinators",
-  "Photography Secretary",
-  "Photo and Video Editor",
-  "Sports Secretary",
-  "Executive Members",
-] as const;
-
-const SEMESTERS = [
-  "1st",
-  "2nd",
-  "3rd",
-  "4th",
-  "5th",
-  "6th",
-  "7th",
-  "8th",
-  "Others",
-] as const;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^(?:\+?880|0)?1[3-9]\d{8}$/;
 const STUDENT_ID_REGEX = /^\d{9}$/;
 
-const MAX_CV_SIZE = 50 * 1024 * 1024;
-const MAX_PHOTO_SIZE = 50 * 1024 * 1024;
-const MAX_ID_SIZE = 50 * 1024 * 1024;
-const CLIENT_UPLOAD_TIMEOUT = 180_000;
+// PDFs are stored as they are (the API accepts up to 10 MB); photos are resized in the
+// browser before upload, so larger originals are fine.
+const MAX_CV_SIZE = 10 * 1024 * 1024;
+const MAX_PHOTO_SIZE = 40 * 1024 * 1024;
+const MAX_ID_SIZE = 40 * 1024 * 1024;
 const CLIENT_MAX_RETRIES = 4;
-
-const APPLICATION_DEADLINE = "16 March 2026 (Monday) 11:59 PM";
-
-// ─── Direct-to-GAS upload (bypasses Vercel ~4.5 MB body limit) ───────────────
-
-const GAS_UPLOAD_URL =
-  "https://script.google.com/macros/s/AKfycbx8JQnkB9Do0PZt0WADzCFuRojLB5Ze2nMOZV1hgdqAFN5H7wpoaze3YPsT1RAeeq5H/exec";
 
 type FileCategory = "cv" | "photo" | "idCard";
 
@@ -137,41 +101,6 @@ function isValidUploadType(file: File, category: FileCategory): boolean {
   return false;
 }
 
-/**
- * Read a file as base64 with real progress tracking.
- * Returns an abortable handle so cancel / unmount can stop the read.
- */
-function fileToBase64(
-  file: File,
-  onProgress?: (fraction: number) => void,
-): { promise: Promise<string>; abort: () => void } {
-  const reader = new FileReader();
-  const promise = new Promise<string>((resolve, reject) => {
-    if (onProgress) {
-      reader.onprogress = (e) => {
-        if (e.lengthComputable) onProgress(e.loaded / e.total);
-      };
-    }
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64 = result.includes(",") ? result.split(",")[1] : result;
-      resolve(base64);
-    };
-    reader.onerror = () => reject(new Error("Failed to read the file. It may be corrupted."));
-    reader.onabort = () => {
-      const err = new Error("File reading cancelled");
-      err.name = "AbortError";
-      reject(err);
-    };
-    reader.readAsDataURL(file);
-  });
-  return { promise, abort: () => reader.abort() };
-}
-
-function isRetryableGASStatus(status: number): boolean {
-  return [429, 500, 502, 503, 504].includes(status);
-}
-
 // Teal color tokens for light / dark
 const TEAL = {
   text: "text-[#006380] dark:text-[#5ec4db]",
@@ -194,6 +123,8 @@ const TEAL = {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+type Campaign = NonNullable<PublicCampaign["open"]>;
+
 interface FormData {
   fullName: string;
   studentId: string;
@@ -211,7 +142,8 @@ interface FormData {
 interface FileState {
   file: File | null;
   uploading: boolean;
-  url: string;
+  /** The uploaded file's id in the private media store. */
+  mediaId: string;
   error: string;
   progress: number;
   retryCount: number;
@@ -220,6 +152,16 @@ interface FileState {
 interface FormErrors {
   [key: string]: string;
 }
+
+// The API names some fields differently from the form.
+const SERVER_FIELD: Record<string, keyof FormData | FileCategory> = {
+  phone: "mobile",
+  completedCredit: "completedCredits",
+  positionId: "preferredPosition",
+  cvMediaId: "cv",
+  photoMediaId: "photo",
+  idCardMediaId: "idCard",
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -260,6 +202,33 @@ function sanitizeCreditsInput(value: string): string {
   // Clamp to 200
   if (digits && parseInt(digits, 10) > 200) return "200";
   return digits;
+}
+
+const DHAKA = "Asia/Dhaka";
+
+/** "16 March 2026 (Monday) 11:59 PM", in Dhaka time. */
+function formatDeadline(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const part = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-GB", { timeZone: DHAKA, ...o }).format(d);
+  const time = new Intl.DateTimeFormat("en-US", { timeZone: DHAKA, hour: "numeric", minute: "2-digit", hour12: true }).format(d);
+  return `${part({ day: "numeric", month: "long", year: "numeric" })} (${part({ weekday: "long" })}) ${time}`;
+}
+
+/** GUB's trimesters: Spring (Jan–Apr), Summer (May–Aug), Fall (Sep–Dec). */
+function semesters(iso: string | null): { current: string; previous: string } {
+  const d = iso ? new Date(iso) : new Date();
+  const [y, m] = new Intl.DateTimeFormat("en-CA", { timeZone: DHAKA, year: "numeric", month: "numeric" }).format(d).split("-").map(Number);
+  const names = ["Spring", "Summer", "Fall"];
+  const i = Math.floor((m - 1) / 4);
+  const prev = i === 0 ? { name: "Fall", year: y - 1 } : { name: names[i - 1], year: y };
+  return { current: `${names[i]}-${y}`, previous: `${prev.name}-${prev.year}` };
+}
+
+/** "Call for Executive Members: GUCC ExCom 2026-27" → "GUCC Executive Committee 2026-27". */
+function committeeName(title: string): string {
+  const years = title.match(/\d{4}\s*[-–]\s*\d{2,4}/)?.[0];
+  return years ? `GUCC Executive Committee ${years.replace(/\s/g, "")}` : "GUCC Executive Committee";
 }
 
 // ─── Animated card wrapper ───────────────────────────────────────────────────
@@ -313,9 +282,234 @@ function AnimatedCard({
   );
 }
 
+// ─── Header (banner, call text, deadline, contacts) ─────────────────────────
+
+function CallHeader({ campaign, children }: { campaign: Campaign; children?: React.ReactNode }) {
+  return (
+    <>
+      {/* ─── Banner Image ─────────────────────────────────────────── */}
+      <div className="mb-0 overflow-hidden rounded-t-xl shadow-lg">
+        <Image
+          src="/recruitment-banner.png"
+          alt={campaign.title}
+          width={1568}
+          height={400}
+          className="block w-full h-auto"
+          draggable={false}
+          priority
+          sizes="(max-width: 768px) 100vw, 720px"
+        />
+      </div>
+
+      {/* ─── Title & Description Card ────────────────────────────── */}
+      <Card className="rounded-none rounded-b-none border-t-0 shadow-sm">
+        <div className={`border-t-4 ${TEAL.border}`} />
+        <CardContent className="px-4 py-5 sm:px-6 sm:py-6">
+          <h1 className="mb-4 text-xl font-bold leading-tight text-foreground sm:text-2xl lg:text-[26px]">
+            {campaign.title}
+          </h1>
+          <div className="space-y-3 text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
+            {campaign.description ? (
+              campaign.description.split(/\n\s*\n/).map((p, i) => (
+                <p key={i} className="whitespace-pre-line">{p.trim()}</p>
+              ))
+            ) : (
+              <>
+                <p>
+                  The inception of the{" "}
+                  <strong className="text-foreground">Green University Computer Club (GUCC)</strong>{" "}
+                  dates back to October 19, 2013, marking the commencement of a
+                  dedicated journey towards upholding the honor and dignity of
+                  the{" "}
+                  <strong className="text-foreground">
+                    Department of Computer Science and Engineering (CSE)
+                  </strong>{" "}
+                  at the{" "}
+                  <strong className="text-foreground">
+                    Green University of Bangladesh (GUB)
+                  </strong>
+                  .
+                </p>
+                <p>
+                  The{" "}
+                  <strong className="text-foreground">
+                    Green University Computer Club (GUCC)
+                  </strong>
+                  , with the kind approval of the respected{" "}
+                  <strong className="text-foreground">Chairperson</strong> of the{" "}
+                  <strong className="text-foreground">Department of CSE</strong>,{" "}
+                  <strong className="text-foreground">GUB</strong>, and the
+                  honorable{" "}
+                  <strong className="text-foreground">Moderator of GUCC</strong>,
+                  is excited to announce the{" "}
+                  <strong className="text-foreground">
+                    Call for Applications
+                  </strong>{" "}
+                  for the formation of the upcoming &ldquo;
+                  <strong className="text-foreground">
+                    {committeeName(campaign.title)}
+                  </strong>
+                  &rdquo;. This is a fantastic opportunity for passionate and
+                  dedicated individuals to take on leadership roles and contribute
+                  to the growth and success of the flagship club of GUB.
+                </p>
+              </>
+            )}
+
+            <div>
+              <strong className="text-foreground">
+                Eligibility Criteria &amp; Additional Requirements:
+              </strong>
+              <br />
+              Kindly read the{" "}
+              {campaign.circularUrl && (
+                <>
+                  <strong className="text-foreground">Main Circular</strong>{" "}
+                  and the{" "}
+                </>
+              )}
+              <strong className="text-foreground">Eligibility &amp; Position Requirements</strong>{" "}
+              provided below thoroughly before proceeding with your
+              application.
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {campaign.circularUrl && (
+                <a
+                  href={campaign.circularUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition-colors ${TEAL.link} ${TEAL.deadlineBg}`}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Main Circular
+                </a>
+              )}
+              <Link
+                href="/recruitment/rules"
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition-colors ${TEAL.link} ${TEAL.deadlineBg}`}
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                Eligibility &amp; Position Requirements
+              </Link>
+            </div>
+
+            <p className="italic text-muted-foreground">
+              <strong className="text-foreground/90 dark:text-foreground/85">
+                The selection committee reserves all the rights to consider any
+                applicant ineligible for any other factors. All the information
+                collected through this form will be kept confidential and no
+                information will be shared to any third party without your
+                consent.
+              </strong>
+            </p>
+
+            {children}
+
+            <div className="space-y-1.5 text-sm">
+              <p>
+                <strong className="text-foreground">For any query inbox us: </strong>
+                <a
+                  href="https://www.facebook.com/GreenUniversityComputerClub"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`font-semibold underline underline-offset-2 ${TEAL.link}`}
+                >
+                  Green University Computer Club: GUCC (FB Page)
+                </a>
+              </p>
+              <p className="flex flex-wrap items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                <strong className="text-foreground">You can also mail us at: </strong>
+                <a
+                  href="mailto:gucc@green.edu.bd"
+                  className={`font-semibold underline underline-offset-2 ${TEAL.link}`}
+                >
+                  gucc@green.edu.bd
+                </a>
+              </p>
+              <p>
+                <strong className="text-foreground">To remain updated join: </strong>
+                <a
+                  href="https://m.facebook.com/groups/greenuniversitycomputerclub2021/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`font-semibold underline underline-offset-2 ${TEAL.link}`}
+                >
+                  Green University Computer Club: GUCC (FB Group)
+                </a>
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 border-t border-border/60 dark:border-border/50 pt-4">
+            <p className="text-xs text-muted-foreground">
+              <span className="text-red-500 dark:text-red-400">*</span> Indicates required
+              question
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+// ─── No campaign open ────────────────────────────────────────────────────────
+
+/** Shown when applications aren't open: when the next call opens, if one is scheduled. */
+export function RecruitmentClosed({ upcoming }: { upcoming: PublicCampaign["upcoming"] }) {
+  return (
+    <div className="min-h-screen bg-linear-to-b from-background to-muted/20 dark:from-background dark:to-background">
+      <div className="container mx-auto max-w-[720px] px-3 py-6 sm:px-4 sm:py-10 md:px-6">
+        <div className="mb-0 overflow-hidden rounded-t-xl shadow-lg">
+          <Image
+            src="/recruitment-banner.png"
+            alt={upcoming?.title ?? "GUCC executive recruitment"}
+            width={1568}
+            height={400}
+            className="block w-full h-auto"
+            draggable={false}
+            priority
+            sizes="(max-width: 768px) 100vw, 720px"
+          />
+        </div>
+        <Card className="rounded-none rounded-b-none border-t-0 shadow-sm">
+          <div className={`border-t-4 ${TEAL.border}`} />
+          <CardContent className="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+            <h1 className="text-xl font-bold leading-tight text-foreground sm:text-2xl lg:text-[26px]">
+              {upcoming?.title ?? "GUCC Executive Recruitment"}
+            </h1>
+            <div className={`flex items-start gap-2.5 rounded-lg border p-3.5 ${TEAL.deadlineBg}`}>
+              <Clock className={`mt-0.5 h-4 w-4 shrink-0 ${TEAL.deadlineIcon}`} />
+              <div className="text-sm">
+                {upcoming ? (
+                  <>
+                    <p className="font-semibold text-foreground">Applications open {formatDeadline(upcoming.opensAt)}.</p>
+                    <p className="text-muted-foreground">Deadline: {formatDeadline(upcoming.closesAt)}. Come back then to apply.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-semibold text-foreground">Recruitment is closed right now.</p>
+                    <p className="text-muted-foreground">A new session opens every year; calls are announced here and on our Facebook page.</p>
+                  </>
+                )}
+              </div>
+            </div>
+            <p className="flex flex-wrap items-center gap-1.5 text-sm">
+              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+              <strong className="text-foreground">Questions? Mail us at: </strong>
+              <a href="mailto:gucc@green.edu.bd" className={`font-semibold underline underline-offset-2 ${TEAL.link}`}>gucc@green.edu.bd</a>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function RecruitmentClient() {
+export function RecruitmentForm({ campaign, semesters: semesterOptions, genders }: { campaign: Campaign; semesters: readonly string[]; genders: readonly string[] }) {
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     studentId: "",
@@ -333,7 +527,7 @@ export function RecruitmentClient() {
   const initialFileState: FileState = {
     file: null,
     uploading: false,
-    url: "",
+    mediaId: "",
     error: "",
     progress: 0,
     retryCount: 0,
@@ -349,21 +543,22 @@ export function RecruitmentClient() {
   const [submitError, setSubmitError] = useState("");
   const [isOnline, setIsOnline] = useState(true);
   const [dragType, setDragType] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const onTurnstile = useCallback((t: string | null) => setTurnstileToken(t), []);
 
   const cvInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const idCardInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const uploadAbortRefs = useRef<Record<string, { abort: () => void } | null>>({
+  const uploadAbortRefs = useRef<Record<string, AbortController | null>>({
     cv: null,
     photo: null,
     idCard: null,
   });
-  const progressTimerRefs = useRef<Record<string, ReturnType<typeof setInterval> | null>>({
-    cv: null,
-    photo: null,
-    idCard: null,
-  });
+  // One upload capability per visit (an hour long), refreshed when it gets old.
+  const uploadSession = useRef<{ token: string; url: string; at: number } | null>(null);
+
+  const period = semesters(campaign.opensAt);
 
   // ─── Online / offline detection ──────────────────────────────────────────
 
@@ -380,13 +575,11 @@ export function RecruitmentClient() {
   }, []);
 
   useEffect(() => {
+    const uploads = uploadAbortRefs.current;
     return () => {
       // Abort any in-flight uploads when component unmounts
-      Object.values(uploadAbortRefs.current).forEach((handle) => {
+      Object.values(uploads).forEach((handle) => {
         if (handle) handle.abort();
-      });
-      Object.values(progressTimerRefs.current).forEach((timer) => {
-        if (timer) clearInterval(timer);
       });
     };
   }, []);
@@ -449,6 +642,11 @@ export function RecruitmentClient() {
     []
   );
 
+  const scrollToField = (key: string) => {
+    const el = document.getElementById(key) || document.querySelector(`[data-field="${key}"]`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   const validateAll = useCallback((): boolean => {
     const newErrors: FormErrors = {};
     const requiredFields: (keyof FormData)[] = [
@@ -474,24 +672,16 @@ export function RecruitmentClient() {
       if (error) newErrors[key] = error;
     }
 
-    if (!cv.url) newErrors.cv = "CV upload is required";
-    if (!photo.url) newErrors.photo = "Photo upload is required";
-    if (!idCard.url) newErrors.idCard = "Student ID card image is required";
+    if (!cv.mediaId) newErrors.cv = "CV upload is required";
+    if (!photo.mediaId) newErrors.photo = "Photo upload is required";
+    if (!idCard.mediaId) newErrors.idCard = "Student ID card image is required";
 
     setErrors(newErrors);
 
-    if (Object.keys(newErrors).length > 0) {
-      const firstErrorKey = Object.keys(newErrors)[0];
-      const el =
-        document.getElementById(firstErrorKey) ||
-        document.querySelector(`[data-field="${firstErrorKey}"]`);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }
+    if (Object.keys(newErrors).length > 0) scrollToField(Object.keys(newErrors)[0]);
 
     return Object.keys(newErrors).length === 0;
-  }, [formData, cv.url, photo.url, idCard.url, validateField]);
+  }, [formData, cv.mediaId, photo.mediaId, idCard.mediaId, validateField]);
 
   // ─── Field handlers ──────────────────────────────────────────────────────
 
@@ -520,43 +710,19 @@ export function RecruitmentClient() {
     });
   };
 
-  // ─── File upload (direct to Google Apps Script — no Vercel size limit) ──
+  // ─── File upload (straight to the API's private storage) ──────────────
   //
   //  Progress phases:
-  //    0 →  8 %  FileReader reads file to base64 (real onprogress)
-  //   10 → 95 %  fetch() uploads to GAS (smooth asymptotic estimate,
-  //              scales with file size, never stops moving)
-  //       100 %  Done (response received)
+  //    0 → 10 %  Preparing (photos are resized and stripped of metadata in the browser)
+  //   10 → 99 %  Uploading (real progress)
+  //       100 %  Done
 
-  /** Start a smooth asymptotic progress animation scaled by file size. */
-  const startUploadProgress = (
-    type: string,
-    fileSize: number,
-    setter: React.Dispatch<React.SetStateAction<FileState>>,
-  ) => {
-    if (progressTimerRefs.current[type]) clearInterval(progressTimerRefs.current[type]!);
-    const startTime = Date.now();
-    // Estimate how long upload + GAS processing takes (base64 ≈ 1.37× raw size)
-    // Assume ~300 KB/s effective throughput to GAS (conservative)
-    const estimatedMs = Math.max(4000, (fileSize * 1.37) / (300 * 1024) * 1000);
-
-    progressTimerRefs.current[type] = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      // Asymptotic curve: fast start, slows down, never reaches 95%
-      // progress = 10 + 85 × (1 − e^(−elapsed / τ))  where τ scales with file size
-      const fraction = 1 - Math.exp((-elapsed * 1.5) / estimatedMs);
-      const pct = Math.min(95, 10 + Math.round(fraction * 85));
-      setter((prev) =>
-        prev.uploading ? { ...prev, progress: pct } : prev
-      );
-    }, 300);
-  };
-
-  const stopUploadProgress = (type: string) => {
-    if (progressTimerRefs.current[type]) {
-      clearInterval(progressTimerRefs.current[type]!);
-      progressTimerRefs.current[type] = null;
-    }
+  const getUploadSession = async () => {
+    if (uploadSession.current && Date.now() - uploadSession.current.at < 50 * 60_000) return uploadSession.current;
+    const r = await recruitmentUploadTokenAction(campaign.id);
+    if (!r.ok || !r.data) throw new Error(r.ok ? "Could not start the upload. Please try again." : r.error);
+    uploadSession.current = { ...r.data, at: Date.now() };
+    return uploadSession.current;
   };
 
   const uploadFile = async (
@@ -587,10 +753,16 @@ export function RecruitmentClient() {
     }
 
     // ── Begin upload ──────────────────────────────────────────────────────
+    const controller = new AbortController();
+    uploadAbortRefs.current[type]?.abort();
+    uploadAbortRefs.current[type] = controller;
+    const cancelled = () => controller.signal.aborted;
+
     setter((prev) => ({
       ...prev,
       file,
       uploading: true,
+      mediaId: "",
       error: "",
       progress: 1,
       retryCount: 0,
@@ -602,257 +774,102 @@ export function RecruitmentClient() {
       return copy;
     });
 
-    // ── Phase 1: Convert to base64 with real progress (0→8%) ─────────────
-    let base64: string;
-    const readerHandle = fileToBase64(file, (fraction) => {
-      setter((prev) =>
-        prev.uploading ? { ...prev, progress: Math.max(1, Math.round(fraction * 8)) } : prev
-      );
-    });
-    uploadAbortRefs.current[type] = readerHandle;
-
+    // ── Phase 1: prepare the upload (0→10%) ──────────────────────────────
+    let body: globalThis.FormData;
     try {
-      base64 = await readerHandle.promise;
+      if (type === "cv") {
+        body = new globalThis.FormData();
+        body.append("file_master", file, file.name);
+        body.append("filename", file.name);
+      } else {
+        body = await imageForm(file, {}, "document");
+      }
     } catch (err) {
-      if (!uploadAbortRefs.current[type]) return; // user cancelled
-      if ((err as Error).name === "AbortError") return;
+      if (cancelled()) return;
       setter((prev) => ({
         ...prev,
         uploading: false,
-        error: "Failed to read the file. It may be corrupted — please try a different file.",
+        error: err instanceof Error && err.message ? err.message : "Failed to read the file. It may be corrupted — please try a different file.",
         progress: 0,
       }));
       return;
     }
-
-    // Cancelled during read?
-    if (!uploadAbortRefs.current[type]) return;
-
-    setter((prev) => (prev.uploading ? { ...prev, progress: 9 } : prev));
-
-    // Resolve MIME to send to GAS (browser may leave it blank)
-    const ext = getFileExtension(file.name);
-    const resolvedMime =
-      file.type ||
-      (type === "cv"
-        ? "application/pdf"
-        : `image/${ext === "png" ? "png" : ext === "webp" ? "webp" : "jpeg"}`);
-
-    const payload = JSON.stringify({
-      file: base64,
-      fileName: file.name,
-      fileType: resolvedMime,
-      type, // "cv" | "photo" | "idCard"
-    });
-
+    if (cancelled()) return;
     setter((prev) => (prev.uploading ? { ...prev, progress: 10 } : prev));
 
-    // ── Phase 2: Upload via fetch with smooth estimated progress (10→95%) ──
+    // ── Phase 2: upload with real progress (10→99%), retrying network failures ──
     for (let attempt = 0; attempt < CLIENT_MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        setter((prev) => ({ ...prev, progress: 10, retryCount: attempt }));
+        await new Promise((r) => setTimeout(r, 1500 * Math.pow(2, attempt - 1)));
+        if (cancelled()) return;
+      }
+
+      let session: { token: string; url: string };
       try {
-        if (attempt > 0) {
-          setter((prev) => ({ ...prev, progress: 10, retryCount: attempt }));
-          const delay = 1500 * Math.pow(2, attempt - 1);
-          await new Promise((r) => setTimeout(r, delay));
-          if (!uploadAbortRefs.current[type]) return; // cancelled during delay
-        }
+        session = await getUploadSession();
+      } catch (err) {
+        if (cancelled()) return;
+        setter((prev) => ({ ...prev, uploading: false, error: err instanceof Error ? err.message : "Could not start the upload.", progress: 0, retryCount: 0 }));
+        return;
+      }
 
-        const controller = new AbortController();
-        uploadAbortRefs.current[type] = controller;
-        const timeoutId = setTimeout(
-          () => controller.abort(),
-          CLIENT_UPLOAD_TIMEOUT,
-        );
+      const res = await sendUpload(
+        session.url,
+        session.token,
+        body,
+        (fraction) => setter((prev) => (prev.uploading ? { ...prev, progress: Math.min(99, 10 + Math.round(fraction * 89)) } : prev)),
+        controller.signal,
+      );
+      if (cancelled()) return;
 
-        // Start smooth progress animation (scales with file size, never stops)
-        startUploadProgress(type, file.size, setter);
-
-        // POST directly to Google Apps Script (simple request, no CORS preflight)
-        const response = await fetch(GAS_UPLOAD_URL, {
-          method: "POST",
-          body: payload,
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-        stopUploadProgress(type);
-
-        // Cancelled during fetch?
-        if (!uploadAbortRefs.current[type]) return;
-
-        setter((prev) => (prev.uploading ? { ...prev, progress: 96 } : prev));
-
-        // ── Parse response ────────────────────────────────────────────────
-        let responseText: string;
-        try {
-          responseText = await response.text();
-        } catch {
-          if (!uploadAbortRefs.current[type]) return;
-          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
-          setter((prev) => ({
-            ...prev,
-            uploading: false,
-            error: "Failed to read upload service response. Please try again.",
-            progress: 0,
-            retryCount: 0,
-          }));
-          return;
-        }
-
-        // GAS may return an HTML error page on transient failures
-        const trimmed = responseText.trimStart().toLowerCase();
-        if (trimmed.startsWith("<!doctype") || trimmed.startsWith("<html")) {
-          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
-          setter((prev) => ({
-            ...prev,
-            uploading: false,
-            error: "Upload service is temporarily unavailable. Please wait a moment and try again.",
-            progress: 0,
-            retryCount: 0,
-          }));
-          return;
-        }
-
-        if (!responseText.trim()) {
-          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
-          setter((prev) => ({
-            ...prev,
-            uploading: false,
-            error: "Upload service returned an empty response. Please try again.",
-            progress: 0,
-            retryCount: 0,
-          }));
-          return;
-        }
-
-        setter((prev) => (prev.uploading ? { ...prev, progress: 97 } : prev));
-
-        let result: Record<string, unknown>;
-        try {
-          result = JSON.parse(responseText);
-        } catch {
-          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
-          setter((prev) => ({
-            ...prev,
-            uploading: false,
-            error: "Invalid response from upload service. Please try again.",
-            progress: 0,
-            retryCount: 0,
-          }));
-          return;
-        }
-
-        // ── Handle explicit GAS errors ────────────────────────────────────
-        if (result.success === false || result.error) {
-          const msg = String(result.message || result.error || "Upload failed");
-          setter((prev) => ({
-            ...prev,
-            uploading: false,
-            error: msg,
-            progress: 0,
-            retryCount: 0,
-          }));
-          return;
-        }
-
-        // ── Non-OK HTTP status (retryable?) ───────────────────────────────
-        if (!response.ok) {
-          if (isRetryableGASStatus(response.status) && attempt < CLIENT_MAX_RETRIES - 1) continue;
-          setter((prev) => ({
-            ...prev,
-            uploading: false,
-            error: "Upload failed after multiple attempts. Please try again.",
-            progress: 0,
-            retryCount: 0,
-          }));
-          return;
-        }
-
-        // ── Extract file URL ──────────────────────────────────────────────
-        const fileUrl = (
-          result.url || result.fileUrl || result.link || result.fileLink
-        ) as string | undefined;
-
-        if (!fileUrl) {
-          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
-          setter((prev) => ({
-            ...prev,
-            uploading: false,
-            error: "Upload completed but the file URL was not returned. Please try again.",
-            progress: 0,
-            retryCount: 0,
-          }));
-          return;
-        }
-
-        // ── Success !
+      if (res.ok) {
         setter((prev) => ({
           ...prev,
           uploading: false,
-          url: fileUrl,
+          mediaId: res.id,
           error: "",
           progress: 100,
           retryCount: 0,
         }));
         return;
-      } catch (err: unknown) {
-        stopUploadProgress(type);
-        // If user cancelled (clearFile already reset state), stop silently
-        if (!uploadAbortRefs.current[type]) return;
-
-        const errName = err instanceof Error ? err.name : "";
-
-        if (errName === "AbortError") {
-          if (attempt < CLIENT_MAX_RETRIES - 1) continue;
-          setter((prev) => ({
-            ...prev,
-            uploading: false,
-            error: "Upload timed out after multiple attempts. Please check your connection and try again.",
-            progress: 0,
-            retryCount: 0,
-          }));
-          return;
-        }
-
-        if (attempt < CLIENT_MAX_RETRIES - 1) continue;
-
-        setter((prev) => ({
-          ...prev,
-          uploading: false,
-          error: !navigator.onLine
-            ? "You are offline. Connect to the internet and try again."
-            : "Upload failed due to network issues. Please try again.",
-          progress: 0,
-          retryCount: 0,
-        }));
-        return;
       }
+      if (res.retryable && attempt < CLIENT_MAX_RETRIES - 1) continue;
+
+      setter((prev) => ({
+        ...prev,
+        uploading: false,
+        error: !navigator.onLine ? "You are offline. Connect to the internet and try again." : res.error,
+        progress: 0,
+        retryCount: 0,
+      }));
+      return;
     }
   };
 
   const handleFileSelect = (
     file: File,
-    type: "cv" | "photo" | "idCard",
+    type: FileCategory,
     setter: React.Dispatch<React.SetStateAction<FileState>>,
     maxSize: number,
   ) => {
     // Use the robust MIME + extension validation (handles empty/unknown MIME on mobile)
     if (!isValidUploadType(file, type)) {
       const exts = ACCEPTED_EXTENSIONS[type].map((e) => `.${e}`).join(", ");
-      setter((prev) => ({ ...prev, error: `Invalid file format. Accepted: ${exts}`, url: "", file: null }));
+      setter((prev) => ({ ...prev, error: `Invalid file format. Accepted: ${exts}`, mediaId: "", file: null }));
       return;
     }
     if (file.size > maxSize) {
       setter((prev) => ({
         ...prev,
         error: `File too large (${formatFileSize(file.size)}). Max ${formatFileSize(maxSize)}`,
-        url: "",
+        mediaId: "",
         file: null,
       }));
       return;
     }
     if (file.size === 0) {
-      setter((prev) => ({ ...prev, error: "File is empty. Please select a valid file.", url: "", file: null }));
+      setter((prev) => ({ ...prev, error: "File is empty. Please select a valid file.", mediaId: "", file: null }));
       return;
     }
     uploadFile(file, type, setter);
@@ -876,7 +893,7 @@ export function RecruitmentClient() {
     handleFileSelect(file, "idCard", setIdCard, MAX_ID_SIZE);
   };
 
-  const retryUpload = (type: "cv" | "photo" | "idCard") => {
+  const retryUpload = (type: FileCategory) => {
     const stateMap = { cv, photo, idCard };
     const setterMap = { cv: setCv, photo: setPhoto, idCard: setIdCard };
     const state = stateMap[type];
@@ -884,13 +901,10 @@ export function RecruitmentClient() {
     if (state.file) uploadFile(state.file, type, setter);
   };
 
-  const clearFile = (type: "cv" | "photo" | "idCard") => {
-    stopUploadProgress(type);
-    // Abort any in-flight upload (FileReader or fetch) for this type
-    if (uploadAbortRefs.current[type]) {
-      uploadAbortRefs.current[type]!.abort();
-      uploadAbortRefs.current[type] = null;
-    }
+  const clearFile = (type: FileCategory) => {
+    // Abort any in-flight upload for this type
+    uploadAbortRefs.current[type]?.abort();
+    uploadAbortRefs.current[type] = null;
     const refMap = { cv: cvInputRef, photo: photoInputRef, idCard: idCardInputRef };
     const setterMap = { cv: setCv, photo: setPhoto, idCard: setIdCard };
     setterMap[type]({ ...initialFileState });
@@ -902,7 +916,7 @@ export function RecruitmentClient() {
 
   const handleDrop = (
     e: React.DragEvent<HTMLDivElement>,
-    type: "cv" | "photo" | "idCard",
+    type: FileCategory,
     setter: React.Dispatch<React.SetStateAction<FileState>>,
     maxSize: number,
   ) => {
@@ -947,11 +961,8 @@ export function RecruitmentClient() {
     });
     // Abort any in-flight uploads
     (["cv", "photo", "idCard"] as const).forEach((type) => {
-      stopUploadProgress(type);
-      if (uploadAbortRefs.current[type]) {
-        uploadAbortRefs.current[type]!.abort();
-        uploadAbortRefs.current[type] = null;
-      }
+      uploadAbortRefs.current[type]?.abort();
+      uploadAbortRefs.current[type] = null;
     });
     setCv(initialFileState);
     setPhoto(initialFileState);
@@ -987,54 +998,41 @@ export function RecruitmentClient() {
     submittingRef.current = true;
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60_000);
-
-      const response = await fetch("/api/recruitment/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.fullName.trim(),
-          studentId: formData.studentId.trim(),
-          email: formData.email.trim().toLowerCase(),
-          phone: formData.mobile.trim(),
-          gender: formData.gender,
-          semester: formData.semester,
-          batch: formData.batch.trim(),
-          cgpa: formData.cgpa.trim(),
-          completedCredit: formData.completedCredits.trim(),
-          positions: formData.preferredPosition,
-          clubWork: formData.clubWork.trim(),
-          cvUrl: cv.url,
-          photoUrl: photo.url,
-          idCardUrl: idCard.url,
-        }),
-        signal: controller.signal,
+      const session = await getUploadSession();
+      const result = await submitApplicationAction({
+        campaignId: campaign.id,
+        fullName: formData.fullName.trim(),
+        studentId: formData.studentId.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.mobile.trim(),
+        gender: formData.gender,
+        semester: formData.semester,
+        batch: formData.batch.trim(),
+        cgpa: formData.cgpa.trim(),
+        completedCredit: formData.completedCredits.trim(),
+        positionId: formData.preferredPosition,
+        clubWork: formData.clubWork.trim() || undefined,
+        cvMediaId: cv.mediaId,
+        photoMediaId: photo.mediaId,
+        idCardMediaId: idCard.mediaId,
+        uploadToken: session.token,
+        turnstileToken: turnstileToken ?? undefined,
       });
 
-      clearTimeout(timeoutId);
-
-      let result: { error?: string; success?: boolean };
-      try {
-        result = await response.json();
-      } catch {
-        setSubmitError("Received an invalid response from the server. Please try again.");
-        setSubmitting(false);
-        return;
-      }
-
-      if (!response.ok) {
+      if (!result.ok) {
+        const fieldErrors: FormErrors = {};
+        for (const [k, msg] of Object.entries(result.fields ?? {})) fieldErrors[SERVER_FIELD[k] ?? k] = msg;
+        if (Object.keys(fieldErrors).length > 0) {
+          setErrors((prev) => ({ ...prev, ...fieldErrors }));
+          scrollToField(Object.keys(fieldErrors)[0]);
+        }
         setSubmitError(result.error || "Submission failed. Please try again.");
-        setSubmitting(false);
         return;
       }
 
       setShowSuccess(true);
-    } catch (err: unknown) {
-      const errName = err instanceof Error ? err.name : "";
-      if (errName === "AbortError") {
-        setSubmitError("Submission timed out. Please try again.");
-      } else if (!navigator.onLine) {
+    } catch {
+      if (!navigator.onLine) {
         setSubmitError(
           "You are offline. Please connect to the internet and try again."
         );
@@ -1057,7 +1055,7 @@ export function RecruitmentClient() {
 
   // ─── File upload UI ─────────────────────────────────────────────────────
 
-  const FileUploadBox = ({
+  const renderFileUploadBox = ({
     type,
     state,
     inputRef,
@@ -1069,7 +1067,7 @@ export function RecruitmentClient() {
     maxSize,
     required = true,
   }: {
-    type: "cv" | "photo" | "idCard";
+    type: FileCategory;
     state: FileState;
     inputRef: React.RefObject<HTMLInputElement | null>;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -1098,7 +1096,7 @@ export function RecruitmentClient() {
           className={`relative min-h-[140px] rounded-xl border-2 border-dashed p-4 text-center transition-all duration-200 ease-out sm:p-6 ${
             isDragging
               ? `${TEAL.border} ${TEAL.bgSubtle} scale-[1.01]`
-              : state.url
+              : state.mediaId
                 ? "border-emerald-500/50 bg-emerald-500/5 dark:border-emerald-400/35 dark:bg-emerald-400/8"
                 : state.error || errors[type]
                   ? "border-red-500/50 bg-red-500/5 dark:border-red-400/35 dark:bg-red-400/8"
@@ -1112,6 +1110,7 @@ export function RecruitmentClient() {
             onChange={onChange}
             className="hidden"
             disabled={state.uploading}
+            aria-label={label || FILE_LABELS[type]}
           />
 
           {state.uploading ? (
@@ -1157,7 +1156,7 @@ export function RecruitmentClient() {
                 Cancel
               </Button>
             </div>
-          ) : state.url ? (
+          ) : state.mediaId ? (
             <div className="flex flex-col items-center justify-center space-y-2 py-2 animate-in fade-in-0 zoom-in-95 duration-300">
               <CheckCircle2 className="h-8 w-8 text-emerald-500 dark:text-emerald-400 sm:h-10 sm:w-10" />
               <p className="max-w-full truncate text-sm font-medium text-emerald-600 dark:text-emerald-400">
@@ -1220,7 +1219,7 @@ export function RecruitmentClient() {
 
   // ─── Error helper ─────────────────────────────────────────────────────
 
-  const FieldError = ({ field }: { field: string }) =>
+  const fieldError = (field: string) =>
     errors[field] ? (
       <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400 sm:text-sm animate-in fade-in-0 slide-in-from-top-1 duration-200">
         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
@@ -1245,160 +1244,16 @@ export function RecruitmentClient() {
       )}
 
       <div className="container mx-auto max-w-[720px] px-3 py-6 sm:px-4 sm:py-10 md:px-6">
-        {/* ─── Banner Image ─────────────────────────────────────────── */}
-        <div className="mb-0 overflow-hidden rounded-t-xl shadow-lg">
-          <Image
-            src="/recruitment-banner.png"
-            alt="Call for Executive Members: GUCC ExCom 2026-27"
-            width={1568}
-            height={400}
-            className="block w-full h-auto"
-            draggable={false}
-            priority
-            sizes="(max-width: 768px) 100vw, 720px"
-          />
-        </div>
-
-        {/* ─── Title & Description Card ────────────────────────────── */}
-        <Card className="rounded-none rounded-b-none border-t-0 shadow-sm">
-          <div className={`border-t-4 ${TEAL.border}`} />
-          <CardContent className="px-4 py-5 sm:px-6 sm:py-6">
-            <h1 className="mb-4 text-xl font-bold leading-tight text-foreground sm:text-2xl lg:text-[26px]">
-              Call for Executive Members: GUCC ExCom 2026-27
-            </h1>
-            <div className="space-y-3 text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
-              <p>
-                The inception of the{" "}
-                <strong className="text-foreground">Green University Computer Club (GUCC)</strong>{" "}
-                dates back to October 19, 2013, marking the commencement of a
-                dedicated journey towards upholding the honor and dignity of
-                the{" "}
-                <strong className="text-foreground">
-                  Department of Computer Science and Engineering (CSE)
-                </strong>{" "}
-                at the{" "}
-                <strong className="text-foreground">
-                  Green University of Bangladesh (GUB)
-                </strong>
-                .
-              </p>
-              <p>
-                The{" "}
-                <strong className="text-foreground">
-                  Green University Computer Club (GUCC)
-                </strong>
-                , with the kind approval of the respected{" "}
-                <strong className="text-foreground">Chairperson</strong> of the{" "}
-                <strong className="text-foreground">Department of CSE</strong>,{" "}
-                <strong className="text-foreground">GUB</strong>, and the
-                honorable{" "}
-                <strong className="text-foreground">Moderator of GUCC</strong>,
-                is excited to announce the{" "}
-                <strong className="text-foreground">
-                  Call for Applications
-                </strong>{" "}
-                for the formation of the upcoming &ldquo;
-                <strong className="text-foreground">
-                  GUCC Executive Committee 2026-27
-                </strong>
-                &rdquo;. This is a fantastic opportunity for passionate and
-                dedicated individuals to take on leadership roles and contribute
-                to the growth and success of the flagship club of GUB.
-              </p>
-
-              <div>
-                <strong className="text-foreground">
-                  Eligibility Criteria &amp; Additional Requirements:
-                </strong>
-                <br />
-                Kindly read the{" "}
-                <strong className="text-foreground">Main Circular</strong>{" "}
-                and the{" "}
-                <strong className="text-foreground">Eligibility &amp; Position Requirements</strong>{" "}
-                provided below thoroughly before proceeding with your
-                application.
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <a
-                  href="https://drive.google.com/file/d/1VJZBZSLUVl7FFsYLDYZuW1aCPaLAWN2h/view?usp=sharing"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition-colors ${TEAL.link} ${TEAL.deadlineBg}`}
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Main Circular
-                </a>
-                <Link
-                  href="/recruitment/rules"
-                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition-colors ${TEAL.link} ${TEAL.deadlineBg}`}
-                >
-                  <BookOpen className="h-3.5 w-3.5" />
-                  Eligibility &amp; Position Requirements
-                </Link>
-              </div>
-
-              <p className="italic text-muted-foreground">
-                <strong className="text-foreground/90 dark:text-foreground/85">
-                  The selection committee reserves all the rights to consider any
-                  applicant ineligible for any other factors. All the information
-                  collected through this form will be kept confidential and no
-                  information will be shared to any third party without your
-                  consent.
-                </strong>
-              </p>
-
-              <div className={`flex items-center gap-2.5 rounded-lg border p-3.5 ${TEAL.deadlineBg}`}>
-                <Clock className={`h-4 w-4 shrink-0 ${TEAL.deadlineIcon}`} />
-                <p className="text-sm font-semibold text-foreground">
-                  Application Deadline (Extended): {APPLICATION_DEADLINE}
-                </p>
-              </div>
-
-              <div className="space-y-1.5 text-sm">
-                <p>
-                  <strong className="text-foreground">For any query inbox us: </strong>
-                  <a
-                    href="https://www.facebook.com/GreenUniversityComputerClub"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`font-semibold underline underline-offset-2 ${TEAL.link}`}
-                  >
-                    Green University Computer Club: GUCC (FB Page)
-                  </a>
-                </p>
-                <p className="flex flex-wrap items-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                  <strong className="text-foreground">You can also mail us at: </strong>
-                  <a
-                    href="mailto:gucc@green.edu.bd"
-                    className={`font-semibold underline underline-offset-2 ${TEAL.link}`}
-                  >
-                    gucc@green.edu.bd
-                  </a>
-                </p>
-                <p>
-                  <strong className="text-foreground">To remain updated join: </strong>
-                  <a
-                    href="https://m.facebook.com/groups/greenuniversitycomputerclub2021/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`font-semibold underline underline-offset-2 ${TEAL.link}`}
-                  >
-                    Green University Computer Club: GUCC (FB Group)
-                  </a>
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 border-t border-border/60 dark:border-border/50 pt-4">
-              <p className="text-xs text-muted-foreground">
-                <span className="text-red-500 dark:text-red-400">*</span> Indicates required
-                question
+        <CallHeader campaign={campaign}>
+          {campaign.closesAt && (
+            <div className={`flex items-center gap-2.5 rounded-lg border p-3.5 ${TEAL.deadlineBg}`}>
+              <Clock className={`h-4 w-4 shrink-0 ${TEAL.deadlineIcon}`} />
+              <p className="text-sm font-semibold text-foreground">
+                Application Deadline: {formatDeadline(campaign.closesAt)}
               </p>
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </CallHeader>
 
         {/* ─── Form ─────────────────────────────────────────────────── */}
         <form
@@ -1424,7 +1279,7 @@ export function RecruitmentClient() {
                   autoComplete="name"
                   className={inputClass}
                 />
-                <FieldError field="fullName" />
+                {fieldError("fullName")}
               </div>
             </CardContent>
           </AnimatedCard>
@@ -1465,7 +1320,7 @@ export function RecruitmentClient() {
                     {studentIdCount}/9
                   </p>
                 </div>
-                <FieldError field="studentId" />
+                {fieldError("studentId")}
               </div>
             </CardContent>
           </AnimatedCard>
@@ -1489,7 +1344,7 @@ export function RecruitmentClient() {
                   autoComplete="email"
                   className={inputClass}
                 />
-                <FieldError field="email" />
+                {fieldError("email")}
               </div>
             </CardContent>
           </AnimatedCard>
@@ -1513,7 +1368,7 @@ export function RecruitmentClient() {
                   autoComplete="tel"
                   className={inputClass}
                 />
-                <FieldError field="mobile" />
+                {fieldError("mobile")}
               </div>
             </CardContent>
           </AnimatedCard>
@@ -1526,7 +1381,7 @@ export function RecruitmentClient() {
                   Gender <span className="text-red-500 dark:text-red-400">*</span>
                 </Label>
                 <div className="space-y-2.5">
-                  {["Male", "Female"].map((option) => (
+                  {genders.map((option) => (
                     <label
                       key={option}
                       className="flex cursor-pointer items-center gap-3 group rounded-lg px-2 py-1.5 -mx-2 transition-colors hover:bg-muted/50"
@@ -1549,7 +1404,7 @@ export function RecruitmentClient() {
                     </label>
                   ))}
                 </div>
-                <FieldError field="gender" />
+                {fieldError("gender")}
               </div>
             </CardContent>
           </AnimatedCard>
@@ -1558,21 +1413,22 @@ export function RecruitmentClient() {
           <AnimatedCard index={5} hasError={!!errors.semester}>
             <CardContent className="px-4 py-5 sm:px-6 sm:py-6">
               <div className="space-y-1.5" id="semester" data-field="semester">
-                <Label className="text-sm font-medium text-foreground">
-                  Current Semester (Spring-2026) <span className="text-red-500 dark:text-red-400">*</span>
+                <Label htmlFor="semester-input" className="text-sm font-medium text-foreground">
+                  Current Semester ({period.current}) <span className="text-red-500 dark:text-red-400">*</span>
                 </Label>
                 <Select
                   value={formData.semester}
                   onValueChange={(val) => handleInputChange("semester", val)}
                 >
                   <SelectTrigger
+                    id="semester-input"
                     aria-invalid={!!errors.semester}
                     className={selectTriggerClass}
                   >
                     <SelectValue placeholder="Choose" />
                   </SelectTrigger>
                   <SelectContent>
-                    {SEMESTERS.map((sem) => (
+                    {semesterOptions.map((sem) => (
                       <SelectItem
                         key={sem}
                         value={sem}
@@ -1583,7 +1439,7 @@ export function RecruitmentClient() {
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldError field="semester" />
+                {fieldError("semester")}
               </div>
             </CardContent>
           </AnimatedCard>
@@ -1602,9 +1458,10 @@ export function RecruitmentClient() {
                   onChange={(e) => handleInputChange("batch", e.target.value)}
                   onBlur={() => handleBlur("batch")}
                   aria-invalid={!!errors.batch}
+                  maxLength={20}
                   className={inputClass}
                 />
-                <FieldError field="batch" />
+                {fieldError("batch")}
               </div>
             </CardContent>
           </AnimatedCard>
@@ -1614,7 +1471,7 @@ export function RecruitmentClient() {
             <CardContent className="px-4 py-5 sm:px-6 sm:py-6">
               <div className="space-y-1.5" id="cgpa">
                 <Label htmlFor="cgpa-input" className="text-sm font-medium text-foreground">
-                  Current CGPA (Till Fall-2025 Semester){" "}
+                  Current CGPA (Till {period.previous} Semester){" "}
                   <span className="text-red-500 dark:text-red-400">*</span>
                 </Label>
                 <Input
@@ -1629,7 +1486,7 @@ export function RecruitmentClient() {
                   autoComplete="off"
                   className={inputClass}
                 />
-                <FieldError field="cgpa" />
+                {fieldError("cgpa")}
               </div>
             </CardContent>
           </AnimatedCard>
@@ -1642,7 +1499,7 @@ export function RecruitmentClient() {
                   htmlFor="completedCredits-input"
                   className="text-sm font-medium text-foreground"
                 >
-                  Completed Credits (Till Fall-2025 Semester){" "}
+                  Completed Credits (Till {period.previous} Semester){" "}
                   <span className="text-red-500 dark:text-red-400">*</span>
                 </Label>
                 <Input
@@ -1659,7 +1516,7 @@ export function RecruitmentClient() {
                   autoComplete="off"
                   className={inputClass}
                 />
-                <FieldError field="completedCredits" />
+                {fieldError("completedCredits")}
               </div>
             </CardContent>
           </AnimatedCard>
@@ -1672,7 +1529,7 @@ export function RecruitmentClient() {
                 id="preferredPosition"
                 data-field="preferredPosition"
               >
-                <Label className="text-sm font-medium text-foreground">
+                <Label htmlFor="preferredPosition-input" className="text-sm font-medium text-foreground">
                   Your Preferred Position (Only One){" "}
                   <span className="text-red-500 dark:text-red-400">*</span>
                 </Label>
@@ -1683,24 +1540,25 @@ export function RecruitmentClient() {
                   }
                 >
                   <SelectTrigger
+                    id="preferredPosition-input"
                     aria-invalid={!!errors.preferredPosition}
                     className={selectTriggerClass}
                   >
                     <SelectValue placeholder="Choose" />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
-                    {POSITIONS.map((pos) => (
+                    {campaign.positions.map((pos) => (
                       <SelectItem
-                        key={pos}
-                        value={pos}
+                        key={pos.id}
+                        value={pos.id}
                         className="text-base sm:text-sm"
                       >
-                        {pos}
+                        {pos.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldError field="preferredPosition" />
+                {fieldError("preferredPosition")}
               </div>
             </CardContent>
           </AnimatedCard>
@@ -1727,6 +1585,7 @@ export function RecruitmentClient() {
                     handleInputChange("clubWork", e.target.value)
                   }
                   rows={3}
+                  maxLength={3000}
                   className={`min-h-20 rounded-none border-0 border-b-2 border-muted-foreground/30 dark:border-muted-foreground/20 bg-transparent px-0 text-base shadow-none transition-colors duration-200 resize-none ${TEAL.focusBorder} focus-visible:ring-0 sm:text-sm`}
                 />
               </div>
@@ -1736,34 +1595,34 @@ export function RecruitmentClient() {
           {/* ── Section 12: CV Upload ─────────────────────────────── */}
           <AnimatedCard index={11} hasError={!!errors.cv}>
             <CardContent className="px-4 py-5 sm:px-6 sm:py-6">
-              <FileUploadBox
-                type="cv"
-                state={cv}
-                inputRef={cvInputRef}
-                onChange={handleCvChange}
-                accept=".pdf,application/pdf"
-                label="Upload your latest CV (Must be PDF)"
-                hint="PDF only · Max 50 MB"
-                icon={FileText}
-                maxSize={MAX_CV_SIZE}
-              />
+              {renderFileUploadBox({
+                type: "cv",
+                state: cv,
+                inputRef: cvInputRef,
+                onChange: handleCvChange,
+                accept: ".pdf,application/pdf",
+                label: "Upload your latest CV (Must be PDF)",
+                hint: `PDF only · Max ${formatFileSize(MAX_CV_SIZE)}`,
+                icon: FileText,
+                maxSize: MAX_CV_SIZE,
+              })}
             </CardContent>
           </AnimatedCard>
 
           {/* ── Section 13: Photo Upload ──────────────────────────── */}
           <AnimatedCard index={12} hasError={!!errors.photo}>
             <CardContent className="px-4 py-5 sm:px-6 sm:py-6">
-              <FileUploadBox
-                type="photo"
-                state={photo}
-                inputRef={photoInputRef}
-                onChange={handlePhotoChange}
-                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                label="Upload your latest formal photo (Passport Size)"
-                hint="JPG, PNG, or WebP · Max 50 MB"
-                icon={ImageIcon}
-                maxSize={MAX_PHOTO_SIZE}
-              />
+              {renderFileUploadBox({
+                type: "photo",
+                state: photo,
+                inputRef: photoInputRef,
+                onChange: handlePhotoChange,
+                accept: "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp",
+                label: "Upload your latest formal photo (Passport Size)",
+                hint: `JPG, PNG, or WebP · Max ${formatFileSize(MAX_PHOTO_SIZE)}`,
+                icon: ImageIcon,
+                maxSize: MAX_PHOTO_SIZE,
+              })}
             </CardContent>
           </AnimatedCard>
 
@@ -1782,23 +1641,25 @@ export function RecruitmentClient() {
                   screenshot)
                 </p>
               </div>
-              <FileUploadBox
-                type="idCard"
-                state={idCard}
-                inputRef={idCardInputRef}
-                onChange={handleIdCardChange}
-                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                label=""
-                hint="JPG, PNG, or WebP · Max 50 MB"
-                icon={CreditCard}
-                maxSize={MAX_ID_SIZE}
-              />
+              {renderFileUploadBox({
+                type: "idCard",
+                state: idCard,
+                inputRef: idCardInputRef,
+                onChange: handleIdCardChange,
+                accept: "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp",
+                label: "",
+                hint: `JPG, PNG, or WebP · Max ${formatFileSize(MAX_ID_SIZE)}`,
+                icon: CreditCard,
+                maxSize: MAX_ID_SIZE,
+              })}
             </CardContent>
           </AnimatedCard>
 
+          <Turnstile onToken={onTurnstile} />
+
           {/* ─── Submit Error ───────────────────────────────────────── */}
           {submitError && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 dark:border-red-400/25 bg-red-500/5 dark:bg-red-400/8 p-4 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+            <div role="alert" className="flex items-start gap-2.5 rounded-lg border border-red-500/30 dark:border-red-400/25 bg-red-500/5 dark:bg-red-400/8 p-4 animate-in fade-in-0 slide-in-from-top-2 duration-300">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500 dark:text-red-400" />
               <p className="text-sm text-red-500 dark:text-red-400">{submitError}</p>
             </div>

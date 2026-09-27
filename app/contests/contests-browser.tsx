@@ -11,7 +11,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Trophy } from "lucide-react";
 import Link from "next/link";
-import contestsData from "@/data/contests.json";
 
 interface Team {
   name: string;
@@ -129,13 +128,10 @@ function ContestCard({ contest }: { contest: Contest }) {
   );
 }
 
-export function ContestsBrowser() {
-  const contests = (contestsData.contests as unknown as Contest[]).filter(
-    (contest) => contest.teams?.length > 0
-  );
+export function ContestsBrowser({ contests: all }: { contests: Contest[] }) {
+  const contests = all.filter((contest) => contest.teams?.length > 0);
 
-  // Copy before sorting: `contestsData` is a shared module import, and sorting
-  // in place would mutate it for every other page in the same server process.
+  // Copy before sorting so the caller's array is never mutated.
   const sortedContests = [...contests].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );

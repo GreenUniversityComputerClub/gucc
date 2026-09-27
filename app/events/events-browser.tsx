@@ -2,14 +2,12 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import eventsData from "@/data/events.json";
+import type { ClubEvent } from "@/lib/events";
 import { FilterIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
 import { EventCard } from "./components";
 
-const events = eventsData;
-
-export function EventsBrowser() {
+export function EventsBrowser({ events }: { events: ClubEvent[] }) {
   //Adding Filtering and Search Features.
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<"all" | "upcoming" | "past">("all");

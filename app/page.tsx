@@ -1,9 +1,6 @@
-import dynamic from "next/dynamic";
+import { PohelaBoishakhGreetingClient as PohelaBoishakhGreeting } from "@/components/client-only";
 import { HeroSection } from "@/components/hero";
 
-const PohelaBoishakhGreeting = dynamic(
-  () => import("@/components/PohelaBoishakhGreeting")
-);
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,7 +9,7 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import eventsData from "@/data/events.json";
+import { getPublicEvents, getPublicSetting } from "@/lib/public/data";
 import { Award, BookOpen, CalendarDays, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -37,7 +34,43 @@ import {
   isStudentId,
 } from "@/app/executives/util";
 
-const latestYear = getLatestExecutiveYear();
+// Home page reads committees and events from D1 (cached, tag-invalidated).
+export const revalidate = 3600;
+
+type Person = { name: string; title: string; photo: string; initials: string; message: string };
+interface HomeContent {
+  chairperson: { heading: string; subheading: string; person: Person };
+  moderators: { heading: string; subheading: string; people: Person[] };
+  stats: Array<{ value: number; suffix?: string; label: string }>;
+}
+
+/** Shown until the page.home setting exists (it's seeded with exactly this). */
+const HOME_DEFAULTS: HomeContent = {
+  chairperson: {
+    heading: "Messages from Our Chairperson",
+    subheading: "A message from the Chairperson of the Department of CSE",
+    person: { name: "Mr. Syed Ahsanul Kabir", title: "Chairperson & Associate Professor", photo: "/executives/kabir.cse.png", initials: "SK",
+      message: "It gives me great pride to see the Green University Computer Club (GUCC) flourishing as a platform for student innovation, leadership, and collaboration. GUCC is more than just a club — it's a space where ideas come to life, where students learn by doing, and where futures are shaped through teamwork and creativity. I wholeheartedly support the club's mission and encourage every student to take part in this journey of growth and excellence." },
+  },
+  moderators: {
+    heading: "Messages from Our Moderators",
+    subheading: "Inspiring messages from our faculty moderators who guide and shape our journey",
+    people: [
+      { name: "Md. Monirul Islam", title: "Assistant Professor & Moderator, GUCC", photo: "/executives/monirul.cse.png", initials: "MI",
+        message: "At GUCC, we witness remarkable growth in our CSE students — not just in technical expertise, but also in leadership and teamwork. This platform has become a cornerstone for empowering the next generation of tech leaders." },
+      { name: "Feroza Naznin", title: "Deputy Moderator, GUCC", photo: "/executives/feroza.png", initials: "FN",
+        message: "The energy and dedication our members bring to GUCC is truly inspiring. By bridging academic knowledge with real-world innovation, this club continues to nurture creativity, confidence, and community." },
+      { name: "Montaser Abdul Quader", title: "Deputy Moderator, GUCC", photo: "/executives/montaser.cse.png", initials: "MQ",
+        message: "GUCC embodies the spirit of collaboration and continuous improvement. It's a pleasure to watch our students take on challenges and transform them into meaningful impact, building a stronger tech future." },
+    ],
+  },
+  stats: [
+    { value: 7000, suffix: "+", label: "Members" },
+    { value: 50, suffix: "+", label: "Events Per Year" },
+    { value: 20, suffix: "+", label: "Workshops" },
+    { value: 10, suffix: "+", label: "Years of Excellence" },
+  ],
+};
 
 export const metadata: Metadata = {
   ...buildMetadata({
@@ -52,9 +85,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
-  const faq = getHomeFaq();
-  const roster = getYearRoster(latestYear);
+export default async function Home() {
+  const faq = await getHomeFaq();
+  const latestYear = await getLatestExecutiveYear();
+  const roster = await getYearRoster(latestYear);
+  const eventsData = await getPublicEvents();
+  const partners = (await getPublicSetting<{ partners: Array<{ name: string; image: string; description: string }> }>("page.collaborations"))?.partners ?? [];
+  // Messages and figures are edited by leaders (Settings → Home page); the layout is fixed.
+  const home = { ...HOME_DEFAULTS, ...((await getPublicSetting<HomeContent>("page.home")) ?? {}) };
   const leadership = [
     ...(roster?.facultyMembers ?? []),
     ...(roster?.studentExecutives ?? []),
@@ -212,44 +250,16 @@ export default function Home() {
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
-            <div className="text-center p-6 rounded-lg bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-colors duration-300">
-              <AnimatedStat
-                end={7000}
-                suffix="+"
-                className="text-4xl md:text-5xl font-bold text-primary"
-              />
-              <div className="text-sm text-muted-foreground mt-3">Members</div>
-            </div>
-            <div className="text-center p-6 rounded-lg bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-colors duration-300">
-              <AnimatedStat
-                end={50}
-                suffix="+"
-                className="text-4xl md:text-5xl font-bold text-primary"
-              />
-              <div className="text-sm text-muted-foreground mt-3">
-                Events Per Year
+            {home.stats.map((st) => (
+              <div key={st.label} className="text-center p-6 rounded-lg bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-colors duration-300">
+                <AnimatedStat
+                  end={st.value}
+                  suffix={st.suffix ?? ""}
+                  className="text-4xl md:text-5xl font-bold text-primary"
+                />
+                <div className="text-sm text-muted-foreground mt-3">{st.label}</div>
               </div>
-            </div>
-            <div className="text-center p-6 rounded-lg bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-colors duration-300">
-              <AnimatedStat
-                end={20}
-                suffix="+"
-                className="text-4xl md:text-5xl font-bold text-primary"
-              />
-              <div className="text-sm text-muted-foreground mt-3">
-                Workshops
-              </div>
-            </div>
-            <div className="text-center p-6 rounded-lg bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-colors duration-300">
-              <AnimatedStat
-                end={10}
-                suffix="+"
-                className="text-4xl md:text-5xl font-bold text-primary"
-              />
-              <div className="text-sm text-muted-foreground mt-3">
-                Years of Excellence
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -260,25 +270,25 @@ export default function Home() {
         <div className="container px-4 md:px-6">
           <div className="text-center space-y-4">
             <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">
-              Messages from Our Chairperson
+              {home.chairperson.heading}
             </h2>
             <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
-              A message from the Chairperson of the Department of CSE
+              {home.chairperson.subheading}
             </p>
           </div>
           <div className="flex justify-center mt-10">
             <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10 max-w-xl w-full">
               <CardContent className="p-5 flex flex-col items-center text-center space-y-3">
                 <Avatar className="w-20 h-20">
-                  <AvatarImage src="/executives/kabir.cse.png" alt="Mr. Syed Ahsanul Kabir" />
-                  <AvatarFallback>SK</AvatarFallback>
+                  <AvatarImage src={home.chairperson.person.photo} alt={home.chairperson.person.name} />
+                  <AvatarFallback>{home.chairperson.person.initials}</AvatarFallback>
                 </Avatar>
                 <div className="space-y-1">
-                  <h3 className="font-semibold text-lg">Mr. Syed Ahsanul Kabir</h3>
-                  <p className="text-sm text-muted-foreground"> Chairperson & Associate Professor</p>
+                  <h3 className="font-semibold text-lg">{home.chairperson.person.name}</h3>
+                  <p className="text-sm text-muted-foreground"> {home.chairperson.person.title}</p>
                 </div>
                 <blockquote className="text-sm text-muted-foreground italic leading-relaxed">
-                  "It gives me great pride to see the Green University Computer Club (GUCC) flourishing as a platform for student innovation, leadership, and collaboration. GUCC is more than just a club — it's a space where ideas come to life, where students learn by doing, and where futures are shaped through teamwork and creativity. I wholeheartedly support the club's mission and encourage every student to take part in this journey of growth and excellence."
+                  &quot;{home.chairperson.person.message}&quot;
                 </blockquote>
               </CardContent>
             </Card>
@@ -291,72 +301,38 @@ export default function Home() {
         <div className="container px-4 md:px-6">
           <div className="text-center space-y-4">
             <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">
-              Messages from Our Moderators
+              {home.moderators.heading}
             </h2>
             <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
-              Inspiring messages from our faculty moderators who guide and shape our journey
+              {home.moderators.subheading}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
-            <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10">
-              <CardContent className="p-5">
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <Avatar className="w-16 h-16">
-                    <AvatarImage src="/executives/monirul.cse.png" alt="Md. Monirul Islam" />
-                    <AvatarFallback>MI</AvatarFallback>
-                  </Avatar>
-                  <div className="space-y-1">
-                    <h3 className="font-semibold">Md. Monirul Islam</h3>
-                    <p className="text-xs text-muted-foreground">Assistant Professor & Moderator, GUCC</p>
+            {home.moderators.people.map((m) => (
+              <Card key={m.name} className="hover:shadow-lg transition-shadow duration-300 border-primary/10">
+                <CardContent className="p-5">
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    <Avatar className="w-16 h-16">
+                      <AvatarImage src={m.photo} alt={m.name} />
+                      <AvatarFallback>{m.initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-1">
+                      <h3 className="font-semibold">{m.name}</h3>
+                      <p className="text-xs text-muted-foreground">{m.title}</p>
+                    </div>
+                    <blockquote className="text-xs text-muted-foreground italic leading-relaxed">
+                      &quot;{m.message}&quot;
+                    </blockquote>
                   </div>
-                  <blockquote className="text-xs text-muted-foreground italic leading-relaxed">
-                    "At GUCC, we witness remarkable growth in our CSE students — not just in technical expertise, but also in leadership and teamwork. This platform has become a cornerstone for empowering the next generation of tech leaders."
-                  </blockquote>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10">
-              <CardContent className="p-5">
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <Avatar className="w-16 h-16">
-                    <AvatarImage src="/executives/feroza.png" alt="Feroza Naznin" />
-                    <AvatarFallback>FN</AvatarFallback>
-                  </Avatar>
-                  <div className="space-y-1">
-                    <h3 className="font-semibold">Feroza Naznin</h3>
-                    <p className="text-xs text-muted-foreground">Deputy Moderator, GUCC</p>
-                  </div>
-                  <blockquote className="text-xs text-muted-foreground italic leading-relaxed">
-                    "The energy and dedication our members bring to GUCC is truly inspiring. By bridging academic knowledge with real-world innovation, this club continues to nurture creativity, confidence, and community."
-                  </blockquote>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10">
-              <CardContent className="p-5">
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <Avatar className="w-16 h-16">
-                    <AvatarImage src="/executives/montaser.cse.png" alt="Montaser Abdul Quader" />
-                    <AvatarFallback>MQ</AvatarFallback>
-                  </Avatar>
-                  <div className="space-y-1">
-                    <h3 className="font-semibold">Montaser Abdul Quader</h3>
-                    <p className="text-xs text-muted-foreground">Deputy Moderator, GUCC</p>
-                  </div>
-                  <blockquote className="text-xs text-muted-foreground italic leading-relaxed">
-                    "GUCC embodies the spirit of collaboration and continuous improvement. It's a pleasure to watch our students take on challenges and transform them into meaningful impact, building a stronger tech future."
-                  </blockquote>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Club Collaborations Scroll Section */}
-      <CollaborationScroll />
+      <CollaborationScroll partners={partners} />
 
       {/* Featured Events Section */}
       <section className="w-full">

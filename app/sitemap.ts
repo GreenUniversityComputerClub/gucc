@@ -1,33 +1,20 @@
 import type { MetadataRoute } from "next";
 import {
-  getAllExecutiveStudentIds,
   getAvailableYears,
   getExecutiveAvatar,
-  getExecutivesByStudentId,
+  getRolesByStudentId,
   getLatestExecutiveYear,
   getPrimaryRole,
 } from "@/app/executives/util";
-import contestsData from "@/data/contests.json";
-import { eventSlug, getAllEvents } from "@/lib/events";
-import { gqlClient, queries } from "@/lib/blog";
+import { getPublicContests, getPublicEvents, getPublishedPosts, getSitemapData } from "@/lib/public/data";
 import { absoluteUrl } from "@/lib/seo/site";
 
 type Entry = MetadataRoute.Sitemap[number];
 
-const now = new Date();
+// Built from D1 on request (the underlying queries are cached).
+export const revalidate = 21600;
 
-/**
- * Newest date present in the content, used as `lastModified` for index pages
- * that list it. Stamping every URL with the build time tells Google the whole
- * site changed on every deploy, which teaches it to ignore our lastmod
- * entirely — the opposite of what the field is for.
- */
-const latestContentDate = (() => {
-  const times = getAllEvents()
-    .map((event) => new Date(event.date).getTime())
-    .filter((time) => Number.isFinite(time));
-  return times.length ? new Date(Math.max(...times)) : now;
-})();
+const now = new Date();
 
 /** Static, hand-curated routes with the priority we want Google to see. */
 const STATIC_ROUTES: Array<{
@@ -39,6 +26,8 @@ const STATIC_ROUTES: Array<{
   { path: "/executives", priority: 0.95, changeFrequency: "weekly" },
   { path: "/events", priority: 0.9, changeFrequency: "daily" },
   { path: "/blog", priority: 0.85, changeFrequency: "daily" },
+  { path: "/news", priority: 0.75, changeFrequency: "weekly" },
+  { path: "/announcements", priority: 0.7, changeFrequency: "weekly" },
   { path: "/contests", priority: 0.8, changeFrequency: "weekly" },
   { path: "/join", priority: 0.8, changeFrequency: "monthly" },
   { path: "/contact", priority: 0.7, changeFrequency: "monthly" },
@@ -52,45 +41,37 @@ const STATIC_ROUTES: Array<{
   { path: "/certificates/hacktheai", priority: 0.5, changeFrequency: "monthly" },
 ];
 
-/** Blog slugs come from Hashnode; a failure must never break the sitemap. */
+/** Published blog posts, news and announcements from D1. */
 async function blogEntries(): Promise<Entry[]> {
-  const entries: Entry[] = [
-    {
-      url: absoluteUrl("/blog/neurogebra"),
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-  ];
-
-  const host = process.env.HASHNODE_HOST;
-  if (!host) return entries;
-
-  try {
-    const response = (await gqlClient(queries.getPosts(host))()) as {
-      data?: {
-        publication?: {
-          posts?: { edges?: { node: { slug: string; publishedAt?: string } }[] };
-        };
-      };
-    };
-    for (const edge of response?.data?.publication?.posts?.edges ?? []) {
-      entries.push({
-        url: absoluteUrl(`/blog/${edge.node.slug}`),
-        lastModified: edge.node.publishedAt ? new Date(edge.node.publishedAt) : now,
-        changeFrequency: "monthly",
-        priority: 0.7,
-      });
-    }
-  } catch (error) {
-    console.warn("Sitemap: skipping Hashnode posts —", error);
-  }
-
-  return entries;
+  const posts = [...(await getPublishedPosts("BLOG", 500)), ...(await getPublishedPosts("NEWS", 500)), ...(await getPublishedPosts("ANNOUNCEMENT", 500))];
+  return posts.map((p) => ({
+    url: absoluteUrl(p.type === "BLOG" ? `/blog/${p.slug}` : `/${p.type === "NEWS" ? "news" : "announcements"}/${p.slug}`),
+    lastModified: p.updatedAt ? new Date(p.updatedAt) : p.publishedAt ? new Date(p.publishedAt) : now,
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+    ...(p.coverImage ? { images: [absoluteUrl(p.coverImage)] } : {}),
+  }));
 }
 
+const latest = (...isos: Array<string | null | undefined>) => {
+  const t = isos.map((i) => (i ? Date.parse(i) : NaN)).filter(Number.isFinite);
+  return t.length ? new Date(Math.max(...t)) : undefined;
+};
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const latestYear = getLatestExecutiveYear();
+  const latestYear = await getLatestExecutiveYear();
+  const [events, contests, meta] = await Promise.all([getPublicEvents(), getPublicContests(), getSitemapData()]);
+  const eventUpdated = new Map(meta.events.map((e) => [e.slug, e.updated_at]));
+  const committeeUpdated = new Map(meta.committees.map((c) => [c.slug, c.updated_at]));
+  const personUpdated = new Map(meta.people.map((p) => [p.student_id, p.updated_at]));
+  const contestUpdated = new Map(meta.contests.map((c) => [String(c.legacy_id), c.updated_at]));
+  /**
+   * Newest date present in the content, used as `lastModified` for index pages.
+   * Stamping every URL with the build time tells Google the whole site changed
+   * on every deploy, which teaches it to ignore our lastmod entirely.
+   */
+  const times = events.map((event) => new Date(event.date).getTime()).filter((t) => Number.isFinite(t));
+  const latestContentDate = times.length ? new Date(Math.max(...times)) : now;
 
   const staticEntries: Entry[] = STATIC_ROUTES.map((route) => ({
     url: absoluteUrl(route.path),
@@ -100,17 +81,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   // One entry per committee year; the current committee outranks the archive.
-  const yearEntries: Entry[] = getAvailableYears().map((year) => ({
+  const yearEntries: Entry[] = (await getAvailableYears()).map((year) => ({
     url: absoluteUrl(`/executives/${year}`),
-    lastModified: latestContentDate,
+    lastModified: latest(committeeUpdated.get(year)) ?? latestContentDate,
     changeFrequency: year === latestYear ? "weekly" : "yearly",
     priority: year === latestYear ? 0.95 : 0.6,
   }));
 
   // One indexable profile per executive, each carrying its portrait so the
   // photo is eligible for Google Images and people-style results.
-  const profileEntries: Entry[] = getAllExecutiveStudentIds().flatMap((studentId) => {
-    const roles = getExecutivesByStudentId(studentId);
+  const rolesById = await getRolesByStudentId();
+  const ids = [...rolesById.keys()];
+  const profileEntries: Entry[] = ids.flatMap((studentId) => {
+    const roles = rolesById.get(studentId) ?? [];
     if (roles.length === 0) return [];
     const primary = getPrimaryRole(roles);
     const avatar = getExecutiveAvatar(primary);
@@ -118,7 +101,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [
       {
         url: absoluteUrl(`/executives/${studentId}`),
-        lastModified: latestContentDate,
+        lastModified: latest(personUpdated.get(studentId)) ?? latestContentDate,
         changeFrequency: "monthly",
         priority: primary.year === latestYear ? 0.9 : 0.65,
         ...(avatar ? { images: [absoluteUrl(avatar)] } : {}),
@@ -126,18 +109,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ];
   });
 
-  const eventEntries: Entry[] = getAllEvents().map((event) => ({
-    url: absoluteUrl(`/events/${eventSlug(event.name)}`),
-    lastModified: event.date ? new Date(event.date) : now,
+  const eventEntries: Entry[] = events.map((event) => ({
+    url: absoluteUrl(`/events/${event.slug}`),
+    lastModified: latest(eventUpdated.get(event.slug), event.date) ?? now,
     changeFrequency: "yearly",
     priority: 0.7,
+    ...(event.image ? { images: [absoluteUrl(event.image)] } : {}),
   }));
 
-  const contestEntries: Entry[] = (
-    contestsData.contests as Array<{ id: number }>
-  ).map((contest) => ({
+  const contestEntries: Entry[] = contests.map((contest) => ({
     url: absoluteUrl(`/contests/${contest.id}`),
-    lastModified: latestContentDate,
+    lastModified: latest(contestUpdated.get(String(contest.id))) ?? latestContentDate,
     changeFrequency: "yearly",
     priority: 0.5,
   }));

@@ -1,5 +1,6 @@
-import html2canvas from "html2canvas"
-import jsPDF from "jspdf"
+/** html2canvas and jsPDF are loaded on demand in the browser, keeping them out of the server bundle. */
+const loadHtml2canvas = async () => (await import("html2canvas")).default
+const loadJsPDF = async () => (await import("jspdf")).default
 import type { Course, SectionWithCourse } from "../../data/courses"
 
 // Helper function to format the current date and time
@@ -18,161 +19,6 @@ const getTotalCredits = (selectedCourses: Map<string, SectionWithCourse>, course
     }
   }
   return totalCredits
-}
-
-// Draw a styled table in PDF
-const drawTable = (
-  pdf: jsPDF,
-  headers: string[],
-  data: string[][],
-  startY: number,
-  options: {
-    headerBgColor?: [number, number, number]
-    headerTextColor?: [number, number, number]
-    alternateRowColor?: boolean
-    fontSize?: number
-    cellPadding?: number
-    colWidths?: number[]
-  } = {},
-): number => {
-  const {
-    headerBgColor = [41, 128, 185],
-    headerTextColor = [255, 255, 255],
-    alternateRowColor = true,
-    fontSize = 10, // Increased from 8
-    cellPadding = 4, // Increased from 3
-    colWidths = headers.map(() => pdf.internal.pageSize.getWidth() / headers.length),
-  } = options
-
-  pdf.setFontSize(fontSize)
-
-  // Calculate row height based on font size
-  const lineHeight = fontSize * 0.6 // Increased from 0.5
-
-  // Start position
-  let currentY = startY
-  let currentX = 10
-
-  // Draw header
-  pdf.setFillColor(...headerBgColor)
-  pdf.setTextColor(...headerTextColor)
-  pdf.setFont("helvetica", "bold")
-
-  // Draw header background
-  pdf.rect(currentX, currentY, pdf.internal.pageSize.getWidth() - 20, lineHeight + cellPadding * 2, "F")
-
-  // Draw header text
-  headers.forEach((header, i) => {
-    pdf.text(header, currentX + cellPadding, currentY + lineHeight + cellPadding)
-    currentX += colWidths[i]
-  })
-
-  // Move to next row
-  currentY += lineHeight + cellPadding * 2
-
-  // Draw data rows
-  pdf.setFont("helvetica", "normal")
-
-  data.forEach((row, rowIndex) => {
-    currentX = 10
-
-    // Alternate row background
-    if (alternateRowColor && rowIndex % 2 === 1) {
-      pdf.setFillColor(245, 245, 245) // Lighter gray
-      pdf.rect(currentX, currentY, pdf.internal.pageSize.getWidth() - 20, lineHeight + cellPadding * 2, "F")
-    }
-
-    // Reset text color for data
-    pdf.setTextColor(0, 0, 0)
-
-    // Draw cell text
-    row.forEach((cell, i) => {
-      pdf.text(cell, currentX + cellPadding, currentY + lineHeight + cellPadding)
-      currentX += colWidths[i]
-    })
-
-    // Draw horizontal line
-    pdf.setDrawColor(220, 220, 220)
-    pdf.line(
-      10,
-      currentY + lineHeight + cellPadding * 2,
-      pdf.internal.pageSize.getWidth() - 10,
-      currentY + lineHeight + cellPadding * 2,
-    )
-
-    // Move to next row
-    currentY += lineHeight + cellPadding * 2
-  })
-
-  return currentY
-}
-
-// Draw a styled header with optional subtitle
-const drawHeader = (
-  pdf: jsPDF,
-  title: string,
-  subtitle?: string,
-  options: {
-    titleSize?: number
-    subtitleSize?: number
-    titleColor?: [number, number, number]
-    subtitleColor?: [number, number, number]
-    withLine?: boolean
-    lineColor?: [number, number, number]
-    align?: "left" | "center" | "right"
-  } = {},
-): number => {
-  const {
-    titleSize = 16, // Increased from 14
-    subtitleSize = 10, // Increased from 8
-    titleColor = [41, 128, 185], // Blue title
-    subtitleColor = [100, 100, 100],
-    withLine = true,
-    lineColor = [220, 220, 220],
-    align = "center",
-  } = options
-
-  let yPos = 15 // Increased from 10
-  const pageWidth = pdf.internal.pageSize.getWidth()
-  const xPos = align === "center" ? pageWidth / 2 : align === "right" ? pageWidth - 10 : 10
-
-  // Draw title
-  pdf.setFontSize(titleSize)
-  pdf.setTextColor(...titleColor)
-  pdf.setFont("helvetica", "bold")
-  pdf.text(title, xPos, yPos, { align })
-
-  yPos += titleSize * 0.4
-
-  // Draw line under title
-  if (withLine) {
-    pdf.setDrawColor(...lineColor)
-    pdf.setLineWidth(0.5)
-    pdf.line(10, yPos + 2, pageWidth - 10, yPos + 2)
-    yPos += 4
-  }
-
-  // Draw subtitle if provided
-  if (subtitle) {
-    yPos += 4
-    pdf.setFontSize(subtitleSize)
-    pdf.setTextColor(...subtitleColor)
-    pdf.setFont("helvetica", "normal")
-    pdf.text(subtitle, xPos, yPos, { align })
-    yPos += subtitleSize * 0.4
-  }
-
-  return yPos + 8
-}
-
-// Draw a styled footer
-const drawFooter = (pdf: jsPDF, text: string): void => {
-  const pageWidth = pdf.internal.pageSize.getWidth()
-  const pageHeight = pdf.internal.pageSize.getHeight()
-
-  pdf.setFontSize(8)
-  pdf.setTextColor(150, 150, 150)
-  pdf.text(text, pageWidth / 2, pageHeight - 8, { align: "center" })
 }
 
 // Helper function to convert time to minutes for comparison
@@ -292,7 +138,7 @@ export const exportScheduleAsPDF = async (
     tempContainer.appendChild(footer)
 
     // Capture as image
-    const canvas = await html2canvas(tempContainer, {
+    const canvas = await (await loadHtml2canvas())(tempContainer, {
       scale: 2,
       logging: false,
       useCORS: true,
@@ -307,7 +153,7 @@ export const exportScheduleAsPDF = async (
 
     // Create PDF from the captured image
     const imgData = canvas.toDataURL("image/png", 1.0)
-    const pdf = new jsPDF({
+    const pdf = new (await loadJsPDF())({
       orientation: "portrait",
       unit: "mm",
       format: "a4",
@@ -491,7 +337,7 @@ function createScheduleTable(
       td.style.width = timeSlotWidth // Set equal width for all time slots
 
       // Find courses for this day and time slot
-      for (const [uniqueKey, section] of selectedCourses) {
+      for (const section of selectedCourses.values()) {
         for (const schedule of section.schedule) {
           if (schedule.day === day && isWithinTimeSlot(schedule.time, slot)) {
             const course = courses.find((c) => c.formalCode === section.courseCode)
@@ -537,8 +383,8 @@ function createScheduleTable(
 
 // Helper function to check if a class time is within a time slot
 function isWithinTimeSlot(classTime: string, slotTime: string): boolean {
-  const [classStart, classEnd] = classTime.split(" - ")
-  const [slotStart, slotEnd] = slotTime.split(" - ")
+  const [classStart] = classTime.split(" - ")
+  const [slotStart] = slotTime.split(" - ")
 
   const classStartMinutes = timeToMinutes(classStart)
   const slotStartMinutes = timeToMinutes(slotStart)
@@ -747,7 +593,7 @@ export const exportScheduleAsImage = async (
     exportContainer.appendChild(footer)
 
     // Capture the full export as image
-    const canvas = await html2canvas(exportContainer, {
+    const canvas = await (await loadHtml2canvas())(exportContainer, {
       scale: 2,
       logging: false,
       useCORS: true,

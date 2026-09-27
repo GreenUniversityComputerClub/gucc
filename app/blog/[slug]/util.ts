@@ -1,9 +1,5 @@
-import { compileMDX } from 'next-mdx-remote/rsc';
-import remarkGfm from 'remark-gfm';
-import rehypeSlug from 'rehype-slug';
-import rehypeCodeTitles from 'rehype-code-titles';
-import rehypeAutolinkHeadings from 'rehype-autolink-headings';
-import rehypePrism from 'rehype-prism-plus';
+import { createElement } from 'react';
+import { renderMarkdown } from '@/lib/markdown';
 
 function decodeJsonString(str: string): string {
   let res = str;
@@ -186,39 +182,11 @@ export async function fetchSubstackArticle(url: string): Promise<string> {
   return cleanSubstackContent(rawHtml);
 }
 
-export async function mdxToHtml(source: string) {
-  // Preserve query parameters while removing align attribute from markdown images
-  const cleanedSource = source.replace(/!\[(.*?)\]\((.*?)(?:\s+align=["'][^"']*["'])?\)/g, (match, alt, src) => {
-    // If src already has query params, append format and auto
-    if (src.includes('?')) {
-      return `![${alt}](${src}&auto=compress,format&format=webp)`;
-    }
-    // If no query params, add them with ?
-    return `![${alt}](${src}?auto=compress,format&format=webp)`;
-  });
 
-  const { content } = await compileMDX({
-    source: cleanedSource,
-    options: {
-      parseFrontmatter: true,
-      mdxOptions: {
-        remarkPlugins: [remarkGfm],
-        rehypePlugins: [
-          rehypeSlug,
-          rehypeCodeTitles,
-          rehypePrism,
-          [
-            rehypeAutolinkHeadings,
-            {
-              properties: {
-                className: ['anchor'],
-              },
-            },
-          ],
-        ],
-      },
-    },
-  });
-
-  return content;
+/**
+ * Render a post body stored in D1 as sanitized HTML (see lib/markdown.ts:
+ * raw HTML is escaped, unsafe URLs dropped).
+ */
+export async function markdownToReact(source: string) {
+  return createElement("div", { className: "markdown-body", dangerouslySetInnerHTML: { __html: renderMarkdown(source) } });
 }

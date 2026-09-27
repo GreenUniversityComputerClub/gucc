@@ -1,0 +1,4 @@
+name,studentId,position,committee,unit,section,designation,linkedin,github,bio,order,startDate
+Example Person,232000001,General Secretary,2027,gucc,student,,https://www.linkedin.com/in/example,https://github.com/example,"Short bio, with a comma.",1,2027-01-01
+Dr. Example Faculty,,Moderator,2027,gucc,faculty,Associate Professor,,,,,
+Another Member,232000002,Executive Member,2027,css,student,,,,,,2027-01-01

@@ -1,46 +1,22 @@
-import { unstable_ViewTransition as ViewTransition } from "react";
 import Link from "next/link";
-import { gqlClient } from "@/lib/blog";
-import { queries } from "@/lib/blog";
-import { PostEdge, PostsResponse } from "./types";
-import { BlogPostMeta } from "./component";
+import { PostEdge } from "./types";
+import { listBlogPosts } from "./data";
 import { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { SITE_URL } from "@/lib/seo/site";
 import {
+
   ORGANIZATION_ID,
   WEBSITE_ID,
   breadcrumbSchema,
   graph,
 } from "@/lib/seo/schema";
 
-const customBlogPosts: PostEdge[] = [
-  {
-    node: {
-      id: "neurogebra",
-      slug: "neurogebra",
-      title: "Neurogebra",
-      subtitle:
-        "A reflective exploration of intelligence, learning, and the elegance of mathematical thought.",
-      category: "Research & Open Source",
-      tags: ["Machine Learning", "SymPy", "PyTorch", "Python", "Deep Learning"],
-      brief:
-        "A featured article from Md. Fahim Sarker Mridul’s Substack, exploring the ideas behind Neurogebra through a blend of reasoning, creativity, and learning.",
-      publishedAt: "2026-08-03T00:00:00.000Z",
-      readTimeInMinutes: 6,
-      views: 0,
-      url: "https://fahimerican.substack.com/p/neurogebra?r=35a5fa&triedRedirect=true",
-      coverImage: {
-        url: "/blog/neurogebra-cover.jpg",
-      },
-      author: {
-        name: "Md. Fahim Sarker Mridul",
-        github: "https://github.com/fahiiim",
-      },
-    },
-  },
-];
+/** Plain wrapper: React view transitions need React's experimental build, which Next only ships behind a flag. */
+function ViewTransition({ children }: { name?: string; children: React.ReactNode }) {
+  return <>{children}</>;
+}
 
 export const metadata: Metadata = buildMetadata({
   title: "Blog — Technology, Programming & Club Stories",
@@ -80,21 +56,10 @@ const blogSchema = graph(
   }
 );
 
-export default async function Blog() {
-  const host = process.env.HASHNODE_HOST;
-  let postsData = customBlogPosts;
+export const revalidate = 3600;
 
-  if (host) {
-    try {
-      const response = await gqlClient(queries.getPosts(host))();
-      const posts = response as PostsResponse;
-      if (posts?.data?.publication?.posts?.edges) {
-        postsData = [...customBlogPosts, ...posts.data.publication.posts.edges];
-      }
-    } catch (error) {
-      console.warn("Failed to fetch blog posts from Hashnode API:", error);
-    }
-  }
+export default async function Blog() {
+  const postsData: PostEdge[] = (await listBlogPosts()).map((node) => ({ node }));
 
   try {
     return (
@@ -227,7 +192,7 @@ export default async function Blog() {
                 No Posts Yet
               </h3>
               <p className="text-lg text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-                We're working on bringing you amazing content. Check back soon for insightful articles and tutorials!
+                We’re working on bringing you amazing content. Check back soon for insightful articles and tutorials!
               </p>
               <div className="mt-8">
                 <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
@@ -241,10 +206,8 @@ export default async function Blog() {
       </div>
     );
   } catch (error) {
-    console.warn('Failed to fetch blog posts from Hashnode API:', error);
-
-    // When the external API is down, still show any local/custom posts so the site isn't empty.
-    const fallbackPosts = customBlogPosts;
+    console.error("Failed to render blog index:", error);
+    const fallbackPosts: PostEdge[] = [];
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">

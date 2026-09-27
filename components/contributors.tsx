@@ -21,7 +21,7 @@ export function ContributorCard({ contributor }: { contributor: Contributor }) {
         href={contributor.html_url}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={`${contributor.name || contributor.login} - ${contributor.contributions} contributions`}
+        aria-label={`${contributor.name || contributor.login} - ${contributor.contributions} ${contributor.additions !== undefined ? "commits" : "contributions"}`}
         className="block"
       >
         <Image
@@ -57,11 +57,20 @@ export function ContributorCard({ contributor }: { contributor: Contributor }) {
           </div>
           <div className="text-xs text-muted-foreground space-y-1.5 pt-1 border-t border-border/50">
             <p className="flex items-center justify-between text-[11px]">
-              <span>Contributions:</span>
+              <span>{contributor.additions !== undefined ? "Commits:" : "Contributions:"}</span>
               <span className="font-semibold text-primary">
                 {contributor.contributions}
               </span>
             </p>
+            {contributor.additions !== undefined && (
+              <p className="flex items-center justify-between text-[11px]">
+                <span>Lines:</span>
+                <span className="font-semibold tabular-nums">
+                  <span className="text-emerald-600 dark:text-emerald-400">+{contributor.additions.toLocaleString("en")}</span>{" "}
+                  <span className="text-rose-600 dark:text-rose-400">−{(contributor.deletions ?? 0).toLocaleString("en")}</span>
+                </span>
+              </p>
+            )}
             <Link
               href={contributor.html_url}
               target="_blank"

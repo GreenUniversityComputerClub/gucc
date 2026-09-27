@@ -9,7 +9,6 @@ import CombinationsDialog from "./components/combinations-dialog"
 import NoCombinationsDialog from "./components/no-combinations-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import React from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { generateAcronym } from "./lib/utils/acronym"
@@ -33,19 +32,16 @@ export default function Page() {
   const [showCombinations, setShowCombinations] = useState(false)
   const [showNoCombinationsError, setShowNoCombinationsError] = useState(false)
   const [sectionFilters, setSectionFilters] = useState<SectionFilters>({})
-  const [selectedCombinationIndex, setSelectedCombinationIndex] = useState<number>(-1)
   const [maxDays, setMaxDays] = useState<number>(3)
   const [selectedDays, setSelectedDays] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [selectedBatch, setSelectedBatch] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [isTourGeneratingCombinations, setIsTourGeneratingCombinations] = useState(false)
 
   // Update the Page component to handle example data loading/clearing
   // First, add a state to track whether to show the example data button
 
   // Ref to track if combinations have been generated during the tour
-  const combinationsGeneratedDuringTour = React.useRef(false)
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -132,14 +128,10 @@ export default function Page() {
     setCombinations([])
     setCurrentCombinationIndex(0)
     setShowCombinations(false)
-    combinationsGeneratedDuringTour.current = false
   }
 
-  // Update the handleGenerateCombinations function to show loading state
-  const handleGenerateCombinations = (skipLoading = false) => {
-    if (!skipLoading) {
-      setIsLoading(true)
-    }
+  const handleGenerateCombinations = () => {
+    setIsLoading(true)
 
     // Use setTimeout to allow the loading dialog to render before starting the computation
     setTimeout(() => {
@@ -175,32 +167,15 @@ export default function Page() {
         setCombinations(validCombinations)
         setCurrentCombinationIndex(0)
 
-        // Mark that combinations have been generated during the tour
-        combinationsGeneratedDuringTour.current = true
-
-        // Only show combinations dialog if not skipping loading (i.e., not called from tour)
-        if (!skipLoading) {
-          setShowCombinations(validCombinations.length > 0)
-        }
+        setShowCombinations(validCombinations.length > 0)
 
         if (validCombinations.length === 0 && selectedCoursesList.length > 0) {
           setShowNoCombinationsError(true)
         }
       } finally {
-        if (!skipLoading) {
-          setIsLoading(false)
-        }
-        setIsTourGeneratingCombinations(false)
+        setIsLoading(false)
       }
     }, 100)
-  }
-
-  // Function to handle generating combinations during the tour
-  const handleTourGenerateCombinations = () => {
-    if (!combinationsGeneratedDuringTour.current) {
-      setIsTourGeneratingCombinations(true)
-      handleGenerateCombinations(true)
-    }
   }
 
   // Get relationship explanation text
@@ -242,62 +217,6 @@ export default function Page() {
       ...prevFilters,
       [courseCode]: [...sections].sort(naturalSortSections),
     }))
-  }
-
-  // Update the loadExampleData function to handle both tour and manual loading
-  const loadExampleData = (data: {
-    batch: string
-    selectedCourses: string[]
-    sectionFilters: Record<string, string[]>
-    maxDays: number
-    selectedDays: string[]
-  }) => {
-    // Use a single batch of state updates to prevent multiple re-renders
-    const batchedUpdates = () => {
-      setSelectedBatch(data.batch)
-      setSelectedCourses(new Set(data.selectedCourses))
-      setSectionFilters(data.sectionFilters)
-      setMaxDays(data.maxDays)
-      setSelectedDays(data.selectedDays)
-
-      // Reset combinations when loading example data
-      setCombinations([])
-      setCurrentCombinationIndex(0)
-      combinationsGeneratedDuringTour.current = false
-    }
-
-    // Execute the batched updates in the next tick to avoid render loops
-    setTimeout(batchedUpdates, 0)
-  }
-
-  // Add a function to clear example data
-  const clearExampleData = () => {
-    // Reset to empty state
-    setSelectedBatch(null)
-    setSelectedCourses(new Set())
-    setSectionFilters({})
-    setMaxDays(3)
-    setSelectedDays([])
-    setCombinations([])
-    setCurrentCombinationIndex(0)
-    combinationsGeneratedDuringTour.current = false
-  }
-
-  // Add a function to handle showing/hiding the combinations dialog
-  const handleShowCombinationsDialog = (show: boolean) => {
-    // Prevent showing the dialog if it's already shown
-    if (show && showCombinations) return
-
-    // Prevent hiding the dialog if it's already hidden
-    if (!show && !showCombinations) return
-
-    // If showing the dialog, generate combinations first if needed
-    if (show && combinations.length === 0 && selectedCourses.size > 0 && !isTourGeneratingCombinations) {
-      handleTourGenerateCombinations()
-    }
-
-    // Then show or hide the dialog
-    setShowCombinations(show)
   }
 
   return (
@@ -434,11 +353,11 @@ export default function Page() {
                   )}
                   <Button
                     onClick={() => handleGenerateCombinations()}
-                    disabled={selectedCourses.size === 0}
+                    disabled={selectedCourses.size === 0 || isLoading}
                     data-tour="generate-button"
                     className="w-full relative group bg-primary text-white hover:bg-primary/90"
                   >
-                    Generate Combinations
+                    {isLoading ? "Generating…" : "Generate Combinations"}
                   </Button>
                 </div>
               </div>
@@ -484,8 +403,6 @@ export default function Page() {
           courses={coursesArray}
           currentIndex={currentCombinationIndex}
           onIndexChange={setCurrentCombinationIndex}
-          selectedCombinationIndex={selectedCombinationIndex}
-          onSelectCombination={setSelectedCombinationIndex}
           className="combinations-dialog"
         />
 

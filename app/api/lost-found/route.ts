@@ -1,155 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { allowedStudentDomains } from "@/lib/lost-found/config";
-import type { ContactMethod, LostFoundStatus, LostFoundType } from "@/lib/lost-found/types";
+import { type NextRequest } from "next/server";
+import { forward, readJson } from "@/lib/api/route";
+import { SESSION_COOKIE } from "@/lib/api/cookies";
 
 export const dynamic = "force-dynamic";
 
-function createClient(req: NextRequest) {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => req.cookies.getAll().map((c) => ({ name: c.name, value: c.value })),
-        setAll: (cookiesToSet) => {
-          for (const { name, value, options } of cookiesToSet) {
-            try {
-              req.cookies.set({ name, value, ...options });
-            } catch {
-              // Route handlers may not always allow mutating request cookies;
-              // ignore to preserve current behavior while still exposing the
-              // full cookie adapter expected by Supabase SSR.
-            }
-          }
-        },
-      },
-    }
-  );
-}
-
-function isAllowedStudentEmail(email: string | undefined | null) {
-  if (!email) return false;
-  return allowedStudentDomains.some((domain) => email.toLowerCase().endsWith(domain));
-}
-
 export async function GET(req: NextRequest) {
-  const supabase = createClient(req);
-  const { searchParams } = req.nextUrl;
-
-  const status = searchParams.get("status") || "active";
-  const type = searchParams.get("type");
-  const category = searchParams.get("category");
-  const location = searchParams.get("location");
-  const q = searchParams.get("q");
-  const dateFrom = searchParams.get("dateFrom");
-  const dateTo = searchParams.get("dateTo");
-
-  let query = supabase
-    .from("lost_found_posts")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (status && status !== "all") {
-    query = query.eq("status", status as LostFoundStatus);
+  const q = req.nextUrl.searchParams;
+  const res = await forward(req, "lostfound.list", { status: q.get("status") ?? undefined, type: q.get("type") ?? undefined, category: q.get("category") ?? undefined, q: q.get("q") ?? undefined,
+    location: q.get("location") ?? undefined, mine: q.get("mine") === "1" });
+  // Lists for visitors who aren't signed in are the same for everyone: the CDN keeps them 30 s.
+  // Signed-in browsers ask with m=1 and always get their own, uncached answer.
+  if (res.ok && q.get("m") !== "1" && q.get("mine") !== "1" && !req.cookies.get(SESSION_COOKIE)) {
+    res.headers.set("Cache-Control", "public, max-age=0, s-maxage=30, stale-while-revalidate=30");
   }
-
-  if (type) {
-    query = query.eq("type", type as LostFoundType);
-  }
-
-  if (category) {
-    query = query.eq("category", category);
-  }
-
-  if (location) {
-    query = query.ilike("location", `%${location}%`);
-  }
-
-  if (q) {
-    query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
-  }
-
-  if (dateFrom) {
-    query = query.gte("occurred_at", dateFrom);
-  }
-
-  if (dateTo) {
-    query = query.lte("occurred_at", dateTo);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json(data || []);
+  return res;
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = createClient(req);
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !authData.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (!isAllowedStudentEmail(authData.user.email)) {
-    return NextResponse.json(
-      { error: "Only university email accounts can create posts." },
-      { status: 403 }
-    );
-  }
-
-  const body = await req.json();
-  const {
-    type,
-    title,
-    category,
-    description,
-    location,
-    occurred_at,
-    image_url,
-    contact_method,
-    contact_value,
-  } = body as {
-    type: LostFoundType;
-    title: string;
-    category: string;
-    description: string;
-    location: string;
-    occurred_at: string;
-    image_url?: string | null;
-    contact_method: ContactMethod;
-    contact_value?: string | null;
-  };
-
-  if (!type || !title || !category || !description || !location || !occurred_at || !contact_method) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-  }
-
-  if (contact_method !== "in_app" && !contact_value) {
-    return NextResponse.json({ error: "Contact value is required" }, { status: 400 });
-  }
-
-  const { data, error } = await supabase.from("lost_found_posts").insert({
-    user_id: authData.user.id,
-    type,
-    title,
-    category,
-    description,
-    location,
-    occurred_at,
-    image_url: image_url || null,
-    contact_method,
-    contact_value: contact_method === "in_app" ? null : contact_value,
-    status: "pending",
-  }).select("*").single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json(data, { status: 201 });
+  return forward(req, "lostfound.create", { input: await readJson(req) }, { status: 201 });
 }

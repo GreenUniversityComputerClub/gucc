@@ -102,9 +102,6 @@ const usesPreferredDaysCorrectly = (
   }
 
   // Second check: we must prioritize preferred days
-  // Count how many preferred days are used
-  const preferredDaysUsed = [...daysInCombination].filter((day) => preferredDays.has(day))
-
   // Count how many preferred days are available but not used
   const unusedPreferredDays = [...preferredDays].filter((day) => !daysInCombination.has(day))
 

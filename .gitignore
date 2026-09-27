@@ -48,3 +48,22 @@ next-env.d.ts
 ehthumbs.db
 Thumbs.db
 public/og
+# platform migration artefacts (contain private data)
+/migration/out/
+/migration/backup/
+# wrangler / opennext
+/.wrangler/
+/.open-next/
+.dev.vars*
+
+# OG worker dependencies
+/workers/og/node_modules/
+/workers/og/.wrangler/
+
+# Playwright output
+/test-results/
+/playwright-report/
+
+# E2E server logs
+/.e2e/
+/.next-e2e/

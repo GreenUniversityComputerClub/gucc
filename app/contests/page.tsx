@@ -1,5 +1,5 @@
 import { JsonLd } from "@/components/seo/json-ld";
-import contestsData from "@/data/contests.json";
+import { getPublicContests } from "@/lib/public/data";
 import {
   breadcrumbSchema,
   collectionPageSchema,
@@ -12,11 +12,13 @@ import { ContestsBrowser } from "./contests-browser";
  * Server wrapper so the index's structured data stays on the index — the
  * layout it used to live in also wraps every /contests/[id] page.
  */
-const contests = (
-  contestsData.contests as Array<{ id: number; title: string; teams?: unknown[] }>
-).filter((contest) => (contest.teams?.length ?? 0) > 0);
+export const revalidate = 21600;
 
-const structuredData = graph(
+export default async function ContestsPage() {
+  const all = await getPublicContests();
+  const contests = all.filter((contest) => (contest.teams?.length ?? 0) > 0);
+
+  const structuredData = graph(
   breadcrumbSchema([
     { name: "Home", path: "/" },
     { name: "Contests", path: "/contests" },
@@ -34,13 +36,12 @@ const structuredData = graph(
       }))
     ),
   })
-);
+  );
 
-export default function ContestsPage() {
   return (
     <>
       <JsonLd id="contests-schema" data={structuredData} />
-      <ContestsBrowser />
+      <ContestsBrowser contests={all as never} />
     </>
   );
 }

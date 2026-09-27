@@ -3,8 +3,48 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
+/** The API Worker (all backend logic) and where /media/* is served from. */
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8787").replace(/\/+$/, "");
+const MEDIA_BASE = (process.env.NEXT_PUBLIC_MEDIA_BASE_URL || API_BASE).replace(/\/+$/, "");
+const origin = (u: string) => {
+  try {
+    return new URL(u).origin;
+  } catch {
+    return "";
+  }
+};
+
+/**
+ * Content Security Policy for production builds. Scripts are limited to this site and
+ * Cloudflare Turnstile ('unsafe-inline' stays because Next.js inlines its bootstrap scripts and
+ * pages are statically cached, so per-request nonces aren't possible). Browsers may talk only to
+ * this site and the API Worker (uploads), and frame only Google Forms and Turnstile. Plugins,
+ * <base> changes and cross-site form posts are blocked. Images may come from any https host
+ * (older posts link images from many places). Development keeps no CSP for hot reload.
+ */
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  // The media origin by name too: it is plain http on local and test builds.
+  `img-src 'self' data: blob: https: ${origin(MEDIA_BASE)}`.trim(),
+  `media-src 'self' blob: https: ${origin(MEDIA_BASE)}`.trim(),
+  `connect-src 'self' ${[...new Set([origin(API_BASE), origin(MEDIA_BASE)].filter(Boolean))].join(" ")} https://challenges.cloudflare.com`,
+  "frame-src 'self' https://docs.google.com https://forms.gle https://challenges.cloudflare.com",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+  // Only on an https site: on plain-http local builds it would rewrite requests to https.
+  ...((process.env.NEXT_PUBLIC_BASE_URL ?? "").startsWith("https://") ? ["upgrade-insecure-requests"] : []),
+].join("; ");
 
 const nextConfig: NextConfig = {
+  // The end-to-end suite builds into its own folder so it never disturbs the dev build.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   turbopack: {
     root: projectRoot,
   },
@@ -13,9 +53,9 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
-    viewTransition: true,
+    // Files go straight from the browser to the API Worker, so actions stay small.
     serverActions: {
-      bodySizeLimit: "50mb",
+      bodySizeLimit: "1mb",
     },
   },
   /*
@@ -32,14 +72,14 @@ const nextConfig: NextConfig = {
     "*": ["public/**/*", "./public/**/*"],
   },
   images: {
+    // R2 media are served in pre-built variants; see lib/media/image-loader.ts.
+    loader: "custom",
+    loaderFile: "./lib/media/image-loader.ts",
     // Executive portraits and event covers are large PNG/JPEGs; AVIF/WebP cut
     // them enough to matter for Largest Contentful Paint, which feeds ranking.
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
-      {
-        hostname: "hebbkx1anhila5yf.public.blob.vercel-storage.com",
-      },
       {
         hostname: "avatars.githubusercontent.com",
       },
@@ -48,10 +88,24 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Any /media/… path that reaches the site (e.g. images inside post bodies)
+  // is served by the API Worker / R2.
+  async rewrites() {
+    return [{ source: "/media/:path*", destination: `${MEDIA_BASE}/media/:path*` }];
+  },
   // Performance optimizations
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
+  // The admin area became the dashboard for everyone (members included); old links,
+  // bookmarks and notification links keep working.
+  async redirects() {
+    return [
+      { source: "/admin", destination: "/dashboard", permanent: true },
+      { source: "/admin/:path*", destination: "/dashboard/:path*", permanent: true },
+      { source: "/account", destination: "/dashboard/profile", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {
@@ -60,11 +114,30 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-DNS-Prefetch-Control", value: "on" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+          // Pages this site opens elsewhere can't reach back into it through window.opener.
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          // Which commit is live (public repository): the deploy workflow checks it after each release.
+          { key: "X-Gucc-Build", value: process.env.GUCC_BUILD_ID || "local" },
+          ...(process.env.NODE_ENV === "production" && process.env.DISABLE_CSP !== "1" ? [{ key: "Content-Security-Policy", value: CSP }] : []),
         ],
       },
       {
-        // Deploy-time assets: cached hard, revalidated in the background.
-        source: "/:dir(executives|events|sponsors|collaborators|blog)/:file*",
+        // Signed-in areas: never framed, never cached by shared caches.
+        source: "/:area(dashboard|admin|account|auth)/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          ...(process.env.NODE_ENV === "production" && process.env.DISABLE_CSP !== "1"
+            ? [{ key: "Content-Security-Policy", value: CSP.replace("frame-ancestors 'self'", "frame-ancestors 'none'") }]
+            : [{ key: "Content-Security-Policy", value: "frame-ancestors 'none'" }]),
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
+      {
+        // Deploy-time images in public/: cached hard, revalidated in the background.
+        // Images only — pages such as /executives/2026 must follow ISR revalidation.
+        source: "/:dir(executives|events|sponsors|collaborators|blog|contests|certificates)/:file(.+\\.(?:jpg|jpeg|png|webp|avif|gif|svg))",
         headers: [
           {
             key: "Cache-Control",

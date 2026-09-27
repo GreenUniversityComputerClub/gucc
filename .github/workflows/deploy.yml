@@ -1,0 +1,150 @@
+name: Deploy (database, API Worker, website)
+
+# One push to main deploys everything, in this order:
+#   checks → migration safety lint → back up D1 (verified) → apply migrations
+#   → deploy the API Worker → smoke test (automatic Worker rollback on failure)
+#   → build and deploy the website on Vercel → site smoke test (automatic Vercel rollback on failure).
+# If any step fails, nothing after it runs. docs/platform/RUNBOOK.md lists every failure and its fix.
+# Vercel's own Git deployments of main are turned off in vercel.json so a website
+# build can never run ahead of the backend it needs.
+#
+# Repository secrets (Settings → Secrets and variables → Actions, or on the
+# "production" environment): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID,
+# VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, BACKUP_PASSPHRASE. See docs/platform/DEPLOYMENT.md.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.11.0'
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run test
+      - name: Governance seed matches the catalog
+        run: bun scripts/platform/render-seed.ts --check
+      - name: New migrations are additive (safe to roll the Worker back)
+        run: bun scripts/platform/lib/migration-lint.ts
+
+  backend:
+    needs: checks
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      # Scoped token: Workers Scripts Edit, D1 Edit, Workers R2 Storage Edit, Account Settings Read.
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.11.0'
+      - run: bun install --frozen-lockfile
+      - name: Cloudflare access is configured
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets (docs/platform/DEPLOYMENT.md, 'Automatic deployment')."
+            exit 1
+          fi
+      - name: Back up D1, apply migrations, deploy the API Worker, smoke-test
+        run: bun run release:api:production
+      # The repository is public: the backup is kept only encrypted (BACKUP_PASSPHRASE), and the
+      # plain copy is always deleted. Decrypt: openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -in X.enc -out X
+      - name: Encrypt the database backup
+        if: always()
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          shopt -s nullglob
+          files=(migration/backup/*.sql)
+          [ ${#files[@]} -gt 0 ] || exit 0
+          if [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::warning::BACKUP_PASSPHRASE is not set, so the backup is not kept (it is never uploaded unencrypted)."
+          else
+            for f in "${files[@]}"; do openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -in "$f" -out "$f.enc" -pass env:BACKUP_PASSPHRASE; done
+          fi
+          for f in "${files[@]}"; do shred -u "$f"; done
+      - name: Keep the encrypted backup
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d1-backup-production-${{ github.run_id }}
+          path: migration/backup/*.enc
+          retention-days: 30
+          if-no-files-found: ignore
+
+  frontend:
+    needs: backend
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Vercel access is configured
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error::Add the VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID secrets (docs/platform/DEPLOYMENT.md, 'Automatic deployment')."
+            exit 1
+          fi
+      # The website reads everything through the API Worker; without these the build
+      # fails (by design) rather than publishing empty pages. Names only: values of
+      # Sensitive variables are never shown, which is also why the build runs on Vercel.
+      - name: API settings are present in Vercel
+        run: |
+          vars="$(bunx vercel@latest env ls production --token="$VERCEL_TOKEN")"
+          for v in NEXT_PUBLIC_API_BASE_URL NEXT_PUBLIC_MEDIA_BASE_URL API_SHARED_SECRET NEXT_PUBLIC_BASE_URL; do
+            grep -qw "$v" <<< "$vars" || { echo "::error::$v is not set for Production in the Vercel project (docs/platform/DEPLOYMENT.md)."; exit 1; }
+          done
+      # Built on Vercel (it has the Sensitive values) from this exact commit, after the API above is live.
+      - name: Build and deploy to production
+        run: bunx vercel@latest deploy --prod --yes --archive=tgz --build-env GUCC_BUILD_ID="$GITHUB_SHA" --token="$VERCEL_TOKEN"
+      # The live site must answer: home page, the session endpoint, and the sign-in gate. If not,
+      # the previous production deployment is restored (Vercel's instant rollback, free on Hobby).
+      - name: Site smoke test
+        id: smoke
+        env:
+          SITE_URL: ${{ vars.SITE_URL || 'https://gucc.green.edu.bd' }}
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            build=$(curl -s -o /tmp/home.html -D - "$SITE_URL/" | tr -d '\r' | awk -F': ' 'tolower($1)=="x-gucc-build"{print $2}')
+            home=$(curl -s -o /tmp/home.html -w '%{http_code}' "$SITE_URL/")
+            session=$(curl -s -w ' %{http_code}' "$SITE_URL/api/session")
+            gate=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$SITE_URL/dashboard")
+            echo "build ${build:-?} | home $home | session $session | dashboard $gate"
+            if [ "$build" = "$GITHUB_SHA" ] && [ "$home" = "200" ] && grep -q "Computer Club" /tmp/home.html \
+               && [[ "$session" == *'"signedIn":false'*' 200' ]] && [[ "$gate" == 30[78]*'/auth/login'* ]]; then
+              echo "The new website is live and answering."; exit 0
+            fi
+            sleep 10
+          done
+          if [ "$build" != "$GITHUB_SHA" ]; then
+            # The domain still serves an older build (for example, automatic assignment is off after an
+            # earlier rollback). That build works, so nothing is rolled back.
+            echo "not_live=true" >> "$GITHUB_OUTPUT"
+            echo "::error::$SITE_URL still serves build ${build:-unknown}, not $GITHUB_SHA. Promote the new deployment in Vercel (Deployments → … → Promote), see RUNBOOK.md."
+          fi
+          exit 1
+      - name: Roll the website back
+        if: failure() && steps.smoke.outcome == 'failure' && steps.smoke.outputs.not_live != 'true'
+        run: |
+          echo "::error::The new website failed its smoke test; restoring the previous production deployment."
+          bunx vercel@latest rollback --yes --token="$VERCEL_TOKEN"

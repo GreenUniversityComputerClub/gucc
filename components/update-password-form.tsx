@@ -1,42 +1,41 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { resetPasswordAction } from '@/app/auth/actions'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useTransition } from 'react'
 
 export function UpdatePasswordForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
+  const params = useSearchParams()
+  const token = params.get('token') ?? ''
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [pending, start] = useTransition()
   const router = useRouter()
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
+  const handle = (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
-    setIsLoading(true)
     setError(null)
+    start(async () => {
+      const res = await resetPasswordAction({ token, password })
+      if (res.ok) router.push('/auth/login?reset=1')
+      else setError(res.error)
+    })
+  }
 
-    try {
-      const { error } = await supabase.auth.updateUser({ password })
-      if (error) throw error
-      // Update this route to redirect to an authenticated route. The user already has an active session.
-      router.push('/protected')
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
-    } finally {
-      setIsLoading(false)
-    }
+  if (!token) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="text-2xl">Link missing</CardTitle>
+          <CardDescription>Open the reset link you were given (by email, or by a GUCC administrator), or request a new one from the login page.</CardDescription>
+        </CardHeader>
+      </Card>
+    )
   }
 
   return (
@@ -47,22 +46,15 @@ export function UpdatePasswordForm({ className, ...props }: React.ComponentProps
           <CardDescription>Please enter your new password below.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleForgotPassword}>
+          <form onSubmit={handle}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="password">New password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="New password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <PasswordInput id="password" placeholder="At least 10 characters" required minLength={10} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Saving...' : 'Save new password'}
+              {error && <p className="text-sm text-red-500" role="alert">{error}</p>}
+              <Button type="submit" className="w-full" disabled={pending}>
+                {pending ? 'Saving...' : 'Save new password'}
               </Button>
             </div>
           </form>
