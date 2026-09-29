@@ -26,19 +26,19 @@ beforeEach(async () => {
 const row = (id: string) => w.sqlite.prepare("SELECT position_id, position_title, display_order, end_date, is_active FROM committee_members WHERE id = ?").get(id) as Record<string, unknown>;
 
 describe("bulk executive changes", () => {
-  it("previews first, refuses protected and own listings, and ends the rest in one audited step", async () => {
+  it("previews first, refuses own listings, and ends the rest in one audited step (the General Secretary may change a Moderator's listing)", async () => {
     const gsListing = (w.sqlite.prepare("SELECT cm.id FROM committee_members cm JOIN profiles p ON p.id = cm.profile_id WHERE p.user_id = ?").get(gs) as { id: string }).id;
     const req = { committeeId: w.committeeId, ids: ["cm_a", "cm_b", "cm_mod", gsListing], action: { op: "end" as const } };
     const plan = await previewBulk(await w.ctx(gs), req);
     const byId = Object.fromEntries(plan.items.map((i) => [i.id, [Boolean(i.change), i.blocked?.split(":")[0] ?? null]]));
-    expect(byId).toEqual({ cm_a: [true, null], cm_b: [true, null], cm_mod: [false, "Moderator is protected"], [gsListing]: [false, "Your own listing"] });
+    expect(byId).toEqual({ cm_a: [true, null], cm_b: [true, null], cm_mod: [true, null], [gsListing]: [false, "Your own listing"] });
     expect(row("cm_a").end_date).toBeNull();
     const res = await applyBulk(await w.ctx(gs), req);
-    expect(res).toMatchObject({ changed: 2, blocked: 2 });
+    expect(res).toMatchObject({ changed: 3, blocked: 1 });
     expect(row("cm_a")).toMatchObject({ is_active: 0 });
     expect(row("cm_a").end_date).toBeTruthy();
-    expect(row("cm_mod").end_date).toBeNull();
-    expect(w.sqlite.prepare("SELECT COUNT(*) n FROM audit_logs WHERE action = 'executive.end'").get()).toEqual({ n: 2 });
+    expect(row("cm_mod").end_date).toBeTruthy();
+    expect(w.sqlite.prepare("SELECT COUNT(*) n FROM audit_logs WHERE action = 'executive.end'").get()).toEqual({ n: 3 });
     expect(w.sqlite.prepare("SELECT COUNT(*) n FROM audit_logs WHERE action = 'executives.bulk'").get()).toEqual({ n: 1 });
   });
 

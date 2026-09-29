@@ -49,7 +49,8 @@ async function purgeFiles(ctx: Ctx, files: FileRow[], at: string): Promise<strin
   if (!files.length) return [];
   for (const bucket of ["public", "private"] as const) {
     const keys = files.filter((f) => (f.bucket ?? "public") === bucket).flatMap((f) => Object.values(JSON.parse(f.variants_json ?? "{}") as Record<string, { key: string }>).map((v) => v.key));
-    if (keys.length && ctx.media) await ctx.media[bucket].delete(keys);
+    // R2 deletes at most 1,000 keys per call.
+    for (let i = 0; keys.length && ctx.media && i < keys.length; i += 1000) await ctx.media[bucket].delete(keys.slice(i, i + 1000));
   }
   await ctx.db.run("UPDATE media SET status = 'ARCHIVED', deleted_at = COALESCE(deleted_at, ?2), purged_at = ?2, updated_at = ?2 WHERE id IN (SELECT value FROM json_each(?1))",
     JSON.stringify(files.map((f) => f.id)), at);
@@ -84,11 +85,13 @@ export async function runRetention(ctx: Ctx, now = new Date()): Promise<Retentio
       ? await ctx.db.all<FileRow>("SELECT id, bucket, variants_json FROM media WHERE id IN (SELECT value FROM json_each(?1)) AND purged_at IS NULL", JSON.stringify(fileIds))
       : [];
     const ids = JSON.stringify(apps.map((a) => a.id));
+    // Files first: if deleting them fails, the rows (and so the next run's retry) are still there,
+    // never a CV or ID card left in storage with nothing pointing to it.
+    await purgeFiles(ctx, files, at);
     await ctx.db.batch([
       ctx.db.stmt("DELETE FROM recruitment_notes WHERE application_id IN (SELECT value FROM json_each(?1))", ids),
       ctx.db.stmt("DELETE FROM recruitment_applications WHERE id IN (SELECT value FROM json_each(?1))", ids),
     ]);
-    await purgeFiles(ctx, files, at);
     report.applications = apps.length;
   }
 
@@ -106,12 +109,12 @@ export async function runRetention(ctx: Ctx, now = new Date()): Promise<Retentio
     const files = imageIds.length
       ? await ctx.db.all<FileRow>("SELECT id, bucket, variants_json FROM media WHERE id IN (SELECT value FROM json_each(?1)) AND purged_at IS NULL", JSON.stringify(imageIds))
       : [];
+    await purgeFiles(ctx, files, at);
     await ctx.db.batch([
       ctx.db.stmt("DELETE FROM lost_found_messages WHERE post_id IN (SELECT value FROM json_each(?1))", ids),
       ctx.db.stmt("DELETE FROM media_references WHERE resource_type = 'lost_found' AND resource_id IN (SELECT value FROM json_each(?1))", ids),
       ctx.db.stmt("DELETE FROM lost_found_posts WHERE id IN (SELECT value FROM json_each(?1))", ids),
     ]);
-    await purgeFiles(ctx, files, at);
     report.lostFound = posts.length;
   }
 

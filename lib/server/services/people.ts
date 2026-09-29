@@ -13,13 +13,14 @@ import { limit } from "../limits";
 import { assertNotSelf } from "../../governance/invariants";
 import { holdsProtectedRole } from "../../governance/engine";
 import { auditStmt } from "../audit";
-import { authorize, requireActor } from "../authz";
+import { authorize, requireActor, HAS_MODERATOR_AUTHORITY_SQL } from "../authz";
 import type { Ctx } from "../context";
 import { randomToken, sha256Hex } from "../crypto";
 import { newId, nowIso } from "../db";
 import { AppError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
 import { deliverEmail, requireRecentAuth } from "../security";
 import { STUDENT_ID_RE, Validator } from "../validate";
+import { EMAIL_SENDER } from "../../email-hint";
 
 const INVITE_DAYS = 14;
 
@@ -119,12 +120,12 @@ async function assertMayEditPerson(ctx: Ctx, profileId: string) {
   const actor = requireActor(ctx);
   const decision = requirePeopleAccess(ctx);
   const target = await ctx.db.first<{ user_id: string | null; is_protected: number }>(
-    `SELECT pr.user_id, EXISTS (SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = pr.user_id AND ur.revoked_at IS NULL AND r.is_protected = 1) AS is_protected
+    `SELECT pr.user_id, CASE WHEN pr.user_id IS NULL THEN 0 ELSE ${HAS_MODERATOR_AUTHORITY_SQL("pr.user_id")} END AS is_protected
      FROM profiles pr WHERE pr.id = ?1 AND pr.deleted_at IS NULL`, profileId);
   if (!target) throw new NotFoundError("Person");
   // A Moderator's profile is edited only by a Moderator (or themselves on /account).
   if (target.is_protected && target.user_id !== actor.user.id && !holdsProtectedRole(actor.subject)) {
-    throw new ForbiddenError("Only a Moderator can edit a Moderator's profile.");
+    throw new ForbiddenError("Only a Moderator, the President or the General Secretary can edit a Moderator's profile.");
   }
   return { decision, target };
 }
@@ -283,7 +284,7 @@ export async function invitePerson(ctx: Ctx, profileId: string, emailRaw: string
     subject: "Your GUCC executive account",
     text: `Hello ${profile.full_name},\n\n${inviter} added you to the Green University Computer Club committee. Set a password to activate your account:\n${link}\n\nThe link expires in ${INVITE_DAYS} days. If you weren't expecting this, you can ignore this email.`,
   }, { type: "invite" });
-  if (sent) return { message: `Invitation sent to ${email}.` };
+  if (sent) return { message: `Invitation sent to ${email}. If it doesn't arrive in a few minutes, ask them to check their spam or junk folder (from ${EMAIL_SENDER}).` };
   return { message: `Email isn't available, so no email was sent. Give ${profile.full_name} this link privately (it works once, for ${INVITE_DAYS} days): ${link}`, link };
 }
 
@@ -344,18 +345,27 @@ export async function mergePeople(ctx: Ctx, keepId: string, dropId: string, reas
 export async function deletePerson(ctx: Ctx, id: string, reasonRaw: unknown): Promise<void> {
   const actor = requireActor(ctx);
   const { decision } = await assertMayEditPerson(ctx, id);
-  const p = await ctx.db.first<{ full_name: string; user_id: string | null; listings: number; posts: number; people: number }>(
-    `SELECT full_name, user_id, (SELECT COUNT(*) FROM committee_members WHERE profile_id = p.id) AS listings,
-            (SELECT COUNT(*) FROM posts WHERE author_profile_id = p.id) AS posts, (SELECT COUNT(*) FROM event_people WHERE profile_id = p.id) AS people
-     FROM profiles p WHERE id = ?1 AND deleted_at IS NULL`, id);
+  const p = await ctx.db.first<{ full_name: string; user_id: string | null; account_status: string | null; last_login_at: string | null; listings: number; posts: number; people: number }>(
+    `SELECT p.full_name, p.user_id, u.status AS account_status, u.last_login_at,
+            (SELECT COUNT(*) FROM committee_members WHERE profile_id = p.id AND deleted_at IS NULL) AS listings,
+            (SELECT COUNT(*) FROM posts WHERE author_profile_id = p.id AND deleted_at IS NULL) AS posts, (SELECT COUNT(*) FROM event_people WHERE profile_id = p.id) AS people
+     FROM profiles p LEFT JOIN users u ON u.id = p.user_id AND u.deleted_at IS NULL WHERE p.id = ?1 AND p.deleted_at IS NULL`, id);
   if (!p) throw new NotFoundError("Person");
-  if (p.user_id) throw new ConflictError("This person has a sign-in account. Accounts are closed from the member list, not deleted here.");
+  // An account that was only invited (never signed in) goes with the mistaken entry; a real
+  // account is closed from the member list.
+  const inviteOnly = Boolean(p.user_id) && !p.last_login_at && p.account_status !== "ACTIVE";
+  if (p.user_id && p.account_status && !inviteOnly) throw new ConflictError("This person has a sign-in account. Accounts are closed from the member list, not deleted here.");
   if (p.listings || p.posts || p.people) throw new ConflictError(`${p.full_name} appears in ${p.listings} listing(s), ${p.people} event role(s) and ${p.posts} post(s). Merge them into the right person instead.`);
   const reason = String(reasonRaw ?? "").trim();
   if (reason.length < 3) throw new AppError(400, "REASON_REQUIRED", "Say why (kept in the activity log).");
   const now = nowIso();
   await ctx.db.batch([
-    ctx.db.stmt("UPDATE profiles SET student_id = NULL, deleted_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1", id, now, actor.user.id),
-    auditStmt(ctx, { action: "profile.delete", resourceType: "profile", resourceId: id, reason, before: { name: p.full_name }, decision }),
+    ctx.db.stmt("UPDATE profiles SET student_id = NULL, user_id = NULL, deleted_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1", id, now, actor.user.id),
+    ...(inviteOnly ? [
+      // The invitation stops working and the address can be invited again.
+      ctx.db.stmt("UPDATE auth_tokens SET used_at = ?2 WHERE user_id = ?1 AND used_at IS NULL", p.user_id, now),
+      ctx.db.stmt("UPDATE users SET status = 'ARCHIVED', email = 'deleted+' || id || '@invalid', deleted_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1", p.user_id, now, actor.user.id),
+    ] : []),
+    auditStmt(ctx, { action: "profile.delete", resourceType: "profile", resourceId: id, reason, before: { name: p.full_name, invitedAccount: inviteOnly ? p.user_id : null }, decision }),
   ]);
 }

@@ -54,27 +54,22 @@ describe("direct permission grants", () => {
     expect((await loadActor(w.db, p.member))!.subject.grants.some((g) => g.source === "direct")).toBe(false);
   });
 
-  it("refuses self-grants, protected powers, things the granter lacks, past end dates and duplicates", async () => {
+  it("refuses self-grants, past end dates and duplicates; the General Secretary has a Moderator's reach", async () => {
     const p = await leaders();
     await expect(grantDirectPermission(await w.ctx(p.gs), { userId: p.gs, permission: "events.read" })).rejects.toMatchObject({ code: "SELF_ESCALATION" });
-    await expect(grantDirectPermission(await w.ctx(p.gs), { userId: p.member, permission: "roles.assign" })).rejects.toMatchObject({ code: "PROTECTED_PERMISSION" });
-    await expect(grantDirectPermission(await w.ctx(p.gs), { userId: p.member, permission: "users.delete" })).rejects.toMatchObject({ code: "ESCALATION" });
+    // Equal to a Moderator: protected and club-wide powers can be handed out directly.
+    expect(await grantDirectPermission(await w.ctx(p.gs), { userId: p.member, permission: "roles.assign" })).toMatchObject({ applied: true });
+    expect(await grantDirectPermission(await w.ctx(p.gs), { userId: p.member, permission: "users.delete" })).toMatchObject({ applied: true });
     await expect(grantDirectPermission(await w.ctx(p.gs), { userId: p.member, permission: "events.read", expiresAt: "2020-01-01" })).rejects.toMatchObject({ code: "VALIDATION" });
     await grantDirectPermission(await w.ctx(p.gs), { userId: p.member, permission: "events.read" });
     await expect(grantDirectPermission(await w.ctx(p.president), { userId: p.member, permission: "events.read" })).rejects.toMatchObject({ code: "CONFLICT" });
     await expect(grantDirectPermission(await w.ctx(p.exec), { userId: p.member, permission: "events.read" })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("a sensitive grant by the General Secretary waits for a Moderator, then applies", async () => {
+  it("a sensitive grant by the General Secretary applies at once (equal to a Moderator)", async () => {
     const p = await leaders();
     const res = await grantDirectPermission(await w.ctx(p.gs), { userId: p.member, permission: "users.suspend", reason: "Moderation help" });
-    expect(res.applied).toBe(false);
-    expect(res.message).toMatch(/Moderator/);
-    expect(w.sqlite.prepare("SELECT COUNT(*) n FROM user_permissions").get()).toEqual({ n: 0 });
-    // The President can't approve it: the policy names Moderators.
-    await expect(decideApproval(await w.ctx(p.president), res.requestId!, "APPROVE")).rejects.toMatchObject({ code: "FORBIDDEN" });
-    await decideApproval(await w.ctx(p.moderator), res.requestId!, "APPROVE");
-    expect(w.sqlite.prepare("SELECT approval_request_id FROM user_permissions WHERE user_id = ?").get(p.member)).toEqual({ approval_request_id: res.requestId });
+    expect(res.applied).toBe(true);
     expect(authorize({ ...(await w.ctx(p.member)) }, "users.suspend").outcome).toBe("ALLOW");
   });
 
@@ -219,10 +214,9 @@ describe("giving a role to many members", () => {
     expect(w.sqlite.prepare("SELECT COUNT(*) n FROM notifications WHERE type = 'role.granted'").get()).toEqual({ n: 2 });
     // Again: both already hold it.
     await expect(grantRoleBulk(await w.ctx(p.gs), { userIds: [p.member, extra], roleKey: "volunteers" }, true)).rejects.toMatchObject({ code: "NOTHING_TO_CHANGE" });
-    // A role with a sensitive permission: one at a time for the General Secretary; a Moderator may do it in bulk.
+    // A role with a sensitive permission: the General Secretary, like a Moderator, may give it in bulk.
     await setRoleGrant(await w.ctx(p.moderator), id, { permission: "users.suspend", scope: "ALL", scopeValue: "" }, true);
-    await expect(grantRoleBulk(await w.ctx(p.gs), { userIds: [p.exec], roleKey: "volunteers" }, false)).rejects.toMatchObject({ code: "ONE_AT_A_TIME" });
-    await expect(grantRoleBulk(await w.ctx(p.moderator), { userIds: [p.exec], roleKey: "volunteers" }, true)).resolves.toBeTruthy();
+    await expect(grantRoleBulk(await w.ctx(p.gs), { userIds: [p.exec], roleKey: "volunteers" }, true)).resolves.toBeTruthy();
     await expect(grantRoleBulk(await w.ctx(p.gs), { userIds: [p.exec], roleKey: "moderator" }, false)).rejects.toMatchObject({ code: "ONE_AT_A_TIME" });
   });
 });

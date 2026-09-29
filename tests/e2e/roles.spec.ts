@@ -74,19 +74,18 @@ for (const person of PEOPLE) {
   });
 }
 
-test("a President giving the Developer role waits for a Moderator's approval (sensitive permissions)", async ({ page }) => {
+test("a President (equal to a Moderator) gives the Developer role at once, sensitive permissions included", async ({ page }) => {
   await ensureMember("role.president@local.test", "Role President", PASSWORD);
   listing("role.president@local.test", "president", null);
   await ensureMember("role.newdev@local.test", "Role New Developer", PASSWORD);
   const target = d1<{ id: string }>("SELECT id FROM users WHERE email = 'role.newdev@local.test'")[0]!.id;
   d1(`UPDATE user_roles SET revoked_at = datetime('now') WHERE user_id = ${q(target)} AND role_id = 'role:developer' AND revoked_at IS NULL`);
-  d1(`UPDATE approval_requests SET status = 'CANCELLED' WHERE status = 'PENDING' AND resource_id LIKE ${q(`${target}%`)}`);
   await login(page, "role.president@local.test", PASSWORD, `/dashboard/access/${target}`);
   const grant = page.locator("section", { hasText: "Give a role" });
-  await grant.getByLabel("Role").selectOption({ label: "Developer (a Moderator approves)" });
+  await grant.getByLabel("Role").selectOption({ label: "Developer" });
   await grant.getByRole("button", { name: "Grant role" }).click();
-  await expect(page.getByRole("status").filter({ hasText: /approv/i }).first()).toBeVisible();
+  await expect(page.getByRole("status").first()).toBeVisible();
+  await expect.poll(() => d1<{ n: number }>(`SELECT COUNT(*) AS n FROM user_roles WHERE user_id = ${q(target)} AND role_id = 'role:developer' AND revoked_at IS NULL`)[0]!.n).toBe(1);
   const pending = d1<{ n: number }>(`SELECT COUNT(*) AS n FROM approval_requests WHERE status = 'PENDING' AND action = 'governance.sensitive_grant' AND instr(resource_id, ${q(target)}) > 0`)[0]!.n;
-  expect(pending).toBe(1);
-  expect(d1<{ n: number }>(`SELECT COUNT(*) AS n FROM user_roles WHERE user_id = ${q(target)} AND role_id = 'role:developer' AND revoked_at IS NULL`)[0]!.n).toBe(0);
+  expect(pending).toBe(0);
 });

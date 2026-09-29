@@ -9,6 +9,12 @@ import type { Ctx } from "../context";
 
 import { ACTIVITY_AREAS, type ActivityArea } from "../../governance/activity-areas";
 
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** The first and last instant (UTC) of a calendar day in Dhaka. */
+const dhakaDayStart = (day?: string | null) => (day && DAY_RE.test(day) ? new Date(`${day}T00:00:00.000+06:00`).toISOString() : null);
+const dhakaDayEnd = (day?: string | null) => (day && DAY_RE.test(day) ? new Date(`${day}T23:59:59.999+06:00`).toISOString() : null);
+
+
 export { ACTIVITY_AREAS, type ActivityArea };
 
 const AREA_PREFIXES: Record<ActivityArea, string[]> = {
@@ -181,7 +187,8 @@ export async function activityFeed(ctx: Ctx, f: ActivityFilter = {}): Promise<{ 
        AND (?6 IS NULL OR created_at < ?6 OR (created_at = ?6 AND id < ?7))
        AND (?8 IS NULL OR request_id = ?8)
      ORDER BY created_at DESC, id DESC LIMIT ?9`,
-    f.actor ?? null, JSON.stringify(prefixes), q, f.from ?? null, f.to ? `${f.to}T23:59:59.999Z` : null, cursorAt || null, cursorId ?? "", f.request ?? null, size + 1,
+    // Dates are days in Dhaka (UTC+6), as the page shows them.
+    f.actor ?? null, JSON.stringify(prefixes), q, dhakaDayStart(f.from), dhakaDayEnd(f.to), cursorAt || null, cursorId ?? "", f.request ?? null, size + 1,
   );
   const page = rows.slice(0, size);
   const names = await labels(ctx, page);

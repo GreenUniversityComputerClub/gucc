@@ -9,7 +9,10 @@
  *    are archived after a day and their private objects deleted;
  *  - expired direct grants are closed, old read notifications deleted;
  *  - lost & found posts are archived (resolved after 30 days, open ones after 90 by
- *    default, from lostfound.config) with a notice to the owner a week before.
+ *    default, from lostfound.config) with a notice to the owner a week before;
+ *  - reminders: tasks due within a day, meetings starting within the hour (once each);
+ *  - pages refresh when a scheduled post went out or an event's registration opened or
+ *    closed in the last hour (the public site caches for an hour).
  *
  * Every write is set-based, so the whole run stays well inside D1's statement budget.
  */
@@ -29,6 +32,8 @@ export interface MaintenanceReport {
   lostFoundNoticed: number;
   lostFoundArchived: number;
   storedBytes: number;
+  taskReminders: number;
+  meetingReminders: number;
 }
 
 const DAY = 86_400_000;
@@ -56,6 +61,8 @@ export async function runMaintenance(ctx: Ctx, now = new Date()): Promise<Mainte
     lostFoundNoticed: 0,
     lostFoundArchived: 0,
     storedBytes: 0,
+    taskReminders: 0,
+    meetingReminders: 0,
   };
   const retention = Number((await ctx.db.value<string>("SELECT value_json FROM system_settings WHERE key = 'notifications.retention_days'")) ?? 180) || 180;
   report.oldNotifications = await ctx.db.run("DELETE FROM notifications WHERE read_at IS NOT NULL AND created_at < ?1", new Date(now.getTime() - retention * DAY).toISOString());
@@ -91,10 +98,48 @@ export async function runMaintenance(ctx: Ctx, now = new Date()): Promise<Mainte
     report.orphanUploads = await ctx.db.run("UPDATE media SET status = 'ARCHIVED', deleted_at = ?2, purged_at = ?2, updated_at = ?2 WHERE id IN (SELECT value FROM json_each(?1))",
       JSON.stringify(orphans.map((o) => o.id)), nowIso());
   }
+  await reminders(ctx, now, report);
   // Correct the running total of stored bytes from the files themselves.
   report.storedBytes = await reconcileStoredBytes(ctx);
-  if (report.eventsOngoing || report.eventsCompleted) ctx.revalidate?.(["events"]);
+  // Scheduled posts and registration windows change what the (cached) public pages show.
+  const crossed = await ctx.db.first<{ posts: number; events: number }>(
+    `SELECT EXISTS (SELECT 1 FROM posts WHERE status = 'PUBLISHED' AND deleted_at IS NULL AND published_at > ?1 AND published_at <= ?2) AS posts,
+            EXISTS (SELECT 1 FROM events WHERE deleted_at IS NULL AND status IN ('PUBLISHED','ONGOING')
+                      AND ((registration_opens_at > ?1 AND registration_opens_at <= ?2) OR (registration_closes_at > ?1 AND registration_closes_at <= ?2))) AS events`,
+    new Date(now.getTime() - 3600_000).toISOString(), iso);
+  if (crossed?.posts) ctx.revalidate?.(["posts"]);
+  if (report.eventsOngoing || report.eventsCompleted || crossed?.events) ctx.revalidate?.(["events"]);
   return report;
+}
+
+/**
+ * Reminders in the dashboard (and by email where people chose it): a task due in the next day,
+ * a meeting starting in the next hour. Each is sent once (reminded_at); nothing runs when
+ * nothing is due, so quiet hours cost one statement each.
+ */
+async function reminders(ctx: Ctx, now: Date, report: MaintenanceReport): Promise<void> {
+  const iso = now.toISOString();
+  const dayAhead = new Date(now.getTime() + DAY).toISOString();
+  const hourAhead = new Date(now.getTime() + 3600_000).toISOString();
+  report.taskReminders = await ctx.db.run(
+    `INSERT INTO notifications (id, user_id, type, title, body, link, resource_type, resource_id, channel, created_at)
+     SELECT 'ntf_' || lower(hex(randomblob(16))), t.assignee_user_id, 'task.due', 'Due soon: ' || substr(t.title, 1, 150), 'Due within a day.', '/dashboard/tasks/' || t.id, 'task', t.id, 'IN_APP', ?1
+     FROM tasks t WHERE t.deleted_at IS NULL AND t.status IN ('OPEN','IN_PROGRESS') AND t.assignee_user_id IS NOT NULL AND t.reminded_at IS NULL
+       AND t.due_at IS NOT NULL AND t.due_at > ?1 AND t.due_at <= ?2`, iso, dayAhead);
+  if (report.taskReminders) {
+    await ctx.db.run(`UPDATE tasks SET reminded_at = ?1 WHERE deleted_at IS NULL AND status IN ('OPEN','IN_PROGRESS') AND assignee_user_id IS NOT NULL AND reminded_at IS NULL
+      AND due_at IS NOT NULL AND due_at > ?1 AND due_at <= ?2`, iso, dayAhead);
+  }
+  report.meetingReminders = await ctx.db.run(
+    `INSERT INTO notifications (id, user_id, type, title, body, link, resource_type, resource_id, channel, created_at)
+     SELECT 'ntf_' || lower(hex(randomblob(16))), p.user_id, 'meeting.soon', 'Starting soon: ' || substr(m.title, 1, 150),
+            COALESCE(m.location, CASE WHEN m.meet_url IS NOT NULL THEN 'Online (Google Meet)' END), '/dashboard/meetings/' || m.id, 'meeting', m.id, 'IN_APP', ?1
+     FROM meetings m JOIN meeting_participants p ON p.meeting_id = m.id AND p.response <> 'NO'
+     JOIN users u ON u.id = p.user_id AND u.status = 'ACTIVE'
+     WHERE m.deleted_at IS NULL AND m.status = 'SCHEDULED' AND m.reminded_at IS NULL AND m.starts_at > ?1 AND m.starts_at <= ?2`, iso, hourAhead);
+  if (report.meetingReminders) {
+    await ctx.db.run("UPDATE meetings SET reminded_at = ?1 WHERE deleted_at IS NULL AND status = 'SCHEDULED' AND reminded_at IS NULL AND starts_at > ?1 AND starts_at <= ?2", iso, hourAhead);
+  }
 }
 
 /** Remember when housekeeping last ran (and whether it finished) for the System health page. */

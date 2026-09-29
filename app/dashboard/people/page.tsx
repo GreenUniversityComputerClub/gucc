@@ -16,7 +16,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
     <>
       <PageHeader title="Profiles" description="Everyone who appears on the site: executives past and present, faculty advisors and members. Edit photos, bios and links here; committee pages update automatically." />
       <form className="mb-3 flex flex-wrap gap-2" role="search">
-        <input name="q" defaultValue={sp.q ?? ""} placeholder="Name, student ID or email" aria-label="Search" className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm sm:min-w-56" />
+        <input name="q" defaultValue={sp.q ?? ""} placeholder="Name, student ID or email" aria-label="Search" className="h-10 md:h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-base md:text-sm sm:min-w-56" />
         {sp.filter && <input type="hidden" name="filter" value={sp.filter} />}
         <button className="h-9 rounded-md border px-4 text-sm">Search</button>
       </form>

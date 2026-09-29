@@ -37,7 +37,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
     }
     start(async () => {
       const res = await registerAction({ email, password, fullName, studentId: studentId || undefined, department: department || undefined, batch: batch || undefined, phone: phone || undefined, turnstileToken: token ?? undefined })
-      if (res.ok) router.push('/auth/sign-up-success')
+      if (res.ok) router.push(res.data?.emailSent === false ? '/auth/sign-up-success?review=1' : '/auth/sign-up-success')
       else {
         setError(res.error)
         setFields(res.fields ?? {})

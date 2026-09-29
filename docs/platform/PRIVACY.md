@@ -15,7 +15,7 @@ time) and the hourly one (`maintenance.ts`); System health shows when each last 
 | Sign-in events: time, outcome, email, hashed IP, device                             | `authentication_events`                       | Security (lockouts, new-device notices, System health figures) |
 | Activity log: who changed what, when (hashed IP)                                    | `audit_logs`                                  | Accountability; sealed hourly against tampering                |
 | Notifications and messages                                                          | `notifications`, `messages`                   | The dashboard                                                  |
-| Email log: recipient, type, Resend's answer                                         | `email_log`                                   | Proof of what was (not) sent                                   |
+| Email log: recipient, type, SMTP2GO's answer                                        | `email_log`                                   | Proof of what was (not) sent                                   |
 | Event registrations: name, email, student ID, phone, answers                        | `event_registrations`                         | Running events                                                 |
 | Recruitment applications: contact details, grades, documents (private files)        | `recruitment_applications`, R2 private bucket | Selection                                                      |
 | Contact messages                                                                    | `contact_messages`                            | Replying                                                       |
@@ -79,7 +79,7 @@ The last Moderator can't delete their account before appointing another.
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | Cloudflare (Workers, D1, R2, Turnstile)           | Everything above; hosted in Cloudflare's network (D1 primary in Singapore)                             |
 | Vercel                                            | Page requests; server functions pass data between the browser and the API without storing it           |
-| Resend (only when email is switched on)           | Recipient address, subject and text of each email                                                      |
+| SMTP2GO (only when email is switched on)          | Recipient address, subject and text of each email                                                      |
 | Google Gemini (only when `GOOGLE_API_KEY` is set) | The visitor's question and the recent chat turns, plus public club information; nothing about accounts |
 
 ## Cookies

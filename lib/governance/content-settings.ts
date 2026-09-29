@@ -70,6 +70,12 @@ const CHECKS: Record<string, (v: unknown) => unknown> = {
       }),
     };
   },
+  "chatbot.knowledge": (v) => {
+    // Free-form facts for the site assistant; only size and shape are checked (it all goes into prompts).
+    if (!isObj(v)) throw new Error("The assistant's knowledge must be an object (for example {\"aboutUs\": {\"description\": \"…\"}}).");
+    if (JSON.stringify(v).length > 20_000) throw new Error("The assistant's knowledge is too long (at most 20,000 characters).");
+    return v;
+  },
   "page.collaborations": (v) => {
     if (!isObj(v)) throw new Error("Partner clubs must be an object.");
     return {

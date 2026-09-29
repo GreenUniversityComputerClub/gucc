@@ -22,10 +22,12 @@ import { newId, nowIso } from "../db";
 import { AppError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
 import { notifyStmts, usersWithPermission } from "../notifications";
 import { emailEnabled } from "../email";
+import { SPAM_HINT } from "../../email-hint";
 import { deliverEmail, getSetting, requireRecentAuth, verifyTurnstile } from "../security";
 import { passwordProblem, STUDENT_ID_RE, Validator } from "../validate";
 import { triggerStmts } from "../triggers";
 import { describeAgent } from "./account";
+import { claimEmailTasksStmts } from "./task-claim";
 
 const LOCK_AFTER = 5;
 const LOCK_MINUTES = 15;
@@ -104,8 +106,8 @@ export async function register(ctx: Ctx, input: RegisterInput): Promise<{ messag
   // email already has an account, so the form can't be used to discover members.
   const withEmail = await emailEnabled(ctx);
   const generic = withEmail
-    ? { message: "Check your inbox for a verification link. If you already have an account, sign in or reset your password instead." }
-    : { message: "Your account has been created and is awaiting GUCC approval. If you already had an account with this email, sign in with it instead." };
+    ? { message: `Check your inbox for a verification link. ${SPAM_HINT} If you already have an account, sign in or reset your password instead.`, emailSent: true }
+    : { message: "Your account has been created and is awaiting GUCC approval. If you already had an account with this email, sign in with it instead.", emailSent: false };
   const existing = await ctx.db.first<{ id: string }>("SELECT id FROM users WHERE email = ?1", email);
   if (existing) {
     await (await authEventStmt(ctx, "REGISTER_DUPLICATE", existing.id, email)).run();
@@ -153,7 +155,7 @@ export async function resendVerification(ctx: Ctx, emailRaw: string): Promise<{ 
     const token = await issueToken(ctx, user.id, "EMAIL_VERIFY", VERIFY_HOURS * 60);
     await deliverEmail(ctx, { to: email, subject: "Verify your GUCC account", text: `Confirm your email address:\n${baseUrl(ctx)}/auth/confirm?token=${token}` }, { type: "account.verify", userId: user.id });
   }
-  return { message: "If that account is waiting for verification, a new link is on its way." };
+  return { message: `If that account is waiting for verification, a new link is on its way. ${SPAM_HINT}` };
 }
 
 export async function verifyEmail(ctx: Ctx, token: string): Promise<{ status: string }> {
@@ -171,6 +173,7 @@ export async function verifyEmail(ctx: Ctx, token: string): Promise<{ status: st
   ];
   if (next === "ACTIVE") {
     stmts.push(ctx.db.stmt("INSERT INTO user_roles (id, user_id, role_id, granted_at, reason) VALUES (?1, ?2, 'role:member', ?3, 'Automatic: approval not required')", newId("ur"), userId, now));
+    stmts.push(...claimEmailTasksStmts(ctx, userId, now));
   } else {
     const approvers = await usersWithPermission(ctx, "members.approve");
     stmts.push(...notifyStmts(ctx, approvers, { type: "member.pending", title: "New membership application", body: `${user.email} verified their email and is waiting for approval.`, link: "/dashboard/members?status=PENDING_APPROVAL", resourceType: "user", resourceId: userId }));
@@ -197,7 +200,8 @@ const MFA_PENDING_MINUTES = 10;
 export async function login(ctx: Ctx, input: { email: string; password: string; turnstileToken?: string }): Promise<SessionIssued> {
   const email = String(input.email ?? "").trim().toLowerCase();
   await limit(ctx, "auth.login.ip", ctx.meta.ipHash ?? "unknown");
-  await limit(ctx, "auth.login.email", await sha256Hex(email));
+  // Bot check first, and the per-account limit counts only wrong passwords: otherwise anyone
+  // could keep a leader from signing in by sending requests with their email.
   await verifyTurnstile(ctx, input.turnstileToken);
   const fail = new AppError(401, "INVALID_CREDENTIALS", "Email or password is incorrect.");
 
@@ -210,6 +214,7 @@ export async function login(ctx: Ctx, input: { email: string; password: string; 
   }
   const { ok, needsRehash } = await verifyPassword(String(input.password ?? ""), user?.password_hash ?? null, ctx.env.PASSWORD_PEPPER, ctx.env.PASSWORD_PEPPER_PREVIOUS);
   if (!user || !ok) {
+    await limit(ctx, "auth.login.email", await sha256Hex(email));
     if (user) {
       const count = user.failed_login_count + 1;
       const lock = count >= LOCK_AFTER ? addMinutes(LOCK_MINUTES) : null;
@@ -353,7 +358,7 @@ export async function requestPasswordReset(ctx: Ctx, input: { email: string; tur
       text: `Use this link to choose a new password:\n${baseUrl(ctx)}/auth/update-password?token=${token}\n\nIt expires in ${RESET_MINUTES} minutes. If you did not ask for this, you can ignore this email.`,
     }, { type: "account.reset", userId: user.id });
   }
-  return { message: "If an account exists for that email, a reset link is on its way." };
+  return { message: `If an account exists for that email, a reset link is on its way. ${SPAM_HINT}` };
 }
 
 export async function resetPassword(ctx: Ctx, input: { token: string; password: string }): Promise<void> {
@@ -410,6 +415,7 @@ export async function acceptInvite(ctx: Ctx, input: { token: string; password: s
       await sha256Hex(token), userId, now, expiresAt, ctx.meta.ipHash, ctx.meta.userAgent?.slice(0, 300) ?? null),
     await authEventStmt(ctx, "INVITE_ACCEPTED", userId, pending.email),
     auditStmt(ctx, { action: "auth.invite_accepted", resourceType: "user", resourceId: userId, actorUserId: userId, actorLabel: pending.email }),
+    ...claimEmailTasksStmts(ctx, userId, now),
   ]);
   const status = (await ctx.db.value<string>("SELECT status FROM users WHERE id = ?1", userId)) ?? "ACTIVE";
   return { token, expiresAt, userId, status };
@@ -457,6 +463,8 @@ export async function issueResetLink(ctx: Ctx, userId: string): Promise<{ url: s
 export async function changePassword(ctx: Ctx, userId: string, current: string, next: string, keepSessionToken?: string | null): Promise<{ message: string }> {
   const user = await ctx.db.first<{ email: string; password_hash: string | null }>("SELECT email, password_hash FROM users WHERE id = ?1", userId);
   if (!user) throw new AppError(404, "NOT_FOUND", "Account not found.");
+  // A stolen session must not be able to guess the password here without limit.
+  await limit(ctx, "account.reauth", userId);
   const { ok } = await verifyPassword(current, user.password_hash, ctx.env.PASSWORD_PEPPER, ctx.env.PASSWORD_PEPPER_PREVIOUS);
   if (!ok) throw new ValidationError("Current password is incorrect.", { current: "Current password is incorrect." });
   const problem = passwordProblem(next, user.email);

@@ -120,9 +120,14 @@ describe("two-factor required for sensitive permissions", () => {
       `SELECT pm.key FROM position_permissions pp JOIN permissions pm ON pm.id = pp.permission_id WHERE pp.position_id = 'pos:president' AND pm.is_sensitive = 1 LIMIT 1`).get() as { key: string };
     expect(authorize(await w.ctx(pres), sensitive.key).outcome).not.toBe("DENY");
 
-    // Grace over: the account was created, and the rule switched on, long ago.
+    // An old account promoted just now still gets the whole grace period: it starts when the
+    // sensitive access began, not when the account was created.
     w.sqlite.prepare("UPDATE users SET created_at = '2020-01-01T00:00:00.000Z' WHERE id = ?").run(pres);
     w.sqlite.prepare("UPDATE system_settings SET updated_at = '2020-01-01T00:00:00.000Z' WHERE key = 'security.mfa_required_for_sensitive'").run();
+    expect(await holdsNow()).toMatchObject({ mfaBlocked: false, mfaDeadline: expect.any(String) });
+
+    // Grace over: the account, the rule and the President listing are all old.
+    w.sqlite.prepare("UPDATE committee_members SET created_at = '2020-01-01T00:00:00.000Z', start_date = NULL WHERE profile_id IN (SELECT id FROM profiles WHERE user_id = ?)").run(pres);
     expect(await holdsNow()).toMatchObject({ mfaBlocked: true });
     expect(authorize(await w.ctx(pres), sensitive.key).outcome).toBe("DENY");
     expect(authorize(await w.ctx(pres), "events.read").outcome).not.toBe("DENY");

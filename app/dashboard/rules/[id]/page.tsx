@@ -11,8 +11,10 @@ export default async function RuleDetail({ params }: { params: Promise<{ id: str
   return (
     <>
       <PageHeader title={r.name} description={`Version ${r.version} · last changed ${r.updated_at.slice(0, 16).replace("T", " ")}`} actions={<StatusBadge status={r.status} />} />
-      {editable ? (
-        <Section title="Edit rule" description={r.is_protected && r.status === "ACTIVE" ? "Protected rules must be deactivated (with a second Moderator's approval) before editing." : undefined}>
+      {(r as { trigger?: string }).trigger && (r as { trigger?: string }).trigger !== "AUTHORIZE" ? (
+        <p className="text-sm text-muted-foreground">This is a notification rule. To change it, create a new one on the Rules page and archive this one.</p>
+      ) : editable ? (
+        <Section title="Edit rule" description={r.is_protected && r.status === "ACTIVE" ? "Protected rules must be deactivated (confirmed by another Moderator, the President or the General Secretary) before editing." : undefined}>
           <RuleBuilder
             action={updateRuleAction.bind(null, id)}
             permissions={permissions}

@@ -1,11 +1,11 @@
 /**
  * Email: notification copies go out only after the request's rows exist, only with the switch on,
- * by each person's choices, inside the daily cap (Resend's free plan: 100 a day), and every
- * outcome is logged. Switching email on needs a test email Resend accepted.
+ * by each person's choices, inside the daily and monthly caps (SMTP2GO's free plan: 1,000 a
+ * month), and every outcome is logged. Switching email on needs a test email SMTP2GO accepted.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Ctx } from "@/lib/server/context";
-import { emailEnabled, forgetEmailSettings } from "@/lib/server/email";
+import { emailEnabled, forgetEmailSettings, MAX_SENDS_PER_RUN, sendEmail } from "@/lib/server/email";
 import { emailCategory, flushOutbox } from "@/lib/server/email-outbox";
 import { notifyStmts } from "@/lib/server/notifications";
 import { register } from "@/lib/server/services/auth";
@@ -27,11 +27,13 @@ const setting = (ctx: Ctx, key: string, value: unknown) => {
 };
 const log = () => w.sqlite.prepare("SELECT user_id, recipient, type, status, provider_id, error FROM email_log ORDER BY rowid").all() as Array<Record<string, string | null>>;
 const withOutbox = async (userId: string | null = null): Promise<Ctx> => ({ ...(await w.ctx(userId)), outbox: [] });
-/** A context that talks to "Resend" (fetch is stubbed per test). */
-const resendCtx = async (userId: string | null = null): Promise<Ctx> => {
+/** A context that talks to "SMTP2GO" (fetch is stubbed per test). */
+const smtpCtx = async (userId: string | null = null): Promise<Ctx> => {
   const c = await w.ctx(userId);
-  return { ...c, sendEmail: undefined, outbox: [], env: { ...c.env, APP_ENV: "production", RESEND_API_KEY: "re_test_key", RESEND_FROM_EMAIL: "GUCC <noreply@example.com>" } };
+  return { ...c, sendEmail: undefined, outbox: [], env: { ...c.env, APP_ENV: "production", SMTP2GO_API_KEY: "api-test-key", EMAIL_FROM: "GUCC <gucc@green.edu.bd>" } };
 };
+/** SMTP2GO's answer for an accepted message. */
+const accepted = (id: string) => new Response(JSON.stringify({ request_id: "r1", data: { succeeded: 1, failed: 0, failures: [], email_id: id } }), { status: 200 });
 
 describe("notification emails", () => {
   it("send nothing while email is switched off (the default)", async () => {
@@ -96,28 +98,78 @@ describe("notification emails", () => {
     expect(used.count).toBe(2);
   });
 
-  it("send through Resend's batch endpoint and record its answer; refused messages give back the allowance", async () => {
+  it("send through SMTP2GO and record its answer; refused messages give back the allowance", async () => {
     const a = await w.user({ email: "a@x.bd", roles: ["member"] });
-    const calls: Array<{ url: string; body: unknown }> = [];
+    const calls: Array<{ url: string; headers: Record<string, string>; body: unknown }> = [];
     vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
-      calls.push({ url, body: JSON.parse(String(init.body)) });
-      return new Response(JSON.stringify({ data: [{ id: "re_msg_1" }] }), { status: 200 });
+      calls.push({ url, headers: init.headers as Record<string, string>, body: JSON.parse(String(init.body)) });
+      return accepted("em_msg_1");
     }));
-    const ctx = await resendCtx();
+    const ctx = await smtpCtx();
     setting(ctx, "email.enabled", true);
     await ctx.db.batch(notifyStmts(ctx, [a], { type: "meeting.invited", title: "Meeting: Planning" }));
     expect(await flushOutbox(ctx)).toEqual({ sent: 1, failed: 0, skipped: 0 });
-    expect(calls[0]!.url).toBe("https://api.resend.com/emails/batch");
-    expect(calls[0]!.body).toMatchObject([{ from: "GUCC <noreply@example.com>", to: "a@x.bd", subject: "Meeting: Planning" }]);
-    expect(log()[0]).toMatchObject({ status: "sent", provider_id: "re_msg_1" });
+    expect(calls[0]!.url).toBe("https://api.smtp2go.com/v3/email/send");
+    expect(calls[0]!.headers["X-Smtp2go-Api-Key"]).toBe("api-test-key");
+    expect(calls[0]!.body).toMatchObject({ sender: "GUCC <gucc@green.edu.bd>", to: ["a@x.bd"], subject: "Meeting: Planning" });
+    expect((calls[0]!.body as { text_body: string }).text_body).toContain("Meeting: Planning");
+    expect(log()[0]).toMatchObject({ status: "sent", provider_id: "em_msg_1" });
 
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ name: "validation_error", message: "The from address is not verified." }), { status: 403 })));
-    const again = await resendCtx();
+    // SMTP2GO answers 200 with failed: 1 when it refuses a message.
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ data: { succeeded: 0, failed: 1, failures: ["a@x.bd: sender not verified"] } }), { status: 200 })));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const again = await smtpCtx();
     await again.db.batch(notifyStmts(again, [a], { type: "meeting.changed", title: "Meeting moved" }));
     expect(await flushOutbox(again)).toEqual({ sent: 0, failed: 1, skipped: 0 });
-    expect(log()[1]).toMatchObject({ status: "failed", error: "Resend answered 403: The from address is not verified." });
+    expect(log()[1]).toMatchObject({ status: "failed", error: "SMTP2GO answered 200: a@x.bd: sender not verified" });
+
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ data: { error_code: "E_ApiResponseCodes.API_EXCEPTION", error: "Invalid API key" } }), { status: 401 })));
+    const third = await smtpCtx();
+    await third.db.batch(notifyStmts(third, [a], { type: "meeting.changed", title: "Meeting moved again" }));
+    expect(await flushOutbox(third)).toEqual({ sent: 0, failed: 1, skipped: 0 });
+    expect(log()[2]).toMatchObject({ status: "failed", error: "SMTP2GO answered 401: Invalid API key" });
     const used = w.sqlite.prepare("SELECT count FROM usage_counters WHERE key = 'email.sent'").get() as { count: number };
     expect(used.count).toBe(1);
+  });
+
+  it("send a Reply-To header only when there is one", async () => {
+    const bodies: Array<Record<string, unknown>> = [];
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init: RequestInit) => (bodies.push(JSON.parse(String(init.body))), accepted("em_1"))));
+    const ctx = await smtpCtx();
+    setting(ctx, "email.enabled", true);
+    await sendEmail(ctx, { to: "a@x.bd", subject: "Hello\nBcc: x@y.z", text: "T", replyTo: "club@x.bd" });
+    await sendEmail(ctx, { to: "b@x.bd", subject: "Plain", text: "T", html: "<p>T</p>" });
+    expect(bodies[0]).toMatchObject({ subject: "Hello Bcc: x@y.z", custom_headers: [{ header: "Reply-To", value: "club@x.bd" }] });
+    expect(bodies[0]).not.toHaveProperty("html_body");
+    expect(bodies[1]).toMatchObject({ html_body: "<p>T</p>" });
+    expect(bodies[1]).not.toHaveProperty("custom_headers");
+  });
+
+  it("stop at the monthly limit even when today's allowance is left", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => accepted("em_1")));
+    const ctx = await smtpCtx();
+    setting(ctx, "email.enabled", true);
+    setting(ctx, "email.monthly_limit", 3);
+    const month = new Date().toISOString().slice(0, 7);
+    // Earlier days this month already used 2 (the 1st is always in this month).
+    if (new Date().toISOString().slice(8, 10) !== "01") w.sqlite.prepare("INSERT INTO usage_counters (day, key, count) VALUES (?, 'email.sent', 2)").run(`${month}-01`);
+    else w.sqlite.prepare("INSERT INTO usage_counters (day, key, count) VALUES (?, 'email.sent', 2)").run(new Date().toISOString().slice(0, 10));
+    expect(await sendEmail(ctx, { to: "a@x.bd", subject: "One", text: "T" })).toMatchObject({ ok: true });
+    const refused = await sendEmail(ctx, { to: "b@x.bd", subject: "Two", text: "T" });
+    expect(refused).toMatchObject({ ok: false, error: expect.stringMatching(/This month's email limit \(3\)/) });
+    expect(log().at(-1)).toMatchObject({ status: "skipped_limit" });
+  });
+
+  it("send at most one run's worth per request and log the rest as skipped", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => accepted("em_1")));
+    const people: string[] = [];
+    for (let i = 0; i < MAX_SENDS_PER_RUN + 2; i++) people.push(await w.user({ email: `p${i}@x.bd`, roles: ["member"] }));
+    const ctx = await smtpCtx();
+    setting(ctx, "email.enabled", true);
+    setting(ctx, "email.daily_limit", 200);
+    await ctx.db.batch(notifyStmts(ctx, people, { type: "task.assigned", title: "New task" }));
+    expect(await flushOutbox(ctx)).toEqual({ sent: MAX_SENDS_PER_RUN, failed: 0, skipped: 2 });
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(MAX_SENDS_PER_RUN);
   });
 
   it("map notification types to choices", () => {
@@ -134,38 +186,49 @@ describe("notification emails", () => {
 });
 
 describe("switching email on", () => {
-  it("needs Resend configured and a successful test email; account emails wait for the switch", async () => {
+  it("needs SMTP2GO configured and a successful test email; account emails wait for the switch", async () => {
     const mod = await w.user({ email: "mod@x.bd", roles: ["moderator"] });
-    const pres = await w.user({ email: "p@x.bd", positions: ["president"] });
-    const ctx = await resendCtx(mod);
+    // A developer watches System health but can't change protected settings.
+    const pres = await w.user({ email: "dev@x.bd", roles: ["developer"] });
+    const ctx = await smtpCtx(mod);
     expect(await emailEnabled(ctx)).toBe(false);
-    // With Resend configured but the switch off, sign-up is still the no-email path.
-    const res = await register(await resendCtx(), { email: "new@student.green.ac.bd", password: "Correct-Horse-Battery-9!", fullName: "New Member" });
+    // With SMTP2GO configured but the switch off, sign-up is still the no-email path.
+    const res = await register(await smtpCtx(), { email: "new@student.green.ac.bd", password: "Correct-Horse-Battery-9!", fullName: "New Member" });
     expect(res.message).toMatch(/awaiting GUCC approval/);
 
     await expect(setSwitch(ctx, "email.enabled", true)).rejects.toMatchObject({ code: "EMAIL_NOT_TESTED" });
     await expect(updateSystemSetting(ctx, "email.enabled", "true")).rejects.toMatchObject({ code: "EMAIL_NOT_TESTED" });
-    await expect(sendTestEmail(await resendCtx(pres))).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(sendTestEmail(await smtpCtx(pres))).rejects.toMatchObject({ code: "FORBIDDEN" });
 
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ message: "You can only send testing emails to your own email address." }), { status: 403 })));
-    await expect(sendTestEmail(ctx)).rejects.toMatchObject({ code: "EMAIL_FAILED", message: expect.stringMatching(/own email address/) });
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ data: { error_code: "E_ApiResponseCodes.NON_VALIDATED_SENDER", error: "The sender is not a verified sender." } }), { status: 400 })));
+    await expect(sendTestEmail(ctx)).rejects.toMatchObject({ code: "EMAIL_FAILED", message: expect.stringMatching(/not a verified sender/) });
     await expect(setSwitch(ctx, "email.enabled", true)).rejects.toMatchObject({ code: "EMAIL_NOT_TESTED" });
 
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ id: "re_test_1" }), { status: 200 })));
-    expect((await sendTestEmail(ctx)).message).toMatch(/Resend accepted the message \(id re_test_1\)/);
+    vi.stubGlobal("fetch", vi.fn(async () => accepted("em_test_1")));
+    expect((await sendTestEmail(ctx)).message).toMatch(/SMTP2GO accepted the message \(id em_test_1\)/);
     expect(log().at(-1)).toMatchObject({ type: "test", status: "sent", recipient: "mod@x.bd" });
     expect(await setSwitch(ctx, "email.enabled", true)).toMatchObject({ applied: true });
-    expect(await emailEnabled(await resendCtx())).toBe(true);
+    expect(await emailEnabled(await smtpCtx())).toBe(true);
     expect(w.sqlite.prepare("SELECT COUNT(*) n FROM audit_logs WHERE action IN ('email.test', 'governance.protected_applied_alone')").get()).toEqual({ n: 3 });
   });
 
+  it("refuses a test email when no provider is configured (an error, never a success message)", async () => {
+    const mod = await w.user({ email: "mod@x.bd", roles: ["moderator"] });
+    const c = await w.ctx(mod);
+    await expect(sendTestEmail({ ...c, sendEmail: undefined, env: { ...c.env, APP_ENV: "production" } })).rejects.toMatchObject({ code: "EMAIL_NOT_CONFIGURED" });
+  });
+
   it("lets anyone who watches health switch uploads or email off at once, but only a Moderator back on", async () => {
+    const dev = await w.user({ email: "dev@x.bd", roles: ["developer"] });
     const pres = await w.user({ email: "p@x.bd", positions: ["president"] });
     const member = await w.user({ email: "m@x.bd", roles: ["member"] });
     await expect(setSwitch(await w.ctx(member), "media.uploads_enabled", false)).rejects.toMatchObject({ code: "FORBIDDEN" });
-    expect(await setSwitch(await w.ctx(pres), "media.uploads_enabled", false)).toMatchObject({ applied: true, message: "Uploads switched off." });
+    expect(await setSwitch(await w.ctx(dev), "media.uploads_enabled", false)).toMatchObject({ applied: true, message: "Uploads switched off." });
     expect(w.sqlite.prepare("SELECT value_json FROM system_settings WHERE key = 'media.uploads_enabled'").get()).toEqual({ value_json: "false" });
-    await expect(setSwitch(await w.ctx(pres), "media.uploads_enabled", true)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(setSwitch(await w.ctx(dev), "media.uploads_enabled", true)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    // The President has the Moderators' authority: switching back on is theirs to do.
+    expect(await setSwitch(await w.ctx(pres), "media.uploads_enabled", true)).toMatchObject({ applied: true });
     await expect(setSwitch(await w.ctx(pres), "settings.anything", false)).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
@@ -188,6 +251,7 @@ describe("free-tier-safe settings", () => {
     await expect(updateSystemSetting(ctx, "media.storage_limit_bytes", String(20 * 1024 ** 3))).rejects.toMatchObject({ code: "VALIDATION" });
     await expect(updateSystemSetting(ctx, "email.daily_limit", "500")).rejects.toMatchObject({ code: "VALIDATION" });
     await expect(updateSystemSetting(ctx, "media.daily_object_writes", "100000")).rejects.toMatchObject({ code: "VALIDATION" });
-    expect(await updateSystemSetting(ctx, "email.daily_limit", "50")).toMatchObject({ applied: true });
+    await expect(updateSystemSetting(ctx, "email.monthly_limit", "5000")).rejects.toMatchObject({ code: "VALIDATION" });
+    expect(await updateSystemSetting(ctx, "email.daily_limit", "150")).toMatchObject({ applied: true });
   });
 });

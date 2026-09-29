@@ -33,7 +33,7 @@ export default async function AccessPage({ searchParams }: { searchParams: Promi
       <form className="mb-4 flex gap-2" role="search">
         <label className="min-w-0 flex-1">
           <span className="sr-only">Search people</span>
-          <input name="q" defaultValue={sp.q ?? ""} placeholder="Search by name or email" className="h-9 w-full rounded-md border bg-background px-3 text-sm" />
+          <input name="q" defaultValue={sp.q ?? ""} placeholder="Search by name or email" className="h-10 md:h-9 w-full rounded-md border bg-background px-3 text-base md:text-sm" />
         </label>
         <button className="h-9 rounded-md border px-3 text-sm hover:bg-muted">Search</button>
       </form>

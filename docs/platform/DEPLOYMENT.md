@@ -65,13 +65,13 @@ Further secrets, any time (each asks for the value; nothing is printed):
 
 ```bash
 bunx wrangler secret put TURNSTILE_SECRET_KEY --env production # bot protection (with the site key on Vercel); System health shows an Error without it
-bunx wrangler secret put RESEND_API_KEY --env production       # email (stays off until a test email arrives; RUNBOOK.md, "Turning email on")
+bunx wrangler secret put SMTP2GO_API_KEY --env production      # email via SMTP2GO (stays off until a test email arrives; RUNBOOK.md, "Turning email on")
 bunx wrangler secret put GOOGLE_API_KEY --env production       # the chat assistant; use a Google project WITHOUT billing
 bunx wrangler secret put CF_ANALYTICS_TOKEN --env production   # optional: a read-only "Account Analytics: Read" token for System health's usage figures
 ```
 
 `CF_ACCOUNT_ID`, `CF_D1_DATABASE_ID`, `CF_WORKER_NAME` and `CF_R2_BUCKETS` (which analytics to read)
-are already in `wrangler.jsonc`. Set `RESEND_FROM_EMAIL` and `CONTACT_EMAIL` in `wrangler.jsonc`
+are already in `wrangler.jsonc`, as are `EMAIL_FROM` (the verified SMTP2GO sender, `GUCC <gucc@green.edu.bd>`) and `CONTACT_EMAIL`; change them in `wrangler.jsonc`
 (`env.production.vars`) and release. For key rotation (`AUTH_SECRET_PREVIOUS`,
 `PASSWORD_PEPPER_PREVIOUS`) see RUNBOOK.md, "Rotating secrets".
 
@@ -89,10 +89,10 @@ In **Vercel → Project → Settings → Environment Variables**, add these for 
 
 The project still has the old site's variables (checked 2026-09-26). After the new site is live:
 
-- **Move to the Worker**, then delete from Vercel: `RESEND_API_KEY` and `GOOGLE_API_KEY`
-  (`bunx wrangler secret put <NAME> --env production`, pasting the value from your password manager or
-  the provider's dashboard), and `RESEND_FROM_EMAIL` / `CONTACT_EMAIL` (as `env.production.vars` in
-  `wrangler.jsonc`, then `bun run deploy:api:production`).
+- **Move to the Worker**, then delete from Vercel: `GOOGLE_API_KEY` (`bunx wrangler secret put
+GOOGLE_API_KEY --env production`, pasting the value from the provider's dashboard). Email now uses
+  SMTP2GO (`SMTP2GO_API_KEY` on the Worker only); **delete** the old `RESEND_API_KEY` and
+  `RESEND_FROM_EMAIL` from Vercel, and from the Worker with `bunx wrangler secret delete RESEND_API_KEY --env production`.
 - **Delete**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and
   `NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY`. Nothing reads them any more.
 
@@ -219,10 +219,10 @@ one. Migrations always run before the Worker that needs them.
 - **Off (default, and whenever the protected `email.enabled` switch is off):** sign-ups go straight
   to approval, and reviewers are told in the app. Administrators give out one-time password reset
   links (Members → Password reset link) and invitation links. Nothing claims an email was sent.
-- **On:** after `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are set, a Moderator sends a test email from
+- **On:** after `SMTP2GO_API_KEY` is set (and `EMAIL_FROM` in `wrangler.jsonc`), a Moderator sends a test email from
   System health and switches email on once it has arrived (RUNBOOK.md, "Turning email on"). Sign-ups
   then verify their email first; resets and invitations are emailed; notifications are emailed by
-  each person's choices; at most `email.daily_limit` (90) a day. (Cloudflare Email Service can be
+  each person's choices; at most `email.daily_limit` (40) a day and `email.monthly_limit` (1,000) a month. (Cloudflare Email Service can be
   added as another provider in `lib/server/email.ts`; its outbound sending needs the Workers Paid
   plan.)
 
@@ -247,11 +247,10 @@ new frontend there changes no records. Two things do need DNS on a domain the cl
 until someone has it:
 
 - **An R2 custom domain** for images. Optional: the Worker serves them with long-lived caching.
-- **Sending email from a new club address** (Resend and similar services verify the domain with DNS
-  records). The old site already had a Resend key and sender (`RESEND_API_KEY`, `RESEND_FROM_EMAIL` in
-  Vercel); if that sender's domain is verified in Resend, reusing them on the Worker needs no DNS
-  change. Until email works, leaders approve new members from `/dashboard/members` without email
-  verification.
+- **Better email delivery**: SMTP2GO sends from the verified single sender `gucc@green.edu.bd`
+  without any DNS change, but some inboxes file it as spam until the domain's DNS has SMTP2GO's SPF
+  and DKIM records. Until email is switched on, leaders approve new members from
+  `/dashboard/members` without email verification.
 
 ## 7. Later, optional
 

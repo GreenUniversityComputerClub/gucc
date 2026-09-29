@@ -6,17 +6,19 @@
  * clients cannot overbook or double-register.
  */
 import { isAffiliateExecutive } from "../../governance/engine";
-import { alreadyDone, assertTransition, batchTransition, newTransition, staleAnswer, unchangedSince } from "../transition";
+import { alreadyDone, assertStmt, assertTransition, batchTransition, newTransition, staleAnswer, unchangedSince } from "../transition";
 import { limit } from "../limits";
 import { auditStmt } from "../audit";
 import { authorize, eventResource, requireActor, requirePermission, scopesFor } from "../authz";
 import type { Ctx } from "../context";
-import { newId, nowIso } from "../db";
+import { newId, nowIso, type D1StatementLike } from "../db";
+import { sha256Hex } from "../crypto";
 import { AppError, ConflictError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
 import { notifyStmts } from "../notifications";
 import { getSetting, requireRecentAuth, verifyTurnstile } from "../security";
 import { toSlug, Validator, EMAIL_RE, STUDENT_ID_RE } from "../validate";
 import { registerApprovalHandler, startApproval } from "./approvals";
+import { csvCell } from "./recruitment";
 import { TAGS } from "./cache-tags";
 import { triggerStmts } from "../triggers";
 
@@ -33,7 +35,8 @@ export interface RegistrationField {
 
 async function ensureCategory(ctx: Ctx, name: string | null): Promise<{ id: string | null; slug: string | null }> {
   if (!name) return { id: null, slug: null };
-  const slug = toSlug(name);
+  // A name with no Latin letters (e.g. in Bangla) still gets a usable slug.
+  const slug = toSlug(name) || `category-${(await sha256Hex(name)).slice(0, 8)}`;
   await ctx.db.run("INSERT INTO categories (id, kind, slug, name, created_at) VALUES (?1, 'EVENT', ?2, ?3, ?4) ON CONFLICT(kind, slug) DO NOTHING", newId("cat"), slug, name, nowIso());
   const row = await ctx.db.first<{ id: string }>("SELECT id FROM categories WHERE kind = 'EVENT' AND slug = ?1", slug);
   return { id: row?.id ?? null, slug };
@@ -80,6 +83,9 @@ function parseEvent(input: Record<string, unknown>) {
       const f = typeof input.registrationFields === "string" ? JSON.parse(input.registrationFields) : input.registrationFields;
       v.check(Array.isArray(f) && f.length <= 20 && f.every((x: RegistrationField) => /^[a-z][a-z0-9_]{0,40}$/.test(x.key) && x.label && ["text", "textarea", "select", "checkbox"].includes(x.type)),
         "registrationFields", "Registration fields are malformed.");
+      // A "choose one" question with nothing to choose would block every registration.
+      v.check(!Array.isArray(f) || f.every((x: RegistrationField) => x.type !== "select" || (Array.isArray(x.options) && x.options.some((o) => String(o).trim()))),
+        "registrationFields", "Give every \"choose one\" question at least one choice.");
       d.registrationFields = f as RegistrationField[];
     } catch {
       v.errors.registrationFields = "Registration fields must be valid JSON.";
@@ -94,7 +100,8 @@ export async function createEvent(ctx: Ctx, input: Record<string, unknown>): Pro
   const d = parseEvent(input);
   const cat = await ensureCategory(ctx, d.category);
   const decision = requirePermission(ctx, "events.create", { type: "event", category: cat.slug, createdBy: actor.user.id, ownerId: actor.user.id, committeeId: d.committeeId });
-  const slug = d.slug ?? toSlug(d.title!);
+  // A title with no Latin letters (e.g. in Bangla) still gets a working address.
+  const slug = d.slug || toSlug(d.title!) || `event-${newId().slice(0, 8)}`;
   if (await ctx.db.first("SELECT id FROM events WHERE slug = ?1", slug)) throw new ValidationError("That URL is taken.", { slug: "Another event already uses this URL." });
   const id = newId("evt");
   const now = nowIso();
@@ -129,6 +136,12 @@ export async function updateEvent(ctx: Ctx, id: string, input: Record<string, un
   if (slug !== before!.slug && (await ctx.db.first("SELECT id FROM events WHERE slug = ?1 AND id <> ?2", slug, id))) {
     throw new ValidationError("That URL is taken.", { slug: "Another event already uses this URL." });
   }
+  // Imported events keep date-only times ("2025-03-01"); the form shows them as 00:00 Dhaka time.
+  // Saved unchanged, they stay date-only, so an unrelated edit neither shifts them nor tells
+  // registrants the time "changed".
+  const dhakaMidnight = (day: string | null) => (day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? new Date(`${day}T00:00:00+06:00`).toISOString() : null);
+  if (dhakaMidnight(before!.start_at) === d.startAt) d.startAt = before!.start_at;
+  if (dhakaMidnight(before!.end_at) === d.endAt) d.endAt = before!.end_at;
   const now = nowIso();
   // Registered people hear about changes to when or where a public event happens.
   const moved = PUBLIC.includes(before!.status) && (before!.start_at !== d.startAt || before!.end_at !== d.endAt || before!.venue !== d.venue || before!.time_text !== d.timeText);
@@ -151,6 +164,8 @@ export async function updateEvent(ctx: Ctx, id: string, input: Record<string, un
       d.judgesText, d.participantsReported, d.participantsText, d.registrationFormUrl, d.registrationFormLabel,
     ),
     ctx.db.stmt("UPDATE approval_requests SET status = 'CANCELLED', resolved_at = ?2, resolution_note = 'Edited after submission', updated_at = ?2 WHERE resource_type = 'event' AND resource_id = ?1 AND status = 'PENDING'", id, now),
+    // More seats (or no limit any more): the waitlist moves up.
+    ...promoteWaitlistStmts(ctx, id, d.title!, slug),
     ctx.db.stmt("DELETE FROM event_media WHERE event_id = ?1 AND kind = 'BANNER'", id),
     ctx.db.stmt("DELETE FROM media_references WHERE resource_type = 'event' AND resource_id = ?1 AND field = 'banner'", id),
     ...(d.bannerMediaId ? [ctx.db.stmt("INSERT INTO event_media (event_id, media_id, kind, sort_order) VALUES (?1, ?2, 'BANNER', 0) ON CONFLICT DO NOTHING", id, d.bannerMediaId),
@@ -220,23 +235,47 @@ registerApprovalHandler("events.publish", {
   tags: () => [TAGS.events],
 });
 
+/** Which statuses each change may start from. Moving into a public status needs the event to be public already. */
+const STATUS_FROM: Record<"CANCELLED" | "COMPLETED" | "ONGOING" | "ARCHIVED" | "DRAFT", string[]> = {
+  ONGOING: ["PUBLISHED"],
+  COMPLETED: ["PUBLISHED", "ONGOING"],
+  CANCELLED: ["DRAFT", "PENDING_APPROVAL", "PUBLISHED", "ONGOING"],
+  DRAFT: ["PENDING_APPROVAL", "PUBLISHED", "ONGOING", "COMPLETED", "CANCELLED", "REJECTED"],
+  ARCHIVED: ["DRAFT", "PENDING_APPROVAL", "PUBLISHED", "ONGOING", "COMPLETED", "CANCELLED", "REJECTED"],
+};
+
+const STATUS_WORD: Record<string, string> = { DRAFT: "a draft", PENDING_APPROVAL: "waiting for approval", PUBLISHED: "published", ONGOING: "ongoing", COMPLETED: "completed", CANCELLED: "cancelled", REJECTED: "sent back" };
+
 export async function setEventStatus(ctx: Ctx, id: string, status: "CANCELLED" | "COMPLETED" | "ONGOING" | "ARCHIVED" | "DRAFT", reason: string | null): Promise<void> {
   const actor = requireActor(ctx);
   const resource = await eventResource(ctx.db, id);
   if (!resource) throw new NotFoundError("Event");
   const perm = status === "ARCHIVED" ? "events.delete" : status === "DRAFT" ? "events.publish" : "events.update";
   const decision = requirePermission(ctx, perm, resource);
-  const ev = await ctx.db.first<{ slug: string; status: string; title: string }>("SELECT slug, status, title FROM events WHERE id = ?1", id);
+  const ev = await ctx.db.first<{ slug: string; status: string; title: string }>("SELECT slug, status, title FROM events WHERE id = ?1 AND deleted_at IS NULL", id);
+  if (!ev) throw new NotFoundError("Event");
+  // Ongoing and completed are public: only an event that is already public can get there, so a
+  // draft can never skip approval this way.
+  if (!STATUS_FROM[status]?.includes(ev.status)) {
+    throw new AppError(409, "BAD_TRANSITION", `This event is ${STATUS_WORD[ev.status] ?? ev.status.toLowerCase()}, so it can't be marked ${status.toLowerCase()}.`);
+  }
   const now = nowIso();
   const registrants = status === "CANCELLED"
     ? (await ctx.db.all<{ user_id: string }>("SELECT user_id FROM event_registrations WHERE event_id = ?1 AND user_id IS NOT NULL AND status IN ('REGISTERED','WAITLISTED')", id)).map((r) => r.user_id)
     : [];
-  await ctx.db.batch([
-    ctx.db.stmt(`UPDATE events SET status = ?2, ${status === "ARCHIVED" ? "deleted_at = ?3," : ""} updated_at = ?3, updated_by = ?4 WHERE id = ?1`, id, status, now, actor.user.id),
-    auditStmt(ctx, { action: `event.${status.toLowerCase()}`, resourceType: "event", resourceId: id, reason, before: { status: ev!.status }, after: { status }, decision }),
-    ...notifyStmts(ctx, registrants, { type: "event.cancelled", title: `Cancelled: ${ev!.title}`, body: reason ?? undefined, link: `/events/${ev!.slug}` }),
-  ]);
-  ctx.revalidate?.([TAGS.events, TAGS.event(ev!.slug)]);
+  const token = newTransition();
+  await batchTransition(ctx, [
+    ctx.db.stmt(`UPDATE events SET status = ?2, ${status === "ARCHIVED" ? "deleted_at = ?3," : ""} updated_at = ?3, updated_by = ?4, last_transition = ?6 WHERE id = ?1 AND status = ?5 AND deleted_at IS NULL`,
+      id, status, now, actor.user.id, ev.status, token),
+    assertTransition(ctx, "events", id, token),
+    // A request to publish it can't be approved any more.
+    ctx.db.stmt(`UPDATE approval_requests SET status = 'CANCELLED', resolved_at = ?2, updated_at = ?2, resolution_note = 'The event was changed meanwhile.'
+                 WHERE resource_type = 'event' AND resource_id = ?1 AND status = 'PENDING'`, id, now),
+    auditStmt(ctx, { action: `event.${status.toLowerCase()}`, resourceType: "event", resourceId: id, reason, before: { status: ev.status }, after: { status }, decision }),
+    // Cancelled events leave the public site, so the notice points to the events list.
+    ...notifyStmts(ctx, registrants, { type: "event.cancelled", title: `Cancelled: ${ev.title}`, body: reason ?? undefined, link: "/events" }),
+  ], () => new AppError(409, "STALE", "This event's status changed a moment ago. Reload the page to see it."));
+  ctx.revalidate?.([TAGS.events, TAGS.event(ev.slug)]);
 }
 
 /**
@@ -254,13 +293,20 @@ export async function setEventPeople(ctx: Ctx, id: string, people: Array<{ role:
   if (!Array.isArray(people) || people.some((p) => !EVENT_PEOPLE_ROLES.includes(p?.role))) {
     throw new ValidationError("People can be speakers, coordinators or photographers. Guests and judges go in the event details.");
   }
-  const touchesAssignments = people.some((p) => p.userId);
-  // Assigning people to events hands them scoped permissions; that needs event
-  // management club-wide, not merely being assigned yourself.
-  if (touchesAssignments) {
+  // Linking accounts to an event hands them scoped permissions, so changing who is linked (adding
+  // or removing anyone) needs event management, not merely being assigned yourself. Saving the
+  // list with the same accounts (e.g. adding a speaker) is fine for anyone who may edit the event.
+  const current = await ctx.db.all<{ user_id: string; role: string }>(
+    "SELECT user_id, role FROM event_people WHERE event_id = ?1 AND user_id IS NOT NULL AND role IN ('SPEAKER','COORDINATOR','PHOTOGRAPHER')", id);
+  const key = (p: { user_id?: string | null; userId?: string | null; role: string }) => `${p.role}:${p.userId ?? p.user_id}`;
+  const before = new Set(current.map(key));
+  const after = new Set(people.filter((p) => p.userId).map(key));
+  const added = people.filter((p) => p.userId && !before.has(key(p)));
+  const changesAssignments = added.length > 0 || [...before].some((k) => !after.has(k));
+  if (changesAssignments) {
     const d = authorize(ctx, "events.manage_registration", { ...resource, assignedUserIds: [] });
-    if (d.outcome !== "ALLOW" && !scopesFor(ctx, "events.update").some((s) => s.scope === "ALL" || s.scope === "CATEGORY")) throw new ForbiddenError("Only event managers can assign coordinators.", d);
-    if (people.some((p) => p.userId === actor.user.id) && !scopesFor(ctx, "events.update").some((s) => s.scope === "ALL")) throw new ForbiddenError("You cannot assign yourself to an event.");
+    if (d.outcome !== "ALLOW" && !scopesFor(ctx, "events.update").some((s) => s.scope === "ALL" || s.scope === "CATEGORY")) throw new ForbiddenError("Only event managers can change who is linked to an event.", d);
+    if (added.some((p) => p.userId === actor.user.id) && !scopesFor(ctx, "events.update").some((s) => s.scope === "ALL")) throw new ForbiddenError("You cannot assign yourself to an event.");
   }
   const clean = people.filter((p) => p.name?.trim()).slice(0, 50);
   await ctx.db.batch([
@@ -273,7 +319,8 @@ export async function setEventPeople(ctx: Ctx, id: string, people: Array<{ role:
           id, JSON.stringify(clean.map((p) => ({ role: p.role, name: p.name.trim().slice(0, 120), title: p.title?.trim().slice(0, 200) || null, userId: p.userId ?? null })))),
         ]
       : []),
-    ...notifyStmts(ctx, clean.filter((p) => p.userId).map((p) => p.userId!), { type: "event.assigned", title: "You were assigned to an event", link: `/dashboard/events/${id}` }),
+    // Only people newly linked hear about it (not everyone, on every save).
+    ...notifyStmts(ctx, [...new Set(added.map((p) => p.userId!))], { type: "event.assigned", title: "You were assigned to an event", link: `/dashboard/events/${id}` }),
     auditStmt(ctx, { action: "event.people", resourceType: "event", resourceId: id, after: clean.map((p) => ({ role: p.role, name: p.name, userId: p.userId ?? null })), decision }),
   ]);
   // Speakers are shown on the public event page.
@@ -342,8 +389,11 @@ export async function registerForEvent(ctx: Ctx, eventSlug: string, input: Recor
   const answers: Record<string, string | boolean> = {};
   for (const f of fields) {
     const raw = input[`field_${f.key}`];
-    if (f.type === "checkbox") answers[f.key] = raw === true || raw === "on" || raw === "true";
-    else {
+    if (f.type === "checkbox") {
+      answers[f.key] = raw === true || raw === "on" || raw === "true";
+      // A required checkbox is a statement to agree to (e.g. the rules): it must be ticked.
+      if (f.required && !answers[f.key]) v.errors[`field_${f.key}`] = `Tick "${f.label}" to register.`;
+    } else {
       const val = typeof raw === "string" ? raw.trim().slice(0, 2000) : "";
       if (f.required && !val) v.errors[`field_${f.key}`] = `${f.label} is required.`;
       if (f.type === "select" && val && !(f.options ?? []).includes(val)) v.errors[`field_${f.key}`] = `${f.label} has an invalid choice.`;
@@ -383,6 +433,28 @@ export async function registerForEvent(ctx: Ctx, eventSlug: string, input: Recor
  * Cancel my own registration before the event starts. A freed seat goes to the first person
  * on the waitlist, who is notified.
  */
+/** Oldest waitlisted people for the event while seats are free (all of them without a capacity). */
+const WAITLIST_TO_PROMOTE = `SELECT id FROM event_registrations WHERE event_id = ?1 AND status = 'WAITLISTED' ORDER BY created_at
+  LIMIT (SELECT CASE WHEN e.capacity IS NULL THEN -1
+                     ELSE MAX(0, e.capacity - (SELECT COUNT(*) FROM event_registrations r WHERE r.event_id = e.id AND r.status = 'REGISTERED')) END
+         FROM events e WHERE e.id = ?1)`;
+
+/**
+ * Fill free seats from the waitlist, oldest first, and tell each person (in the dashboard).
+ * Two statements whatever the number; run after anything that can free seats or add capacity.
+ */
+export function promoteWaitlistStmts(ctx: Ctx, eventId: string, title: string, slug: string): D1StatementLike[] {
+  const now = nowIso();
+  return [
+    ctx.db.stmt(
+      `INSERT INTO notifications (id, user_id, type, title, body, link, resource_type, resource_id, channel, created_at)
+       SELECT 'ntf_' || lower(hex(randomblob(12))), r.user_id, 'event.promoted', ?2, 'You''re off the waitlist and registered.', ?3, 'event', ?1, 'IN_APP', ?4
+       FROM event_registrations r WHERE r.user_id IS NOT NULL AND r.id IN (${WAITLIST_TO_PROMOTE})`,
+      eventId, `A seat opened up: ${title}`.slice(0, 200), `/events/${slug}`, now),
+    ctx.db.stmt(`UPDATE event_registrations SET status = 'REGISTERED', updated_at = ?2 WHERE id IN (${WAITLIST_TO_PROMOTE})`, eventId, now),
+  ];
+}
+
 export async function cancelMyRegistration(ctx: Ctx, registrationId: string): Promise<{ message: string }> {
   const actor = requireActor(ctx);
   const reg = await ctx.db.first<{ id: string; status: string; event_id: string; title: string; slug: string; start_at: string | null }>(
@@ -396,12 +468,14 @@ export async function cancelMyRegistration(ctx: Ctx, registrationId: string): Pr
     ? await ctx.db.first<{ id: string; user_id: string | null }>(
         "SELECT id, user_id FROM event_registrations WHERE event_id = ?1 AND status = 'WAITLISTED' ORDER BY created_at LIMIT 1", reg.event_id)
     : null;
-  await ctx.db.batch([
-    ctx.db.stmt("UPDATE event_registrations SET status = 'CANCELLED', updated_at = ?2 WHERE id = ?1", reg.id, now),
+  await batchTransition(ctx, [
+    // Once: two cancels at the same moment can't both hand the seat on.
+    ctx.db.stmt("UPDATE event_registrations SET status = 'CANCELLED', updated_at = ?2 WHERE id = ?1 AND status IN ('REGISTERED','WAITLISTED')", reg.id, now),
+    assertStmt(ctx, "EXISTS (SELECT 1 FROM event_registrations WHERE id = ?1 AND status = 'CANCELLED' AND updated_at = ?2)", reg.id, now),
     ...(next ? [ctx.db.stmt("UPDATE event_registrations SET status = 'REGISTERED', updated_at = ?2 WHERE id = ?1 AND status = 'WAITLISTED'", next.id, now)] : []),
     ...(next?.user_id ? notifyStmts(ctx, [next.user_id], { type: "event.promoted", title: `A seat opened up: ${reg.title}`, body: "You're off the waitlist and registered.", link: `/events/${reg.slug}` }) : []),
     auditStmt(ctx, { action: "event.registration_cancel", resourceType: "event", resourceId: reg.event_id, after: { promoted: Boolean(next) } }),
-  ]);
+  ], () => new AppError(409, "NOT_ACTIVE", "This registration was already cancelled."));
   return { message: "Your registration is cancelled." };
 }
 
@@ -438,30 +512,41 @@ export async function listAllRegistrations(ctx: Ctx, opts: { q?: string; status?
 }
 
 export async function setRegistrationStatus(ctx: Ctx, registrationId: string, status: "REGISTERED" | "WAITLISTED" | "CANCELLED" | "ATTENDED" | "REJECTED"): Promise<void> {
-  const reg = await ctx.db.first<{ event_id: string; status: string }>("SELECT event_id, status FROM event_registrations WHERE id = ?1", registrationId);
+  const reg = await ctx.db.first<{ event_id: string; status: string; title: string; slug: string; capacity: number | null }>(
+    `SELECT r.event_id, r.status, e.title, e.slug, e.capacity FROM event_registrations r JOIN events e ON e.id = r.event_id AND e.deleted_at IS NULL WHERE r.id = ?1`, registrationId);
   if (!reg) throw new NotFoundError("Registration");
   const resource = await eventResource(ctx.db, reg.event_id);
-  const decision = requirePermission(ctx, "events.manage_registration", resource!);
+  if (!resource) throw new NotFoundError("Event");
+  const decision = requirePermission(ctx, "events.manage_registration", resource);
+  // Admitting someone takes a seat: not past the capacity (the waitlist is for that).
+  if (status === "REGISTERED" && reg.status !== "REGISTERED" && reg.capacity !== null) {
+    const taken = (await ctx.db.value<number>("SELECT COUNT(*) FROM event_registrations WHERE event_id = ?1 AND status = 'REGISTERED'", reg.event_id)) ?? 0;
+    if (taken >= reg.capacity) throw new AppError(409, "FULL", `The event is full (${reg.capacity} seats). Raise the capacity first, or keep them on the waitlist.`);
+  }
   await ctx.db.batch([
     ctx.db.stmt("UPDATE event_registrations SET status = ?2, updated_at = ?3 WHERE id = ?1", registrationId, status, nowIso()),
+    // A freed seat goes to the next person on the waitlist.
+    ...(reg.status === "REGISTERED" && status !== "REGISTERED" && status !== "ATTENDED" ? promoteWaitlistStmts(ctx, reg.event_id, reg.title, reg.slug) : []),
     auditStmt(ctx, { action: "event.registration_status", resourceType: "event", resourceId: reg.event_id, before: { status: reg.status }, after: { status, registrationId }, decision }),
   ]);
 }
 
+/** CSV for spreadsheets: UTF-8 with a BOM (Bangla names open correctly in Excel), CRLF lines, formula-safe cells. */
 export function registrationsCsv(rows: Awaited<ReturnType<typeof listRegistrations>>): string {
-  const esc = (v: unknown) => {
-    const s = String(v ?? "");
-    // Neutralise spreadsheet formula injection.
-    const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
-    return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+  const answers = (r: { answers_json: string | null }) => {
+    try {
+      return JSON.parse(r.answers_json ?? "{}") as Record<string, unknown>;
+    } catch {
+      return {};
+    }
   };
-  const keys = [...new Set(rows.flatMap((r) => Object.keys(JSON.parse(r.answers_json ?? "{}"))))];
+  const keys = [...new Set(rows.flatMap((r) => Object.keys(answers(r))))];
   const head = ["name", "email", "student_id", "phone", "status", "registered_at", ...keys];
   const lines = rows.map((r) => {
-    const a = JSON.parse(r.answers_json ?? "{}") as Record<string, unknown>;
-    return [r.name, r.email, r.student_id, r.phone, r.status, r.created_at, ...keys.map((k) => a[k])].map(esc).join(",");
+    const a = answers(r);
+    return [r.name, r.email, r.student_id, r.phone, r.status, r.created_at, ...keys.map((k) => a[k])].map(csvCell).join(",");
   });
-  return [head.join(","), ...lines].join("\n");
+  return `\uFEFF${[head.map(csvCell).join(","), ...lines].join("\r\n")}\r\n`;
 }
 
 /** Take a photo or file out of an event's gallery (the file stays in the media library). */

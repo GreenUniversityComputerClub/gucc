@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireAdmin, view } from "@/lib/api/session";
+import { requireSignedIn, view } from "@/lib/api/session";
 import type { listReports } from "@/lib/server/services/messaging";
 import { ActionForm, EmptyState, Field, PageHeader } from "@/components/admin/ui";
 import { resolveReportAction } from "../chat/actions";
@@ -9,7 +9,8 @@ type Reports = Awaited<ReturnType<typeof listReports>>;
 const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", dateStyle: "medium", timeStyle: "short" });
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  await requireAdmin("/dashboard/reports");
+  // The API decides who may see this (moderators of chat or lost & found).
+  await requireSignedIn("/dashboard/reports");
   const sp = await searchParams;
   const status = ["OPEN", "DISMISSED", "ACTIONED"].includes(sp.status ?? "") ? sp.status! : "OPEN";
   const rows = await view<Reports>("reports.list", { status }, "/dashboard/reports");
@@ -28,7 +29,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               <p className="text-xs text-muted-foreground">{r.resource_type === "message" ? "Message" : "Lost & found post"} · reported by {r.reporter} · {when(r.created_at)}</p>
               <p className="mt-1 text-sm"><strong>Reason:</strong> {r.reason}</p>
               <blockquote className="mt-2 whitespace-pre-wrap rounded-md border-l-4 bg-muted/50 p-3 text-sm">
-                {r.resource_type === "message" ? <><span className="block text-xs text-muted-foreground">{r.sender} wrote:</span>{r.body}</> : r.post_title}
+                {r.resource_type === "message"
+                  ? <><span className="block text-xs text-muted-foreground">{r.sender} wrote (as reported):</span><span className="whitespace-pre-line break-words">{r.body}</span></>
+                  : <><span className="block">{r.post_title}</span>{r.body && <span className="mt-1 block whitespace-pre-line break-words text-xs text-muted-foreground">As reported: {r.body}</span>}</>}
               </blockquote>
               {status === "OPEN" && (
                 <div className="mt-3 flex flex-wrap gap-2">

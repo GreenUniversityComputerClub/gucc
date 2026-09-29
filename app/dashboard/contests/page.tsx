@@ -37,8 +37,8 @@ export default async function ContestsAdmin({ searchParams }: { searchParams: Pr
     <>
       <PageHeader title="Contests" description="Programming contest results shown at /contests. Link a contest to its event to take registrations and show photos there." />
       <form className="mb-4 flex flex-wrap gap-2" role="search">
-        <input name="q" defaultValue={sp.q ?? ""} placeholder="Contest, team or participant" aria-label="Search contests" className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm sm:min-w-56" />
-        <select name="status" defaultValue={status} aria-label="Status" className="h-9 rounded-md border bg-background px-3 text-sm">
+        <input name="q" defaultValue={sp.q ?? ""} placeholder="Contest, team or participant" aria-label="Search contests" className="h-10 md:h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-base md:text-sm sm:min-w-56" />
+        <select name="status" defaultValue={status} aria-label="Status" className="h-10 md:h-9 rounded-md border bg-background px-3 text-base md:text-sm">
           <option value="">All statuses</option>
           <option value="PUBLISHED">Published</option>
           <option value="DRAFT">Draft</option>

@@ -17,7 +17,7 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<{ message: string; code: string } | null>(null)
-  const [info, setInfo] = useState<string | null>(params.get('reset') ? 'Password updated. Sign in with your new password.' : null)
+  const [info, setInfo] = useState<string | null>(params.get('reset') ? 'Password updated. Sign in with your new password.' : params.get('email-changed') ? 'Your sign-in email was changed. Sign in with the new address.' : null)
   const [token, setToken] = useState<string | null>(null)
   const [pending, start] = useTransition()
   const onToken = useCallback((t: string | null) => setToken(t), [])

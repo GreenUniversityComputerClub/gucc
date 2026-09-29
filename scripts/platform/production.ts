@@ -155,7 +155,7 @@ async function main() {
   // PASSWORD_PEPPER is only ever created, never replaced: changing it breaks every password.
   for (const name of ["AUTH_SECRET", "PASSWORD_PEPPER"]) if (!have.has(name)) newSecrets[name] = randomBytes(32).toString("base64url");
   console.log(Object.keys(newSecrets).length ? `  generated ${Object.keys(newSecrets).join(", ")} (uploaded with the deploy, never printed)` : "  all required secrets already set");
-  for (const name of ["TURNSTILE_SECRET_KEY", "RESEND_API_KEY", "GOOGLE_API_KEY"]) {
+  for (const name of ["TURNSTILE_SECRET_KEY", "SMTP2GO_API_KEY", "GOOGLE_API_KEY"]) {
     if (!have.has(name)) console.log(`  ! ${name} not set (optional now; set with: bunx wrangler secret put ${name} --env production)`);
   }
   if (shared !== stored) {

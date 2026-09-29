@@ -6,6 +6,7 @@
 import type { Ctx } from "./context";
 import { newId, nowIso, type D1StatementLike } from "./db";
 import { GOVERNING_UNIT_SQL } from "./authz";
+import { MODERATOR_EQUAL_POSITIONS } from "../governance/engine";
 
 export interface NotificationInput {
   type: string;
@@ -72,11 +73,13 @@ export async function notify(ctx: Ctx, userIds: string[], n: NotificationInput):
 /** Active users holding any of the given roles or current-committee positions. */
 export async function usersWith(ctx: Ctx, opts: { roles?: string[]; positions?: string[] }): Promise<string[]> {
   const ids = new Set<string>();
+  // "The Moderators" include the President and the General Secretary, who have the same authority.
+  if (opts.roles?.includes("moderator")) opts = { ...opts, positions: [...new Set([...(opts.positions ?? []), ...MODERATOR_EQUAL_POSITIONS])] };
   if (opts.roles?.length) {
     const ph = opts.roles.map((_, i) => `?${i + 1}`).join(",");
     const rows = await ctx.db.all<{ user_id: string }>(
       `SELECT DISTINCT ur.user_id FROM user_roles ur JOIN roles r ON r.id = ur.role_id JOIN users u ON u.id = ur.user_id
-       WHERE ur.revoked_at IS NULL AND u.status = 'ACTIVE' AND r.key IN (${ph})`,
+       WHERE ur.revoked_at IS NULL AND (ur.expires_at IS NULL OR ur.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now')) AND u.status = 'ACTIVE' AND u.deleted_at IS NULL AND r.key IN (${ph})`,
       ...opts.roles,
     );
     rows.forEach((r) => ids.add(r.user_id));
@@ -88,7 +91,7 @@ export async function usersWith(ctx: Ctx, opts: { roles?: string[]; positions?: 
        JOIN profiles pr ON pr.id = cm.profile_id AND pr.user_id IS NOT NULL
        JOIN users u ON u.id = pr.user_id AND u.status = 'ACTIVE'
        JOIN committees c ON c.id = cm.committee_id AND c.status = 'CURRENT'
-       JOIN positions p ON p.id = cm.position_id
+       JOIN positions p ON p.id = cm.position_id AND p.is_active = 1 AND p.deleted_at IS NULL
        WHERE cm.deleted_at IS NULL AND cm.is_active = 1 AND p.key IN (${ph}) AND ${GOVERNING_UNIT_SQL}`,
       ...opts.positions,
     );

@@ -6,7 +6,9 @@ export type Conversations = Awaited<ReturnType<typeof myConversations>>;
 const short = (iso: string | null) => {
   if (!iso) return "";
   const d = new Date(iso);
-  const today = new Date().toDateString() === d.toDateString();
+  // "Today" in Dhaka, whatever the server's clock zone is.
+  const dhakaDay = (x: Date) => x.toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" });
+  const today = dhakaDay(new Date()) === dhakaDay(d);
   return d.toLocaleString("en-GB", { timeZone: "Asia/Dhaka", ...(today ? { hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" }) });
 };
 

@@ -29,6 +29,7 @@ export default async function RulesPage() {
   };
   const mayCreate = Boolean(session.caps["rules.create"]);
   const mayActivate = Boolean(session.caps["rules.activate"]);
+  const mayDelete = Boolean(session.caps["rules.delete"]);
 
   return (
     <>
@@ -58,6 +59,7 @@ export default async function RulesPage() {
                 <div className="flex gap-2">
                   {r.status !== "ACTIVE" && <ActionForm action={ruleStatusAction.bind(null, r.id, "ACTIVE")} submitLabel="Activate" inline />}
                   {r.status === "ACTIVE" && <ActionForm action={ruleStatusAction.bind(null, r.id, "INACTIVE")} submitLabel="Deactivate" variant="outline" inline confirm="Deactivate this rule? Its effect stops immediately." />}
+                  {mayDelete && r.status !== "ACTIVE" && !r.is_protected && <ActionForm action={ruleStatusAction.bind(null, r.id, "ARCHIVED")} submitLabel="Archive" variant="outline" inline confirm="Archive this rule? It disappears from this list; its history stays in the activity log." />}
                 </div>
               )}
             </div>
@@ -81,6 +83,7 @@ export default async function RulesPage() {
                     <div className="flex gap-2">
                       {r.status !== "ACTIVE" && <ActionForm action={ruleStatusAction.bind(null, r.id, "ACTIVE")} submitLabel="Activate" inline />}
                       {r.status === "ACTIVE" && <ActionForm action={ruleStatusAction.bind(null, r.id, "INACTIVE")} submitLabel="Deactivate" variant="outline" inline />}
+                      {mayDelete && r.status !== "ACTIVE" && <ActionForm action={ruleStatusAction.bind(null, r.id, "ARCHIVED")} submitLabel="Archive" variant="outline" inline confirm="Archive this notification rule?" />}
                     </div>
                   )}
                 </li>
@@ -101,7 +104,7 @@ export default async function RulesPage() {
       </Section>
 
       {mayCreate && (
-        <Section title="New rule" description="Rules you create start as drafts. Rules that allow something you don't hold club-wide, touch protected permissions, or apply to every permission need Moderator authority." className="mt-6">
+        <Section title="New rule" description="Rules you create start as drafts. Rules that allow something you don't hold club-wide, touch protected permissions, or apply to every permission need Moderator authority (a Moderator, the President or the General Secretary)." className="mt-6">
           <RuleBuilder action={createRuleAction} permissions={permissions} policies={policies} canProtect={isModerator} submitLabel="Create draft rule" />
         </Section>
       )}

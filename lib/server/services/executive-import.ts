@@ -25,6 +25,7 @@ import { newId, nowIso, type D1StatementLike } from "../db";
 import { AppError, ValidationError } from "../errors";
 import { notifyEachStmts } from "../notifications";
 import { STUDENT_ID_RE } from "../validate";
+import { requireRecentAuthForPositions } from "../security";
 
 export type ImportMode = "insert" | "update" | "upsert";
 
@@ -285,7 +286,7 @@ async function buildPlan(ctx: Ctx, req: ImportRequest): Promise<{ plan: ImportPl
         const u = unknown.get(key) ?? { title: src.position, key, rows: [] };
         u.rows.push(src.row);
         unknown.set(key, u);
-      } else if (position.is_protected && !protectedOk) err("PROTECTED_POSITION", `Only a Moderator can assign ${position.name}.`);
+      } else if (position.is_protected && !protectedOk) err("PROTECTED_POSITION", `Only a Moderator, the President or the General Secretary can assign ${position.name}.`);
     }
     const section: "STUDENT" | "FACULTY" = src.section ?? (position?.category === "FACULTY" ? "FACULTY" : "STUDENT");
 
@@ -441,8 +442,10 @@ async function buildPlan(ctx: Ctx, req: ImportRequest): Promise<{ plan: ImportPl
   for (const w of work) {
     const p = w.plan.position ? positionsById.get(w.plan.position.id) : null;
     if (!p?.max_holders || !w.plan.committee || (w.plan.action !== "create" && w.plan.action !== "assign")) continue;
-    const key = `${w.plan.committee.id}|${p.id}`;
-    const current = taken.get(key) ?? listingRows.filter((l) => l.committee_id === w.plan.committee!.id && l.position_id === p.id && !l.end_date).length;
+    // Per unit: GUCC and an affiliated committee (e.g. CSS) each have their own President.
+    const unit = w.plan.unit ?? "";
+    const key = `${w.plan.committee.id}|${p.id}|${unit}`;
+    const current = taken.get(key) ?? listingRows.filter((l) => l.committee_id === w.plan.committee!.id && l.position_id === p.id && (l.unit_key ?? "") === unit && !l.end_date).length;
     if (current >= p.max_holders) {
       w.plan.issues.push({ level: "error", code: "MAX_HOLDERS", message: `${p.name} allows ${p.max_holders} holder${p.max_holders === 1 ? "" : "s"} and ${w.plan.committee.name} already has ${current}. End the current assignment first, or skip this row.` });
       w.plan.action = "blocked";
@@ -479,7 +482,9 @@ export async function applyExecutiveImport(ctx: Ctx, req: ImportRequest & { plan
   if (plan.planHash !== req.planHash) throw new AppError(409, "PLAN_CHANGED", "The data changed since the preview (someone else may have edited the committee). Preview again, then import.");
   if (!plan.canImport) throw new AppError(400, "NOTHING_TO_IMPORT", plan.summary.blocked ? "Fix or skip the rows with errors first." : "Nothing to import.");
   const decision = requirePermission(ctx, "executives.import");
+  await requireRecentAuthForPositions(ctx, work.map((w) => w.plan.position?.id));
   const now = nowIso();
+  const today = now.slice(0, 10);
 
   // New people (one per person, even when they hold several positions in the file).
   const newProfiles = new Map<string, Record<string, string | null>>();
@@ -534,7 +539,8 @@ export async function applyExecutiveImport(ctx: Ctx, req: ImportRequest & { plan
         designation: w.src.designation?.slice(0, 80) ?? null, section: r.section, unit_type: r.unit ? w.unitType : null, unit_key: r.unit,
         campus_label: w.unitLabel, avatar_media_id: w.photoId, avatar_position_x: w.src.crop?.x ?? null, avatar_position_y: w.src.crop?.y ?? null, avatar_scale: w.src.crop?.scale ?? null,
         display_order: orderFor(committee.id, r.section, r.unit, w.src.displayOrder), start_date: w.startDate, end_date: w.endDate,
-        is_active: committee.status === "CURRENT" && !w.endDate ? 1 : 0, bio: w.src.bio?.slice(0, 1000) ?? null,
+        // Active in the current committee unless the listing has already ended.
+        is_active: committee.status === "CURRENT" && (!w.endDate || w.endDate.slice(0, 10) > today) ? 1 : 0, bio: w.src.bio?.slice(0, 1000) ?? null,
       });
       audits.push({ action: "executive.assign", resourceType: "committee_member", resourceId: id, reason: `Bulk import ${plan.fileHash.slice(0, 12)}`, after: { committee: committee.name, position: r.position!.name, profileId, title: r.positionTitle }, decision });
       if (w.profile?.user_id) notes.push({ userId: w.profile.user_id, type: "executive.assigned", title: `You were added as ${r.positionTitle ?? r.position!.name}`, body: committee.name, link: "/dashboard/profile" });

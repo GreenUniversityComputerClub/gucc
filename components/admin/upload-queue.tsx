@@ -126,11 +126,11 @@ export function UploadQueue({ accept, max, label, hint, upload, onFinished, disa
               )}
               {(it.status === "preparing" || it.status === "uploading" || it.status === "waiting") && (
                 <button type="button" onClick={() => (it.controller ? it.controller.abort() : patch(it.key, { status: "cancelled", message: "Cancelled." }))}
-                  className="rounded p-1 hover:bg-muted" aria-label={`Cancel ${it.file.name}`}><X className="h-3.5 w-3.5" aria-hidden /></button>
+                  className="inline-flex h-8 w-8 items-center justify-center rounded hover:bg-muted" aria-label={`Cancel ${it.file.name}`}><X className="h-3.5 w-3.5" aria-hidden /></button>
               )}
               {(it.status === "failed" || it.status === "cancelled") && (
                 <button type="button" onClick={() => { finishedReported.current = false; patch(it.key, { status: "waiting", progress: 0, message: undefined }); }}
-                  className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-muted" aria-label={`Try ${it.file.name} again`}><RotateCcw className="h-3 w-3" aria-hidden />Retry</button>
+                  className="inline-flex min-h-8 items-center gap-1 rounded px-2 hover:bg-muted" aria-label={`Try ${it.file.name} again`}><RotateCcw className="h-3 w-3" aria-hidden />Retry</button>
               )}
             </li>
           ))}

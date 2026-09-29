@@ -8,11 +8,14 @@ import { holdsProtectedRole } from "../../governance/engine";
 import { auditStmt } from "../audit";
 import { requireActor } from "../authz";
 import type { Ctx } from "../context";
-import { sha256Hex, verifyPassword } from "../crypto";
-import { nowIso } from "../db";
+import { randomToken, sha256Hex, verifyPassword } from "../crypto";
+import { newId, nowIso } from "../db";
 import { emailEnabled } from "../email";
+import { SPAM_HINT } from "../../email-hint";
+import { assertStmt, batchTransition } from "../transition";
 import { AppError, ConflictError, NotFoundError, ValidationError } from "../errors";
 import { notifyStmts } from "../notifications";
+import { deliverEmail } from "../security";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -61,6 +64,16 @@ export async function revokeOtherSessions(ctx: Ctx, sessionToken: string | null)
   return { signedOut };
 }
 
+/** Hours a confirmation link for a new sign-in email stays valid. */
+const EMAIL_CHANGE_HOURS = 24;
+const siteUrl = (ctx: Ctx) => (ctx.env.PUBLIC_BASE_URL ?? "").replace(/\/+$/, "");
+
+/**
+ * Change the sign-in email. With email working, the new address must be confirmed from a link
+ * sent to it (a typo can't hand the account's recovery to a stranger) and the old address is told.
+ * Without email, it changes at once (the password was just checked). Either way every other
+ * device is signed out, and the security notice reaches the old address as well.
+ */
 export async function changeEmail(ctx: Ctx, input: { password?: unknown; email?: unknown }): Promise<{ message: string }> {
   const actor = await checkPassword(ctx, input.password);
   const email = String(input.email ?? "").trim().toLowerCase();
@@ -68,12 +81,64 @@ export async function changeEmail(ctx: Ctx, input: { password?: unknown; email?:
   if (email === actor.user.email.toLowerCase()) throw new ValidationError("That's already your email.", { email: "Enter a different address." });
   if (await ctx.db.first("SELECT id FROM users WHERE email = ?1 AND deleted_at IS NULL", email)) throw new ConflictError("Another account uses that email.");
   const now = nowIso();
+  const old = actor.user.email;
+  if (await emailEnabled(ctx)) {
+    const token = randomToken(32);
+    await ctx.db.batch([
+      // One live request: an earlier link stops working.
+      ctx.db.stmt("UPDATE email_change_requests SET used_at = ?2 WHERE user_id = ?1 AND used_at IS NULL", actor.user.id, now),
+      ctx.db.stmt("INSERT INTO email_change_requests (id, user_id, new_email, token_hash, expires_at, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        newId("ecr"), actor.user.id, email, await sha256Hex(token), new Date(Date.now() + EMAIL_CHANGE_HOURS * 3600_000).toISOString(), now),
+      auditStmt(ctx, { action: "account.email_change_requested", resourceType: "user", resourceId: actor.user.id, before: { email: old }, after: { email } }),
+    ]);
+    const sent = await deliverEmail(ctx, {
+      to: email,
+      subject: "Confirm your new GUCC sign-in email",
+      text: `Someone (hopefully you) asked to use this address to sign in to GUCC instead of ${old}.\n\nConfirm it with this link:\n${siteUrl(ctx)}/auth/confirm-email?token=${token}\n\nThe link expires in ${EMAIL_CHANGE_HOURS} hours. If you didn't ask for this, ignore this email; nothing changes.`,
+    }, { type: "account.email_change", userId: actor.user.id });
+    await deliverEmail(ctx, {
+      to: old,
+      subject: "Your GUCC sign-in email is being changed",
+      text: `A request was made to change your GUCC sign-in email from ${old} to ${email}. It takes effect only when the new address is confirmed.\n\nIf this wasn't you, sign in and change your password now, and tell a club leader.`,
+    }, { type: "security.email_change_requested", userId: actor.user.id });
+    if (!sent) throw new AppError(503, "EMAIL_FAILED", "The confirmation email couldn't be sent. Nothing changed; try again later.");
+    return { message: `Check ${email} for a confirmation link. Until you confirm it, keep signing in with ${old}. ${SPAM_HINT}` };
+  }
   await ctx.db.batch([
     ctx.db.stmt("UPDATE users SET email = ?2, updated_at = ?3, updated_by = ?1 WHERE id = ?1", actor.user.id, email, now),
-    auditStmt(ctx, { action: "account.email_change", resourceType: "user", resourceId: actor.user.id, before: { email: actor.user.email }, after: { email } }),
-    ...notifyStmts(ctx, [actor.user.id], { type: "security.email_changed", title: "Your sign-in email was changed", body: `From ${actor.user.email} to ${email}. If this wasn't you, contact a club leader.`, link: "/dashboard/security" }),
+    ctx.db.stmt("UPDATE sessions SET revoked_at = ?3 WHERE user_id = ?1 AND id <> ?2 AND revoked_at IS NULL", actor.user.id, ctx.session?.id ?? "", now),
+    auditStmt(ctx, { action: "account.email_change", resourceType: "user", resourceId: actor.user.id, before: { email: old }, after: { email } }),
+    ...notifyStmts(ctx, [actor.user.id], { type: "security.email_changed", title: "Your sign-in email was changed", body: `From ${old} to ${email}. You were signed out on other devices. If this wasn't you, contact a club leader.`, link: "/dashboard/security" }),
   ]);
-  return { message: (await emailEnabled(ctx)) ? `Saved. Sign in with ${email} from now on.` : `Saved. Sign in with ${email} from now on. (Email isn't set up yet, so nothing was sent.)` };
+  return { message: `Saved. Sign in with ${email} from now on; your other devices were signed out. (Email isn't set up yet, so nothing was sent.)` };
+}
+
+/** The link from the confirmation email: the new address becomes the sign-in email. */
+export async function confirmEmailChange(ctx: Ctx, token: string): Promise<{ email: string }> {
+  const hash = await sha256Hex(String(token ?? ""));
+  const row = await ctx.db.first<{ id: string; user_id: string; new_email: string; expires_at: string; used_at: string | null; old_email: string }>(
+    `SELECT r.id, r.user_id, r.new_email, r.expires_at, r.used_at, u.email AS old_email FROM email_change_requests r
+     JOIN users u ON u.id = r.user_id AND u.deleted_at IS NULL WHERE r.token_hash = ?1`, hash);
+  if (!row || row.used_at || row.expires_at < nowIso()) throw new AppError(400, "TOKEN_INVALID", "This link is invalid or has expired. Ask for a new one from your security page.");
+  if (await ctx.db.first("SELECT id FROM users WHERE email = ?1 AND deleted_at IS NULL AND id <> ?2", row.new_email, row.user_id)) throw new ConflictError("Another account uses that email now.");
+  const now = nowIso();
+  const token2 = newId("t");
+  await batchTransition(ctx, [
+    // Once only, even if the link is opened twice at the same moment.
+    ctx.db.stmt("UPDATE email_change_requests SET used_at = ?2, last_transition = ?3 WHERE id = ?1 AND used_at IS NULL", row.id, now, token2),
+    assertStmt(ctx, "EXISTS (SELECT 1 FROM email_change_requests WHERE id = ?1 AND last_transition = ?2)", row.id, token2),
+    ctx.db.stmt("UPDATE users SET email = ?2, email_verified_at = ?3, updated_at = ?3 WHERE id = ?1", row.user_id, row.new_email, now),
+    // Everyone signs in again with the new address.
+    ctx.db.stmt("UPDATE sessions SET revoked_at = ?2 WHERE user_id = ?1 AND revoked_at IS NULL", row.user_id, now),
+    auditStmt(ctx, { action: "account.email_change", resourceType: "user", resourceId: row.user_id, actorUserId: row.user_id, actorLabel: row.new_email, before: { email: row.old_email }, after: { email: row.new_email } }),
+    ...notifyStmts(ctx, [row.user_id], { type: "security.email_changed", title: "Your sign-in email was changed", body: `From ${row.old_email} to ${row.new_email}. If this wasn't you, contact a club leader.`, link: "/dashboard/security" }),
+  ], () => new AppError(400, "TOKEN_INVALID", "This link has already been used."));
+  await deliverEmail(ctx, {
+    to: row.old_email,
+    subject: "Your GUCC sign-in email was changed",
+    text: `Your GUCC sign-in email is now ${row.new_email}. If this wasn't you, contact a club leader right away.`,
+  }, { type: "security.email_changed", userId: row.user_id });
+  return { email: row.new_email };
 }
 
 /**

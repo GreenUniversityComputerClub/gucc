@@ -100,19 +100,23 @@ describe("dynamic rules", () => {
   });
 
   it("blocks privilege escalation through rules", async () => {
-    const pres = await w.user({ email: "p@x.bd", positions: ["president"] });
-    await expect(createRule(await w.ctx(pres), { name: "Me delete", effect: "ALLOW", permission: "users.delete", scope: "ALL",
-      conditions: [{ field: "actor.position", operator: "eq", value: "president" }] })).rejects.toMatchObject({ code: "ESCALATION" });
-    await expect(createRule(await w.ctx(pres), { name: "Lock mods", effect: "DENY", permission: "*", scope: "ALL",
+    // An administrator can write rules but has no Moderator authority.
+    const admin = await w.user({ email: "ad@x.bd", roles: ["administrator"] });
+    w.sqlite.exec("INSERT OR IGNORE INTO role_permissions (role_id, permission_id, scope, scope_value) SELECT 'role:administrator', id, 'ALL', '' FROM permissions WHERE key IN ('rules.create', 'rules.read')");
+    await expect(createRule(await w.ctx(admin), { name: "Me delete", effect: "ALLOW", permission: "users.delete", scope: "ALL",
+      conditions: [{ field: "actor.role", operator: "eq", value: "administrator" }] })).rejects.toMatchObject({ code: "ESCALATION" });
+    await expect(createRule(await w.ctx(admin), { name: "Lock mods", effect: "DENY", permission: "*", scope: "ALL",
       conditions: [{ field: "actor.role", operator: "eq", value: "moderator" }] })).rejects.toMatchObject({ code: "WILDCARD_RULE" });
     const exec = await w.user({ email: "e@x.bd", positions: ["executive-member"] });
     await expect(createRule(await w.ctx(exec), { name: "x", effect: "ALLOW", permission: "posts.publish", scope: "ALL",
       conditions: [{ field: "actor.id", operator: "eq", value: exec }] })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("protected rules cannot be deactivated by the President", async () => {
+  it("protected rules: the President (equal to a Moderator) may change them; an executive may not", async () => {
     const pres = await w.user({ email: "p@x.bd", positions: ["president"] });
-    await expect(setRuleStatus(await w.ctx(pres), "rule:protected-roles-assign", "INACTIVE")).rejects.toMatchObject({ code: "PROTECTED_RESOURCE" });
+    const exec = await w.user({ email: "e@x.bd", positions: ["executive-member"] });
+    await expect(setRuleStatus(await w.ctx(exec), "rule:protected-roles-assign", "INACTIVE")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(await setRuleStatus(await w.ctx(pres), "rule:protected-roles-assign", "INACTIVE")).toMatchObject({ applied: true });
   });
 });
 
@@ -146,18 +150,21 @@ describe("Moderator protection", () => {
     await expect(revokeRole(await w2.ctx(solo), ur.id, "leaving")).rejects.toMatchObject({ code: "LAST_PROTECTED_HOLDER" });
   });
 
-  it("nobody grants roles to themselves; the President cannot grant Moderator", async () => {
+  it("nobody grants roles to themselves; the President, equal to a Moderator, can appoint one", async () => {
     const m1 = await w.user({ email: "m1@x.bd", roles: ["moderator"] });
     const pres = await w.user({ email: "p@x.bd", positions: ["president"] });
     const other = await w.user({ email: "o@x.bd", roles: ["member"] });
     await expect(grantRole(await w.ctx(m1), m1, "administrator", null)).rejects.toMatchObject({ code: "SELF_ESCALATION" });
     await expect(grantRole(await w.ctx(pres), pres, "moderator", null)).rejects.toMatchObject({ code: "SELF_ESCALATION" });
-    await expect(grantRole(await w.ctx(pres), other, "moderator", null)).rejects.toMatchObject({ code: "PROTECTED_ROLE" });
+    // With another Moderator appointed, the change is a protected one: that Moderator confirms it.
+    expect(await grantRole(await w.ctx(pres), other, "moderator", null)).toMatchObject({ applied: false, requestId: expect.any(String) });
   });
 
   it("protected settings need Moderator authority", async () => {
     const pres = await w.user({ email: "p@x.bd", positions: ["president"] });
-    await expect(updateSystemSetting(await w.ctx(pres), "governance.max_moderators", "10")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const exec = await w.user({ email: "e@x.bd", positions: ["executive-member"] });
+    await expect(updateSystemSetting(await w.ctx(exec), "governance.max_moderators", "5")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(updateSystemSetting(await w.ctx(pres), "governance.max_moderators", "10")).rejects.toMatchObject({ code: "VALIDATION" });
     await expect(updateSystemSetting(await w.ctx(pres), "media.max_upload_mb", "12")).resolves.toMatchObject({ applied: true });
   });
 });
@@ -177,7 +184,8 @@ describe("committees and executives", () => {
     await expect(assignExecutive(await w.ctx(pres), w.committeeId, { fullName: "Other", positionId: "pos:president", section: "STUDENT" })).rejects.toMatchObject({ code: "CONFLICT" });
     const presProfile = (w.sqlite.prepare("SELECT id FROM profiles WHERE user_id = ?").get(pres) as { id: string }).id;
     await expect(assignExecutive(await w.ctx(pres), w.committeeId, { profileId: presProfile, positionId: "pos:treasurer", section: "STUDENT" })).rejects.toMatchObject({ code: "SELF_ESCALATION" });
-    await expect(assignExecutive(await w.ctx(pres), w.committeeId, { fullName: "Dr. Y", positionId: "pos:moderator", section: "FACULTY" })).rejects.toMatchObject({ code: "PROTECTED_RESOURCE" });
+    // The President has the Moderators' authority, so protected positions are theirs to fill too.
+    expect((await assignExecutive(await w.ctx(pres), w.committeeId, { fullName: "Dr. Y", positionId: "pos:moderator", section: "FACULTY" })).id).toBeTruthy();
     const ok = await assignExecutive(await w.ctx(pres), w.committeeId, { fullName: "New Treasurer", studentId: "241002001", positionId: "pos:treasurer", section: "STUDENT" });
     expect(ok.id).toBeTruthy();
   });

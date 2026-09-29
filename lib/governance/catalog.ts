@@ -588,6 +588,8 @@ export const SYSTEM_SETTINGS_V4: SettingDef[] = [
   { key: "media.daily_object_writes", value: 2000, isProtected: true, description: "Files written to storage per day, all uploads together (R2 includes 1 million writes a month free)." },
   { key: "media.daily_anonymous_files", value: 300, description: "Files recruitment applicants may upload per day, all together." },
   { key: "assistant.daily_limit", value: 300, description: "AI answers per day; after that the assistant answers from the club's own data." },
+  // As released in 0008. Email moved to SMTP2GO in 0009_platform_v5.sql, which rewrites these
+  // descriptions, lowers the daily default to 40 and adds email.monthly_limit (1,000).
   { key: "email.enabled", value: false, isProtected: true, description: "Send email through Resend. Turn on only after a successful test email from System health." },
   { key: "email.daily_limit", value: 90, description: "Emails per day (the Resend free plan allows 100)." },
   { key: "usage.alert_percent", value: 70, description: "Warn Moderators when Cloudflare usage passes this share of a free limit." },

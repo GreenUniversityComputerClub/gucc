@@ -4,9 +4,13 @@ export const dynamic = "force-dynamic";
 
 /** CSV of members (members.manage). Needs a recent password; audited by the API. */
 export async function GET(req: Request) {
-  const status = new URL(req.url).searchParams.get("status") ?? undefined;
-  const r = await rpc<{ filename: string; csv: string }>("members.exportCsv", { status });
-  const self = `/api/admin/members/export${status ? `?status=${encodeURIComponent(status)}` : ""}`;
+  // The same view as the Members page: its tab and filters.
+  const sp = new URL(req.url).searchParams;
+  const pick = (k: string) => sp.get(k)?.slice(0, 80) || undefined;
+  const filters = { status: pick("status"), q: pick("q"), batch: pick("batch"), department: pick("department") };
+  const r = await rpc<{ filename: string; csv: string }>("members.exportCsv", filters);
+  const query = new URLSearchParams(Object.entries(filters).filter((e): e is [string, string] => Boolean(e[1]))).toString();
+  const self = `/api/admin/members/export${query ? `?${query}` : ""}`;
   if (!r.ok && r.code === "REAUTH_REQUIRED") {
     // Personal data: ask for the password first, then come back to this download.
     const back = new URL(req.headers.get("referer") ?? "/dashboard/members", req.url);

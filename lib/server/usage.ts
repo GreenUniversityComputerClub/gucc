@@ -7,7 +7,7 @@
 import type { Ctx } from "./context";
 import { nowIso } from "./db";
 
-/** The UTC day (Cloudflare's and Resend's daily limits reset at 00:00 UTC). */
+/** The UTC day (Cloudflare's and SMTP2GO's daily limits reset at 00:00 UTC). */
 export const utcDay = (d = new Date()) => d.toISOString().slice(0, 10);
 
 /**

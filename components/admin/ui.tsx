@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { reloadWith } from "@/lib/flash";
 import { reauthAction } from "@/app/dashboard/reauth-actions";
+import { fieldClass } from "./field-class";
 
 export type Result = { ok: true; data?: unknown; message?: string } | { ok: false; error: string; code: string; fields?: Record<string, string>; trace?: string[] };
 type ServerAction = (fd: FormData) => Promise<Result>;
@@ -100,7 +101,7 @@ export function ActionForm({
       <form
         ref={formRef}
         onSubmit={submit}
-        className={cn(inline ? "inline-flex items-center gap-2" : "space-y-4", className)}
+        className={cn(inline ? "inline-flex flex-wrap items-center gap-2" : "space-y-4", className)}
         noValidate
       >
         {children}
@@ -202,7 +203,7 @@ export function Field({
   const id = `f-${name}-${useId().replace(/:/g, "")}`;
   if (type === "checkbox") {
     return (
-      <label className={cn("flex items-center gap-2 text-sm", className)}>
+      <label className={cn("flex min-h-9 items-center gap-2 text-sm", className)}>
         <input type="checkbox" name={name} defaultChecked={Boolean(defaultValue)} disabled={disabled} className="h-4 w-4" /> {label}
       </label>
     );
@@ -217,7 +218,7 @@ export function Field({
         <Textarea id={id} name={name} defaultValue={defaultValue == null ? "" : String(defaultValue)} rows={rows ?? 4} placeholder={placeholder} aria-invalid={Boolean(error)} disabled={disabled} />
       ) : type === "select" ? (
         <select id={id} name={name} defaultValue={defaultValue == null ? "" : String(defaultValue)} aria-invalid={Boolean(error)} disabled={disabled}
-          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+          className={cn(fieldClass, "w-full")}>
           {(options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       ) : type === "password" ? (
@@ -254,10 +255,14 @@ const STATUS_COLORS: Record<string, string> = {
   SCHEDULED: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
   IN_PROGRESS: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
   DONE: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  CHANGES_REQUESTED: "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+  ONGOING: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+  COMPLETED: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  return <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", STATUS_COLORS[status] ?? "bg-muted text-muted-foreground")}>{status.replace(/_/g, " ").toLowerCase()}</span>;
+  const key = status.replace(/\s+/g, "_").toUpperCase();
+  return <span className={cn("inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium", STATUS_COLORS[key] ?? "bg-muted text-muted-foreground")}>{status.replace(/_/g, " ").toLowerCase()}</span>;
 }
 
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: React.ReactNode }) {
@@ -278,7 +283,7 @@ export function EmptyState({ children }: { children: React.ReactNode }) {
 
 export function Section({ title, description, children, className, actions, id }: { title: string; description?: string; children: React.ReactNode; className?: string; actions?: React.ReactNode; id?: string }) {
   return (
-    <section id={id} className={cn("rounded-xl border bg-card p-5", className)}>
+    <section id={id} className={cn("rounded-xl border bg-card p-4 sm:p-5", className)}>
       {actions ? (
         <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-semibold">{title}</h2>{actions}</div>
       ) : <h2 className="text-lg font-semibold">{title}</h2>}
@@ -288,15 +293,18 @@ export function Section({ title, description, children, className, actions, id }
   );
 }
 
+const pagerLink = "inline-flex min-h-10 items-center rounded-md border px-3 font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
 export function Pager({ page, hasMore, base, params }: { page: number; hasMore: boolean; base: string; params?: Record<string, string | undefined> }) {
   const q = (p: number) => {
     const s = new URLSearchParams(Object.entries({ ...params, page: String(p) }).filter(([, v]) => v) as Array<[string, string]>);
     return `${base}?${s.toString()}`;
   };
   return (
-    <div className="mt-4 flex justify-between text-sm">
-      {page > 1 ? <Link prefetch={false} href={q(page - 1)} className="underline">← Previous</Link> : <span />}
-      {hasMore ? <Link prefetch={false} href={q(page + 1)} className="underline">Next →</Link> : <span />}
-    </div>
+    <nav aria-label="Pages" className="mt-4 flex items-center justify-between gap-2 text-sm">
+      {page > 1 ? <Link prefetch={false} href={q(page - 1)} className={pagerLink}>← Previous</Link> : <span />}
+      {(page > 1 || hasMore) && <span className="text-muted-foreground">Page {page}</span>}
+      {hasMore ? <Link prefetch={false} href={q(page + 1)} className={pagerLink}>Next →</Link> : <span />}
+    </nav>
   );
 }

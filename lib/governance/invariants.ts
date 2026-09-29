@@ -63,7 +63,7 @@ export interface RoleChangeContext {
 export function assertCanGrantRole(actor: Subject, targetUserId: string, ctx: RoleChangeContext): void {
   assertNotSelf(actor, targetUserId, "roles");
   if (ctx.roleIsProtected && !hasProtectedAuthority(actor)) {
-    throw new GovernanceViolation("PROTECTED_ROLE", `Only a Moderator can grant the ${ctx.roleKey} role.`);
+    throw new GovernanceViolation("PROTECTED_ROLE", `Only a Moderator, the President or the General Secretary can grant the ${ctx.roleKey} role.`);
   }
   const cap = ctx.roleIsProtected ? (ctx.configuredMax ?? ctx.roleMaxHolders) : ctx.roleMaxHolders;
   if (cap != null && ctx.activeHolders >= cap) {
@@ -73,7 +73,7 @@ export function assertCanGrantRole(actor: Subject, targetUserId: string, ctx: Ro
 
 export function assertCanRevokeRole(actor: Subject, targetUserId: string, ctx: RoleChangeContext): void {
   if (ctx.roleIsProtected && !hasProtectedAuthority(actor)) {
-    throw new GovernanceViolation("PROTECTED_ROLE", `Only a Moderator can revoke the ${ctx.roleKey} role.`);
+    throw new GovernanceViolation("PROTECTED_ROLE", `Only a Moderator, the President or the General Secretary can revoke the ${ctx.roleKey} role.`);
   }
   if (ctx.roleIsProtected && ctx.activeHolders <= 1) {
     throw new GovernanceViolation("LAST_PROTECTED_HOLDER", `The last ${ctx.roleKey} cannot be removed. Appoint another first.`);
@@ -85,12 +85,12 @@ export function assertCanRevokeRole(actor: Subject, targetUserId: string, ctx: R
 
 /**
  * An actor may only hand out permissions they hold themselves, club-wide.
- * Protected permissions additionally need Moderator authority.
+ * Protected permissions additionally need a Moderator, the President or the General Secretary.
  */
 export function assertCanGrantPermissions(actor: Subject, permissionKeys: string[]): void {
   for (const key of permissionKeys) {
     if (isProtectedPermission(key) && !hasProtectedAuthority(actor)) {
-      throw new GovernanceViolation("PROTECTED_PERMISSION", `Only a Moderator can grant ${key}.`);
+      throw new GovernanceViolation("PROTECTED_PERMISSION", `Only a Moderator, the President or the General Secretary can grant ${key}.`);
     }
     const grant = findGrant(actor, key);
     if (!grant || grant.scope !== "ALL") {
@@ -101,7 +101,7 @@ export function assertCanGrantPermissions(actor: Subject, permissionKeys: string
 
 export function assertCanEditProtected(actor: Subject, what: string, isProtected: boolean): void {
   if (isProtected && !hasProtectedAuthority(actor)) {
-    throw new GovernanceViolation("PROTECTED_RESOURCE", `${what} is protected. Only a Moderator can change it.`);
+    throw new GovernanceViolation("PROTECTED_RESOURCE", `${what} is protected. Only a Moderator, the President or the General Secretary can change it.`);
   }
 }
 
@@ -109,12 +109,14 @@ export interface RuleDraft {
   effect: "ALLOW" | "DENY" | "REQUIRE_APPROVAL";
   permission: string;
   isProtected: boolean;
+  /** The permission is marked sensitive (the caller looks it up). */
+  sensitive?: boolean;
 }
 
 /**
  * Validates a rule before it is saved or activated.
  *  - protected rules, wildcard rules and rules touching protected permissions
- *    need Moderator authority;
+ *    need a Moderator, the President or the General Secretary;
  *  - an ALLOW rule cannot grant more than its author holds;
  *  - a DENY/approval rule over a sensitive permission is "dangerous" and also
  *    needs Moderator authority.
@@ -122,13 +124,16 @@ export interface RuleDraft {
 export function assertCanAuthorRule(actor: Subject, draft: RuleDraft): void {
   const protectedAuthority = hasProtectedAuthority(actor);
   if (draft.isProtected && !protectedAuthority) {
-    throw new GovernanceViolation("PROTECTED_RULE", "Only a Moderator can create or edit protected rules.");
+    throw new GovernanceViolation("PROTECTED_RULE", "Only a Moderator, the President or the General Secretary can create or edit protected rules.");
   }
   if (draft.permission === "*" && !protectedAuthority) {
-    throw new GovernanceViolation("WILDCARD_RULE", "Rules that apply to every permission need Moderator authority.");
+    throw new GovernanceViolation("WILDCARD_RULE", "Rules that apply to every permission need a Moderator, the President or the General Secretary.");
   }
   if (isProtectedPermission(draft.permission) && !protectedAuthority) {
-    throw new GovernanceViolation("PROTECTED_PERMISSION", `Rules over ${draft.permission} need Moderator authority.`);
+    throw new GovernanceViolation("PROTECTED_PERMISSION", `Rules over ${draft.permission} need a Moderator, the President or the General Secretary.`);
+  }
+  if ((draft.effect === "DENY" || draft.effect === "REQUIRE_APPROVAL") && draft.sensitive && !protectedAuthority) {
+    throw new GovernanceViolation("DANGEROUS_RULE", `A rule that blocks or holds back ${draft.permission} (a sensitive permission) could stop other leaders from doing their job, so only a Moderator can create or switch it on.`);
   }
   if (draft.effect === "ALLOW" && !protectedAuthority) {
     const keys = draft.permission.endsWith(".*") ? [draft.permission] : [draft.permission];

@@ -12,9 +12,10 @@
  * Bindings are NOT inherited by environments, so every block repeats them.
  * Database IDs and bucket names are not secrets. Secrets are set with
  * `wrangler secret put <NAME> --env <env>` (API_SHARED_SECRET, AUTH_SECRET,
- * PASSWORD_PEPPER, TURNSTILE_SECRET_KEY, RESEND_API_KEY, GOOGLE_API_KEY).
+ * PASSWORD_PEPPER, TURNSTILE_SECRET_KEY, SMTP2GO_API_KEY, GOOGLE_API_KEY).
  * Locally `wrangler dev` reads them from .env.local; the "secrets" list below
  * makes it take only these, never the website's or Cloudflare's values.
+ * EMAIL_FROM is the verified SMTP2GO single sender (no DNS/domain setup needed).
  * See docs/platform/DEPLOYMENT.md.
  */
 {
@@ -30,11 +31,11 @@
     "PUBLIC_BASE_URL": "http://localhost:3000",
     "FRONTEND_ORIGIN": "http://localhost:3000",
     "MEDIA_BASE_URL": "http://localhost:8787",
-    "RESEND_FROM_EMAIL": "gucc@green.edu.bd",
+    "EMAIL_FROM": "GUCC <gucc@green.edu.bd>",
     "CONTACT_EMAIL": "gucc@green.edu.bd"
   },
   "secrets": {
-    "required": ["API_SHARED_SECRET", "AUTH_SECRET", "PASSWORD_PEPPER", "TURNSTILE_SECRET_KEY", "RESEND_API_KEY", "GOOGLE_API_KEY"]
+    "required": ["API_SHARED_SECRET", "AUTH_SECRET", "PASSWORD_PEPPER", "TURNSTILE_SECRET_KEY", "SMTP2GO_API_KEY", "GOOGLE_API_KEY"]
   },
   "d1_databases": [
     { "binding": "DB", "database_name": "gucc-db-dev", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
@@ -53,8 +54,11 @@
         "PUBLIC_BASE_URL": "https://gucc-staging.vercel.app",
         "FRONTEND_ORIGIN": "https://gucc-staging.vercel.app",
         "MEDIA_BASE_URL": "https://gucc-api-staging.gucc.workers.dev",
-        "RESEND_FROM_EMAIL": "",
-        "CONTACT_EMAIL": ""
+        "EMAIL_FROM": "GUCC <gucc@green.edu.bd>",
+        "CONTACT_EMAIL": "gucc@green.edu.bd"
+      },
+      "secrets": {
+        "required": ["API_SHARED_SECRET", "AUTH_SECRET", "PASSWORD_PEPPER", "TURNSTILE_SECRET_KEY", "SMTP2GO_API_KEY", "GOOGLE_API_KEY"]
       },
       "d1_databases": [
         { "binding": "DB", "database_name": "gucc-db-staging", "database_id": "REPLACE_WITH_STAGING_DATABASE_ID", "migrations_dir": "migrations" }
@@ -75,13 +79,16 @@
         // Uploads still need a short-lived token that only a signed-in session gets.
         "FRONTEND_ORIGIN": "https://gucc.green.edu.bd,https://gucc.vercel.app,http://localhost:3000",
         "MEDIA_BASE_URL": "https://gucc-api.gucc.workers.dev",
-        "RESEND_FROM_EMAIL": "",
-        "CONTACT_EMAIL": "",
+        "EMAIL_FROM": "GUCC <gucc@green.edu.bd>",
+        "CONTACT_EMAIL": "gucc@green.edu.bd",
         // Ids for the usage monitor in System health (not secrets; the token is CF_ANALYTICS_TOKEN).
         "CF_ACCOUNT_ID": "c1b05716895cd372f5520dde62e5f68b",
         "CF_D1_DATABASE_ID": "b7ce366a-30d0-4a4c-a4ab-5cf079bb8d8a",
         "CF_WORKER_NAME": "gucc-api",
         "CF_R2_BUCKETS": "gucc-media-public-production,gucc-media-private-production"
+      },
+      "secrets": {
+        "required": ["API_SHARED_SECRET", "AUTH_SECRET", "PASSWORD_PEPPER", "TURNSTILE_SECRET_KEY", "SMTP2GO_API_KEY", "GOOGLE_API_KEY"]
       },
       "d1_databases": [
         { "binding": "DB", "database_name": "gucc", "database_id": "b7ce366a-30d0-4a4c-a4ab-5cf079bb8d8a", "migrations_dir": "migrations" }

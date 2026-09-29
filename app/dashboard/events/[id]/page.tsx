@@ -33,12 +33,12 @@ export default async function EventDetail({ params }: { params: Promise<{ id: st
             <ActionForm action={publishEventAction.bind(null, id)} submitLabel={cap.publish === "ALLOW" ? "Publish" : "Submit for approval"} inline />
           )}
           {status === "PENDING_APPROVAL" && <span className="text-sm text-muted-foreground">Waiting for approval.</span>}
-          {isPublic && cap.edit && status !== "ONGOING" && <ActionForm action={eventStatusAction.bind(null, id, "ONGOING")} submitLabel="Mark ongoing" variant="outline" inline />}
-          {isPublic && cap.edit && status !== "COMPLETED" && <ActionForm action={eventStatusAction.bind(null, id, "COMPLETED")} submitLabel="Mark completed" variant="outline" inline />}
+          {status === "PUBLISHED" && cap.edit && <ActionForm action={eventStatusAction.bind(null, id, "ONGOING")} submitLabel="Mark ongoing" variant="outline" inline />}
+          {(status === "PUBLISHED" || status === "ONGOING") && cap.edit && <ActionForm action={eventStatusAction.bind(null, id, "COMPLETED")} submitLabel="Mark completed" variant="outline" inline />}
           {isPublic && cap.publish === "ALLOW" && <ActionForm action={eventStatusAction.bind(null, id, "DRAFT")} submitLabel="Unpublish" variant="outline" inline confirm="Take this event off the public site?" />}
-          {cap.edit && status !== "CANCELLED" && status !== "ARCHIVED" && (
+          {cap.edit && ["DRAFT", "PENDING_APPROVAL", "PUBLISHED", "ONGOING"].includes(status) && (
             <ActionForm action={eventStatusAction.bind(null, id, "CANCELLED")} submitLabel="Cancel event" variant="destructive" inline confirm="Cancel this event? Registered members are notified.">
-              <input name="reason" aria-label="Reason" placeholder="Reason (sent to registrants)" className="h-8 w-full min-w-0 rounded-md border bg-background px-2 text-sm sm:w-56" />
+              <input name="reason" aria-label="Reason" placeholder="Reason (sent to registrants)" className="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-base sm:w-56 md:text-sm" />
             </ActionForm>
           )}
           {cap.delete && <ActionForm action={eventStatusAction.bind(null, id, "ARCHIVED")} submitLabel="Archive" variant="outline" inline confirm="Archive this event? It disappears from the site but stays in history." />}

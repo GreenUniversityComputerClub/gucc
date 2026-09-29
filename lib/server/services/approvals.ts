@@ -11,7 +11,7 @@ import { assertStmt, assertTransition, batchTransition, newTransition } from "..
 import { eligibleGroups, evaluateApproval } from "../../governance/approval";
 import type { ApprovalPolicy, ApprovalStep, ApproverSpec } from "../../governance/types";
 import { auditStmt } from "../audit";
-import { requireActor, requirePermission } from "../authz";
+import { can, requireActor, requirePermission } from "../authz";
 import type { Ctx } from "../context";
 import { newId, nowIso, type D1StatementLike } from "../db";
 import { AppError, ForbiddenError, NotFoundError } from "../errors";
@@ -40,6 +40,9 @@ export interface ApprovalHandler {
   tags?: (req: ApprovalRequestRow) => string[];
 }
 
+/** The note a handler's onRejected gets when the requester withdrew the request. */
+export const WITHDRAWN = "Withdrawn";
+
 const handlers = new Map<string, ApprovalHandler>();
 export function registerApprovalHandler(action: string, handler: ApprovalHandler) {
   handlers.set(action, handler);
@@ -67,6 +70,40 @@ export async function eligibleApprovers(ctx: Ctx, policy: ApprovalPolicy, reques
   return [...ids];
 }
 
+/** For each approver group, the people (other than the requester) who could decide for it now. */
+async function groupCandidates(ctx: Ctx, policy: ApprovalPolicy, requestedBy: string): Promise<string[][]> {
+  const out: string[][] = [];
+  for (const a of policy.approvers) {
+    const ids = a.type === "role" ? await usersWith(ctx, { roles: [a.value!] })
+      : a.type === "position" ? await usersWith(ctx, { positions: [a.value!] })
+        : a.type === "user" && a.value ? [a.value] : [];
+    out.push(policy.allowSelfApproval ? ids : ids.filter((id) => id !== requestedBy));
+  }
+  return out;
+}
+
+/** Can the request ever be decided? ALL needs a different person for every group. */
+function coverable(policy: ApprovalPolicy, groups: string[][]): boolean {
+  if (policy.mode !== "ALL") return groups.some((g) => g.length > 0);
+  const taken = new Map<string, number>();
+  const assign = (g: number, seen: Set<string>): boolean => {
+    for (const person of groups[g] ?? []) {
+      if (seen.has(person)) continue;
+      seen.add(person);
+      const holder = taken.get(person);
+      if (holder === undefined || assign(holder, seen)) {
+        taken.set(person, g);
+        return true;
+      }
+    }
+    return false;
+  };
+  return groups.every((_, g) => assign(g, new Set()));
+}
+
+/** Content falls back to this policy when its own can't be decided by anyone else right now. */
+const FALLBACK_POLICY = "leadership-any";
+
 export interface StartApprovalInput {
   policyKey: string;
   resourceType: string;
@@ -81,13 +118,33 @@ export interface StartApprovalInput {
 
 export async function startApproval(ctx: Ctx, input: StartApprovalInput): Promise<{ requestId: string; created: boolean }> {
   const actor = requireActor(ctx);
-  const existing = await ctx.db.first<{ id: string }>(
-    "SELECT id FROM approval_requests WHERE resource_type = ?1 AND resource_id = ?2 AND action = ?3 AND status = 'PENDING'",
+  const existing = await ctx.db.first<{ id: string; payload_json: string | null }>(
+    "SELECT id, payload_json FROM approval_requests WHERE resource_type = ?1 AND resource_id = ?2 AND action = ?3 AND status = 'PENDING'",
     input.resourceType, input.resourceId, input.action,
   );
-  if (existing) return { requestId: existing.id, created: false };
+  if (existing) {
+    // The same change asked again joins the open request; a different change to the same thing
+    // must wait, instead of silently being dropped.
+    const payload = input.payload === undefined ? null : JSON.stringify(input.payload);
+    if (input.resourceType === "governance" && existing.payload_json !== payload) {
+      throw new AppError(409, "REQUEST_PENDING", `A request about this is already waiting for approval (/dashboard/approvals/${existing.id}). Wait for it, or withdraw it first.`);
+    }
+    return { requestId: existing.id, created: false };
+  }
 
-  const { id: policyId, policy } = await loadPolicy(ctx, input.policyKey);
+  let { id: policyId, policy } = await loadPolicy(ctx, input.policyKey);
+  // A request nobody else can decide would wait forever. Content moves to club leadership; when
+  // the requester's own position is what's missing (e.g. the President asking "President and
+  // General Secretary"), it's refused with the reason. An empty position is fine: whoever is
+  // appointed to it later can decide.
+  if (!coverable(policy, await groupCandidates(ctx, policy, actor.user.id))) {
+    const fallback = input.resourceType !== "governance" && policy.key !== FALLBACK_POLICY ? await loadPolicy(ctx, FALLBACK_POLICY).catch(() => null) : null;
+    if (fallback && coverable(fallback.policy, await groupCandidates(ctx, fallback.policy, actor.user.id))) {
+      ({ id: policyId, policy } = fallback);
+    } else if (coverable(policy, await groupCandidates(ctx, { ...policy, allowSelfApproval: true }, actor.user.id))) {
+      throw new AppError(409, "NO_APPROVER", `Under "${policy.name}" you would have to approve your own request, which isn't allowed. Ask a Moderator to decide it another way or change the approval policy.`);
+    }
+  }
   const approvers = await eligibleApprovers(ctx, policy, actor.user.id);
   const requestId = newId("apr");
   const now = nowIso();
@@ -119,11 +176,13 @@ async function loadSteps(ctx: Ctx, requestId: string): Promise<ApprovalStep[]> {
   return rows.map((r) => ({ actorId: r.actor_id, decision: r.decision, matchedGroups: r.matched_group ? (JSON.parse(r.matched_group) as number[]) : [] }));
 }
 
-export async function decideApproval(ctx: Ctx, requestId: string, decision: "APPROVE" | "REJECT", comment?: string | null): Promise<{ status: string }> {
+export async function decideApproval(ctx: Ctx, requestId: string, decision: "APPROVE" | "REJECT", comment?: string | null, opts: { bulk?: boolean } = {}): Promise<{ status: string }> {
   const actor = requireActor(ctx);
   requirePermission(ctx, "approvals.decide", { type: "approval_request", id: requestId });
   const req = await loadRequest(ctx, requestId);
   if (req.status !== "PENDING") throw new AppError(409, "RESOLVED", `This request is already ${req.status.toLowerCase()}.`);
+  // Changes to who may do what are read and decided one at a time, never ticked in a list.
+  if (opts.bulk && req.resource_type === "governance") throw new AppError(409, "ONE_AT_A_TIME", `"${req.title ?? req.action}" changes access: open it and decide it on its own.`);
   const policy = JSON.parse(req.policy_snapshot) as ApprovalPolicy;
   const groups = eligibleGroups(policy, actor.subject, { requestedBy: req.requested_by });
   if (groups.length === 0) {
@@ -186,7 +245,7 @@ export async function cancelApproval(ctx: Ctx, requestId: string): Promise<void>
   await batchTransition(ctx, [
     ctx.db.stmt("UPDATE approval_requests SET status = 'CANCELLED', resolved_at = ?2, updated_at = ?2, last_transition = ?3 WHERE id = ?1 AND status = 'PENDING'", requestId, nowIso(), token),
     assertTransition(ctx, "approval_requests", requestId, token),
-    ...((await handler?.onRejected?.(ctx, req, "Withdrawn")) ?? []),
+    ...((await handler?.onRejected?.(ctx, req, WITHDRAWN)) ?? []),
     auditStmt(ctx, { action: "approval.cancelled", resourceType: req.resource_type, resourceId: req.resource_id, after: { requestId } }),
   ], () => new AppError(409, "RESOLVED", "This request was decided a moment ago, so it can't be withdrawn. Reload to see it."));
 }
@@ -199,11 +258,24 @@ export interface ApprovalView extends ApprovalRequestRow {
   whyNot: string | null;
 }
 
+/**
+ * Who may see a request: its requester always (to follow and withdraw it); otherwise holders of
+ * approvals.read, except that changes to who may do what are shown only to the people who can
+ * decide them (and those who manage approval policies).
+ */
+function maySee(ctx: Ctx, req: ApprovalRequestRow, policy: ApprovalPolicy): boolean {
+  const actor = requireActor(ctx);
+  if (req.requested_by === actor.user.id) return true;
+  if (!can(ctx, "approvals.read")) return false;
+  if (req.resource_type !== "governance") return true;
+  return can(ctx, "approvals.policies") || eligibleGroups(policy, actor.subject, { requestedBy: req.requested_by }).length > 0;
+}
+
 export async function getApproval(ctx: Ctx, id: string): Promise<ApprovalView> {
   const actor = requireActor(ctx);
-  requirePermission(ctx, "approvals.read");
   const req = await loadRequest(ctx, id);
   const policy = JSON.parse(req.policy_snapshot) as ApprovalPolicy;
+  if (!maySee(ctx, req, policy)) requirePermission(ctx, req.resource_type === "governance" ? "approvals.policies" : "approvals.read");
   const steps = await ctx.db.all<ApprovalView["steps"][number]>(
     `SELECT s.actor_id, COALESCE(p.full_name, u.email) AS actor_name, s.decision, s.comment, s.created_at
      FROM approval_steps s JOIN users u ON u.id = s.actor_id LEFT JOIN profiles p ON p.user_id = u.id WHERE s.request_id = ?1 ORDER BY s.created_at`,
@@ -211,13 +283,16 @@ export async function getApproval(ctx: Ctx, id: string): Promise<ApprovalView> {
   );
   const requester = await ctx.db.first<{ name: string }>("SELECT COALESCE(p.full_name, u.email) AS name FROM users u LEFT JOIN profiles p ON p.user_id = u.id WHERE u.id = ?1", req.requested_by);
   const groups = eligibleGroups(policy, actor.subject, { requestedBy: req.requested_by });
-  const whyNot = req.status !== "PENDING" ? "Already resolved." : groups.length === 0 ? (actor.user.id === req.requested_by ? "You requested this; someone else must decide." : `Only ${policy.name} can decide.`) : null;
+  const whyNot = req.status !== "PENDING" ? "Already resolved."
+    : groups.length === 0 ? (actor.user.id === req.requested_by ? "You requested this; someone else must decide." : `Only ${policy.name} can decide.`)
+      : !can(ctx, "approvals.decide", { type: "approval_request", id }) ? "Your access doesn't include deciding approvals." : null;
   return { ...req, requester_name: requester?.name ?? null, policy, steps, canDecide: !whyNot, whyNot };
 }
 
 export async function listApprovals(ctx: Ctx, opts: { status?: string; mine?: boolean; page?: number }) {
   const actor = requireActor(ctx);
-  requirePermission(ctx, "approvals.read");
+  // Without approvals.read, people see (and can withdraw) their own requests.
+  if (!can(ctx, "approvals.read")) opts = { ...opts, mine: true };
   const status = opts.status ?? "PENDING";
   const page = Math.max(1, opts.page ?? 1);
   const rows = await ctx.db.all<ApprovalRequestRow & { requester_name: string | null }>(
@@ -227,8 +302,10 @@ export async function listApprovals(ctx: Ctx, opts: { status?: string; mine?: bo
      ORDER BY r.created_at DESC LIMIT 50 OFFSET ?4`,
     status, opts.mine ? 1 : 0, actor.user.id, (page - 1) * 50,
   );
-  return rows.map((r) => {
+  const decides = can(ctx, "approvals.decide");
+  return rows.flatMap((r) => {
     const policy = JSON.parse(r.policy_snapshot) as ApprovalPolicy;
-    return { ...r, policy, canDecide: r.status === "PENDING" && eligibleGroups(policy, actor.subject, { requestedBy: r.requested_by }).length > 0 };
+    if (!maySee(ctx, r, policy)) return [];
+    return [{ ...r, policy, canDecide: r.status === "PENDING" && decides && eligibleGroups(policy, actor.subject, { requestedBy: r.requested_by }).length > 0 }];
   });
 }

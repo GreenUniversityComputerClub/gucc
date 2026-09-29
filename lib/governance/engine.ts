@@ -24,6 +24,13 @@ import type { Decision, Grant, MatchedRule, Resource, Rule, RuleEffect, Scope, S
 
 export const PROTECTED_ROLES = ["moderator"] as const;
 
+/**
+ * Positions whose holders (in a governing unit of the current committee) have exactly the
+ * Moderators' authority: every permission and every Moderator decision. Decided 2026-09-29: the
+ * President and the General Secretary are equal to the Moderators.
+ */
+export const MODERATOR_EQUAL_POSITIONS = ["president", "general-secretary"] as const;
+
 export function matchesPermission(pattern: string, key: string): boolean {
   if (pattern === "*") return true;
   if (pattern === key) return true;

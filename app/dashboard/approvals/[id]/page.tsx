@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { requireAdmin, view } from "@/lib/api/session";
+import { requireSignedIn, view } from "@/lib/api/session";
 import type { ApprovalView } from "@/lib/server/services/approvals";
 import { describePolicy } from "@/lib/governance/approval";
+import { safeJson } from "@/lib/safe-json";
 import { ActionForm, Field, PageHeader, Section, StatusBadge } from "@/components/admin/ui";
 import { approveAndTrustAction, cancelApprovalAction, decideAction } from "../../actions";
 
@@ -11,7 +12,7 @@ function describeChange(p: Record<string, unknown>): string {
   const scope = grant && grant.scope && grant.scope !== "ALL" ? ` (${grant.scope.toLowerCase()}${grant.scopeValue ? `: ${grant.scopeValue}` : ""})` : "";
   switch (p.kind) {
     case "role.grant": return `Give the "${String(p.roleKey).replace(/-/g, " ")}" role to a member${p.reason ? ` — ${String(p.reason)}` : ""}.`;
-    case "role.revoke": return `Remove a role from a member${p.reason ? ` — ${String(p.reason)}` : ""}.`;
+    case "role.revoke": return `Remove ${p.roleKey ? `the "${String(p.roleKey).replace(/-/g, " ")}" role` : "a role"} from ${p.person ? String(p.person) : "a member"}${p.reason ? ` — ${String(p.reason)}` : ""}.`;
     case "role.permission": return `Add ${grant?.permission}${scope} to a role.`;
     case "position.permission": return `Add ${grant?.permission}${scope} to a position.`;
     case "direct.grant": return `Grant ${grant?.permission}${scope} directly to a member${p.expiresAt ? ` until ${String(p.expiresAt).slice(0, 10)}` : ""}${p.reason ? ` — ${String(p.reason)}` : ""}.`;
@@ -27,28 +28,29 @@ const RESOURCE_LINK: Record<string, (id: string) => string> = {
 };
 
 export default async function ApprovalDetail({ params }: { params: Promise<{ id: string }> }) {
-  const session = await requireAdmin("/dashboard/approvals");
+  // Anyone may open their own request; the API decides who else may see it.
+  const session = await requireSignedIn("/dashboard/approvals");
   const { id } = await params;
   const r = await view<ApprovalView>("approvals.get", { id }, `/dashboard/approvals/${id}`);
   const link = RESOURCE_LINK[r.resource_type]?.(r.resource_id);
-  const payload = r.payload_json ? JSON.parse(r.payload_json) : null;
+  const payload = safeJson<Record<string, unknown>>(r.payload_json);
 
   return (
     <>
       <PageHeader title={r.title ?? r.action} description={`Requested by ${r.requester_name ?? "unknown"} on ${new Date(r.created_at).toLocaleString("en-GB", { timeZone: "Asia/Dhaka" })}`} actions={<StatusBadge status={r.status} />} />
       <div className="grid gap-6 lg:grid-cols-2">
         <Section title="What is being approved">
-          <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
-            <dt className="text-muted-foreground">Action</dt><dd className="font-mono text-xs">{r.action}</dd>
+          <dl className="grid grid-cols-1 gap-y-1 text-sm sm:grid-cols-[8rem_1fr] sm:gap-y-2">
+            <dt className="text-muted-foreground">Action</dt><dd className="break-all font-mono text-xs">{r.action}</dd>
             <dt className="text-muted-foreground">Resource</dt>
-            <dd>{link ? <Link prefetch={false} href={link} className="underline">{r.resource_type} → open</Link> : `${r.resource_type} ${r.resource_id}`}</dd>
+            <dd className="break-words">{link ? <Link prefetch={false} href={link} className="underline">{r.resource_type} → open</Link> : `${r.resource_type} ${r.resource_id}`}</dd>
             <dt className="text-muted-foreground">Policy</dt><dd>{r.policy.name}: needs {describePolicy(r.policy)}</dd>
           </dl>
           {payload && r.resource_type === "governance" && (
             <p className="mt-3 rounded-md bg-muted p-3 text-sm">{describeChange(payload)}</p>
           )}
-          {payload?.userId && r.resource_type === "governance" && (
-            <p className="mt-2 text-sm"><Link prefetch={false} href={`/dashboard/access/${encodeURIComponent(String(payload.userId))}`} className="underline">See this person&apos;s current access</Link></p>
+          {Boolean(payload?.userId) && r.resource_type === "governance" && (
+            <p className="mt-2 text-sm"><Link prefetch={false} href={`/dashboard/access/${encodeURIComponent(String(payload!.userId))}`} className="underline">See this person&apos;s current access</Link></p>
           )}
         </Section>
         <Section title="Decisions so far">

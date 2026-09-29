@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PersonPicker } from "./person-picker";
 
-const input = "h-9 w-full rounded-md border border-input bg-background px-3 text-sm";
+const input = "h-10 w-full rounded-md border border-input bg-background px-3 text-base md:h-9 md:text-sm";
 
 export function Rows<T>({ rows, setRows, render, empty, addLabel, blank, max = 50 }: { rows: T[]; setRows: (r: T[]) => void; render: (row: T, update: (patch: Partial<T>) => void, i: number) => React.ReactNode; empty: string; addLabel: string; blank: T; max?: number }) {
   const move = (i: number, d: number) => {
@@ -84,7 +84,8 @@ export function RegistrationFieldsEditor({ name, initial }: { name: string; init
   const [rows, setRows] = useState<Array<RegFieldRow & { optionsText?: string }>>(initial.map((r) => ({ ...r, optionsText: (r.options ?? []).join(", ") })));
   const out = rows.filter((r) => r.label.trim()).map((r, i, all) => {
     let key = r.key || keyOf(r.label);
-    if (all.slice(0, i).some((x) => (x.key || keyOf(x.label)) === key)) key = `${key}_${i + 1}`;
+    // Keep a numbered duplicate within the 41 characters the API accepts.
+    if (all.slice(0, i).some((x) => (x.key || keyOf(x.label)) === key)) key = `${key.slice(0, 36)}_${i + 1}`;
     return { key, label: r.label.trim(), type: r.type, required: Boolean(r.required), ...(r.type === "select" ? { options: (r.optionsText ?? "").split(",").map((o) => o.trim()).filter(Boolean) } : {}) };
   });
   return (
@@ -153,7 +154,7 @@ export function ApproversEditor({ name, initial, positions, roles }: { name: str
   const [rows, setRows] = useState<ApproverRow[]>(initial);
   return (
     <>
-      <input type="hidden" name={name} value={JSON.stringify(rows.filter((r) => r.type === "assigned" || r.value))} />
+      <input type="hidden" name={name} value={JSON.stringify(rows.filter((r) => r.type !== "assigned" && r.value))} />
       <Rows
         rows={rows}
         setRows={setRows}
@@ -166,7 +167,6 @@ export function ApproversEditor({ name, initial, positions, roles }: { name: str
             <select aria-label="Approver type" value={r.type} onChange={(e) => update({ type: e.target.value as ApproverRow["type"], value: "" })} className={input}>
               <option value="position">Position</option>
               <option value="role">Role</option>
-              <option value="assigned">Assigned people (e.g. event coordinators)</option>
             </select>
             {r.type === "position" && (
               <select aria-label="Position" value={r.value ?? ""} onChange={(e) => update({ value: e.target.value })} className={input}>

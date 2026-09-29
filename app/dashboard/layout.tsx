@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { requireSignedIn } from "@/lib/api/session";
-import { AdminNav } from "./nav";
+import { AdminNav, AdminNavMobile } from "./nav";
 import { FlashMessage } from "@/components/admin/flash";
 import { API_VERSION } from "@/lib/version";
 
@@ -25,7 +25,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const groups: Array<{ label: string; items: Array<{ href: string; label: string; show: boolean; badge?: number }> }> = [
     { label: "Overview", items: [
       { href: "/dashboard", label: "Dashboard", show: true },
-      { href: "/dashboard/approvals", label: "Approvals", show: c("approvals.read") },
+      // Authors follow (and can withdraw) their own requests here too.
+      { href: "/dashboard/approvals", label: "Approvals", show: c("approvals.read") || c("posts.create") || c("events.create") },
       { href: "/dashboard/notifications", label: "Notifications", show: true, badge: session.unread || undefined },
       { href: "/dashboard/chat", label: "Messages", show: true, badge: session.unreadMessages || undefined },
       { href: "/dashboard/profile", label: "My profile", show: true },
@@ -71,22 +72,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
   ];
   const visible = groups.map((g) => ({ label: g.label, items: g.items.filter((i) => i.show).map(({ href, label, badge }) => ({ href, label, badge })) })).filter((g) => g.items.length > 0);
   const who = session.profile?.name ?? session.user.email;
-  const titles = [...(session.isModerator ? ["Moderator"] : []), ...session.positions.map((p) => p.name)];
+  // The President and the General Secretary have Moderator authority; their title is their position.
+  const leader = session.positions.some((p) => p.key === "president" || p.key === "general-secretary");
+  const titles = [...(session.isModerator && !leader ? ["Moderator"] : []), ...session.positions.map((p) => p.name)];
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 lg:flex-row lg:gap-6 lg:py-6">
-        <aside className="lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)] lg:w-60 lg:shrink-0 lg:overflow-y-auto">
-          <div className="mb-3 flex items-center justify-between gap-3 lg:block">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 pb-4 lg:flex-row lg:gap-6 lg:py-6">
+        {/* Phones and tablets: sticky bar with a menu. It sits directly in this full-height column
+            so it stays under the site header while the page scrolls. */}
+        <Suspense fallback={<div className="h-14 lg:hidden" />}>
+          <AdminNavMobile groups={visible} who={titles.length > 0 ? `${who} · ${titles.slice(0, 2).join(", ")}` : who} />
+        </Suspense>
+        <aside className="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:w-60 lg:shrink-0 lg:overflow-y-auto">
+          <div className="mb-3">
             <Link prefetch={false} href="/dashboard" className="text-lg font-bold">GUCC Dashboard</Link>
-            <p className="truncate text-xs text-muted-foreground lg:mt-1" title={who}>
+            <p className="mt-1 truncate text-xs text-muted-foreground" title={who}>
               {who}{titles.length > 0 && <> · {titles.slice(0, 2).join(", ")}</>}
             </p>
           </div>
           <Suspense fallback={null}>
             <AdminNav groups={visible} />
           </Suspense>
-          <div className="mt-4 hidden text-xs text-muted-foreground lg:block">
+          <div className="mt-4 text-xs text-muted-foreground">
             <Link prefetch={false} href="/" className="hover:underline">View site</Link>
           </div>
         </aside>

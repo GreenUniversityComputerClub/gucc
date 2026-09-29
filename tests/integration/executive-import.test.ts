@@ -42,7 +42,8 @@ describe("executive JSON import", () => {
     expect(byRow(5).issues[0].code).toBe("DUPLICATE_ROW");
     expect(byRow(6).action).toBe("create");
     expect(byRow(7).issues.map((i) => i.code)).toContain("MAX_HOLDERS");
-    expect(byRow(8).issues.map((i) => i.code)).toContain("PROTECTED_POSITION");
+    // The General Secretary has the Moderators' authority, so the Moderator position can be imported too.
+    expect(byRow(8).issues.map((i) => i.code)).not.toContain("PROTECTED_POSITION");
     expect(plan.unknownPositions).toEqual([expect.objectContaining({ title: "Chief Wizard", rows: [4] })]);
     expect(plan.canImport).toBe(false);
     expect(listings()).toEqual([]);

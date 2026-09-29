@@ -70,7 +70,7 @@ describe("email service unavailable", () => {
   it("records the failure and the action still completes, giving the link to share instead", async () => {
     const gs = await w.user({ email: "gs@x.bd", positions: ["general-secretary"] });
     const c = await w.ctx(gs);
-    const ctx: Ctx = { ...c, sendEmail: undefined, env: { ...c.env, APP_ENV: "production", RESEND_API_KEY: "re_x", RESEND_FROM_EMAIL: "GUCC <noreply@example.com>" } };
+    const ctx: Ctx = { ...c, sendEmail: undefined, env: { ...c.env, APP_ENV: "production", SMTP2GO_API_KEY: "api-x", EMAIL_FROM: "GUCC <noreply@example.com>" } };
     w.sqlite.prepare("UPDATE system_settings SET value_json = 'true' WHERE key = 'email.enabled'").run();
     vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("fetch failed"); }));
     vi.spyOn(console, "error").mockImplementation(() => undefined);

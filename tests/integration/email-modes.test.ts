@@ -77,9 +77,9 @@ describe("administrator reset links", () => {
     expect(JSON.stringify(w.sqlite.prepare("SELECT * FROM audit_logs WHERE action = 'user.reset_link'").all())).not.toContain(token);
 
     await expect(issueResetLink(await noEmail(gs), gs)).rejects.toMatchObject({ code: "SELF_ESCALATION" });
-    await expect(issueResetLink(await noEmail(gs), mod)).rejects.toMatchObject({ code: "FORBIDDEN" });
-    // That account holds a protected setting the General Secretary doesn't have.
-    await expect(issueResetLink(await noEmail(gs), admin)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    // The General Secretary has the Moderators' authority, so even a Moderator's account can be recovered.
+    expect((await issueResetLink(await noEmail(gs), mod)).url).toMatch(/update-password/);
+    expect((await issueResetLink(await noEmail(gs), admin)).url).toMatch(/update-password/);
     w.sqlite.prepare("UPDATE users SET status = 'SUSPENDED' WHERE id = ?").run(member);
     await expect(issueResetLink(await noEmail(gs), member)).rejects.toMatchObject({ code: "BAD_STATE" });
     // Without users.reset_password: refused.
@@ -95,7 +95,7 @@ describe("other account safeguards", () => {
     expect(res.message).toMatch(/no email was sent/);
     expect(res.link).toMatch(/\/auth\/accept-invite\?token=/);
     const sent = await invitePerson(await w.ctx(gs), "prf_new", "added@green.edu.bd");
-    expect(sent.message).toBe("Invitation sent to added@green.edu.bd.");
+    expect(sent.message).toMatch(/^Invitation sent to added@green.edu.bd\. .*spam or junk folder/);
   });
 
   it("changing your password signs out your other sessions but keeps this one", async () => {

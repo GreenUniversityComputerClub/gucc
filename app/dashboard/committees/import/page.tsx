@@ -6,7 +6,7 @@ import { ImportClient } from "./import-client";
 
 export default async function ImportExecutivesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const session = await requireAdmin("/dashboard/committees/import");
-  if (!session.caps["executives.import"]) redirect("/dashboard/denied?from=/admin/committees/import");
+  if (!session.caps["executives.import"]) redirect("/dashboard/denied?from=/dashboard/committees/import");
   const sp = await searchParams;
   const committees = await view<CommitteeRow[]>("committees.list", {}, "/dashboard/committees/import");
   const current = committees.find((c) => c.status === "CURRENT");

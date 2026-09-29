@@ -13,6 +13,7 @@ import { notifyStmts, usersWithPermission } from "../notifications";
 import { sendToPerson } from "./messaging";
 import { toSlug, Validator } from "../validate";
 import { TAGS } from "./cache-tags";
+import { takeDownIfUnused } from "./media";
 
 // ───────────────────────────── external forms ─────────────────────────────
 
@@ -32,7 +33,10 @@ export async function saveForm(ctx: Ctx, id: string | null, input: Record<string
   if (url) v.check(/^https:\/\/(docs\.google\.com\/forms|forms\.gle|forms\.office\.com|tally\.so|airtable\.com)\//.test(url), "url", "Only Google, Microsoft, Tally or Airtable forms can be embedded.");
   v.done();
   const now = nowIso();
+  if (!slug) throw new ValidationError("Give the form a slug (lowercase letters, digits and hyphens).", { slug: "Required." });
   if (id) {
+    if (!(await ctx.db.first("SELECT id FROM external_forms WHERE id = ?1", id))) throw new NotFoundError("Form");
+    if (await ctx.db.first("SELECT id FROM external_forms WHERE slug = ?1 AND id <> ?2", slug, id)) throw new ConflictError("Another form uses this slug.");
     await ctx.db.batch([
       ctx.db.stmt("UPDATE external_forms SET title = ?2, url = ?3, slug = ?4, updated_at = ?5, updated_by = ?6 WHERE id = ?1", id, title, url, slug, now, actor.user.id),
       auditStmt(ctx, { action: "form.update", resourceType: "form", resourceId: id, after: { title, url, slug }, decision }),
@@ -150,6 +154,9 @@ export async function setLostFoundStatus(ctx: Ctx, id: string, status: "pending"
   const moderator = authorize(ctx, "lostfound.moderate").outcome === "ALLOW";
   // Owners may only mark their own post resolved; review states belong to moderators.
   if (!moderator && !(post.user_id === actor.user.id && status === "resolved")) throw new ForbiddenError("Only moderators can change the review status.");
+  // Resolved posts are public: an owner can resolve only a post that is already live, never
+  // publish one that is waiting for review or was sent back.
+  if (!moderator && post.status !== "active") throw new AppError(409, "NOT_LIVE", "Only a live post can be marked resolved. A post waiting for review can simply be deleted.");
   const note = reason?.trim().slice(0, 300) || null;
   if (status === "rejected" && !note) throw new ValidationError("Say why, so the author can fix it.", { reason: "Give a reason." });
   const now = nowIso();
@@ -171,7 +178,7 @@ export async function setLostFoundStatus(ctx: Ctx, id: string, status: "pending"
 /** Moderators remove a photo that shows something it shouldn't (an ID number, a face). */
 export async function removeLostFoundImage(ctx: Ctx, id: string) {
   requirePermission(ctx, "lostfound.moderate");
-  const post = await ctx.db.first<{ user_id: string; title: string }>("SELECT user_id, title FROM lost_found_posts WHERE id = ?1 AND deleted_at IS NULL", id);
+  const post = await ctx.db.first<{ user_id: string; title: string; image_media_id: string | null }>("SELECT user_id, title, image_media_id FROM lost_found_posts WHERE id = ?1 AND deleted_at IS NULL", id);
   if (!post) throw new NotFoundError("Post");
   await ctx.db.batch([
     ctx.db.stmt("UPDATE lost_found_posts SET image_media_id = NULL, image_url = NULL, updated_at = ?2 WHERE id = ?1", id, nowIso()),
@@ -179,6 +186,8 @@ export async function removeLostFoundImage(ctx: Ctx, id: string) {
     auditStmt(ctx, { action: "lostfound.image_removed", resourceType: "lost_found", resourceId: id }),
     ...notifyStmts(ctx, [post.user_id], { type: "lostfound.image_removed", title: `A moderator removed the photo from your post: ${post.title}`, body: "Photos mustn't show ID numbers or other private details.", link: "/lost-found" }),
   ]);
+  // The photo's public URL must stop working too, not just disappear from the post.
+  await takeDownIfUnused(ctx, post.image_media_id, "Removed by a lost & found moderator");
 }
 
 /** Report a lost & found post to the moderators. */
@@ -186,12 +195,14 @@ export async function reportLostFound(ctx: Ctx, id: string, reasonRaw: unknown) 
   const actor = requireActor(ctx);
   const reason = String(reasonRaw ?? "").trim().slice(0, 500);
   if (reason.length < 3) throw new ValidationError("Say briefly what's wrong.", { reason: "Give a reason." });
-  if (!(await ctx.db.first("SELECT 1 FROM lost_found_posts WHERE id = ?1 AND deleted_at IS NULL", id))) throw new NotFoundError("Post");
+  const post = await ctx.db.first<{ title: string; description: string }>("SELECT title, description FROM lost_found_posts WHERE id = ?1 AND deleted_at IS NULL", id);
+  if (!post) throw new NotFoundError("Post");
   await limit(ctx, "report", actor.user.id);
+  if (await ctx.db.first("SELECT 1 FROM reports WHERE resource_type = 'lost_found_post' AND resource_id = ?1 AND reporter_id = ?2", id, actor.user.id)) return;
   const moderators = await usersWithPermission(ctx, "lostfound.moderate");
   await ctx.db.batch([
-    ctx.db.stmt("INSERT INTO reports (id, resource_type, resource_id, reporter_id, reason, created_at) VALUES (?1, 'lost_found_post', ?2, ?3, ?4, ?5) ON CONFLICT DO NOTHING",
-      newId("rep"), id, actor.user.id, reason, nowIso()),
+    ctx.db.stmt("INSERT INTO reports (id, resource_type, resource_id, reporter_id, reason, snapshot, created_at) VALUES (?1, 'lost_found_post', ?2, ?3, ?4, ?5, ?6) ON CONFLICT DO NOTHING",
+      newId("rep"), id, actor.user.id, reason, `${post.title}\n\n${post.description}`.slice(0, 4000), nowIso()),
     auditStmt(ctx, { action: "lostfound.report", resourceType: "lost_found", resourceId: id, reason }),
     ...notifyStmts(ctx, moderators, { type: "report.new", title: "A lost & found post was reported", body: reason.slice(0, 140), link: "/dashboard/reports" }),
   ]);

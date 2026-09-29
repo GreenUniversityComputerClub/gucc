@@ -165,11 +165,12 @@ describe("executives", () => {
     await expect(acceptInvite(await w.ctx(null, { ipHash: "n2" }), { token, password: "Sports-Secretary-2027" })).rejects.toMatchObject({ code: "TOKEN_INVALID" });
   });
 
-  it("profile edits are limited: only Moderators edit a Moderator's profile", async () => {
+  it("profile edits are limited: a Moderator's profile only by Moderator authority (the President has it)", async () => {
     const pres = await w.user({ email: "pres@x.bd", roles: ["member"], positions: ["president"] });
     const mod = await w.user({ email: "mod@x.bd", roles: ["moderator", "member"] });
     const modProfile = (w.sqlite.prepare("SELECT id FROM profiles WHERE user_id = ?").get(mod) as { id: string }).id;
-    await expect(updatePerson(await w.ctx(pres), modProfile, { fullName: "Changed" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await updatePerson(await w.ctx(pres), modProfile, { fullName: "Changed" });
+    expect(w.sqlite.prepare("SELECT full_name FROM profiles WHERE id = ?").get(modProfile)).toEqual({ full_name: "Changed" });
     const member = await w.user({ email: "m@x.bd", roles: ["member"] });
     const mp = (w.sqlite.prepare("SELECT id FROM profiles WHERE user_id = ?").get(member) as { id: string }).id;
     await updatePerson(await w.ctx(pres), mp, { fullName: "Member Name", bio: "Hello", linkedin: "https://linkedin.com/in/x" });

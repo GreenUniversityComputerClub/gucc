@@ -117,9 +117,6 @@ export async function trustAuthorAction(userId: string, kind: "posts" | "events"
   const r = await runAction<{ applied: boolean; message?: string }>("permissions.trustAuthor", { input: { userId, kind, expiresAt: s(fd, "expiresAt") || null, reason: s(fd, "reason") || null } });
   return r.ok ? { ...r, data: applied(r.data, kind === "posts" ? "Their own posts now publish without approval." : "Their own events now publish without approval.") } : r;
 }
-export async function movePositionAction(positionId: string, direction: "up" | "down", _fd: Fd) {
-  return runAction("positions.move", { positionId, direction }, { message: "" });
-}
 /** Create a position and, optionally, give it another role's or position's permissions. */
 export async function createPositionAction(fd: Fd) {
   const input = { ...obj(fd), isActive: true };
@@ -207,15 +204,23 @@ export async function decideAction(id: string, decision: "APPROVE" | "REJECT", f
   return r.ok ? { ...r, data: { message: r.data?.status === "PENDING" ? "Recorded. More approvals are needed." : `Request ${String(r.data?.status ?? "").toLowerCase()}.` } } : r;
 }
 /** Approve several requests at once; each is decided separately (and audited) by the API. */
+const BULK_APPROVE_MAX = 20;
+
 export async function bulkApproveAction(fd: Fd) {
-  const ids = fd.getAll("ids").filter((v): v is string => typeof v === "string" && v.length > 0).slice(0, 50);
+  const ids = [...new Set(fd.getAll("ids").filter((v): v is string => typeof v === "string" && v.length > 0))];
   if (ids.length === 0) return { ok: false as const, error: "Tick the requests to approve.", code: "VALIDATION" };
+  if (ids.length > BULK_APPROVE_MAX) return { ok: false as const, error: `Approve at most ${BULK_APPROVE_MAX} at a time.`, code: "VALIDATION" };
+  // Each approval is its own API call (the API's per-call database budget), a few at a time so
+  // the whole batch finishes well within the website's time limit. Access changes are never
+  // approved in bulk: each is opened and decided on its own.
   let done = 0;
   const failed: string[] = [];
-  for (const id of ids) {
-    const r = await runAction<{ status: string }>("approvals.decide", { id, decision: "APPROVE", comment: null });
-    if (r.ok) done++;
-    else failed.push(r.error);
+  for (let i = 0; i < ids.length; i += 4) {
+    const results = await Promise.all(ids.slice(i, i + 4).map((id) => runAction<{ status: string }>("approvals.decide", { id, decision: "APPROVE", comment: null, bulk: true })));
+    for (const r of results) {
+      if (r.ok) done++;
+      else failed.push(r.error);
+    }
   }
   return { ok: true as const, data: { message: `Approved ${done} of ${ids.length}.${failed.length ? ` Not approved: ${[...new Set(failed)].join("; ")}` : ""}` } };
 }
@@ -359,7 +364,7 @@ export async function restoreRevisionAction(postId: string, revisionId: string, 
 
 // ── media ─────────────────────────────────────────────────
 export async function updateMediaAction(id: string, fd: Fd) {
-  return runAction("media.update", { id, altText: s(fd, "alt") || null, visibility: s(fd, "visibility") || undefined });
+  return runAction("media.update", { id, altText: fd.has("alt") ? s(fd, "alt") : undefined, visibility: s(fd, "visibility") || undefined });
 }
 export async function archiveMediaAction(id: string, fd: Fd) {
   return runAction("media.archive", { id, reason: s(fd, "reason") || null });

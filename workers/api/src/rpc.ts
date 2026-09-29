@@ -123,7 +123,7 @@ export const STEP_UP = new Set([
   "permissions.grantDirect", "permissions.revokeDirect", "permissions.trustAuthor",
   "positions.save", "positions.archive", "positions.setGrant",
   "rules.create", "rules.update", "rules.setStatus", "rules.createNotify", "policies.save",
-  "members.suspend", "members.reactivate", "committees.delete", "people.delete", "people.merge", "media.purge",
+  "members.suspend", "members.reactivate", "committees.delete", "people.delete", "people.merge", "media.purge", "grants.copy",
 ]);
 
 export const procedures: Record<string, Handler> = {
@@ -138,6 +138,7 @@ export const procedures: Record<string, Handler> = {
   "auth.register": ({ ctx, input }) => auth.register(ctx, input as never),
   "auth.resendVerification": ({ ctx, input }) => auth.resendVerification(ctx, s(input, "email")),
   "auth.verifyEmail": ({ ctx, input }) => auth.verifyEmail(ctx, s(input, "token")),
+  "auth.confirmEmailChange": ({ ctx, input }) => account.confirmEmailChange(ctx, s(input, "token")),
   "auth.requestPasswordReset": ({ ctx, input }) => auth.requestPasswordReset(ctx, { email: s(input, "email"), turnstileToken: opt(input, "turnstileToken") }),
   "auth.resetPassword": ({ ctx, input }) => auth.resetPassword(ctx, { token: s(input, "token"), password: s(input, "password") }),
   "auth.changePassword": ({ ctx, input, sessionToken }) => auth.changePassword(ctx, requireActor(ctx).user.id, s(input, "current"), s(input, "password"), sessionToken),
@@ -168,8 +169,10 @@ export const procedures: Record<string, Handler> = {
   "account.mfaConfirm": ({ ctx, input }) => mfa.confirmMfaSetup(ctx, input.code),
   "account.mfaDisable": ({ ctx, input }) => mfa.disableMfa(ctx, input),
   "account.mfaRecoveryCodes": ({ ctx, input }) => mfa.regenerateRecoveryCodes(ctx, input.code),
+  "account.mfaReplaceStart": ({ ctx, input }) => mfa.startMfaReplace(ctx, input),
+  "account.mfaReplaceConfirm": ({ ctx, input }) => mfa.confirmMfaReplace(ctx, input.code),
   "members.resetMfa": ({ ctx, input }) => mfa.resetUserMfa(ctx, s(input, "userId"), input.reason),
-  "members.exportCsv": ({ ctx, input }) => members.exportMembersCsv(ctx, { status: opt(input, "status") }),
+  "members.exportCsv": ({ ctx, input }) => members.exportMembersCsv(ctx, { status: opt(input, "status"), q: opt(input, "q"), batch: opt(input, "batch"), department: opt(input, "department") }),
   "events.cancelMine": ({ ctx, input }) => events.cancelMyRegistration(ctx, s(input, "id")),
   "views.committee": ({ ctx, input }) => views.committeeView(ctx, s(input, "id")),
   "views.event": ({ ctx, input }) => views.eventView(ctx, s(input, "id")),
@@ -240,7 +243,7 @@ export const procedures: Record<string, Handler> = {
   // ── approvals ──
   "approvals.list": ({ ctx, input }) => approvals.listApprovals(ctx, { status: opt(input, "status"), mine: input.mine === true, page: n(input, "page") }),
   "approvals.get": ({ ctx, input }) => approvals.getApproval(ctx, s(input, "id")),
-  "approvals.decide": ({ ctx, input }) => approvals.decideApproval(ctx, s(input, "id"), oneOf(input, "decision", ["APPROVE", "REJECT"] as const), opt(input, "comment") ?? null),
+  "approvals.decide": ({ ctx, input }) => approvals.decideApproval(ctx, s(input, "id"), oneOf(input, "decision", ["APPROVE", "REJECT"] as const), opt(input, "comment") ?? null, { bulk: input.bulk === true }),
   "approvals.cancel": ({ ctx, input }) => approvals.cancelApproval(ctx, s(input, "id")),
 
   // ── committees & executives ──
@@ -289,9 +292,9 @@ export const procedures: Record<string, Handler> = {
   "posts.restoreRevision": ({ ctx, input }) => posts.restoreRevision(ctx, s(input, "postId"), s(input, "revisionId")),
 
   // ── media ──
-  "media.list": ({ ctx, input }) => media.listMedia(ctx, { q: opt(input, "q"), type: opt(input, "type"), visibility: opt(input, "visibility"), page: n(input, "page"), unused: input.unused === true, stale: input.stale === true }),
+  "media.list": ({ ctx, input }) => media.listMedia(ctx, { q: opt(input, "q"), type: opt(input, "type"), visibility: opt(input, "visibility"), page: n(input, "page"), unused: input.unused === true, stale: input.stale === true, archived: input.archived === true }),
   "media.purge": ({ ctx, input }) => media.purgeMedia(ctx, s(input, "id"), input.reason),
-  "media.update": ({ ctx, input }) => media.updateMedia(ctx, s(input, "id"), { altText: opt(input, "altText") ?? null, visibility: opt(input, "visibility") }),
+  "media.update": ({ ctx, input }) => media.updateMedia(ctx, s(input, "id"), { altText: typeof input.altText === "string" ? input.altText : null, visibility: opt(input, "visibility") }),
   "media.details": ({ ctx, input }) => media.mediaDetails(ctx, s(input, "id")),
   "media.archive": ({ ctx, input }) => media.archiveMedia(ctx, s(input, "id"), opt(input, "reason") ?? null),
   "media.signedUrl": ({ ctx, input }) => media.signedMediaUrl(ctx, s(input, "id")),

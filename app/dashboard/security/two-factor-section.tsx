@@ -5,12 +5,95 @@ import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ActionForm, Field } from "@/components/admin/ui";
+import { ActionForm, Field, ReauthPrompt } from "@/components/admin/ui";
 import { reloadWith } from "@/lib/flash";
-import { confirmMfaAction, disableMfaAction, newRecoveryCodesAction, startMfaAction } from "./actions";
+import { confirmMfaAction, confirmMfaReplaceAction, disableMfaAction, newRecoveryCodesAction, startMfaAction, startMfaReplaceAction } from "./actions";
 
 type Status = { enabled: boolean; enabledAt: string | null; recoveryLeft: number; required: boolean; deadline: string | null; blocked: boolean };
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "long", year: "numeric" });
+
+type Setup = { secret: string; svg: string; uri: string };
+
+/** The QR code, the typed key, and the first code from the app. */
+function ScanAndConfirm({ setup, onConfirm, submitLabel }: { setup: Setup; onConfirm: (code: string) => Promise<{ ok: boolean; error?: string }>; submitLabel: string }) {
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
+      {/* Drawn on our own server from the secret; nothing leaves the site. */}
+      <div className="mx-auto w-44 rounded-md border bg-white p-2 sm:mx-0 sm:w-auto" role="img" aria-label="QR code for your authenticator app" dangerouslySetInnerHTML={{ __html: setup.svg }} />
+      <div className="space-y-3">
+        <ol className="list-decimal space-y-1 pl-5">
+          <li>Scan the QR code with your authenticator app. On this phone? <a href={setup.uri} className="underline">Open it in the app</a>.</li>
+          <li>Or type this key: <code className="select-all break-all rounded bg-muted px-1.5 py-0.5">{setup.secret}</code></li>
+          <li>Enter the 6-digit code the app shows.</li>
+        </ol>
+        <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => {
+          e.preventDefault();
+          start(async () => {
+            setError(null);
+            const r = await onConfirm(code);
+            if (!r.ok) setError(r.error ?? "That didn't work. Try again.");
+          });
+        }}>
+          <div className="grid gap-1">
+            <Label htmlFor="mfa-code">Code</Label>
+            <Input id="mfa-code" value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" maxLength={7} className="w-40" autoComplete="one-time-code" required />
+          </div>
+          <Button type="submit" disabled={pending || !code}>{pending ? "Checking…" : submitLabel}</Button>
+        </form>
+        {error && <p role="alert" className="text-destructive">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
+/** Move two-factor to a new phone: prove it's you with the old app (or a recovery code), then scan. */
+function MoveToNewPhone({ onCodes }: { onCodes: (codes: string[]) => void }) {
+  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [setup, setSetup] = useState<Setup | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  if (setup) {
+    return (
+      <div className="mt-3 space-y-3">
+        <p>Now scan this with the <strong>new</strong> phone. Your old app keeps working until the new one&apos;s code is accepted.</p>
+        <ScanAndConfirm setup={setup} submitLabel="Switch to the new phone" onConfirm={async (c) => {
+          const r = await confirmMfaReplaceAction(c);
+          if (!r.ok) return { ok: false, error: r.error };
+          onCodes(r.data!.recoveryCodes);
+          return { ok: true };
+        }} />
+      </div>
+    );
+  }
+  return (
+    <form className="mt-3 space-y-3" onSubmit={(e) => {
+      e.preventDefault();
+      start(async () => {
+        setError(null);
+        const r = await startMfaReplaceAction(password, code);
+        if (!r.ok) return setError(r.error);
+        setSetup({ secret: r.secret, svg: r.svg, uri: r.uri });
+      });
+    }}>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-1">
+          <Label htmlFor="mv-password">Your password</Label>
+          <Input id="mv-password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor="mv-code">Code from your old app (or a recovery code)</Label>
+          <Input id="mv-code" value={code} onChange={(e) => setCode(e.target.value)} autoComplete="one-time-code" required />
+        </div>
+      </div>
+      <Button type="submit" variant="outline" disabled={pending || !password || !code}>{pending ? "Checking…" : "Continue"}</Button>
+      {error && <p role="alert" className="text-destructive">{error}</p>}
+    </form>
+  );
+}
 
 function RecoveryCodes({ codes }: { codes: string[] }) {
   const text = codes.join("\n");
@@ -28,13 +111,21 @@ function RecoveryCodes({ codes }: { codes: string[] }) {
 }
 
 export function TwoFactorSection({ status }: { status: Status }) {
-  const [setup, setSetup] = useState<{ secret: string; svg: string; uri: string } | null>(null);
+  const [setup, setSetup] = useState<Setup | null>(null);
+  const [reauth, setReauth] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [codes, setCodes] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   if (codes) return <RecoveryCodes codes={codes} />;
+
+  const begin = () => start(async () => {
+    setError(null);
+    const r = await startMfaAction();
+    if (!r.ok) return r.code === "REAUTH_REQUIRED" ? setReauth(r.error) : setError(r.error);
+    setSetup({ secret: r.secret, svg: r.svg, uri: r.uri });
+  });
 
   if (status.enabled) {
     return (
@@ -53,6 +144,10 @@ export function TwoFactorSection({ status }: { status: Status }) {
           })}>Make new recovery codes</Button>
         </div>
         {error && <p role="alert" className="text-destructive">{error}</p>}
+        <details>
+          <summary className="cursor-pointer py-1 text-muted-foreground">Move to a new phone</summary>
+          <MoveToNewPhone onCodes={setCodes} />
+        </details>
         {status.required ? (
           <p className="text-muted-foreground">Your permissions require two-factor sign-in, so it stays on.</p>
         ) : (
@@ -82,40 +177,16 @@ export function TwoFactorSection({ status }: { status: Status }) {
       {!setup ? (
         <>
           <p className="text-muted-foreground">Use an authenticator app (Google Authenticator, Microsoft Authenticator, 2FAS, Aegis…). After your password, you&apos;ll enter the 6-digit code it shows.</p>
-          <Button type="button" disabled={pending} onClick={() => start(async () => {
-            setError(null);
-            const r = await startMfaAction();
-            if (!r.ok) return setError(r.error);
-            setSetup({ secret: r.secret, svg: r.svg, uri: r.uri });
-          })}>{pending ? "Preparing…" : "Set up two-factor sign-in"}</Button>
+          <Button type="button" disabled={pending} onClick={begin}>{pending ? "Preparing…" : "Set up two-factor sign-in"}</Button>
+          {reauth && <ReauthPrompt message={reauth} onConfirmed={() => { setReauth(null); begin(); }} onCancel={() => setReauth(null)} />}
         </>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
-          {/* Drawn on our own server from the secret; nothing leaves the site. */}
-          <div className="rounded-md border bg-white p-2" aria-label="QR code for your authenticator app" dangerouslySetInnerHTML={{ __html: setup.svg }} />
-          <div className="space-y-3">
-            <ol className="list-decimal space-y-1 pl-5">
-              <li>Scan the QR code with your authenticator app. On this phone? <a href={setup.uri} className="underline">Open it in the app</a>.</li>
-              <li>Or type this key: <code className="select-all break-all rounded bg-muted px-1.5 py-0.5">{setup.secret}</code></li>
-              <li>Enter the 6-digit code the app shows.</li>
-            </ol>
-            <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => {
-              e.preventDefault();
-              start(async () => {
-                setError(null);
-                const r = await confirmMfaAction(code);
-                if (!r.ok) return setError(r.error);
-                setCodes(r.data!.recoveryCodes);
-              });
-            }}>
-              <div className="grid gap-1">
-                <Label htmlFor="mfa-code">Code</Label>
-                <Input id="mfa-code" value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" maxLength={7} className="w-40" autoComplete="one-time-code" required />
-              </div>
-              <Button type="submit" disabled={pending || !code}>{pending ? "Checking…" : "Turn on"}</Button>
-            </form>
-          </div>
-        </div>
+        <ScanAndConfirm setup={setup} submitLabel="Turn on" onConfirm={async (c) => {
+          const r = await confirmMfaAction(c);
+          if (!r.ok) return { ok: false, error: r.error };
+          setCodes(r.data!.recoveryCodes);
+          return { ok: true };
+        }} />
       )}
       {error && <p role="alert" className="text-destructive">{error}</p>}
     </div>

@@ -117,10 +117,13 @@ describe("member management authorization", () => {
     expect((w.sqlite.prepare("SELECT status FROM users WHERE id = ?").get(pending) as { status: string }).status).toBe("REJECTED");
   });
 
-  it("the President cannot suspend a Moderator", async () => {
+  it("the President, equal to a Moderator, may suspend a Moderator; an administrator may not", async () => {
     const mod = await w.user({ email: "m@x.bd", roles: ["moderator"] });
+    const admin = await w.user({ email: "ad@x.bd", roles: ["administrator"] });
     const president = await w.user({ email: "pr@x.bd", positions: ["president"] });
-    await expect(suspendUser(await w.ctx(president), mod, "coup")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(suspendUser(await w.ctx(admin), mod, "coup")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await suspendUser(await w.ctx(president), mod, "Stepped down");
+    expect(w.sqlite.prepare("SELECT status FROM users WHERE id = ?").get(mod)).toEqual({ status: "SUSPENDED" });
   });
 });
 

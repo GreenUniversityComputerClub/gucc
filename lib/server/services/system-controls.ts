@@ -42,7 +42,7 @@ export async function setSwitch(ctx: Ctx, key: string, on: boolean): Promise<{ a
   await requireRecentAuth(ctx);
   if (key === "email.enabled") {
     const provider = emailProvider(ctx);
-    if (!provider || provider.name === "console") throw new AppError(409, "EMAIL_NOT_CONFIGURED", "Resend isn't configured on the API yet (RESEND_API_KEY and RESEND_FROM_EMAIL).");
+    if (!provider || provider.name === "console") throw new AppError(409, "EMAIL_NOT_CONFIGURED", "SMTP2GO isn't configured on the API yet (the SMTP2GO_API_KEY secret and the EMAIL_FROM variable).");
     if (!(await lastSuccessfulTest(ctx))) throw new AppError(409, "EMAIL_NOT_TESTED", `Send a test email first and check that it arrived (a test counts for ${TEST_VALID_DAYS} days).`);
   }
   const result = await updateSystemSetting(ctx, key, "true");
@@ -52,14 +52,14 @@ export async function setSwitch(ctx: Ctx, key: string, on: boolean): Promise<{ a
     : { applied: false, message: `Another Moderator needs to approve switching ${name.toLowerCase()} on. It's in Approvals.` };
 }
 
-/** A real message to the leader's own address, through Resend, even while email is off. */
+/** A real message to the leader's own address, through SMTP2GO, even while email is off. */
 export async function sendTestEmail(ctx: Ctx): Promise<{ ok: boolean; message: string }> {
   const actor = requireActor(ctx);
   const decision = requirePermission(ctx, "settings.system");
   await requireRecentAuth(ctx);
   await limit(ctx, "email.test", actor.user.id);
   const provider = emailProvider(ctx);
-  if (!provider) return { ok: false, message: "No email provider is configured on the API (RESEND_API_KEY and RESEND_FROM_EMAIL). Nothing was sent." };
+  if (!provider) throw new AppError(409, "EMAIL_NOT_CONFIGURED", "No email provider is configured on the API (the SMTP2GO_API_KEY secret and the EMAIL_FROM variable). Nothing was sent.");
   const base = (ctx.env.PUBLIC_BASE_URL ?? "").replace(/\/+$/, "");
   const result = await sendEmail(ctx, {
     to: actor.user.email,
@@ -67,10 +67,10 @@ export async function sendTestEmail(ctx: Ctx): Promise<{ ok: boolean; message: s
     text: `This is a test from the GUCC dashboard (${base || "the club website"}).\n\nIf you can read this, email works: go back to System health and switch email on.\n\nSent at ${new Date().toUTCString()}.`,
   }, { type: "test", userId: actor.user.id, force: true });
   await auditStmt(ctx, { action: "email.test", resourceType: "system_setting", resourceId: "email.enabled", after: { ok: result.ok, provider: provider.name, error: result.error ?? null }, decision }).run();
-  // A refusal shows as an error on the form, with Resend's own words.
+  // A refusal shows as an error on the form, with SMTP2GO's own words.
   if (!result.ok) throw new AppError(409, "EMAIL_FAILED", `Not sent. ${result.error ?? ""}`.trim());
   if (provider.name === "console") return { ok: true, message: "Development mode: the message was printed to the API log." };
-  return { ok: true, message: `Resend accepted the message${result.id ? ` (id ${result.id})` : ""}. Check ${actor.user.email}, including spam; switch email on only once it has arrived.` };
+  return { ok: true, message: `SMTP2GO accepted the message${result.id ? ` (id ${result.id})` : ""}. Check ${actor.user.email}, including spam; switch email on only once it has arrived.` };
 }
 
 // ───────────────────────────── personal email choices ─────────────────────────────

@@ -147,6 +147,8 @@ export async function updateTask(ctx: Ctx, id: string, input: Record<string, unk
   const editsDetails = ["title", "details", "dueAt", "priority", "assigneeUserId", "assigneeEmail"].some((k) => input[k] !== undefined);
   if (editsDetails && !role.canEdit) throw new ForbiddenError("Only the person who created the task, the President, the General Secretary or a Moderator can change its details.");
   if (status === "CANCELLED" && !role.canEdit) throw new ForbiddenError("Only the person who created the task can cancel it.");
+  // A cancelled task comes back only when its creator (or a manager) reopens it.
+  if (t.status === "CANCELLED" && status && status !== "CANCELLED" && !role.canEdit) throw new ForbiddenError("This task was cancelled; only the person who created it can bring it back.");
   const title = input.title !== undefined ? v.string("title", { required: true, max: 200, label: "Title" }) : t.title;
   const details = input.details !== undefined ? v.string("details", { max: 5000, label: "Details" }) : t.details;
   const dueAt = input.dueAt !== undefined ? v.datetime("dueAt", { label: "Due" }) : t.due_at;
@@ -164,7 +166,8 @@ export async function updateTask(ctx: Ctx, id: string, input: Record<string, unk
   const stmts: D1StatementLike[] = [
     ctx.db.stmt(
       `UPDATE tasks SET title = ?2, details = ?3, due_at = ?4, priority = ?5, status = ?6, assignee_user_id = ?7, assignee_email = ?8, assignee_name = ?9,
-         completed_at = CASE WHEN ?6 = 'DONE' THEN COALESCE(completed_at, ?10) ELSE NULL END, updated_at = ?10 WHERE id = ?1`,
+         completed_at = CASE WHEN ?6 = 'DONE' THEN COALESCE(completed_at, ?10) ELSE NULL END,
+         reminded_at = CASE WHEN due_at IS ?4 AND assignee_user_id IS ?7 THEN reminded_at ELSE NULL END, updated_at = ?10 WHERE id = ?1`,
       id, next.title, next.details, next.due_at, next.priority, next.status, next.assignee_user_id, next.assignee_email, next.assignee_name, now),
     auditStmt(ctx, {
       action: status && status !== t.status && !editsDetails ? "task.status" : "task.update", resourceType: "task", resourceId: id,
@@ -183,6 +186,15 @@ export async function updateTask(ctx: Ctx, id: string, input: Record<string, unk
   }
   if (assigneeChanged && next.assignee_user_id && next.assignee_user_id !== actor.user.id) {
     stmts.push(...notifyStmts(ctx, [next.assignee_user_id], { type: "task.assigned", title: `New task: ${next.title}`, body: `${actorName(ctx)} gave you a task.`, link, resourceType: "task", resourceId: id }));
+  }
+  // The person it was taken from, and the assignee when what's asked or when it's due changes.
+  if (assigneeChanged && t.assignee_user_id && t.assignee_user_id !== actor.user.id) {
+    stmts.push(...notifyStmts(ctx, [t.assignee_user_id], { type: "task.reassigned", title: `Task moved to someone else: ${next.title}`, body: `${actorName(ctx)} gave it to ${reassign!.name ?? reassign!.email ?? "someone else"}.`, link, resourceType: "task", resourceId: id }));
+  }
+  const detailsChanged = next.title !== t.title || (next.details ?? null) !== (t.details ?? null) || (next.due_at ?? null) !== (t.due_at ?? null) || next.priority !== t.priority;
+  if (!assigneeChanged && detailsChanged && next.assignee_user_id && next.assignee_user_id !== actor.user.id && next.status !== "CANCELLED") {
+    const due = next.due_at !== t.due_at ? (next.due_at ? ` Due ${new Date(next.due_at).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", dateStyle: "medium", timeStyle: "short" })}.` : " No due date now.") : "";
+    stmts.push(...notifyStmts(ctx, [next.assignee_user_id], { type: "task.updated", title: `Task changed: ${next.title}`, body: `${actorName(ctx)} updated it.${due}`, link, resourceType: "task", resourceId: id }));
   }
   await ctx.db.batch(stmts);
   if (assigneeChanged) {
@@ -370,7 +382,7 @@ export async function updateMeeting(ctx: Ctx, id: string, input: Record<string, 
   const link = `/dashboard/meetings/${id}`;
   const stay = [...had].filter((u) => wanted.has(u) && u !== actor.user.id);
   await ctx.db.batch([
-    ctx.db.stmt("UPDATE meetings SET title = ?2, agenda = ?3, notes = ?4, starts_at = ?5, ends_at = ?6, location = ?7, meet_url = ?8, updated_at = ?9 WHERE id = ?1",
+    ctx.db.stmt("UPDATE meetings SET title = ?2, agenda = ?3, notes = ?4, reminded_at = CASE WHEN starts_at IS ?5 THEN reminded_at ELSE NULL END, starts_at = ?5, ends_at = ?6, location = ?7, meet_url = ?8, updated_at = ?9 WHERE id = ?1",
       id, f.title, f.agenda, f.notes, f.startsAt, f.endsAt, f.location, f.meetUrl, now),
     ...(added.length ? [ctx.db.stmt("INSERT OR IGNORE INTO meeting_participants (meeting_id, user_id, added_at) SELECT ?1, value, ?3 FROM json_each(?2)", id, JSON.stringify(added), now)] : []),
     ...(removed.length ? [ctx.db.stmt("DELETE FROM meeting_participants WHERE meeting_id = ?1 AND user_id IN (SELECT value FROM json_each(?2))", id, JSON.stringify(removed))] : []),

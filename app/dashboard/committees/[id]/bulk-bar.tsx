@@ -1,5 +1,7 @@
 "use client";
 
+import { ReauthPrompt } from "@/components/admin/ui";
+
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { reloadWith } from "@/lib/flash";
@@ -27,6 +29,7 @@ export function BulkBar({ committeeId, positions, committees, canAssign, canRemo
   const [target, setTarget] = useState(committees.find((c) => c.status === "UPCOMING")?.id ?? "");
   const [plan, setPlan] = useState<BulkPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reauth, setReauth] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   const selected = () => Array.from(document.querySelectorAll<HTMLInputElement>("input[data-bulk-id]:checked")).map((i) => i.value);
@@ -60,12 +63,14 @@ export function BulkBar({ committeeId, positions, committees, canAssign, canRemo
         setError("Could not reach the server. Check your connection and try again.");
       }
     });
-  const apply = () => {
-    if (!plan || !window.confirm(`${plan.title}: change ${plan.changes} listing${plan.changes === 1 ? "" : "s"}? This is recorded in the audit log.`)) return;
+  const apply = (confirmed = false) => {
+    if (!plan || (!confirmed && !window.confirm(`${plan.title}: change ${plan.changes} listing${plan.changes === 1 ? "" : "s"}? This is recorded in the audit log.`))) return;
     start(async () => {
       try {
         const r = await bulkApplyAction(payload());
         if (r.ok) reloadWith(r.data?.message ?? "Done.");
+        // Moving people into sensitive positions asks for the password first, then continues.
+        else if (r.code === "REAUTH_REQUIRED") setReauth(r.error);
         else setError(r.error);
       } catch {
         setError("Could not reach the server. Check your connection and try again.");
@@ -95,7 +100,7 @@ export function BulkBar({ committeeId, positions, committees, canAssign, canRemo
           <>
             <select aria-label="New position" value={positionId} onChange={(e) => { setPositionId(e.target.value); setPlan(null); }} className={`${control} w-full sm:w-56`}>
               <option value="">Choose a position…</option>
-              {positions.map((p) => <option key={p.id} value={p.id}>{p.name}{p.isProtected ? " (Moderators only)" : ""}</option>)}
+              {positions.map((p) => <option key={p.id} value={p.id}>{p.name}{p.isProtected ? " (Moderators, President, General Secretary)" : ""}</option>)}
             </select>
             <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" checked={keepTitles} onChange={(e) => { setKeepTitles(e.target.checked); setPlan(null); }} /> Keep displayed titles</label>
           </>
@@ -110,6 +115,7 @@ export function BulkBar({ committeeId, positions, committees, canAssign, canRemo
       </div>
       {!op && !count && <p className="mt-1 text-xs text-muted-foreground">Tick listings below to end, remove, reactivate, re-position or copy several at once. You&apos;ll see every change before it happens.</p>}
       {error && <p role="alert" className="mt-2 text-sm text-destructive">{error}</p>}
+      {reauth && <ReauthPrompt message={reauth} onConfirmed={() => { setReauth(null); apply(true); }} onCancel={() => setReauth(null)} />}
       {plan && (
         <div className="mt-3 border-t pt-3">
           <p className="text-sm font-medium">{plan.title}</p>
@@ -124,7 +130,7 @@ export function BulkBar({ committeeId, positions, committees, canAssign, canRemo
             {plan.items.length === 0 && <li className="text-muted-foreground">Nothing to change.</li>}
           </ul>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <Button type="button" onClick={apply} disabled={pending || !plan.canApply}>{pending ? "Applying…" : `Apply to ${plan.changes} listing${plan.changes === 1 ? "" : "s"}`}</Button>
+            <Button type="button" onClick={() => apply()} disabled={pending || !plan.canApply}>{pending ? "Applying…" : `Apply to ${plan.changes} listing${plan.changes === 1 ? "" : "s"}`}</Button>
             {plan.blocked > 0 && <span className="text-xs text-muted-foreground">{plan.blocked} will be left as they are.</span>}
           </div>
         </div>

@@ -1,5 +1,5 @@
 /**
- * Contact form → D1 inbox (+ email when Resend is configured). Every message
+ * Contact form → D1 inbox (+ email when SMTP2GO is configured). Every message
  * is stored, so nothing is lost when email is not set up or fails, and the
  * provider's errors never reach the visitor.
  */
@@ -30,7 +30,7 @@ export async function submitContact(ctx: Ctx, input: Record<string, unknown>): P
     ctx.db.stmt("INSERT INTO contact_messages (id, name, email, message, ip_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)", id, d.name, d.email, d.message, ctx.meta.ipHash, nowIso()),
     ...(await triggerStmts(ctx, "message.received", { type: "contact_message", id }, { title: d.name!, link: "/dashboard/messages" })),
   ]);
-  const to = ctx.env.CONTACT_EMAIL ?? ctx.env.RESEND_FROM_EMAIL;
+  const to = ctx.env.CONTACT_EMAIL ?? ctx.env.EMAIL_FROM;
   if (to) {
     await deliverEmail(ctx, {
       to,

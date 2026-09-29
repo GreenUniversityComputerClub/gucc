@@ -140,9 +140,10 @@ export default async function CommitteeDetail({ params }: { params: Promise<{ id
                         {(caps.assign || caps.remove) && (
                           <details className="relative">
                             <summary className="cursor-pointer list-none rounded-md border px-2.5 py-1 text-sm hover:bg-muted">More</summary>
-                            <div className="absolute right-0 z-20 mt-2 w-[min(20rem,85vw)] space-y-3 rounded-lg border bg-popover p-3 shadow-lg">
+                            <div className="absolute left-0 z-20 mt-2 w-[min(20rem,calc(100vw-2rem))] space-y-3 rounded-lg border bg-popover p-3 shadow-lg sm:left-auto sm:right-0">
                               {caps.assign && (
                                 <ActionForm action={updateAssignmentAction.bind(null, a.id)} submitLabel="Save">
+                                  <input type="hidden" name="expectedUpdatedAt" value={String(a.updated_at ?? "")} />
                                   <Field name="title" label="Displayed title" defaultValue={a.position_title} required />
                                   <Field name="displayOrder" label="Order" type="number" defaultValue={a.display_order} required />
                                   {a.section === "FACULTY" && <Field name="designation" label="Designation" defaultValue={a.designation} />}
@@ -212,7 +213,15 @@ export default async function CommitteeDetail({ params }: { params: Promise<{ id
                 <Field name="academicYear" label="Academic year" defaultValue={c.academic_year} />
                 <Field name="startDate" label="Start date" type="date" defaultValue={dhakaDate(c.start_date)} />
                 <Field name="endDate" label="End date" type="date" defaultValue={dhakaDate(c.end_date)} />
-                <Field name="status" label="Status" type="select" defaultValue={c.status} options={[{ value: "UPCOMING", label: "Upcoming" }, { value: "CURRENT", label: "Current (the public site shows this one)" }, { value: "ARCHIVED", label: "Archived" }]} />
+                {c.status === "CURRENT" ? (
+                  <div className="grid gap-1 text-sm">
+                    <input type="hidden" name="status" value="CURRENT" />
+                    <span className="font-medium">Status</span>
+                    <span className="text-muted-foreground">Current: the public site shows this one. To hand over, make the next committee current; this one is archived then.</span>
+                  </div>
+                ) : (
+                  <Field name="status" label="Status" type="select" defaultValue={c.status} options={[{ value: "UPCOMING", label: "Upcoming" }, { value: "CURRENT", label: "Current (the public site shows this one)" }, { value: "ARCHIVED", label: "Archived" }]} />
+                )}
               </div>
               <Field name="description" label="Description" type="textarea" rows={2} defaultValue={c.description} />
             </ActionForm>

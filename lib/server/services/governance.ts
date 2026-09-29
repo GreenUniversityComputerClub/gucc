@@ -36,8 +36,8 @@ import { eligibleApprovers, loadPolicy, registerApprovalHandler, startApproval }
 // ───────────────────────────── protected change routing ─────────────────────────────
 
 type ProtectedChange =
-  | { kind: "role.grant"; userId: string; roleKey: string; reason: string | null }
-  | { kind: "role.revoke"; userRoleId: string; reason: string | null }
+  | { kind: "role.grant"; userId: string; roleKey: string; reason: string | null; expiresAt?: string | null }
+  | { kind: "role.revoke"; userRoleId: string; reason: string | null; userId?: string; person?: string; roleKey?: string }
   | { kind: "rule.status"; ruleId: string; status: string }
   | { kind: "setting.system"; key: string; value: unknown };
 
@@ -68,7 +68,7 @@ registerApprovalHandler("governance.protected_change", {
     const asRequester: Ctx = { ...ctx, actor: requester };
     switch (change.kind) {
       case "role.grant":
-        return roleGrantStatements(asRequester, change.userId, change.roleKey, change.reason, req.id);
+        return roleGrantStatements(asRequester, change.userId, change.roleKey, change.reason, req.id, change.expiresAt ?? null);
       case "role.revoke":
         return roleRevokeStatements(asRequester, change.userRoleId, change.reason, req.id);
       case "rule.status":
@@ -96,6 +96,11 @@ export interface GrantOutcome {
   applied: boolean;
   requestId?: string;
   message?: string;
+}
+
+/** Is this permission marked sensitive in the database? */
+async function isSensitivePermission(ctx: Ctx, key: string): Promise<boolean> {
+  return Boolean(await ctx.db.first("SELECT 1 FROM permissions WHERE key = ?1 AND is_sensitive = 1", key));
 }
 
 /** Which of these permissions are marked sensitive in the database. */
@@ -130,7 +135,7 @@ async function routeSensitive(ctx: Ctx, change: SensitiveChange, sensitive: stri
   return {
     applied: false,
     requestId,
-    message: `${list} ${sensitive.length === 1 ? "is a sensitive permission" : "are sensitive permissions"}, so a Moderator approves this first. You'll be notified.`,
+    message: `${list} ${sensitive.length === 1 ? "is a sensitive permission" : "are sensitive permissions"}, so a Moderator, the President or the General Secretary approves this first. You'll be notified.`,
   };
 }
 
@@ -167,7 +172,7 @@ export async function listRoles(ctx: Ctx) {
   requirePermission(ctx, "roles.read");
   const roles = await ctx.db.all<{ id: string; key: string; name: string; description: string | null; is_protected: number; max_holders: number | null; holders: number }>(
     `SELECT r.id, r.key, r.name, r.description, r.is_protected, r.max_holders,
-            (SELECT COUNT(*) FROM user_roles ur JOIN users u ON u.id = ur.user_id AND u.deleted_at IS NULL WHERE ur.role_id = r.id AND ur.revoked_at IS NULL) AS holders
+            (SELECT COUNT(*) FROM user_roles ur JOIN users u ON u.id = ur.user_id AND u.deleted_at IS NULL WHERE ur.role_id = r.id AND ur.revoked_at IS NULL AND (ur.expires_at IS NULL OR ur.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now'))) AS holders
      FROM roles r WHERE r.deleted_at IS NULL ORDER BY r.rank`,
   );
   const grants = await ctx.db.all<{ role_id: string; permission: string; scope: string; scope_value: string }>(
@@ -175,7 +180,7 @@ export async function listRoles(ctx: Ctx) {
   );
   const holders = await ctx.db.all<{ id: string; role_id: string; user_id: string; email: string; name: string | null; granted_at: string }>(
     `SELECT ur.id, ur.role_id, ur.user_id, u.email, p.full_name AS name, ur.granted_at FROM user_roles ur JOIN users u ON u.id = ur.user_id
-     LEFT JOIN profiles p ON p.user_id = u.id WHERE ur.revoked_at IS NULL AND u.deleted_at IS NULL ORDER BY ur.granted_at`,
+     LEFT JOIN profiles p ON p.user_id = u.id WHERE ur.revoked_at IS NULL AND (ur.expires_at IS NULL OR ur.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now')) AND u.deleted_at IS NULL ORDER BY ur.granted_at`,
   );
   return roles.map((r) => ({ ...r, grants: grants.filter((g) => g.role_id === r.id), members: holders.filter((h) => h.role_id === r.id) }));
 }
@@ -184,9 +189,16 @@ async function roleContext(ctx: Ctx, roleKey: string) {
   const role = await ctx.db.first<{ id: string; key: string; is_protected: number; max_holders: number | null }>("SELECT id, key, is_protected, max_holders FROM roles WHERE key = ?1 AND deleted_at IS NULL", roleKey);
   if (!role) throw new NotFoundError("Role");
   const active = (await ctx.db.value<number>(
-    "SELECT COUNT(*) FROM user_roles ur JOIN users u ON u.id = ur.user_id AND u.deleted_at IS NULL AND u.status = 'ACTIVE' WHERE ur.role_id = ?1 AND ur.revoked_at IS NULL", role.id)) ?? 0;
+    "SELECT COUNT(*) FROM user_roles ur JOIN users u ON u.id = ur.user_id AND u.deleted_at IS NULL AND u.status = 'ACTIVE' WHERE ur.role_id = ?1 AND ur.revoked_at IS NULL AND (ur.expires_at IS NULL OR ur.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now'))", role.id)) ?? 0;
   const configuredMax = role.is_protected ? await getSetting<number>(ctx, "governance.max_moderators", role.max_holders ?? 3) : null;
   return { role, ctx: { roleKey: role.key, roleIsProtected: Boolean(role.is_protected), roleMaxHolders: role.max_holders, activeHolders: active, configuredMax } };
+}
+
+/** Mark the given people's run-out holdings of a role as ended (revoked when they expired). */
+function expireRolesStmt(ctx: Ctx, userIds: string[], roleId: string): D1StatementLike {
+  return ctx.db.stmt(
+    `UPDATE user_roles SET revoked_at = expires_at WHERE role_id = ?2 AND user_id IN (SELECT value FROM json_each(?1))
+       AND revoked_at IS NULL AND expires_at IS NOT NULL AND expires_at <= ?3`, JSON.stringify(userIds), roleId, nowIso());
 }
 
 async function roleGrantStatements(ctx: Ctx, userId: string, roleKey: string, reason: string | null, viaRequest?: string, expiresAt: string | null = null): Promise<D1StatementLike[]> {
@@ -199,6 +211,8 @@ async function roleGrantStatements(ctx: Ctx, userId: string, roleKey: string, re
   if (await ctx.db.first("SELECT id FROM user_roles WHERE user_id = ?1 AND role_id = ?2 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?3)", userId, role.id, nowIso())) throw new ConflictError("They already hold that role.");
   if (expiresAt && expiresAt <= nowIso()) throw new ValidationError("The end date must be in the future.", { expiresAt: "Choose a future date." });
   return [
+    // A holding that has run out still counts for the one-active-holding index: close it first.
+    expireRolesStmt(ctx, [userId], role.id),
     ctx.db.stmt("INSERT INTO user_roles (id, user_id, role_id, granted_by, granted_at, reason, expires_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)", newId("ur"), userId, role.id, actor.user.id, nowIso(), reason, expiresAt),
     auditStmt(ctx, { action: "role.grant", resourceType: "user", resourceId: userId, reason: viaRequest ? `${reason ?? ""} (approved request ${viaRequest})`.trim() : reason, after: { role: roleKey } }),
     ...notifyStmts(ctx, [userId], { type: "role.granted", title: `You were given the ${rc.roleKey.replace(/-/g, " ")} role`, body: reason ?? undefined, link: "/dashboard" }),
@@ -223,7 +237,7 @@ export async function grantRole(ctx: Ctx, userId: string, roleKey: string, reaso
   const expiresAt = expiresAtRaw ? new Date(expiresAtRaw).toISOString() : null;
   // Validate first so an impossible grant is rejected immediately, not after approval.
   await roleGrantStatements(ctx, userId, roleKey, reason, undefined, expiresAt);
-  if (role.is_protected) return routeProtected(ctx, { kind: "role.grant", userId, roleKey, reason }, `Grant ${roleKey} role`, () => roleGrantStatements(ctx, userId, roleKey, reason));
+  if (role.is_protected) return routeProtected(ctx, { kind: "role.grant", userId, roleKey, reason, expiresAt }, `Grant ${roleKey} role`, () => roleGrantStatements(ctx, userId, roleKey, reason, undefined, expiresAt));
   const keys = await ctx.db.all<{ key: string }>("SELECT p.key FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id WHERE rp.role_id = ?1", role.id);
   return routeSensitive(ctx, { kind: "role.grant", userId, roleKey, reason, expiresAt }, await sensitiveIn(ctx, keys.map((k) => k.key)), `Grant the ${roleKey} role`,
     () => roleGrantStatements(ctx, userId, roleKey, reason, undefined, expiresAt));
@@ -245,7 +259,7 @@ export async function grantRoleBulk(ctx: Ctx, input: { userIds?: unknown; roleKe
   const keys = await ctx.db.all<{ key: string }>("SELECT p.key FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id WHERE rp.role_id = ?1", role.id);
   const sensitive = await sensitiveIn(ctx, keys.map((k) => k.key));
   const moderator = actor.subject.status === "ACTIVE" && holdsProtectedRole(actor.subject);
-  if (sensitive.length && !moderator) throw new AppError(409, "ONE_AT_A_TIME", "This role includes sensitive permissions, so give it to each person from their profile; a Moderator approves each one.");
+  if (sensitive.length && !moderator) throw new AppError(409, "ONE_AT_A_TIME", "This role includes sensitive permissions, so give it to each person from their profile; a Moderator, the President or the General Secretary approves each one.");
   const reason = String(input.reason ?? "").trim().slice(0, 300) || null;
   const expiresAt = input.expiresAt ? new Date(String(input.expiresAt)).toISOString() : null;
   if (expiresAt && expiresAt <= nowIso()) throw new ValidationError("The end date must be in the future.", { expiresAt: "Choose a future date." });
@@ -275,6 +289,7 @@ export async function grantRoleBulk(ctx: Ctx, input: { userIds?: unknown; roleKe
   if (sensitive.length) await requireRecentAuth(ctx);
   const now = nowIso();
   await ctx.db.batch([
+    expireRolesStmt(ctx, ok.map((i) => i.id), role.id),
     ctx.db.stmt(
       `INSERT INTO user_roles (id, user_id, role_id, granted_by, granted_at, reason, expires_at)
        SELECT 'ur_' || lower(hex(randomblob(12))), value, ?2, ?3, ?4, ?5, ?6 FROM json_each(?1) WHERE true ON CONFLICT DO NOTHING`,
@@ -288,10 +303,13 @@ export async function grantRoleBulk(ctx: Ctx, input: { userIds?: unknown; roleKe
 
 export async function revokeRole(ctx: Ctx, userRoleId: string, reason: string | null) {
   requirePermission(ctx, "roles.assign");
-  const ur = await ctx.db.first<{ key: string; is_protected: number }>("SELECT r.key, r.is_protected FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.id = ?1 AND ur.revoked_at IS NULL", userRoleId);
+  const ur = await ctx.db.first<{ key: string; name: string; is_protected: number; user_id: string; person: string }>(
+    `SELECT r.key, r.name, r.is_protected, ur.user_id, COALESCE(p.full_name, u.email) AS person FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+     JOIN users u ON u.id = ur.user_id LEFT JOIN profiles p ON p.user_id = u.id AND p.deleted_at IS NULL WHERE ur.id = ?1 AND ur.revoked_at IS NULL`, userRoleId);
   if (!ur) throw new NotFoundError("Role assignment");
   await roleRevokeStatements(ctx, userRoleId, reason);
-  if (ur.is_protected) return routeProtected(ctx, { kind: "role.revoke", userRoleId, reason }, `Revoke ${ur.key} role`, () => roleRevokeStatements(ctx, userRoleId, reason));
+  // Who and which role travel with the request, so the approver sees what they approve.
+  if (ur.is_protected) return routeProtected(ctx, { kind: "role.revoke", userRoleId, reason, userId: ur.user_id, person: ur.person, roleKey: ur.key }, `Remove the ${ur.name} role from ${ur.person}`, () => roleRevokeStatements(ctx, userRoleId, reason));
   await ctx.db.batch(await roleRevokeStatements(ctx, userRoleId, reason));
   return { applied: true };
 }
@@ -387,7 +405,7 @@ export async function archiveRole(ctx: Ctx, roleId: string): Promise<void> {
   const role = await ctx.db.first<{ key: string; name: string; is_protected: number }>("SELECT key, name, is_protected FROM roles WHERE id = ?1 AND deleted_at IS NULL", roleId);
   if (!role) throw new NotFoundError("Role");
   if (role.is_protected || SYSTEM_ROLE_KEYS.includes(role.key)) throw new AppError(409, "SYSTEM_ROLE", `${role.name} is a built-in role and can't be archived.`);
-  const holders = (await ctx.db.value<number>("SELECT COUNT(*) FROM user_roles WHERE role_id = ?1 AND revoked_at IS NULL", roleId)) ?? 0;
+  const holders = (await ctx.db.value<number>("SELECT COUNT(*) FROM user_roles ur WHERE ur.role_id = ?1 AND ur.revoked_at IS NULL AND (ur.expires_at IS NULL OR ur.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now'))", roleId)) ?? 0;
   if (holders > 0) throw new ConflictError(`${holders} ${holders === 1 ? "person holds" : "people hold"} this role. Revoke it from them first.`);
   await ctx.db.batch([
     ctx.db.stmt("UPDATE roles SET deleted_at = ?2, updated_at = ?2 WHERE id = ?1", roleId, nowIso()),
@@ -503,9 +521,13 @@ export async function savePosition(ctx: Ctx, id: string | null, input: Record<st
   };
   v.done();
   if (d.governanceLevel != null && !LEVEL_VALUES.includes(d.governanceLevel)) throw new ValidationError("Choose one of the listed levels.", { governanceLevel: "Choose a level." });
-  // Only a Moderator places a position at or above President level.
-  if (d.governanceLevel != null && d.governanceLevel >= 90 && !holdsProtectedRole(actor.subject)) {
-    throw new ValidationError("Only a Moderator can place a position at President level or above.", { governanceLevel: "Choose a lower level." });
+  // Only a Moderator moves a position to, or away from, President level or above. Saving other
+  // details of such a position (its level unchanged) is fine for whoever may edit it.
+  const moderator = holdsProtectedRole(actor.subject);
+  const storedLevel = id ? await ctx.db.value<number>("SELECT governance_level FROM positions WHERE id = ?1", id) : null;
+  const levelChanges = d.governanceLevel != null && d.governanceLevel !== storedLevel;
+  if (levelChanges && !moderator && (d.governanceLevel! >= 90 || (storedLevel ?? 0) >= 90)) {
+    throw new ValidationError("Only a Moderator, the President or the General Secretary can move a position to or from President level.", { governanceLevel: "Keep the current level." });
   }
   const now = nowIso();
   // Other titles this position appears under ("Vice President", …), one per line or comma.
@@ -536,6 +558,12 @@ export async function savePosition(ctx: Ctx, id: string | null, input: Record<st
   const decision = requirePermission(ctx, "positions.update", { type: "position", id, isProtected: Boolean(before.is_protected) });
   assertCanEditProtected(actor.subject, `The ${before.name} position`, Boolean(before.is_protected));
   if (d.parentId === id) throw new ValidationError("A position cannot be its own parent.", { parentId: "Choose a different parent." });
+  // No loops: the chosen parent may not sit under this position.
+  if (d.parentId && (await ctx.db.first(
+    `WITH RECURSIVE up(pid, depth) AS (SELECT parent_id, 1 FROM positions WHERE id = ?1 UNION ALL SELECT p.parent_id, up.depth + 1 FROM positions p JOIN up ON p.id = up.pid WHERE up.depth < 50)
+     SELECT 1 FROM up WHERE pid = ?2 LIMIT 1`, d.parentId, id))) {
+    throw new ValidationError("That parent sits under this position, which would make a loop.", { parentId: "Choose a different parent." });
+  }
   const fresh = await unchangedSince(ctx, "positions", id, input.expectedUpdatedAt);
   await batchTransition(ctx, [
     ...fresh,
@@ -619,7 +647,7 @@ export async function copyGrants(ctx: Ctx, target: GrantHolder, source: GrantHol
       continue;
     }
     if (g.is_sensitive && !moderator) {
-      skipped.push({ permission: g.key, why: "Sensitive: add it on its own for a Moderator's approval" });
+      skipped.push({ permission: g.key, why: "Sensitive: add it on its own (it needs Moderator authority)" });
       continue;
     }
     copy.push(g);
@@ -673,9 +701,11 @@ export async function archivePosition(ctx: Ctx, positionId: string): Promise<voi
   if (!pos) throw new NotFoundError("Position");
   assertCanEditProtected(actor.subject, `The ${pos.name} position`, Boolean(pos.is_protected));
   const held = (await ctx.db.value<number>(
-    `SELECT COUNT(*) FROM committee_members cm JOIN committees c ON c.id = cm.committee_id AND c.status = 'CURRENT' AND c.deleted_at IS NULL
-     WHERE cm.position_id = ?1 AND cm.deleted_at IS NULL AND cm.is_active = 1`, positionId)) ?? 0;
-  if (held > 0) throw new ConflictError(`${held} current ${held === 1 ? "executive holds" : "executives hold"} ${pos.name}. Move or end their listings first.`);
+    `SELECT COUNT(*) FROM committee_members cm JOIN committees c ON c.id = cm.committee_id AND c.deleted_at IS NULL
+     WHERE cm.position_id = ?1 AND cm.deleted_at IS NULL AND cm.end_date IS NULL
+       AND ((c.status = 'CURRENT' AND cm.is_active = 1) OR c.status = 'UPCOMING')`, positionId)) ?? 0;
+  // The upcoming committee counts too: its people would get no permissions once it becomes current.
+  if (held > 0) throw new ConflictError(`${held} ${held === 1 ? "person holds" : "people hold"} ${pos.name} in the current or upcoming committee. Move or end their listings first.`);
   const children = (await ctx.db.value<number>("SELECT COUNT(*) FROM positions WHERE parent_id = ?1 AND deleted_at IS NULL", positionId)) ?? 0;
   if (children > 0) throw new ConflictError(`${pos.name} has ${children} position${children === 1 ? "" : "s"} under it. Move them to another parent first.`);
   await ctx.db.batch([
@@ -728,6 +758,7 @@ async function validateRuleInput(ctx: Ctx, input: RuleInput): Promise<void> {
     if (!(CONDITION_OPERATORS as readonly string[]).includes(c.operator)) errors.push(`Unknown operator "${c.operator}".`);
   }
   if (!SCOPES.includes(input.scope)) errors.push("Unknown scope.");
+  if ((input.conditions ?? []).length > 10) errors.push("Use at most 10 conditions.");
   if (errors.length) throw new ValidationError(errors.join(" "));
 }
 
@@ -751,7 +782,7 @@ export async function createRule(ctx: Ctx, input: RuleInput): Promise<{ id: stri
   const actor = requireActor(ctx);
   const decision = requirePermission(ctx, "rules.create");
   await validateRuleInput(ctx, input);
-  assertCanAuthorRule(actor.subject, { effect: input.effect, permission: input.permission, isProtected: Boolean(input.isProtected) });
+  assertCanAuthorRule(actor.subject, { effect: input.effect, permission: input.permission, isProtected: Boolean(input.isProtected), sensitive: await isSensitivePermission(ctx, input.permission) });
   const policyId = input.approvalPolicyKey ? (await loadPolicy(ctx, input.approvalPolicyKey)).id : null;
   const id = newId("rule");
   const now = nowIso();
@@ -770,13 +801,15 @@ export async function createRule(ctx: Ctx, input: RuleInput): Promise<{ id: stri
 
 export async function updateRule(ctx: Ctx, id: string, input: RuleInput): Promise<void> {
   const actor = requireActor(ctx);
-  const before = await ctx.db.first<{ is_protected: number; version: number; status: string; name: string }>("SELECT is_protected, version, status, name FROM rules WHERE id = ?1 AND deleted_at IS NULL", id);
+  const before = await ctx.db.first<{ is_protected: number; version: number; status: string; name: string; trigger: string }>("SELECT is_protected, version, status, name, trigger FROM rules WHERE id = ?1 AND deleted_at IS NULL", id);
   if (!before) throw new NotFoundError("Rule");
+  // This editor writes access rules; saving a notification rule here would turn it into one.
+  if (before.trigger !== "AUTHORIZE") throw new AppError(409, "NOTIFY_RULE", "This is a notification rule. To change it, create a new one and archive this one.");
   const decision = requirePermission(ctx, "rules.update", { type: "rule", id, isProtected: Boolean(before.is_protected) });
   assertCanEditProtected(actor.subject, `Rule "${before.name}"`, Boolean(before.is_protected));
   await validateRuleInput(ctx, input);
-  assertCanAuthorRule(actor.subject, { effect: input.effect, permission: input.permission, isProtected: Boolean(before.is_protected) });
-  if (before.is_protected && before.status === "ACTIVE") throw new AppError(409, "DEACTIVATE_FIRST", "Deactivate this protected rule (which needs a second Moderator) before editing it.");
+  assertCanAuthorRule(actor.subject, { effect: input.effect, permission: input.permission, isProtected: Boolean(before.is_protected), sensitive: await isSensitivePermission(ctx, input.permission) });
+  if (before.is_protected && before.status === "ACTIVE") throw new AppError(409, "DEACTIVATE_FIRST", "Deactivate this protected rule first (another Moderator, the President or the General Secretary confirms that), then edit it.");
   const policyId = input.approvalPolicyKey ? (await loadPolicy(ctx, input.approvalPolicyKey)).id : null;
   const version = before.version + 1;
   const fresh = await unchangedSince(ctx, "rules", id, (input as RuleInput & { expectedUpdatedAt?: unknown }).expectedUpdatedAt);
@@ -798,7 +831,7 @@ async function ruleStatusStatements(ctx: Ctx, id: string, status: string, viaReq
   if (!rule) throw new NotFoundError("Rule");
   assertCanEditProtected(actor.subject, `Rule "${rule.name}"`, Boolean(rule.is_protected));
   // Notification rules grant and remove nothing, so only access rules go through these checks.
-  if (status === "ACTIVE" && rule.effect !== "NOTIFY") assertCanAuthorRule(actor.subject, { effect: (rule.effect ?? "DENY") as RuleEffect, permission: rule.permission_key, isProtected: Boolean(rule.is_protected) });
+  if (status === "ACTIVE" && rule.effect !== "NOTIFY") assertCanAuthorRule(actor.subject, { effect: (rule.effect ?? "DENY") as RuleEffect, permission: rule.permission_key, isProtected: Boolean(rule.is_protected), sensitive: await isSensitivePermission(ctx, rule.permission_key) });
   const now = nowIso();
   return [
     status === "ARCHIVED"
@@ -908,7 +941,7 @@ export async function savePolicy(ctx: Ctx, id: string | null, input: Record<stri
   } catch {
     v.errors.approvers = "Approvers are malformed.";
   }
-  v.check(Array.isArray(approvers) && approvers.length > 0 && approvers.every((a) => ["position", "role", "user", "assigned"].includes(a.type)), "approvers", "Add at least one approver group.");
+  v.check(Array.isArray(approvers) && approvers.length > 0 && approvers.every((a) => ["position", "role", "user"].includes(a.type) && Boolean(a.value)), "approvers", "Add at least one approver group, each with a position, role or person.");
   if (d.mode === "THRESHOLD") v.check(Boolean(d.threshold), "threshold", "A threshold policy needs a number.");
   v.done();
   const now = nowIso();
@@ -943,7 +976,7 @@ export async function listSettings(ctx: Ctx) {
 /**
  * Allowed ranges for numeric settings. The free-tier ones can't be raised past what the free
  * plans include, so no setting can make the club pay (R2: 10 GB and 1 million writes a month;
- * Resend: 100 emails a day).
+ * SMTP2GO: 1,000 emails a month, 200 a day).
  */
 export const SETTING_RANGES: Record<string, { min: number; max: number; unit?: string }> = {
   "media.storage_limit_bytes": { min: 100 * 1024 ** 2, max: Math.floor(9.5 * 1024 ** 3), unit: "bytes (at most 9.5 GiB; R2 includes 10 GB free)" },
@@ -952,7 +985,8 @@ export const SETTING_RANGES: Record<string, { min: number; max: number; unit?: s
   "media.max_upload_mb": { min: 1, max: 25 },
   "media.max_dimension": { min: 1000, max: 12_000 },
   "assistant.daily_limit": { min: 0, max: 1_000 },
-  "email.daily_limit": { min: 0, max: 100, unit: "emails a day (the Resend free plan allows 100)" },
+  "email.daily_limit": { min: 0, max: 200, unit: "emails a day (the SMTP2GO free plan allows 200)" },
+  "email.monthly_limit": { min: 0, max: 1_000, unit: "emails a month (the SMTP2GO free plan allows 1,000)" },
   "usage.alert_percent": { min: 10, max: 95 },
   "usage.pause_percent": { min: 50, max: 95 },
   "security.mfa_grace_days": { min: 0, max: 30 },
@@ -992,7 +1026,7 @@ export async function updateSystemSetting(ctx: Ctx, key: string, rawValue: strin
   const fresh = await unchangedSince(ctx, "system_settings", key, expectedUpdatedAt);
   if (key === "email.enabled" && value === true) {
     const provider = emailProvider(ctx);
-    if (!provider || provider.name === "console") throw new AppError(409, "EMAIL_NOT_CONFIGURED", "Resend isn't configured on the API yet (RESEND_API_KEY and RESEND_FROM_EMAIL).");
+    if (!provider || provider.name === "console") throw new AppError(409, "EMAIL_NOT_CONFIGURED", "SMTP2GO isn't configured on the API yet (the SMTP2GO_API_KEY secret and the EMAIL_FROM variable).");
     if (!(await lastSuccessfulTest(ctx))) throw new AppError(409, "EMAIL_NOT_TESTED", `Send a test email from System health first and check that it arrived (a test counts for ${TEST_VALID_DAYS} days).`);
   }
   if (key.startsWith("email.")) forgetEmailSettings(ctx);

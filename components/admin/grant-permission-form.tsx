@@ -39,7 +39,7 @@ export function GrantPermissionForm({ userId, permissions, scopes }: {
               </optgroup>
             ))}
           </select>
-          {chosen?.sensitive && <p className="text-xs text-amber-700 dark:text-amber-400">Sensitive: unless you&apos;re a Moderator, a Moderator approves this first.</p>}
+          {chosen?.sensitive && <p className="text-xs text-amber-700 dark:text-amber-400">Sensitive: unless you&apos;re a Moderator, the President or the General Secretary, one of them approves this first.</p>}
         </div>
         <div className="grid gap-1.5">
           <label htmlFor={`${id}-s`} className="text-sm font-medium">Limited to</label>

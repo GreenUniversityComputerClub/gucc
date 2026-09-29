@@ -50,16 +50,21 @@ export async function homeView(ctx: Ctx) {
       `SELECT r.id, r.status, e.title, e.slug, e.start_at FROM event_registrations r JOIN events e ON e.id = r.event_id AND e.deleted_at IS NULL
        WHERE r.user_id = ?1 AND r.status IN ('REGISTERED','WAITLISTED') AND (e.start_at IS NULL OR e.start_at > ?2) ORDER BY e.start_at LIMIT 5`, uid, now),
     ctx.db.stmt(
-      `SELECT (SELECT COUNT(*) FROM users WHERE status = 'PENDING_APPROVAL' AND deleted_at IS NULL) AS pending_members,
-              (SELECT COUNT(*) FROM contact_messages WHERE status = 'NEW') AS new_messages,
-              (SELECT COUNT(*) FROM recruitment_applications a JOIN recruitment_campaigns rc ON rc.id = a.campaign_id AND rc.status = 'OPEN' WHERE a.status = 'SUBMITTED') AS new_applications,
-              (SELECT COUNT(*) FROM lost_found_posts WHERE status = 'pending' AND deleted_at IS NULL) AS pending_lostfound,
-              (SELECT COUNT(*) FROM reports WHERE status = 'OPEN') AS open_reports,
-              (SELECT COUNT(*) FROM users WHERE status = 'ACTIVE' AND deleted_at IS NULL) AS active_members,
-              (SELECT COUNT(*) FROM users WHERE deleted_at IS NULL AND created_at >= ?1) AS new_accounts,
-              (SELECT COUNT(*) FROM events WHERE deleted_at IS NULL AND status IN ('PUBLISHED','ONGOING','COMPLETED') AND start_at >= ?1) AS events_30d,
-              (SELECT COUNT(*) FROM posts WHERE deleted_at IS NULL AND status = 'PUBLISHED' AND published_at >= ?1) AS posts_30d,
-              (SELECT COALESCE(SUM(size_bytes), 0) FROM media WHERE deleted_at IS NULL) AS storage_bytes`, monthAgo),
+      // Only the figures this person's sections show are counted (a CASE branch not taken isn't
+      // run), so the page stays cheap on the free plan's daily row reads for ordinary members.
+      `SELECT CASE WHEN ?2 THEN (SELECT COUNT(*) FROM users WHERE status = 'PENDING_APPROVAL' AND deleted_at IS NULL) END AS pending_members,
+              CASE WHEN ?3 THEN (SELECT COUNT(*) FROM contact_messages WHERE status = 'NEW') END AS new_messages,
+              CASE WHEN ?4 THEN (SELECT COUNT(*) FROM recruitment_applications a JOIN recruitment_campaigns rc ON rc.id = a.campaign_id AND rc.status = 'OPEN' WHERE a.status = 'SUBMITTED') END AS new_applications,
+              CASE WHEN ?5 THEN (SELECT COUNT(*) FROM lost_found_posts WHERE status = 'pending' AND deleted_at IS NULL) END AS pending_lostfound,
+              CASE WHEN ?6 THEN (SELECT COUNT(*) FROM reports WHERE status = 'OPEN') END AS open_reports,
+              CASE WHEN ?7 THEN (SELECT COUNT(*) FROM users WHERE status = 'ACTIVE' AND deleted_at IS NULL) END AS active_members,
+              CASE WHEN ?7 THEN (SELECT COUNT(*) FROM users WHERE deleted_at IS NULL AND created_at >= ?1) END AS new_accounts,
+              CASE WHEN ?7 THEN (SELECT COUNT(*) FROM events WHERE deleted_at IS NULL AND status IN ('PUBLISHED','ONGOING','COMPLETED') AND start_at >= ?1) END AS events_30d,
+              CASE WHEN ?7 THEN (SELECT COUNT(*) FROM posts WHERE deleted_at IS NULL AND status = 'PUBLISHED' AND published_at >= ?1) END AS posts_30d,
+              CASE WHEN ?7 THEN (SELECT count FROM usage_counters WHERE day = 'total' AND key = 'r2.stored_bytes') END AS storage_bytes,
+              (SELECT COUNT(*) FROM notifications WHERE user_id = ?8 AND read_at IS NULL) AS unread,
+              (SELECT COUNT(*) FROM tasks WHERE assignee_user_id = ?8 AND deleted_at IS NULL AND status IN ('OPEN','IN_PROGRESS') AND due_at IS NOT NULL AND due_at < ?9) AS overdue`,
+      monthAgo, c.members ? 1 : 0, c.messages ? 1 : 0, c.recruitment ? 1 : 0, c.lostfound ? 1 : 0, c.reports ? 1 : 0, c.health ? 1 : 0, uid, now),
     ctx.db.stmt("SELECT id, title, closes_at FROM recruitment_campaigns WHERE status = 'OPEN' AND (opens_at IS NULL OR opens_at <= ?1) AND (closes_at IS NULL OR closes_at > ?1) LIMIT 1", now),
     ctx.db.stmt("SELECT id, title, body, link, created_at, read_at FROM notifications WHERE user_id = ?1 ORDER BY created_at DESC LIMIT 5", uid),
     ctx.db.stmt(
@@ -71,18 +76,19 @@ export async function homeView(ctx: Ctx) {
   ])) as Array<{ results?: Row[] }>;
 
   const n = (counts.results?.[0] ?? {}) as Record<string, number>;
-  const approvals = can(ctx, "approvals.read") ? (await listApprovals(ctx, {})).filter((r) => r.canDecide).slice(0, 5).map((r) => ({ id: r.id, title: r.title ?? r.action, requester: r.requester_name })) : [];
+  const decidable = can(ctx, "approvals.read") ? (await listApprovals(ctx, {})).filter((r) => r.canDecide) : [];
+  const approvals = decidable.slice(0, 5).map((r) => ({ id: r.id, title: r.title ?? r.action, requester: r.requester_name }));
   const attention = [
-    ...(approvals.length ? [{ key: "approvals", label: `${approvals.length === 5 ? "5+" : approvals.length} waiting for your decision`, href: "/dashboard/approvals" }] : []),
+    ...(decidable.length ? [{ key: "approvals", label: `${decidable.length >= 50 ? "50+" : decidable.length} waiting for your decision`, href: "/dashboard/approvals" }] : []),
     ...(c.members && n.pending_members ? [{ key: "members", label: `${n.pending_members} membership application${n.pending_members === 1 ? "" : "s"}`, href: "/dashboard/members?status=PENDING_APPROVAL" }] : []),
     ...(c.messages && n.new_messages ? [{ key: "messages", label: `${n.new_messages} new contact message${n.new_messages === 1 ? "" : "s"}`, href: "/dashboard/messages" }] : []),
     ...(c.recruitment && n.new_applications ? [{ key: "recruitment", label: `${n.new_applications} new recruitment application${n.new_applications === 1 ? "" : "s"}`, href: "/dashboard/recruitment" }] : []),
     ...(c.lostfound && n.pending_lostfound ? [{ key: "lostfound", label: `${n.pending_lostfound} lost & found post${n.pending_lostfound === 1 ? "" : "s"} to review`, href: "/dashboard/lost-found" }] : []),
     ...(c.reports && n.open_reports ? [{ key: "reports", label: `${n.open_reports} reported item${n.open_reports === 1 ? "" : "s"}`, href: "/dashboard/reports" }] : []),
   ];
-  const overdue = (tasks.results ?? []).filter((t) => t.due_at && String(t.due_at) < now).length;
+  const overdue = Number(n.overdue ?? 0);
   if (overdue) attention.unshift({ key: "tasks", label: `${overdue} overdue task${overdue === 1 ? "" : "s"}`, href: "/dashboard/tasks" });
-  const unread = (notes.results ?? []).filter((x) => !x.read_at).length;
+  const unread = Number(n.unread ?? 0);
   const recentActivity = can(ctx, "audit.read") ? (await activityFeed(ctx, { limit: 6 })).entries : [];
 
   return {

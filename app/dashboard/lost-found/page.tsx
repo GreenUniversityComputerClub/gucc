@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireAdmin, view } from "@/lib/api/session";
+import { requireSignedIn, view } from "@/lib/api/session";
 import { mediaHref } from "@/lib/api/config";
 import { ActionForm, EmptyState, Field, PageHeader, StatusBadge } from "@/components/admin/ui";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,8 @@ type Posts = Array<Record<string, unknown>>;
 const day = (iso: unknown) => (iso ? new Date(String(iso)).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short", year: "numeric" }) : "");
 
 export default async function LostFoundModeration({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  await requireAdmin("/dashboard/lost-found");
+  // The API decides who may see this (moderators of chat or lost & found).
+  await requireSignedIn("/dashboard/lost-found");
   const sp = await searchParams;
   const status = ["pending", "active", "resolved", "rejected"].includes(sp.status ?? "") ? sp.status! : "pending";
   const posts = await view<Posts>("lostfound.list", { status, q: sp.q }, "/dashboard/lost-found");
@@ -24,7 +25,7 @@ export default async function LostFoundModeration({ searchParams }: { searchPara
       </nav>
       <form className="mb-4 flex gap-2" role="search">
         <input type="hidden" name="status" value={status} />
-        <input name="q" defaultValue={sp.q ?? ""} placeholder="Search titles and descriptions" aria-label="Search" className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm" />
+        <input name="q" defaultValue={sp.q ?? ""} placeholder="Search titles and descriptions" aria-label="Search" className="h-10 md:h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-base md:text-sm" />
         <button className="h-9 rounded-md border px-3 text-sm hover:bg-muted">Search</button>
       </form>
       {posts.length === 0 ? <EmptyState>{status === "pending" ? "Nothing waiting. Everything is reviewed." : "No posts here."}</EmptyState> : (

@@ -62,7 +62,7 @@ export function MarkdownEditor({ name, label, defaultValue, rows = 16, hint }: {
     insertAtCursor(`![${alt}](${r.url})`);
   };
 
-  const button = "inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted disabled:opacity-50";
+  const button = "inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
   return (
     <div className="grid gap-1.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -93,7 +93,7 @@ export function MarkdownEditor({ name, label, defaultValue, rows = 16, hint }: {
           </div>
         )}
         <textarea id={id} ref={ref} name={name} value={value} onChange={(e) => setValue(e.target.value)} rows={rows}
-          className={cn("block w-full resize-y rounded-b-md bg-background px-3 py-2 font-mono text-sm focus:outline-none", tab === "preview" && "hidden")}
+          className={cn("block w-full resize-y rounded-b-md bg-background px-3 py-2 font-mono text-base focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60 md:text-sm", tab === "preview" && "hidden")}
           aria-describedby={hint ? `${id}-hint` : undefined} />
         {tab === "preview" && (
           value.trim()

@@ -7,11 +7,12 @@ import { can, requireActor, requirePermission } from "../authz";
 import type { Ctx } from "../context";
 import { emailState, lastSuccessfulTest } from "../email";
 import { getSettings } from "../security";
+import { LIMITS } from "../limits";
 import { checkAuditSeals } from "./audit-seal";
 import { appUsage, fetchCloudflareUsage, FREE_LIMITS } from "./cloudflare-usage";
 
 /** The newest migration in this code. A test keeps it in step with migrations/. */
-export const LATEST_MIGRATION = "0008_governance_seed_v4.sql";
+export const LATEST_MIGRATION = "0009_platform_v5.sql";
 
 export type HealthStatus = "HEALTHY" | "WARNING" | "ERROR" | "UNKNOWN";
 export interface HealthCheck {
@@ -84,8 +85,8 @@ export async function systemHealth(ctx: Ctx) {
     : mail.provider.name === "console"
       ? { key: "email", label: "Email", status: "HEALTHY", detail: "Development mode: messages are printed to the API log, not sent." }
       : !mail.switchedOn
-        ? { key: "email", label: "Email", status: "WARNING", detail: "Resend is configured but email is switched off. Send a test email below; switch it on only after it arrives." }
-        : { key: "email", label: "Email", status: "HEALTHY", detail: `On. Every message and Resend's answer are listed below (at most ${mail.dailyLimit} a day).` });
+        ? { key: "email", label: "Email", status: "WARNING", detail: "SMTP2GO is configured but email is switched off. Send a test email below; switch it on only after it arrives." }
+        : { key: "email", label: "Email", status: "HEALTHY", detail: `On. Every message and SMTP2GO's answer are listed below (at most ${mail.dailyLimit} a day and ${mail.monthlyLimit} a month).` });
 
   const beat = await attempt(() => ctx.db.first<{ last_run_at: string; last_ok: number; detail_json: string | null }>("SELECT last_run_at, last_ok, detail_json FROM system_heartbeats WHERE name = 'maintenance'"));
   if (!beat.ok || !beat.value) checks.push({ key: "cron", label: "Scheduled housekeeping", status: "UNKNOWN", detail: "No run recorded yet. It runs every hour once the API is deployed." });
@@ -147,7 +148,7 @@ async function freeTierUsage(ctx: Ctx) {
   const [cf, app, cfg] = await Promise.all([
     fetchCloudflareUsage(ctx),
     appUsage(ctx),
-    getSettings(ctx, { "media.uploads_enabled": true, "media.daily_object_writes": 2000, "media.storage_limit_bytes": 8 * 1024 ** 3, "assistant.daily_limit": 300, "email.daily_limit": 90, "email.enabled": false }),
+    getSettings(ctx, { "media.uploads_enabled": true, "media.daily_object_writes": 2000, "media.storage_limit_bytes": 8 * 1024 ** 3, "assistant.daily_limit": 300, "email.daily_limit": 40, "email.monthly_limit": 1000, "email.enabled": false }),
   ]);
   const both = (cfValue: number | null, appValue: number) => (cfValue === null ? { used: appValue, source: "GUCC count" as const } : { used: Math.max(cfValue, appValue), source: "Cloudflare" as const });
   const cfOnly = (v: number | null) => ({ used: v, source: v === null ? null : ("Cloudflare" as const) });
@@ -164,7 +165,10 @@ async function freeTierUsage(ctx: Ctx) {
       note: "Reads only happen through the API, so its daily request limit caps them far below this." },
     { key: "uploads", label: "Files uploaded", used: app.objectWritesToday, source: "GUCC count", limit: Number(cfg["media.daily_object_writes"]), unit: "files", period: "today (UTC)" },
     { key: "ai", label: "AI answers", used: app.aiAnswersToday, source: "GUCC count", limit: Number(cfg["assistant.daily_limit"]), unit: "answers", period: "today (UTC)", note: "After the limit the assistant answers from the club's own data." },
-    { key: "email", label: "Emails", used: app.emailsToday, source: "GUCC count", limit: Number(cfg["email.daily_limit"]), unit: "emails", period: "today (UTC)", note: "The Resend free plan allows 100 a day." },
+    { key: "email", label: "Emails", used: app.emailsToday, source: "GUCC count", limit: Number(cfg["email.daily_limit"]), unit: "emails", period: "today (UTC)",
+      note: "SMTP2GO's free plan allows 200 a day, and 25 an hour until a sending domain is verified (extra ones wait in its queue)." },
+    { key: "email-month", label: "Emails this month", used: app.emailsThisMonth, source: "GUCC count", limit: Number(cfg["email.monthly_limit"]), unit: "emails", period: "this month (UTC)",
+      note: "SMTP2GO's free plan stops sending at 1,000 a month; nothing is charged." },
   ];
   return {
     rows,
@@ -200,8 +204,9 @@ async function activity(ctx: Ctx) {
               (SELECT COUNT(*) FROM authentication_events WHERE created_at > ?1 AND event IN ('LOGIN_FAILED', 'MFA_FAILED')) AS failed,
               (SELECT COUNT(*) FROM authentication_events WHERE created_at > ?1 AND event = 'LOCKED') AS locked,
               (SELECT COUNT(*) FROM authentication_events WHERE created_at > ?1 AND event = 'REGISTER') AS sign_ups,
-              (SELECT COUNT(*) FROM rate_limits WHERE key LIKE 'auth.%' AND window_start > ?2 AND count > 10) AS limited`,
-      since, Math.floor(Date.now() / 1000) - 3600),
+              (SELECT COUNT(*) FROM rate_limits rl JOIN json_each(?3) l ON l.key = substr(rl.key, 1, instr(rl.key, ':') - 1)
+                 WHERE rl.key LIKE 'auth.%' AND rl.window_start > ?2 AND rl.count >= l.value) AS limited`,
+      since, Math.floor(Date.now() / 1000) - 3600, JSON.stringify(Object.fromEntries(Object.entries(LIMITS).map(([k, v]) => [k, v.limit])))),
     ctx.db.all<{ created_at: string; type: string; status: string; recipient: string; error: string | null }>(
       "SELECT created_at, type, status, recipient, error FROM email_log ORDER BY created_at DESC LIMIT 10"),
     ctx.db.all<{ created_at: string; procedure: string | null; code: string | null; status: number | null; message: string | null }>(

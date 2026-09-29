@@ -137,8 +137,11 @@ export async function setSessionCookie(token: string, expiresAt: string) {
 
 export async function clearSessionCookie() {
   const c = await cookies();
-  c.delete(SESSION_COOKIE);
-  c.delete(SIGNED_IN_HINT);
+  const secure = SECURE_SITE || process.env.NODE_ENV === "production";
+  // Expired copies with the same attributes: browsers ignore a "__Host-" cookie deletion that
+  // isn't Secure with Path=/, which would leave a shared computer signed in.
+  c.set(SESSION_COOKIE, "", { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: 0 });
+  c.set(SIGNED_IN_HINT, "", { httpOnly: false, secure, sameSite: "lax", path: "/", maxAge: 0 });
 }
 
 /** A sign-in that passed the password and waits for its two-factor code (ten minutes). */

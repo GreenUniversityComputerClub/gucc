@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { mediaDetails, uploadMedia } from "@/lib/server/services/media";
+import { mediaDetails, resolveMediaAccess, uploadMedia } from "@/lib/server/services/media";
 import { createWorld, type TestWorld } from "../support/d1";
 
 const PNG_A = new Uint8Array(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64"));
@@ -31,6 +31,12 @@ describe("replacing an image", () => {
     expect(w.sqlite.prepare("SELECT avatar_media_id FROM profiles WHERE id = 'prf_x'").get()).toEqual({ avatar_media_id: first.id });
     expect(tags).toEqual(expect.arrayContaining(["committees", "events"]));
     expect(w.sqlite.prepare("SELECT COUNT(*) n FROM audit_logs WHERE action = 'media.replace'").get()).toEqual({ n: 1 });
+
+    // The new URL (with its -xxxxxxxx folder suffix) is served, and so is the old one: both lead
+    // to the current file.
+    const served = await resolveMediaAccess(await w.ctx(null), after.object_key);
+    expect(served).toMatchObject({ key: after.object_key, bucket: "public" });
+    expect(await resolveMediaAccess(await w.ctx(null), before.object_key)).toMatchObject({ key: after.object_key });
 
     const details = await mediaDetails(await w.ctx(pres), first.id);
     expect(details.usage).toEqual([{ kind: "Profile photo", label: "Somebody", link: "/dashboard/people/prf_x" }]);

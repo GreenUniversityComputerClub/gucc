@@ -44,7 +44,7 @@ export function PeopleMultiPicker({ name, label, initial = [], hint }: { name: s
           {chosen.map((c) => (
             <li key={c.userId} className="inline-flex items-center gap-1 rounded-full border bg-muted/50 py-0.5 pl-2.5 pr-1 text-sm">
               {c.name}
-              <button type="button" onClick={() => setChosen(chosen.filter((x) => x.userId !== c.userId))} className="rounded-full p-0.5 hover:bg-muted" aria-label={`Remove ${c.name}`}>
+              <button type="button" onClick={() => setChosen(chosen.filter((x) => x.userId !== c.userId))} className="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted" aria-label={`Remove ${c.name}`}>
                 <X className="h-3.5 w-3.5" />
               </button>
             </li>

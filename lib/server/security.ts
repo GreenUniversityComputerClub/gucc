@@ -3,7 +3,7 @@
  */
 import type { Ctx } from "./context";
 import { AppError, RateLimitError, ValidationError } from "./errors";
-import { sendEmail, type EmailMessage } from "./email";
+import { accountMessage, sendEmail, type EmailMessage } from "./email";
 
 /**
  * Keys that went over their limit, per database binding, until their window ends. The D1 count
@@ -139,7 +139,24 @@ export async function getOrgSetting<T>(ctx: Ctx, key: string, fallback: T): Prom
 
 /** Send an email through the configured provider (see ./email.ts). False when it wasn't sent. */
 export async function deliverEmail(ctx: Ctx, msg: EmailMessage, info: { type: string; userId?: string | null }): Promise<boolean> {
-  return (await sendEmail(ctx, msg, info)).ok;
+  return (await sendEmail(ctx, accountMessage(ctx, msg, info.type), info)).ok;
+}
+
+/**
+ * Putting people into positions that carry sensitive permissions (or protected ones, like
+ * President) hands those permissions out, so it needs the password entered recently too, as a
+ * direct grant does. Positions come by id, or from existing listings being changed.
+ */
+export async function requireRecentAuthForPositions(ctx: Ctx, positionIds: Array<string | null | undefined>, listingIds: string[] = []): Promise<void> {
+  if (!ctx.session) return;
+  const ids = [...new Set(positionIds.filter((x): x is string => Boolean(x)))];
+  if (!ids.length && !listingIds.length) return;
+  const sensitive = await ctx.db.first(
+    `SELECT 1 FROM positions p
+     WHERE (p.id IN (SELECT value FROM json_each(?1)) OR p.id IN (SELECT cm.position_id FROM committee_members cm WHERE cm.id IN (SELECT value FROM json_each(?2))))
+       AND (p.is_protected = 1 OR EXISTS (SELECT 1 FROM position_permissions pp JOIN permissions pm ON pm.id = pp.permission_id AND pm.is_sensitive = 1 WHERE pp.position_id = p.id))
+     LIMIT 1`, JSON.stringify(ids), JSON.stringify(listingIds));
+  if (sensitive) await requireRecentAuth(ctx);
 }
 
 /**

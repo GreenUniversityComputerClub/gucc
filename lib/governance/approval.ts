@@ -78,8 +78,15 @@ export interface ApprovalEvaluation {
   satisfiedGroups: number[];
 }
 
+/** "general-secretary" → "General Secretary": position and role names written out in full. */
+const titleOf = (key?: string) => (key ?? "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
 export function describePolicy(policy: ApprovalPolicy, effectiveThreshold?: number): string {
-  const names = policy.approvers.map((a) => (a.type === "assigned" ? "an assigned approver" : `${a.type} ${a.value}`));
+  const names = policy.approvers.map((a) =>
+    a.type === "assigned" ? "an assigned approver"
+      : a.type === "position" ? `the ${titleOf(a.value)}`
+        : a.type === "role" ? `a ${titleOf(a.value)}`
+          : "a named person");
   if (policy.mode === "ANY") return `one approval from ${names.join(" or ")}`;
   if (policy.mode === "ALL") return `approval from ${names.join(" and ")}`;
   const n = effectiveThreshold ?? policy.threshold ?? 1;

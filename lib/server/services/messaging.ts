@@ -12,6 +12,7 @@ import type { Ctx } from "../context";
 import { newId, nowIso, type D1StatementLike } from "../db";
 import { AppError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
 import { notifyStmts, usersWithPermission } from "../notifications";
+import { takeDownIfUnused } from "./media";
 
 const EDIT_WINDOW_MS = 15 * 60_000;
 const pairKey = (a: string, b: string) => (a < b ? `${a}:${b}` : `${b}:${a}`);
@@ -80,14 +81,15 @@ async function messageStatements(ctx: Ctx, conversationId: string, recipientId: 
     `SELECT (c.last_message_at IS NOT NULL AND c.last_message_at > COALESCE(m.last_read_at, '')) AS unread, m.muted
      FROM conversations c JOIN conversation_members m ON m.conversation_id = c.id AND m.user_id = ?2 WHERE c.id = ?1`, conversationId, recipientId);
   const name = actor.profile?.full_name ?? actor.user.email;
+  const messageId = newId("msg");
   return [
     ctx.db.stmt("INSERT INTO messages (id, conversation_id, sender_id, body, context_type, context_id, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-      newId("msg"), conversationId, actor.user.id, body, context?.type ?? null, context?.id ?? null, now),
+      messageId, conversationId, actor.user.id, body, context?.type ?? null, context?.id ?? null, now),
     ctx.db.stmt("UPDATE conversations SET last_message_at = ?2 WHERE id = ?1", conversationId, now),
     ctx.db.stmt("UPDATE conversation_members SET last_read_at = ?3, archived_at = NULL WHERE conversation_id = ?1 AND user_id = ?2", conversationId, actor.user.id, now),
     ctx.db.stmt("UPDATE conversation_members SET archived_at = NULL WHERE conversation_id = ?1 AND user_id = ?2", conversationId, recipientId),
     ...(quiet && !quiet.unread && !quiet.muted
-      ? notifyStmts(ctx, [recipientId], { type: "message.received", title: `New message from ${name}`, body: body.slice(0, 140), link: `/dashboard/chat/${conversationId}` })
+      ? notifyStmts(ctx, [recipientId], { type: "message.received", title: `New message from ${name}`, body: body.slice(0, 140), link: `/dashboard/chat/${conversationId}`, resourceType: "message", resourceId: messageId })
       : []),
   ];
 }
@@ -179,7 +181,13 @@ export async function thread(ctx: Ctx, conversationId: string, opts: { before?: 
        WHERE conversation_id = ?1 AND (?2 IS NULL OR created_at < ?2) ORDER BY created_at DESC LIMIT 40`, conversationId, opts.before ?? null),
   ]);
   const me = await ctx.db.first<{ read_receipts: number; muted: number }>("SELECT u.read_receipts, m.muted FROM users u JOIN conversation_members m ON m.user_id = u.id AND m.conversation_id = ?2 WHERE u.id = ?1", actor.user.id, conversationId);
-  await ctx.db.run("UPDATE conversation_members SET last_read_at = ?3 WHERE conversation_id = ?1 AND user_id = ?2", conversationId, actor.user.id, nowIso());
+  // Opening the newest messages marks them read; a write only when there's something new (polling
+  // stays read-only while the thread is quiet), and never for older pages.
+  if (!opts.before) {
+    await ctx.db.run(
+      `UPDATE conversation_members SET last_read_at = ?3 WHERE conversation_id = ?1 AND user_id = ?2
+         AND (last_read_at IS NULL OR last_read_at < (SELECT last_message_at FROM conversations WHERE id = ?1))`, conversationId, actor.user.id, nowIso());
+  }
   // Contexts: lost & found post titles for the chips above messages.
   const ctxIds = [...new Set(rows.filter((r) => r.context_type === "lost_found_post" && r.context_id).map((r) => r.context_id!))];
   const posts = ctxIds.length
@@ -209,10 +217,16 @@ export async function editMessage(ctx: Ctx, messageId: string, rawBody: unknown)
   await ctx.db.run("UPDATE messages SET body = ?2, edited_at = ?3 WHERE id = ?1", messageId, cleanBody(rawBody), nowIso());
 }
 
+/** The notification preview of a message that was deleted or removed no longer shows its text. */
+const redactNotices = (ctx: Ctx, messageId: string) =>
+  ctx.db.stmt("UPDATE notifications SET body = NULL WHERE resource_type = 'message' AND resource_id = ?1", messageId);
+
 export async function deleteMessage(ctx: Ctx, messageId: string): Promise<void> {
   const actor = requireActor(ctx);
+  // A report keeps its own copy of the text (reports.snapshot), so deleting can't erase evidence.
   const n = await ctx.db.run("UPDATE messages SET deleted_at = ?3, body = '[deleted]' WHERE id = ?1 AND sender_id = ?2 AND deleted_at IS NULL", messageId, actor.user.id, nowIso());
   if (!n) throw new NotFoundError("Message");
+  await redactNotices(ctx, messageId).run();
 }
 
 export async function setConversationState(ctx: Ctx, conversationId: string, state: { muted?: boolean; archived?: boolean }): Promise<void> {
@@ -247,15 +261,18 @@ export async function reportMessage(ctx: Ctx, messageId: string, reasonRaw: unkn
   const actor = requireActor(ctx);
   const reason = String(reasonRaw ?? "").trim().slice(0, 500);
   if (reason.length < 3) throw new ValidationError("Say briefly what's wrong.", { reason: "Give a reason." });
-  const m = await ctx.db.first<{ conversation_id: string; sender_id: string }>("SELECT conversation_id, sender_id FROM messages WHERE id = ?1", messageId);
-  if (!m) throw new NotFoundError("Message");
+  const m = await ctx.db.first<{ conversation_id: string; sender_id: string; body: string; deleted_at: string | null }>("SELECT conversation_id, sender_id, body, deleted_at FROM messages WHERE id = ?1", messageId);
+  if (!m || m.deleted_at) throw new NotFoundError("Message");
   await membership(ctx, m.conversation_id);
   if (m.sender_id === actor.user.id) throw new ValidationError("You can't report your own message.");
   await limit(ctx, "report", actor.user.id);
+  // Reporting the same message again changes nothing and doesn't notify the moderators twice.
+  if (await ctx.db.first("SELECT 1 FROM reports WHERE resource_type = 'message' AND resource_id = ?1 AND reporter_id = ?2", messageId, actor.user.id)) return;
   const moderators = await usersWithPermission(ctx, "chat.moderate");
   await ctx.db.batch([
-    ctx.db.stmt("INSERT INTO reports (id, resource_type, resource_id, reporter_id, reason, created_at) VALUES (?1, 'message', ?2, ?3, ?4, ?5) ON CONFLICT DO NOTHING",
-      newId("rep"), messageId, actor.user.id, reason, nowIso()),
+    // The text as it was when reported: a later edit or delete can't hide it from the moderators.
+    ctx.db.stmt("INSERT INTO reports (id, resource_type, resource_id, reporter_id, reason, snapshot, created_at) VALUES (?1, 'message', ?2, ?3, ?4, ?5, ?6) ON CONFLICT DO NOTHING",
+      newId("rep"), messageId, actor.user.id, reason, m.body.slice(0, 4000), nowIso()),
     auditStmt(ctx, { action: "message.report", resourceType: "message", resourceId: messageId, reason }),
     ...notifyStmts(ctx, moderators, { type: "report.new", title: "A message was reported", body: reason.slice(0, 140), link: "/dashboard/reports" }),
   ]);
@@ -270,7 +287,7 @@ export async function listReports(ctx: Ctx, opts: { status?: string } = {}) {
   const rows = await ctx.db.all<{ id: string; resource_type: string; resource_id: string; reason: string; status: string; created_at: string; reporter: string | null;
     body: string | null; sender: string | null; sender_id: string | null; conversation_id: string | null; post_title: string | null }>(
     `SELECT r.id, r.resource_type, r.resource_id, r.reason, r.status, r.created_at, COALESCE(rp.full_name, ru.email) AS reporter,
-            m.body, COALESCE(sp.full_name, su.email) AS sender, m.sender_id, m.conversation_id, lf.title AS post_title
+            COALESCE(r.snapshot, m.body) AS body, COALESCE(sp.full_name, su.email) AS sender, m.sender_id, m.conversation_id, lf.title AS post_title
      FROM reports r
      JOIN users ru ON ru.id = r.reporter_id LEFT JOIN profiles rp ON rp.user_id = ru.id
      LEFT JOIN messages m ON r.resource_type = 'message' AND m.id = r.resource_id
@@ -291,8 +308,13 @@ export async function resolveReport(ctx: Ctx, reportId: string, outcome: "DISMIS
   await ctx.db.batch([
     ctx.db.stmt("UPDATE reports SET status = ?2, handled_by = ?3, handled_at = ?4, note = ?5 WHERE (id = ?1 OR (resource_type = ?6 AND resource_id = ?7)) AND status = 'OPEN'",
       reportId, outcome, actor.user.id, now, note, r.resource_type, r.resource_id),
-    ...(remove && r.resource_type === "message" ? [ctx.db.stmt("UPDATE messages SET deleted_at = ?2, body = '[removed by a moderator]' WHERE id = ?1", r.resource_id, now)] : []),
-    ...(remove && r.resource_type === "lost_found_post" ? [ctx.db.stmt("UPDATE lost_found_posts SET deleted_at = ?2 WHERE id = ?1", r.resource_id, now)] : []),
+    ...(remove && r.resource_type === "message" ? [ctx.db.stmt("UPDATE messages SET deleted_at = ?2, body = '[removed by a moderator]' WHERE id = ?1", r.resource_id, now), redactNotices(ctx, r.resource_id)] : []),
+    ...(remove && r.resource_type === "lost_found_post" ? [ctx.db.stmt("UPDATE lost_found_posts SET deleted_at = ?2 WHERE id = ?1", r.resource_id, now),
+      ctx.db.stmt("DELETE FROM media_references WHERE resource_type = 'lost_found' AND resource_id = ?1", r.resource_id)] : []),
     auditStmt(ctx, { action: "report.resolve", resourceType: r.resource_type, resourceId: r.resource_id, after: { outcome, removed: remove }, reason: note, decision }),
   ]);
+  if (remove && r.resource_type === "lost_found_post") {
+    const image = await ctx.db.value<string>("SELECT image_media_id FROM lost_found_posts WHERE id = ?1", r.resource_id);
+    await takeDownIfUnused(ctx, image, "The post was removed after a report");
+  }
 }

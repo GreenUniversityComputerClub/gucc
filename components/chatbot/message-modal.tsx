@@ -5,6 +5,7 @@ import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useEffect, useRef } from "react"
 
 interface Message {
   text: string
@@ -19,10 +20,30 @@ interface MessageModalProps {
 }
 
 export function MessageModal({ isOpen, onClose, message }: MessageModalProps) {
+  const closeRef = useRef<HTMLButtonElement>(null)
+
+  // Focus moves into the dialog, Escape closes it, and focus goes back where it was.
+  useEffect(() => {
+    if (!isOpen) return
+    const before = document.activeElement as HTMLElement | null
+    closeRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation()
+        onClose()
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      before?.focus?.()
+    }
+  }, [isOpen, onClose])
+
   if (!isOpen || !message) return null
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={onClose} data-chat-message-modal>
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" aria-hidden="true" />
       <div
         role="dialog"
@@ -37,6 +58,8 @@ export function MessageModal({ isOpen, onClose, message }: MessageModalProps) {
       >
         {/* Close button */}
         <button
+          ref={closeRef}
+          type="button"
           onClick={onClose}
           className="absolute right-4 top-4 p-2 rounded-full border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors"
           aria-label="Close"

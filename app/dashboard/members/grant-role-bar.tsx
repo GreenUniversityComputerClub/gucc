@@ -17,7 +17,7 @@ export function GrantRoleBar({ roles }: { roles: Array<{ key: string; name: stri
   const [expiresAt, setExpiresAt] = useState("");
   const [plan, setPlan] = useState<Plan | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [reauth, setReauth] = useState<string | null>(null);
+  const [reauth, setReauth] = useState<{ message: string; apply: boolean } | null>(null);
   const [pending, start] = useTransition();
   const selected = () => Array.from(document.querySelectorAll<HTMLInputElement>("input[data-member-id]:checked")).map((i) => i.value);
   useEffect(() => {
@@ -35,7 +35,8 @@ export function GrantRoleBar({ roles }: { roles: Array<{ key: string; name: stri
     setError(null);
     const r = await grantRoleBulkAction(payload(apply));
     if (!r.ok) {
-      if (r.code === "REAUTH_REQUIRED") return setReauth(r.error);
+      // Remember what was asked: confirming the password repeats that, never more (a preview stays a preview).
+      if (r.code === "REAUTH_REQUIRED") return setReauth({ message: r.error, apply });
       return setError(r.error);
     }
     if (apply) return reloadWith(r.data?.message ?? "Done.");
@@ -55,7 +56,7 @@ export function GrantRoleBar({ roles }: { roles: Array<{ key: string; name: stri
         <Button type="button" size="sm" variant="outline" disabled={pending || !roleKey || !count} onClick={() => run(false)}>Preview</Button>
       </div>
       {error && <p role="alert" className="mt-2 text-destructive">{error}</p>}
-      {reauth && <ReauthPrompt message={reauth} onConfirmed={() => { setReauth(null); run(true); }} onCancel={() => setReauth(null)} />}
+      {reauth && <ReauthPrompt message={reauth.message} onConfirmed={() => { const apply = reauth.apply; setReauth(null); run(apply); }} onCancel={() => setReauth(null)} />}
       {plan && (
         <div className="mt-3 border-t pt-3">
           <p className="font-medium">{plan.title}</p>

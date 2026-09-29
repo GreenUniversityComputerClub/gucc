@@ -39,7 +39,7 @@ export async function verifyTwoFactorAction(input: { code: string; next?: string
 }
 
 export async function registerAction(input: { email: string; password: string; fullName: string; studentId?: string; department?: string; batch?: string; phone?: string; turnstileToken?: string }) {
-  return runAction<{ message: string }>("auth.register", input);
+  return runAction<{ message: string; emailSent?: boolean }>("auth.register", input);
 }
 
 export async function resendVerificationAction(email: string) {

@@ -11,11 +11,12 @@
  */
 import { limit } from "../limits";
 import { auditStmt } from "../audit";
-import { requireActor, requirePermission } from "../authz";
+import { loadActor, requireActor, requirePermission, userResource } from "../authz";
+import { assertCanGrantPermissions, GovernanceViolation } from "../../governance/invariants";
 import type { Ctx } from "../context";
 import { sha256Hex, verifyPassword } from "../crypto";
 import { nowIso } from "../db";
-import { AppError, AuthRequiredError, ValidationError } from "../errors";
+import { AppError, AuthRequiredError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
 import { notifyStmts } from "../notifications";
 import { getSetting, requireRecentAuth } from "../security";
 import { requireSecret, verificationSecrets } from "../signing";
@@ -66,8 +67,10 @@ export async function mfaStatus(ctx: Ctx) {
 export async function startMfaSetup(ctx: Ctx) {
   const actor = requireActor(ctx);
   await limit(ctx, "mfa.setup", actor.user.id);
+  // A stolen session must not be able to put the thief's phone on the account.
+  await requireRecentAuth(ctx);
   const existing = await ctx.db.first<{ confirmed_at: string | null }>("SELECT confirmed_at FROM user_mfa WHERE user_id = ?1", actor.user.id);
-  if (existing?.confirmed_at) throw new AppError(409, "MFA_ON", "Two-factor sign-in is already on. Turn it off first to set up a new app.");
+  if (existing?.confirmed_at) throw new AppError(409, "MFA_ON", "Two-factor sign-in is already on. Use \"Move to a new phone\" to change the app.");
   const secret = crypto.getRandomValues(new Uint8Array(20));
   const b32 = base32Encode(secret);
   await ctx.db.run(
@@ -131,7 +134,7 @@ async function checkSecondFactor(ctx: Ctx, userId: string, code: string): Promis
 export async function disableMfa(ctx: Ctx, input: { password?: unknown; code?: unknown }) {
   const actor = requireActor(ctx);
   await limit(ctx, "account.reauth", actor.user.id);
-  if (actor.security?.mfaRequired) throw new AppError(409, "MFA_REQUIRED", "Your permissions require two-factor sign-in, so it can't be turned off. Set it up again on a new phone instead: sign in with a recovery code, then ask a Moderator to reset it if needed.");
+  if (actor.security?.mfaRequired) throw new AppError(409, "MFA_REQUIRED", "Your permissions require two-factor sign-in, so it can't be turned off. To change phones, use \"Move to a new phone\" instead.");
   if (!(await passwordOk(ctx, actor.user.id, input.password))) throw new ValidationError("That password isn't right.", { password: "Check your password." });
   if (!(await checkSecondFactor(ctx, actor.user.id, String(input.code ?? "")))) throw new ValidationError("That code isn't right.", { code: "Wrong code." });
   await ctx.db.batch([
@@ -155,6 +158,57 @@ export async function regenerateRecoveryCodes(ctx: Ctx, code: unknown): Promise<
   return { recoveryCodes: codes };
 }
 
+/**
+ * Move two-factor to a new phone without turning it off (leaders must keep it on): the password
+ * and a current code or a recovery code prove it's you, then a new secret waits beside the old
+ * one until the new app's first code proves it works. Until then the old app keeps working.
+ */
+export async function startMfaReplace(ctx: Ctx, input: { password?: unknown; code?: unknown }) {
+  const actor = requireActor(ctx);
+  await limit(ctx, "account.reauth", actor.user.id);
+  const on = await ctx.db.value<string>("SELECT confirmed_at FROM user_mfa WHERE user_id = ?1 AND confirmed_at IS NOT NULL", actor.user.id);
+  if (!on) throw new AppError(409, "MFA_OFF", "Two-factor sign-in isn't on. Set it up instead.");
+  if (!(await passwordOk(ctx, actor.user.id, input.password))) throw new ValidationError("That password isn't right.", { password: "Check your password." });
+  if (!(await checkSecondFactor(ctx, actor.user.id, String(input.code ?? "")))) throw new ValidationError("That code isn't right. Use your old app's current code or a recovery code.", { code: "Wrong code." });
+  const secret = crypto.getRandomValues(new Uint8Array(20));
+  const b32 = base32Encode(secret);
+  const now = nowIso();
+  await ctx.db.batch([
+    ctx.db.stmt("UPDATE user_mfa SET pending_secret_enc = ?2, pending_at = ?3, updated_at = ?3 WHERE user_id = ?1", actor.user.id, await encryptSecret(secret, secretKey(ctx)), now),
+    ...(ctx.session ? [ctx.db.stmt("UPDATE sessions SET reauth_at = ?2 WHERE id = ?1", ctx.session.id, now)] : []),
+  ]);
+  return { secret: b32.replace(/(.{4})/g, "$1 ").trim(), uri: otpauthUri(b32, actor.user.email) };
+}
+
+/** Minutes a new phone has to show its first code before the move must start again. */
+const REPLACE_MINUTES = 30;
+
+/** The new app's first code switches over and returns ten new recovery codes (the old ones stop working). */
+export async function confirmMfaReplace(ctx: Ctx, code: unknown): Promise<{ recoveryCodes: string[] }> {
+  const actor = requireActor(ctx);
+  await limit(ctx, "mfa.confirm", actor.user.id);
+  const row = await ctx.db.first<{ pending_secret_enc: string | null; pending_at: string | null }>(
+    "SELECT pending_secret_enc, pending_at FROM user_mfa WHERE user_id = ?1 AND confirmed_at IS NOT NULL", actor.user.id);
+  if (!row?.pending_secret_enc || !row.pending_at || Date.now() - new Date(row.pending_at).getTime() > REPLACE_MINUTES * 60_000) {
+    throw new AppError(409, "MFA_NOT_STARTED", "Start the move to a new phone again.");
+  }
+  const step = await verifyTotp(await openSecret(ctx, actor.user.id, row.pending_secret_enc), String(code ?? ""));
+  if (step === null) throw new ValidationError("That code isn't right. Use the newest code from the new app and check the phone's clock.", { code: "Wrong code." });
+  const codes = newRecoveryCodes();
+  const hashes = await Promise.all(codes.map((c) => hashRecoveryCode(c, ctx.env.PASSWORD_PEPPER)));
+  const now = nowIso();
+  const n = await ctx.db.run(
+    `UPDATE user_mfa SET secret_enc = pending_secret_enc, pending_secret_enc = NULL, pending_at = NULL, recovery_json = ?2, last_step = ?3, updated_at = ?4
+     WHERE user_id = ?1 AND pending_secret_enc = ?5`, actor.user.id, JSON.stringify(hashes), step, now, row.pending_secret_enc);
+  if (!n) throw new AppError(409, "MFA_NOT_STARTED", "Start the move to a new phone again.");
+  await ctx.db.batch([
+    auditStmt(ctx, { action: "account.mfa_replaced", resourceType: "user", resourceId: actor.user.id }),
+    await authEventStmt(ctx, "MFA_REPLACED", actor.user.id, actor.user.email),
+    ...notifyStmts(ctx, [actor.user.id], { type: "security.mfa", title: "Two-factor sign-in moved to a new app", body: "Your old authenticator app and recovery codes no longer work. If this wasn't you, change your password now.", link: "/dashboard/security" }),
+  ]);
+  return { recoveryCodes: codes };
+}
+
 /** A Moderator resets someone's two-factor (lost phone and no recovery codes). They set it up again. */
 export async function resetUserMfa(ctx: Ctx, userId: string, reason: unknown) {
   const actor = requireActor(ctx);
@@ -162,6 +216,17 @@ export async function resetUserMfa(ctx: Ctx, userId: string, reason: unknown) {
   const decision = requirePermission(ctx, "users.reset_password");
   await requireRecentAuth(ctx);
   if (userId === actor.user.id) throw new ValidationError("Use your own security page for your account.");
+  // The same guards as a password-reset link: never a way into a more powerful account.
+  const target = await userResource(ctx.db, userId);
+  if (!target) throw new NotFoundError("Account");
+  if (target.isProtected) requirePermission(ctx, "governance.protected");
+  const theirs = (await loadActor(ctx.db, userId))?.subject.grants.filter((g) => g.scope === "ALL").map((g) => g.permission) ?? [];
+  try {
+    assertCanGrantPermissions(actor.subject, [...new Set(theirs)]);
+  } catch (e) {
+    if (e instanceof GovernanceViolation) throw new ForbiddenError("This account has access you don't have, so only someone with at least the same access (or a Moderator) can reset its two-factor sign-in.");
+    throw e;
+  }
   const why = String(reason ?? "").trim();
   if (why.length < 5) throw new ValidationError("Say why (for the activity log).", { reason: "At least 5 characters." });
   const n = await ctx.db.run("DELETE FROM user_mfa WHERE user_id = ?1", userId);

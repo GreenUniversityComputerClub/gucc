@@ -142,7 +142,7 @@ export function PersonAccess({ a, session, userId }: { a: PersonAccessData; sess
                   <p className="mt-2 text-xs text-muted-foreground">
                     {session.isModerator
                       ? "Some roles include sensitive permissions: whoever holds them must turn on two-factor sign-in."
-                      : "Roles marked “a Moderator approves” include sensitive permissions: the grant waits for a Moderator's approval, and the person must turn on two-factor sign-in."}
+                      : "Roles marked “a Moderator approves” include sensitive permissions: the grant waits for approval unless you're a Moderator, the President or the General Secretary, and the person must turn on two-factor sign-in."}
                   </p>
                 )}
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">

@@ -6,13 +6,14 @@ import type { accountView } from "@/lib/server/views/admin";
 import type { emailPreferences } from "@/lib/server/services/system-controls";
 import { Badge } from "@/components/ui/badge";
 import { AvatarUploader, EmailPreferences, ProfileEditor } from "./forms";
+import { SPAM_HINT } from "@/lib/email-hint";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Your profile", robots: { index: false, follow: false } };
 
 const STATUS: Record<string, { title: string; text: string; tone: string }> = {
   PENDING_APPROVAL: { title: "Awaiting approval", text: "Your account has been created and is awaiting GUCC approval. You'll see a notification here when a club leader reviews it.", tone: "border-amber-400/60 bg-amber-500/5" },
-  EMAIL_VERIFICATION_PENDING: { title: "Verify your email", text: "Open the link we emailed you to verify your address. Then your application goes to club leadership for approval.", tone: "border-amber-400/60 bg-amber-500/5" },
+  EMAIL_VERIFICATION_PENDING: { title: "Verify your email", text: `Open the link we emailed you to verify your address. Then your application goes to club leadership for approval. ${SPAM_HINT}`, tone: "border-amber-400/60 bg-amber-500/5" },
   ACTIVE: { title: "Active member", text: "Your GUCC membership is approved. Register for events and keep your profile up to date.", tone: "border-emerald-500/40 bg-emerald-500/5" },
   APPROVED: { title: "Approved", text: "Your GUCC account has been approved.", tone: "border-emerald-500/40 bg-emerald-500/5" },
   REJECTED: { title: "Needs attention", text: "Your registration needs attention. Contact the club's leaders.", tone: "border-rose-400/60 bg-rose-500/5" },

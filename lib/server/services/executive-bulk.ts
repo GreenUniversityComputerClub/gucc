@@ -13,6 +13,7 @@ import { authorize, requireActor, requirePermission } from "../authz";
 import type { Ctx } from "../context";
 import { newId, nowIso, type D1StatementLike } from "../db";
 import { AppError, NotFoundError, ValidationError } from "../errors";
+import { requireRecentAuthForPositions } from "../security";
 
 export type BulkAction =
   | { op: "end" }
@@ -113,10 +114,13 @@ async function plan(ctx: Ctx, req: BulkRequest) {
   const item = (r: Row, change: string | null, blocked: string | null = null) => items.push({ id: r.id, name: r.display_name ?? r.full_name, title: r.position_title, change: blocked ? null : change, blocked });
   const guard = (r: Row): string | null => {
     if (r.user_id && r.user_id === actor.user.id) return "Your own listing: another administrator has to change it.";
-    if (r.is_protected && !moderator) return `${r.position_name} is protected: only a Moderator can change it.`;
+    if (r.is_protected && !moderator) return `${r.position_name} is protected: only a Moderator, the President or the General Secretary can change it.`;
     return null;
   };
-  const holders = (positionId: string, list: Row[]) => list.filter((x) => x.position_id === positionId && !x.end_date).length;
+  // Holder limits count per unit: GUCC and an affiliated committee (e.g. CSS) each have their own President.
+  const unitOf = (x: { unit_key: string | null }) => x.unit_key ?? "";
+  const holders = (positionId: string, list: Row[], unit: string) => list.filter((x) => x.position_id === positionId && unitOf(x) === unit && !x.end_date).length;
+  const slot = (positionId: string, unit: string) => `${positionId}|${unit}`;
 
   if (op === "remove") {
     title = "Remove (entered by mistake; can be restored for 30 days)";
@@ -132,13 +136,13 @@ async function plan(ctx: Ctx, req: BulkRequest) {
     title = "Restore removed listings";
     const counts = new Map<string, number>();
     for (const r of selected) {
-      const current = counts.get(r.position_id) ?? holders(r.position_id, rows);
+      const current = counts.get(slot(r.position_id, unitOf(r))) ?? holders(r.position_id, rows, unitOf(r));
       const clash = rows.some((x) => x.profile_id === r.profile_id && x.position_id === r.position_id && (x.unit_key ?? "") === (r.unit_key ?? ""));
       if (guard(r)) item(r, null, guard(r));
       else if (clash) item(r, null, "Already listed again in this committee.");
       else if (!r.end_date && r.max_holders && current >= r.max_holders) item(r, null, `${r.position_name} already has ${current} of ${r.max_holders} allowed holder${r.max_holders === 1 ? "" : "s"}.`);
       else {
-        if (!r.end_date) counts.set(r.position_id, current + 1);
+        if (!r.end_date) counts.set(slot(r.position_id, unitOf(r)), current + 1);
         item(r, "Back in this committee");
         updates.push({ id: r.id, clear_deleted: 1, is_active: committee.status === "CURRENT" && !r.end_date ? 1 : 0 });
         audits.push({ action: "executive.restore", resourceType: "committee_member", resourceId: r.id, reason: "Bulk: restore", decision });
@@ -159,12 +163,12 @@ async function plan(ctx: Ctx, req: BulkRequest) {
     title = "Reactivate ended assignments";
     const counts = new Map<string, number>();
     for (const r of selected) {
-      const current = counts.get(r.position_id) ?? holders(r.position_id, rows);
+      const current = counts.get(slot(r.position_id, unitOf(r))) ?? holders(r.position_id, rows, unitOf(r));
       if (!r.end_date) item(r, null, "Already active.");
       else if (guard(r)) item(r, null, guard(r));
       else if (r.max_holders && current >= r.max_holders) item(r, null, `${r.position_name} already has ${current} of ${r.max_holders} allowed holder${r.max_holders === 1 ? "" : "s"}.`);
       else {
-        counts.set(r.position_id, current + 1);
+        counts.set(slot(r.position_id, unitOf(r)), current + 1);
         item(r, "Active again");
         updates.push({ id: r.id, end_date: null, is_active: committee.status === "CURRENT" ? 1 : 0, clear_end: 1 });
         audits.push({ action: "executive.reactivate", resourceType: "committee_member", resourceId: r.id, reason: "Bulk: reactivate", decision });
@@ -175,17 +179,18 @@ async function plan(ctx: Ctx, req: BulkRequest) {
     const position = await ctx.db.first<{ id: string; name: string; is_protected: number; max_holders: number | null; is_active: number }>(
       "SELECT id, name, is_protected, max_holders, is_active FROM positions WHERE id = ?1 AND deleted_at IS NULL", a.positionId);
     if (!position || !position.is_active) throw new ValidationError("Choose an active position.");
-    if (position.is_protected && !moderator) throw new AppError(403, "PROTECTED_RESOURCE", `${position.name} is protected. Only a Moderator can assign it.`);
+    if (position.is_protected && !moderator) throw new AppError(403, "PROTECTED_RESOURCE", `${position.name} is protected. Only a Moderator, the President or the General Secretary can assign it.`);
     title = `Change position to ${position.name}`;
-    let count = holders(position.id, rows);
+    const counts = new Map<string, number>();
     for (const r of selected) {
+      const count = counts.get(unitOf(r)) ?? holders(position.id, rows, unitOf(r));
       const clash = rows.find((x) => x.id !== r.id && x.profile_id === r.profile_id && x.position_id === position.id && (x.unit_key ?? "") === (r.unit_key ?? ""));
       if (r.position_id === position.id) item(r, null, `Already ${position.name}.`);
       else if (guard(r)) item(r, null, guard(r));
       else if (clash) item(r, null, `Already listed as ${position.name} in this committee.`);
       else if (position.max_holders && !r.end_date && count >= position.max_holders) item(r, null, `${position.name} allows ${position.max_holders} holder${position.max_holders === 1 ? "" : "s"}.`);
       else {
-        if (!r.end_date) count++;
+        if (!r.end_date) counts.set(unitOf(r), count + 1);
         const newTitle = a.keepTitles ? r.position_title : position.name;
         item(r, `${r.position_title} → ${newTitle}`);
         updates.push({ id: r.id, position_id: position.id, position_title: newTitle });
@@ -204,17 +209,17 @@ async function plan(ctx: Ctx, req: BulkRequest) {
     const holdersIn = new Map<string, number>();
     const orders = new Map<string, number>();
     for (const e of existing) {
-      if (!e.end_date) holdersIn.set(e.position_id, (holdersIn.get(e.position_id) ?? 0) + 1);
+      if (!e.end_date) holdersIn.set(slot(e.position_id, unitOf(e)), (holdersIn.get(slot(e.position_id, unitOf(e))) ?? 0) + 1);
       const k = `${e.section}|${e.unit_key ?? ""}`;
       orders.set(k, Math.max(orders.get(k) ?? 0, e.display_order + 1));
     }
     for (const r of selected) {
-      const current = holdersIn.get(r.position_id) ?? 0;
+      const current = holdersIn.get(slot(r.position_id, unitOf(r))) ?? 0;
       if (existing.some((e) => e.profile_id === r.profile_id && e.position_id === r.position_id && (e.unit_key ?? "") === (r.unit_key ?? ""))) item(r, null, `Already in ${t.name}.`);
       else if (guard(r)) item(r, null, guard(r));
       else if (r.max_holders && current >= r.max_holders) item(r, null, `${r.position_name} already has ${current} of ${r.max_holders} holder${r.max_holders === 1 ? "" : "s"} in ${t.name}.`);
       else {
-        holdersIn.set(r.position_id, current + 1);
+        holdersIn.set(slot(r.position_id, unitOf(r)), current + 1);
         const k = `${r.section}|${r.unit_key ?? ""}`;
         const order = orders.get(k) ?? 0;
         orders.set(k, order + 1);
@@ -262,6 +267,8 @@ export async function previewBulk(ctx: Ctx, req: BulkRequest): Promise<BulkPlan>
 /** Apply the previewed change: rows that can't change are left out, the rest change together. */
 export async function applyBulk(ctx: Ctx, req: BulkRequest): Promise<{ changed: number; blocked: number; message: string }> {
   const actor = requireActor(ctx);
+  // Moving people into a position, or bringing listings back, can hand out sensitive permissions.
+  if (["position", "reactivate", "copy"].includes(req.action.op)) await requireRecentAuthForPositions(ctx, [req.action.op === "position" ? req.action.positionId : null], req.ids);
   const p = await plan(ctx, req);
   if (!p.plan.canApply) {
     // One listing (e.g. "Change position" on a single row): say why, there's no preview to read.
@@ -304,7 +311,7 @@ export async function applyBulk(ctx: Ctx, req: BulkRequest): Promise<{ changed: 
     stmts.push(assertStmt(ctx,
       `NOT EXISTS (SELECT 1 FROM committee_members cm JOIN positions ps ON ps.id = cm.position_id AND ps.max_holders IS NOT NULL
                    WHERE cm.committee_id IN (?1, ?2) AND cm.position_id IN (SELECT value FROM json_each(?3)) AND cm.deleted_at IS NULL AND cm.end_date IS NULL
-                   GROUP BY cm.committee_id, cm.position_id HAVING COUNT(*) > MAX(ps.max_holders))`,
+                   GROUP BY cm.committee_id, cm.position_id, IFNULL(cm.unit_key, '') HAVING COUNT(*) > MAX(ps.max_holders))`,
       p.committee.id, p.target?.id ?? p.committee.id, JSON.stringify(gaining)));
   }
   stmts.push(
@@ -345,7 +352,7 @@ export async function quickEditListings(ctx: Ctx, committeeId: string, raw: unkn
     else if ((name ?? "").length > 120) errors[r.id] = "Displayed name: at most 120 characters.";
     else if (!Number.isInteger(order) || order < 0 || order > 999) errors[r.id] = "Order: a whole number from 0 to 999.";
     else if (r.user_id && r.user_id === actor.user.id) errors[r.id] = "Your own listing: another administrator has to change it.";
-    else if (r.is_protected && !moderator) errors[r.id] = `${r.position_name} is protected: only a Moderator can change it.`;
+    else if (r.is_protected && !moderator) errors[r.id] = `${r.position_name} is protected: only a Moderator, the President or the General Secretary can change it.`;
     // Optimistic locking per row: someone else saved this listing after the page loaded.
     else if (typeof item.stamp === "string" && item.stamp && item.stamp !== r.updated_at) errors[r.id] = "Changed by someone else after you opened this page. Reload to see it.";
     if (errors[r.id]) continue;

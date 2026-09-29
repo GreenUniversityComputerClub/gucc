@@ -76,16 +76,16 @@ function SkillsInput({ initial }: { initial: string[] }) {
     <div className="grid gap-1.5">
       <Label htmlFor="p-skills">Skills <span className="font-normal text-muted-foreground">(up to 15)</span></Label>
       <input type="hidden" name="skills" value={skills.join(",")} />
-      <div className="flex flex-wrap gap-1.5 rounded-md border bg-background p-2">
+      <div className="flex flex-wrap gap-1.5 rounded-md border bg-background p-2 focus-within:ring-2 focus-within:ring-ring/50">
         {skills.map((s) => (
           <span key={s} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
             {s}
-            <button type="button" onClick={() => setSkills(skills.filter((x) => x !== s))} aria-label={`Remove ${s}`} className="rounded-full hover:bg-primary/20"><X className="h-3 w-3" /></button>
+            <button type="button" onClick={() => setSkills(skills.filter((x) => x !== s))} aria-label={`Remove ${s}`} className="-my-1 -mr-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-primary/20"><X className="h-3.5 w-3.5" /></button>
           </span>
         ))}
         <input id="p-skills" value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={add}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(); } if (e.key === "Backspace" && !draft && skills.length) setSkills(skills.slice(0, -1)); }}
-          placeholder={skills.length ? "Add another" : "e.g. Python, UI design, Public speaking"} className="min-w-32 flex-1 bg-transparent px-1 text-sm outline-none" />
+          placeholder={skills.length ? "Add another" : "e.g. Python, UI design, Public speaking"} className="min-h-8 min-w-32 flex-1 bg-transparent px-1 text-base outline-none md:text-sm" />
       </div>
     </div>
   );

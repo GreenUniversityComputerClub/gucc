@@ -9,6 +9,7 @@ import { Turnstile } from '@/components/turnstile'
 import { forgotPasswordAction } from '@/app/auth/actions'
 import Link from 'next/link'
 import { useCallback, useState, useTransition } from 'react'
+import { SPAM_HINT } from '@/lib/email-hint'
 
 export function ForgotPasswordForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
   const [email, setEmail] = useState('')
@@ -23,7 +24,7 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
     setError(null)
     start(async () => {
       const res = await forgotPasswordAction({ email, turnstileToken: token ?? undefined })
-      if (res.ok) setDone(res.data?.message ?? 'Check your email.')
+      if (res.ok) setDone(res.data?.message ?? `Check your email. ${SPAM_HINT}`)
       else setError(res.error)
     })
   }

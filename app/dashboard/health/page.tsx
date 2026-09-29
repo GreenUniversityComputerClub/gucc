@@ -79,7 +79,8 @@ export default async function HealthPage() {
     <div className="space-y-6">
       <PageHeader title="System health" description={`Checked just now (${new Date(h.checkedAt).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", dateStyle: "medium", timeStyle: "medium" })}). Each line is a live check, not a stored status.`}
         actions={<Link href="/dashboard/health" className="text-sm underline" prefetch={false}>Check again</Link>} />
-      <Section title={worst === "HEALTHY" ? "Everything checked is working" : worst === "ERROR" ? "Something needs attention" : "Working, with notes"}>
+      <Section title={checks.length === 0 ? "No checks ran" : worst === "HEALTHY" ? "Everything checked is working" : worst === "ERROR" ? "Something needs attention" : "Working, with notes"}>
+        {checks.length === 0 && <p className="text-sm text-muted-foreground">The API didn&apos;t return any checks. Reload the page; if it stays empty, the API may be older than this website.</p>}
         <ul className="divide-y">
           {checks.map((c) => (
             <li key={c.key} className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 py-3">
@@ -104,21 +105,21 @@ export default async function HealthPage() {
       <Section title="Switches" description="Anyone who can see this page can switch uploads or email off at once. Switching back on is a Moderator's decision.">
         <div className="divide-y">
           <Switch label="Uploads" keyName="media.uploads_enabled" on={controls.uploadsEnabled} controls={controls} />
-          {/* Email can be switched on only after a test email Resend accepted (in the last 7 days). */}
-          <Switch label="Email" keyName="email.enabled" on={controls.emailEnabled} controls={controls} canTurnOn={Boolean(h.email?.provider === "resend" && h.email.lastTestAt)}
+          {/* Email can be switched on only after a test email SMTP2GO accepted (in the last 7 days). */}
+          <Switch label="Email" keyName="email.enabled" on={controls.emailEnabled} controls={controls} canTurnOn={Boolean(h.email?.provider === "smtp2go" && h.email.lastTestAt)}
             extra={controls.canTestEmail && <ActionForm action={testEmailAction} submitLabel="Send me a test email" variant="outline" inline />} />
         </div>
         {h.email && !controls.emailEnabled && controls.canSwitchOn && (
           <p className="mt-2 text-sm text-muted-foreground">
-            {h.email.provider === "resend"
-              ? h.email.lastTestAt ? `The last test email was accepted by Resend on ${when(h.email.lastTestAt)}. Switch email on once it has arrived.` : "Send a test email first; switching on needs a successful test from the last 7 days."
-              : "Resend isn't configured on the API yet (RESEND_API_KEY and RESEND_FROM_EMAIL)."}
+            {h.email.provider === "smtp2go"
+              ? h.email.lastTestAt ? `The last test email was accepted by SMTP2GO on ${when(h.email.lastTestAt)}. Switch email on once it has arrived.` : "Send a test email first; switching on needs a successful test from the last 7 days."
+              : "SMTP2GO isn't configured on the API yet (the SMTP2GO_API_KEY secret and the EMAIL_FROM variable)."}
           </p>
         )}
       </Section>
 
       {h.email && (
-        <Section title="Email (last 24 hours)" description={`${h.email.last24h.sent} sent, ${h.email.last24h.failed} failed, ${h.email.last24h.skipped} not sent (daily limit, personal choice or email off). Each line is Resend's answer.`}>
+        <Section title="Email (last 24 hours)" description={`${h.email.last24h.sent} sent, ${h.email.last24h.failed} failed, ${h.email.last24h.skipped} not sent (daily or monthly limit, personal choice or email off). Each line is SMTP2GO's answer.`}>
           {h.email.recent.length === 0 ? <p className="text-sm text-muted-foreground">No emails yet.</p> : (
             <ul className="divide-y text-sm">
               {h.email.recent.map((r, i) => (

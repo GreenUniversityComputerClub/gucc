@@ -54,7 +54,7 @@ export default async function SecurityPage() {
           )}
         </Section>
 
-        <Section title="Sign-in email">
+        <Section title="Sign-in email" description="With club email working, a confirmation link goes to the new address and the change happens once you open it. Other devices are signed out either way.">
           <ActionForm action={changeEmailAction} submitLabel="Change email" resetOnSuccess>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field name="email" label="New email" type="email" required />

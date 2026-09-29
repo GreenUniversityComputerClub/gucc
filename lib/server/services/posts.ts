@@ -18,7 +18,7 @@ import { newId, nowIso, type D1StatementLike } from "../db";
 import { AppError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
 import { getSetting } from "../security";
 import { toSlug, Validator } from "../validate";
-import { registerApprovalHandler, startApproval } from "./approvals";
+import { registerApprovalHandler, startApproval, WITHDRAWN } from "./approvals";
 import { tagsForPost } from "./cache-tags";
 import { triggerStmts } from "../triggers";
 
@@ -67,16 +67,25 @@ async function ensureCategory(ctx: Ctx, name: string | null): Promise<string | n
   return (await ctx.db.first<{ id: string }>("SELECT id FROM categories WHERE kind = 'POST' AND slug = ?1", slug))?.id ?? null;
 }
 
+/** Three statements whatever the number of tags (the free plan allows 50 per request). */
 async function syncTags(ctx: Ctx, postId: string, tags: string[]): Promise<D1StatementLike[]> {
-  const stmts: D1StatementLike[] = [ctx.db.stmt("DELETE FROM post_tags WHERE post_id = ?1", postId)];
+  const bySlug = new Map<string, string>();
   for (const name of [...new Set(tags.map((t) => t.trim()).filter(Boolean))].slice(0, 20)) {
     const slug = toSlug(name);
-    if (!slug) continue;
-    const id = `tag_${slug}`;
-    stmts.push(ctx.db.stmt("INSERT INTO tags (id, slug, name, created_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(slug) DO NOTHING", id, slug, name, nowIso()));
-    stmts.push(ctx.db.stmt("INSERT INTO post_tags (post_id, tag_id) SELECT ?1, id FROM tags WHERE slug = ?2 ON CONFLICT DO NOTHING", postId, slug));
+    if (slug && !bySlug.has(slug)) bySlug.set(slug, name);
   }
-  return stmts;
+  const rows = JSON.stringify([...bySlug].map(([slug, name]) => ({ slug, name })));
+  return [
+    ctx.db.stmt("DELETE FROM post_tags WHERE post_id = ?1", postId),
+    ctx.db.stmt(
+      `INSERT INTO tags (id, slug, name, created_at)
+       SELECT 'tag_' || json_extract(j.value, '$.slug'), json_extract(j.value, '$.slug'), json_extract(j.value, '$.name'), ?2 FROM json_each(?1) AS j WHERE true
+       ON CONFLICT(slug) DO NOTHING`, rows, nowIso()),
+    ctx.db.stmt(
+      `INSERT INTO post_tags (post_id, tag_id)
+       SELECT ?1, t.id FROM tags t WHERE t.slug IN (SELECT json_extract(value, '$.slug') FROM json_each(?2))
+       ON CONFLICT DO NOTHING`, postId, rows),
+  ];
 }
 
 function parseInput(input: Record<string, unknown>) {
@@ -192,7 +201,9 @@ export async function updatePost(ctx: Ctx, id: string, input: Record<string, unk
     ctx.db.stmt(
       `UPDATE posts SET slug = ?2, title = ?3, subtitle = ?4, excerpt = ?5, body_markdown = ?6, category_id = ?7, featured_media_id = ?8, canonical_url = ?9,
               seo_title = ?10, seo_description = ?11, scheduled_at = ?12, read_time_minutes = ?13, current_version = ?14, updated_at = ?15, updated_by = ?16,
-              status = CASE WHEN status IN ('PENDING_APPROVAL','REJECTED','APPROVED') THEN 'DRAFT' ELSE status END
+              status = CASE WHEN status IN ('PENDING_APPROVAL','REJECTED','APPROVED') THEN 'DRAFT' ELSE status END,
+              -- A post scheduled for later follows its new publish time (cleared: it goes out now).
+              published_at = CASE WHEN status = 'PUBLISHED' AND published_at > ?15 THEN MAX(COALESCE(?12, ?15), ?15) ELSE published_at END
        WHERE id = ?1`,
       id, slug, d.title, d.subtitle, d.excerpt, d.body, categoryId, d.featuredMediaId, d.canonicalUrl, d.seoTitle, d.seoDescription, d.scheduledAt,
       readTime(d.body), version, now, actor.user.id,
@@ -280,8 +291,10 @@ registerApprovalHandler("posts.publish", {
       ...(await publishedTrigger(ctx, req.resource_id)),
     ];
   },
-  async onRejected(ctx, req) {
-    return [ctx.db.stmt("UPDATE posts SET status = 'REJECTED', updated_at = ?2 WHERE id = ?1 AND status = 'PENDING_APPROVAL'", req.resource_id, nowIso())];
+  async onRejected(ctx, req, note) {
+    // Withdrawn by the author: back to a draft to keep working on, not "sent back".
+    const status = note === WITHDRAWN ? "DRAFT" : "REJECTED";
+    return [ctx.db.stmt("UPDATE posts SET status = ?3, updated_at = ?2 WHERE id = ?1 AND status = 'PENDING_APPROVAL'", req.resource_id, nowIso(), status)];
   },
   tags: () => ["posts"],
 });

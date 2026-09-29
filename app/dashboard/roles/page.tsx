@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ShieldAlert, Users } from "lucide-react";
 import { requireAdmin, view } from "@/lib/api/session";
 import type { rolesOverview } from "@/lib/server/views/governance";
-import { ActionForm, Field, PageHeader, Section } from "@/components/admin/ui";
+import { ActionForm, EmptyState, Field, PageHeader, Section } from "@/components/admin/ui";
 import { PersonPicker } from "@/components/admin/person-picker";
 import { createRoleAction, grantRoleAction } from "../actions";
 
@@ -11,7 +11,9 @@ export default async function RolesPage() {
   const roles = await view<Awaited<ReturnType<typeof rolesOverview>>>("views.roles", {}, "/dashboard/roles");
   const mayAssign = Boolean(session.caps["roles.assign"]);
   const mayCreate = Boolean(session.caps["roles.create"]);
-  const grantable = roles.filter((r) => !["executive", "member"].includes(r.key));
+  // Automatic roles (from membership and committee listings) aren't given by hand, and only a
+  // Moderator gives the Moderator role.
+  const grantable = roles.filter((r) => !["executive", "member", "unit-executive"].includes(r.key) && (session.isModerator || !r.is_protected));
 
   return (
     <>
@@ -20,6 +22,7 @@ export default async function RolesPage() {
         description="Roles are granted to accounts; positions come from the current committee. Moderators, the President and the General Secretary manage roles. Nobody can change their own access or hand out more than they hold, the Moderator role stays with Moderators, and sensitive permissions granted by anyone else wait for a Moderator's approval."
         actions={<Link prefetch={false} href="/dashboard/access" className="rounded-md border px-3 py-2 text-sm hover:bg-muted">Who can do what</Link>}
       />
+      {roles.length === 0 && <EmptyState>No roles yet.</EmptyState>}
       <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {roles.map((r) => (
           <li key={r.id}>

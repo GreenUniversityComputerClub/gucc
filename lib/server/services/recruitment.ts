@@ -373,7 +373,7 @@ export async function reviewApplication(ctx: Ctx, id: string, input: { status: s
   return { message: "Updated." };
 }
 
-const csvCell = (v: unknown) => {
+export const csvCell = (v: unknown) => {
   const s = v === null || v === undefined ? "" : String(v);
   // Neutralise spreadsheet formulas, then quote.
   const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;

@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Rows } from "./structured-editors";
 import { uploadImage } from "@/lib/media/client";
 
-const input = "h-9 w-full rounded-md border border-input bg-background px-3 text-sm";
+const input = "h-10 w-full rounded-md border border-input bg-background px-3 text-base md:h-9 md:text-sm";
 const area = "min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
 const initialsOf = (name: string) => name.split(/\s+/).filter((w) => /^[A-Za-z]/.test(w) && !/^(Mr|Mrs|Ms|Md|Dr)\.?$/i.test(w)).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
 
@@ -85,10 +85,10 @@ export function HomeContentEditor({ initial }: { initial: HomeContent }) {
         <legend className="px-1 text-sm font-semibold">GUCC in Numbers</legend>
         <Rows rows={c.stats} setRows={(stats) => setC({ ...c, stats })} blank={{ value: 0, suffix: "+", label: "" }} addLabel="Add a figure" empty="No figures." max={4}
           render={(st, update) => (
-            <div className="grid grid-cols-[1fr_5rem_2fr] gap-2">
+            <div className="grid grid-cols-[1fr_4.5rem] gap-2 sm:grid-cols-[1fr_5rem_2fr]">
               <label className="grid gap-1 text-xs font-medium">Number<input type="number" min={0} className={input} value={st.value} onChange={(e) => update({ value: Number(e.target.value) || 0 })} /></label>
               <label className="grid gap-1 text-xs font-medium">After<input className={input} value={st.suffix ?? ""} maxLength={3} onChange={(e) => update({ suffix: e.target.value })} /></label>
-              <label className="grid gap-1 text-xs font-medium">Label<input className={input} value={st.label} onChange={(e) => update({ label: e.target.value })} /></label>
+              <label className="col-span-2 grid gap-1 text-xs font-medium sm:col-span-1">Label<input className={input} value={st.label} onChange={(e) => update({ label: e.target.value })} /></label>
             </div>
           )} />
       </fieldset>

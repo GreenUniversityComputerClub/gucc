@@ -15,6 +15,7 @@ import { AppError, ConflictError, NotFoundError, ValidationError } from "../erro
 import { notifyStmts } from "../notifications";
 import { assertStmt, batchTransition, staleAnswer, unchangedSince } from "../transition";
 import { STUDENT_ID_RE, toSlug, Validator } from "../validate";
+import { requireRecentAuthForPositions } from "../security";
 
 export interface CommitteeRow {
   id: string;
@@ -91,6 +92,11 @@ export async function updateCommittee(ctx: Ctx, id: string, input: Record<string
   if (!before) throw new NotFoundError("Committee");
   const decision = requirePermission(ctx, "committees.update", { type: "committee", id, committeeId: id });
   const d = committeeInput(input);
+  // The public site always shows one current committee: another becomes current ("Make … current"
+  // on it), which archives this one; this one can't simply be switched off.
+  if (before.status === "CURRENT" && d.status !== "CURRENT") {
+    throw new AppError(409, "CURRENT_COMMITTEE", "This is the current committee, shown on the public site. To change it, open the committee that takes over and make that one current; this one is archived automatically.");
+  }
   const clash = await ctx.db.first("SELECT id FROM committees WHERE slug = ?1 AND id <> ?2", d.slug, id);
   if (clash) throw new ConflictError("Another committee uses that URL segment.");
   const now = nowIso();
@@ -194,13 +200,16 @@ export async function assignExecutive(ctx: Ctx, committeeId: string, input: Reco
   v.done();
   const position = await ctx.db.first<{ id: string; key: string; name: string; is_protected: number; max_holders: number | null; is_active: number }>(
     "SELECT id, key, name, is_protected, max_holders, is_active FROM positions WHERE id = ?1 AND deleted_at IS NULL", d.positionId);
-  if (!position || !position.is_active) throw new NotFoundError("Position");
+  if (!position) throw new NotFoundError("Position");
+  if (!position.is_active) throw new AppError(409, "POSITION_INACTIVE", `The ${position.name} position is switched off. Switch it on from Positions first.`);
   assertCanEditProtected(actor.subject, `The ${position.name} position`, Boolean(position.is_protected));
+  await requireRecentAuthForPositions(ctx, [position.id]);
 
   const person = await findOrCreateProfile(ctx, { profileId: d.profileId, studentId: d.studentId, fullName: d.fullName, personType: d.section === "FACULTY" ? "FACULTY" : "STUDENT", designation: d.designation });
   assertNotSelf(actor.subject, person.userId, "position");
   if (position.max_holders) {
-    const holders = (await ctx.db.value<number>("SELECT COUNT(*) FROM committee_members WHERE committee_id = ?1 AND position_id = ?2 AND deleted_at IS NULL AND end_date IS NULL", committeeId, position.id)) ?? 0;
+    // Per unit: GUCC and an affiliated committee (e.g. CSS) each have their own President.
+    const holders = (await ctx.db.value<number>("SELECT COUNT(*) FROM committee_members WHERE committee_id = ?1 AND position_id = ?2 AND IFNULL(unit_key,'') = ?3 AND deleted_at IS NULL AND end_date IS NULL", committeeId, position.id, d.unitKey ?? "")) ?? 0;
     if (holders >= position.max_holders) throw new ConflictError(`${position.name} already has ${holders} of ${position.max_holders} allowed holder(s) in this committee. End the current assignment first.`);
   }
   const dup = await ctx.db.first("SELECT id FROM committee_members WHERE committee_id = ?1 AND profile_id = ?2 AND position_id = ?3 AND IFNULL(unit_key,'') = ?4 AND deleted_at IS NULL",
@@ -237,7 +246,7 @@ export async function assignExecutive(ctx: Ctx, committeeId: string, input: Reco
     // Checked again inside the transaction: two leaders appointing a President at the same moment
     // can't both succeed (the second batch aborts here).
     ...(position.max_holders
-      ? [assertStmt(ctx, "(SELECT COUNT(*) FROM committee_members WHERE committee_id = ?1 AND position_id = ?2 AND deleted_at IS NULL AND end_date IS NULL) < ?3", committeeId, position.id, position.max_holders)]
+      ? [assertStmt(ctx, "(SELECT COUNT(*) FROM committee_members WHERE committee_id = ?1 AND position_id = ?2 AND IFNULL(unit_key,'') = ?4 AND deleted_at IS NULL AND end_date IS NULL) < ?3", committeeId, position.id, position.max_holders, d.unitKey ?? "")]
       : []),
     ...person.stmts,
     ...(d.avatarMediaId ? [ctx.db.stmt("UPDATE profiles SET avatar_media_id = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1", person.id, d.avatarMediaId, now, actor.user.id)] : []),
@@ -275,13 +284,23 @@ export async function updateAssignment(ctx: Ctx, id: string, input: Record<strin
   };
   v.done();
   const now = nowIso();
-  await ctx.db.batch([
+  // Fields a form doesn't include keep their value (the per-row form has no bio); a field sent
+  // empty is cleared. A listing is active while its end date is open or in the future, in the
+  // current committee.
+  const keepBio = !("bio" in input);
+  const keepDesignation = !("designation" in input);
+  await batchTransition(ctx, [
+    ...(await unchangedSince(ctx, "committee_members", id, input.expectedUpdatedAt)),
     ctx.db.stmt(
-      "UPDATE committee_members SET position_title = ?2, display_order = ?3, start_date = ?4, end_date = ?5, bio = ?6, designation = COALESCE(?9, designation), is_active = CASE WHEN ?5 IS NOT NULL AND ?5 <= ?7 THEN 0 ELSE is_active END, updated_at = ?7, updated_by = ?8 WHERE id = ?1",
-      id, d.title, d.displayOrder, d.startDate, d.endDate, d.bio, now, actor.user.id, d.designation,
+      `UPDATE committee_members SET position_title = ?2, display_order = ?3, start_date = ?4, end_date = ?5,
+         bio = CASE WHEN ?10 = 1 THEN bio ELSE ?6 END, designation = CASE WHEN ?11 = 1 THEN designation ELSE ?9 END,
+         is_active = CASE WHEN ?5 IS NOT NULL AND ?5 <= ?7 THEN 0
+                          WHEN (SELECT status FROM committees WHERE id = committee_members.committee_id) = 'CURRENT' THEN 1 ELSE is_active END,
+         updated_at = ?7, updated_by = ?8 WHERE id = ?1`,
+      id, d.title, d.displayOrder, d.startDate, d.endDate, d.bio, now, actor.user.id, d.designation, keepBio ? 1 : 0, keepDesignation ? 1 : 0,
     ),
     auditStmt(ctx, { action: "executive.update", resourceType: "committee_member", resourceId: id, before: { title: before.position_title, order: before.display_order, endDate: before.end_date }, after: d, decision }),
-  ]);
+  ], () => staleAnswer(ctx, "committee_members", id));
   ctx.revalidate?.(["committees"]);
 }
 

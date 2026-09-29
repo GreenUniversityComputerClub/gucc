@@ -58,7 +58,7 @@ const HOME_DEFAULTS: HomeContent = {
     people: [
       { name: "Md. Monirul Islam", title: "Assistant Professor & Moderator, GUCC", photo: "/executives/monirul.cse.png", initials: "MI",
         message: "At GUCC, we witness remarkable growth in our CSE students — not just in technical expertise, but also in leadership and teamwork. This platform has become a cornerstone for empowering the next generation of tech leaders." },
-      { name: "Feroza Naznin", title: "Deputy Moderator, GUCC", photo: "/executives/feroza.png", initials: "FN",
+      { name: "Sagufta Sabah Nakshi", title: "Deputy Moderator, GUCC", photo: "/executives/nakshi.png", initials: "SN",
         message: "The energy and dedication our members bring to GUCC is truly inspiring. By bridging academic knowledge with real-world innovation, this club continues to nurture creativity, confidence, and community." },
       { name: "Montaser Abdul Quader", title: "Deputy Moderator, GUCC", photo: "/executives/montaser.cse.png", initials: "MQ",
         message: "GUCC embodies the spirit of collaboration and continuous improvement. It's a pleasure to watch our students take on challenges and transform them into meaningful impact, building a stronger tech future." },

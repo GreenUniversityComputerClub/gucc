@@ -38,16 +38,17 @@ export async function assistantChat(ctx: Ctx, input: { message?: unknown; histor
   if (!message) throw new ValidationError("Type a question.");
   if (message.length > 2000) throw new ValidationError("That message is too long.");
   const key = ctx.env.GOOGLE_API_KEY;
+  // Built once per question and shared with the data-only answer below.
+  const data = await publicContext(ctx);
   // Without a model key the assistant still answers the common questions from the club's own data.
-  if (!key) return { response: await answerFromData(ctx, message) };
+  if (!key) return { response: await answerFromData(ctx, message, data) };
   // A daily ceiling on AI answers (atomic), so a paid key can never run up a bill.
   const dailyLimit = await getSetting(ctx, "assistant.daily_limit", 300);
-  if (!(await reserve(ctx, "ai.answers", 1, dailyLimit))) return { response: await answerFromData(ctx, message) };
+  if (!(await reserve(ctx, "ai.answers", 1, dailyLimit))) return { response: await answerFromData(ctx, message, data) };
   const history = (Array.isArray(input.history) ? input.history : [])
     .filter((t): t is Turn => Boolean(t) && typeof t === "object" && ["user", "model"].includes((t as Turn).role) && typeof (t as Turn).text === "string")
     .slice(-10)
     .map((t) => ({ role: t.role, parts: [{ text: t.text.slice(0, 2000) }] }));
-  const data = await publicContext(ctx);
   const system = `You are the GUCC Assistant for the Green University Computer Club (Green University of Bangladesh).
 Answer professionally in at most three short sentences. Use only this public information; if you don't know, say so and suggest contacting gucc@green.edu.bd. Never share phone numbers, emails or social media IDs of individuals.
 Knowledge: ${JSON.stringify(data.predefined)}
@@ -56,6 +57,8 @@ Executive committees: ${JSON.stringify(data.executives)}`;
   const model = ctx.env.GEMINI_MODEL || "gemini-2.5-flash";
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
+    // A slow model must not hold the chat (or the Worker) for long; the data-only answer takes over.
+    signal: AbortSignal.timeout(20_000),
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
@@ -63,17 +66,22 @@ Executive committees: ${JSON.stringify(data.executives)}`;
       generationConfig: { temperature: 0.6, maxOutputTokens: 512 },
       safetySettings: ["HARM_CATEGORY_HARASSMENT", "HARM_CATEGORY_HATE_SPEECH", "HARM_CATEGORY_SEXUALLY_EXPLICIT", "HARM_CATEGORY_DANGEROUS_CONTENT"].map((category) => ({ category, threshold: "BLOCK_MEDIUM_AND_ABOVE" })),
     }),
+  }).catch((e: unknown) => {
+    console.error(`[${ctx.meta.requestId}] assistant upstream unreachable`, e instanceof Error ? e.name : e);
+    return null;
   });
-  if (!res.ok) {
-    console.error(`[${ctx.meta.requestId}] assistant upstream status ${res.status}`);
+  if (!res || !res.ok) {
+    if (res) console.error(`[${ctx.meta.requestId}] assistant upstream status ${res.status}`);
+    // The model didn't answer, so this question doesn't use the day's AI allowance.
     await release(ctx, "ai.answers", 1).catch(() => undefined);
-    const fallback = await answerFromData(ctx, message).catch(() => null);
+    const fallback = await answerFromData(ctx, message, data).catch(() => null);
     if (fallback) return { response: fallback };
-    throw new AppError(502, "ASSISTANT_UNAVAILABLE", res.status === 429 ? "The assistant is busy. Try again in a minute." : "The assistant is unavailable right now. Please try again later.");
+    throw new AppError(502, "ASSISTANT_UNAVAILABLE", res?.status === 429 ? "The assistant is busy. Try again in a minute." : "The assistant is unavailable right now. Please try again later.");
   }
-  const out = (await res.json()) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
-  const text = out.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("").trim();
-  return { response: text || "Sorry, I couldn't find an answer to that." };
+  const out = (await res.json().catch(() => null)) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> } | null;
+  const text = out?.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("").trim();
+  // Nothing usable (e.g. blocked by the safety filters): answer from the club's own data instead.
+  return { response: text || (await answerFromData(ctx, message, data)) };
 }
 
 type Knowledge = {
@@ -89,10 +97,10 @@ type Knowledge = {
  * Answers without an AI model: matches the question to a topic and replies from public data
  * (the knowledge setting, events, the current committee and recruitment). Never invents.
  */
-export async function answerFromData(ctx: Ctx, message: string): Promise<string> {
+export async function answerFromData(ctx: Ctx, message: string, known?: Awaited<ReturnType<typeof publicContext>>): Promise<string> {
   const q = message.toLowerCase();
   const has = (...words: string[]) => words.some((w) => q.includes(w));
-  const data = await publicContext(ctx);
+  const data = known ?? (await publicContext(ctx));
   const k = (data.predefined ?? {}) as Knowledge;
   const email = k.location?.email ?? "gucc@green.edu.bd";
   const dateText = (d: string) => new Date(`${d.slice(0, 10)}T00:00:00+06:00`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Dhaka" });

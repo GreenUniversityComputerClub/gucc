@@ -139,12 +139,13 @@ export async function fetchCloudflareUsage(ctx: Ctx, now = new Date()): Promise<
 /** The app's own counters, available without any token. */
 export async function appUsage(ctx: Ctx, now = new Date()) {
   const month = now.toISOString().slice(0, 7);
-  const row = await ctx.db.first<{ stored: number | null; writes_today: number | null; writes_month: number | null; ai_today: number | null; email_today: number | null }>(
+  const row = await ctx.db.first<{ stored: number | null; writes_today: number | null; writes_month: number | null; ai_today: number | null; email_today: number | null; email_month: number | null }>(
     `SELECT (SELECT count FROM usage_counters WHERE day = 'total' AND key = 'r2.stored_bytes') AS stored,
             (SELECT count FROM usage_counters WHERE day = ?1 AND key = 'r2.objects') AS writes_today,
             (SELECT SUM(count) FROM usage_counters WHERE day LIKE ?2 AND key = 'r2.objects') AS writes_month,
             (SELECT count FROM usage_counters WHERE day = ?1 AND key = 'ai.answers') AS ai_today,
-            (SELECT count FROM usage_counters WHERE day = ?1 AND key = 'email.sent') AS email_today`,
+            (SELECT count FROM usage_counters WHERE day = ?1 AND key = 'email.sent') AS email_today,
+            (SELECT SUM(count) FROM usage_counters WHERE day LIKE ?2 AND key = 'email.sent') AS email_month`,
     utcDay(now), `${month}-%`);
   return {
     storedBytes: row?.stored ?? 0,
@@ -152,6 +153,7 @@ export async function appUsage(ctx: Ctx, now = new Date()) {
     objectWritesThisMonth: row?.writes_month ?? 0,
     aiAnswersToday: row?.ai_today ?? 0,
     emailsToday: row?.email_today ?? 0,
+    emailsThisMonth: row?.email_month ?? 0,
   };
 }
 

@@ -62,8 +62,9 @@ export interface ServiceEnv {
   /** Secret mixed into every password hash; never stored in the database. */
   PASSWORD_PEPPER?: string;
   TURNSTILE_SECRET_KEY?: string;
-  RESEND_API_KEY?: string;
-  RESEND_FROM_EMAIL?: string;
+  SMTP2GO_API_KEY?: string;
+  /** The verified SMTP2GO sender, e.g. "GUCC <gucc@green.edu.bd>". */
+  EMAIL_FROM?: string;
   CONTACT_EMAIL?: string;
   /** Google Gemini key for the site assistant (optional). */
   GOOGLE_API_KEY?: string;
@@ -90,7 +91,7 @@ export interface Ctx {
   actor: Actor | null;
   session?: SessionInfo;
   media?: MediaBuckets;
-  /** Outgoing email hook; defaults to Resend or the console. Tests capture it. */
+  /** Outgoing email hook; defaults to SMTP2GO or the console. Tests capture it. */
   sendEmail?: (msg: { to: string; subject: string; text: string; html?: string; replyTo?: string }) => Promise<void>;
   /** Called after writes so cached public pages refresh. */
   revalidate?: (tags: string[]) => void;

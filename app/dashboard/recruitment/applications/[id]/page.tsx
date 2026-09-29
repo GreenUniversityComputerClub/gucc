@@ -22,7 +22,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-6">
           <Section title="Application">
-            <dl className="grid grid-cols-[9rem_1fr] gap-y-2 text-sm">{rows.map(([k, val]) => <Fragment key={k}><dt className="text-muted-foreground">{k}</dt><dd className="break-words">{val}</dd></Fragment>)}</dl>
+            <dl className="grid grid-cols-1 gap-y-1 text-sm sm:grid-cols-[9rem_1fr] sm:gap-y-2">{rows.map(([k, val]) => <Fragment key={k}><dt className="text-muted-foreground">{k}</dt><dd className="break-words">{val}</dd></Fragment>)}</dl>
             {a.club_work ? <div className="mt-4"><p className="text-sm font-medium">Club work / experience</p><p className="mt-1 whitespace-pre-wrap text-sm">{String(a.club_work)}</p></div> : null}
           </Section>
           <Section title="Documents" description="Private files. Links are signed and expire in 15 minutes; reload the page for fresh links.">
@@ -50,7 +50,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
           <ActionForm action={assignReviewerAction.bind(null, id)} submitLabel="Save">
             <label className="grid gap-1 text-sm">
               <span className="sr-only">Assigned reviewer</span>
-              <select name="reviewerId" defaultValue={a.assigned_to ? String(a.assigned_to) : ""} className="h-9 w-full rounded-md border bg-background px-2 text-sm">
+              <select name="reviewerId" defaultValue={a.assigned_to ? String(a.assigned_to) : ""} className="h-10 md:h-9 w-full rounded-md border bg-background px-2 text-base md:text-sm">
                 <option value="">Nobody assigned</option>
                 {reviewers.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
@@ -64,7 +64,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
             </ul>
           ) : a.reviewer_note ? <p className="mb-3 rounded-md bg-muted p-2 text-xs">Note: {String(a.reviewer_note)}</p> : null}
           <ActionForm action={addApplicationNoteAction.bind(null, id)} submitLabel="Add note" resetOnSuccess>
-            <textarea name="note" rows={2} required placeholder="e.g. Strong programming background; interview on Sunday" aria-label="New note" className="w-full rounded-md border bg-background p-2 text-sm" />
+            <textarea name="note" rows={2} required placeholder="e.g. Strong programming background; interview on Sunday" aria-label="New note" className="w-full rounded-md border bg-background p-2 text-base md:text-sm" />
           </ActionForm>
         </Section>
         <Section title="Decision">
@@ -72,7 +72,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
             {statuses.map(([status, label, variant]) => (
               <ActionForm key={status} action={reviewApplicationAction.bind(null, id, status)} submitLabel={label} variant={variant} confirm={status === "REJECTED" ? "Reject this application?" : undefined}>
                 <label className="flex items-center gap-2 text-xs"><input type="checkbox" name="notify" /> Email the applicant</label>
-                <textarea name="note" rows={1} placeholder="Note for reviewers (optional)" aria-label={`Note with ${label.toLowerCase()}`} className="w-full rounded-md border bg-background p-2 text-sm" />
+                <textarea name="note" rows={1} placeholder="Note for reviewers (optional)" aria-label={`Note with ${label.toLowerCase()}`} className="w-full rounded-md border bg-background p-2 text-base md:text-sm" />
               </ActionForm>
             ))}
           </div>

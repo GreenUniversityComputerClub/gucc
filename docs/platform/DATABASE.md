@@ -71,7 +71,7 @@ automatic Worker rollback safe: the previous Worker still runs on the migrated d
 - `usage_counters`: atomic daily budgets (`day`, `key`, `count`): R2 files written, applicant
   files, AI answers, emails; `day = 'total'` holds the running total of stored bytes.
 - `idempotency_keys`: a repeated action within 10 seconds gets the first answer.
-- `error_events` (unexpected errors, for System health), `email_log` (every email and Resend's
+- `error_events` (unexpected errors, for System health), `email_log` (every email and SMTP2GO's
   answer), `notification_preferences` (each person's email choices).
 - `batch_assertions`: never holds a row; inserting into it aborts the batch. Used to make
   multi-step changes race-free (below).

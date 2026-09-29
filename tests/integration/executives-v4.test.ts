@@ -30,8 +30,9 @@ beforeEach(async () => {
 describe("remove as a mistake, then restore", () => {
   it("hides the listing, lists it for 30 days, and restores it exactly", async () => {
     const plan = await previewBulk(await w.ctx(gs), { committeeId: w.committeeId, ids: ["cm_a", "cm_mod"], action: { op: "remove" } });
-    expect(plan.items.find((i) => i.id === "cm_mod")?.blocked).toMatch(/protected/);
-    await applyBulk(await w.ctx(gs), { committeeId: w.committeeId, ids: ["cm_a", "cm_mod"], action: { op: "remove" } });
+    // The General Secretary has the Moderators' authority: a Moderator's listing can be removed too.
+    expect(plan.items.find((i) => i.id === "cm_mod")?.blocked).toBeFalsy();
+    await applyBulk(await w.ctx(gs), { committeeId: w.committeeId, ids: ["cm_a"], action: { op: "remove" } });
     expect(row("cm_a").deleted_at).toBeTruthy();
     expect(row("cm_mod").deleted_at).toBeNull();
     await applyBulk(await w.ctx(gs), { committeeId: w.committeeId, ids: ["cm_a"], action: { op: "restore" } });
@@ -52,7 +53,7 @@ describe("quick edit", () => {
     ]);
     expect(r.changed).toBe(1);
     expect(row("cm_a")).toMatchObject({ position_title: "Executive Member (Design)", display_name: "Asha R.", display_order: 2 });
-    await expect(quickEditListings(await w.ctx(gs), w.committeeId, [{ id: "cm_mod", title: "Chief", displayName: "", order: 0 }])).rejects.toMatchObject({ code: "VALIDATION" });
+    expect((await quickEditListings(await w.ctx(gs), w.committeeId, [{ id: "cm_mod", title: "Chief Moderator", displayName: "", order: 0 }])).changed).toBe(1);
     await expect(quickEditListings(await w.ctx(gs), w.committeeId, [{ id: "cm_b", title: "", displayName: "", order: 1 }])).rejects.toMatchObject({ fields: { cm_b: expect.stringMatching(/Title/) } });
     const member = await w.user({ email: "m@x.bd", roles: ["member"] });
     await expect(quickEditListings(await w.ctx(member), w.committeeId, [{ id: "cm_b", title: "x", displayName: "", order: 1 }])).rejects.toMatchObject({ code: "FORBIDDEN" });

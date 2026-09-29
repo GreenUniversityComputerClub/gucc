@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { detectFormat } from "@/lib/executive-import/parse";
 import type { ImportPlan, ImportResult, PlanRow, RowAction } from "@/lib/server/services/executive-import";
 import { applyImportAction, previewImportAction, type ImportPayload } from "../../actions";
+import { ReauthPrompt } from "@/components/admin/ui";
 
 type Choice = { skip?: boolean; profileId?: string };
 
@@ -38,6 +39,7 @@ export function ImportClient({ committees, defaultCommitteeId }: { committees: A
   const [stale, setStale] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reauth, setReauth] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "attention" | "changes">("all");
   const [pending, start] = useTransition();
 
@@ -80,11 +82,11 @@ export function ImportClient({ committees, defaultCommitteeId }: { committees: A
       }
     });
 
-  const doImport = () => {
+  const doImport = (confirmed = false) => {
     if (!plan) return;
     const s = plan.summary;
     const what = [s.newPeople && `${s.newPeople} new ${s.newPeople === 1 ? "person" : "people"}`, s.create + s.assign && `${s.create + s.assign} new listing${s.create + s.assign === 1 ? "" : "s"}`, s.update && `${s.update} update${s.update === 1 ? "" : "s"}`].filter(Boolean).join(", ");
-    if (!window.confirm(`Import ${what}? This is recorded in the audit log.`)) return;
+    if (!confirmed && !window.confirm(`Import ${what}? This is recorded in the audit log.`)) return;
     start(async () => {
       setError(null);
       try {
@@ -92,7 +94,8 @@ export function ImportClient({ committees, defaultCommitteeId }: { committees: A
         if (r.ok) {
           setResult(r.data ?? null);
           setPlan(null);
-        } else setError(r.error);
+        } else if (r.code === "REAUTH_REQUIRED") setReauth(r.error);
+        else setError(r.error);
       } catch {
         setError("Could not reach the server. Check your connection and try again.");
       }
@@ -189,6 +192,7 @@ export function ImportClient({ committees, defaultCommitteeId }: { committees: A
       </section>
 
       {error && <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>}
+      {reauth && <ReauthPrompt message={reauth} onConfirmed={() => { setReauth(null); doImport(true); }} onCancel={() => setReauth(null)} />}
 
       {plan && (
         <section className="space-y-4" aria-labelledby="step-review">
@@ -259,7 +263,7 @@ export function ImportClient({ committees, defaultCommitteeId }: { committees: A
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-3">
-                <Button onClick={doImport} disabled={pending || !plan.canImport}>{pending ? "Importing…" : "Import"}</Button>
+                <Button onClick={() => doImport()} disabled={pending || !plan.canImport}>{pending ? "Importing…" : "Import"}</Button>
                 <span className="text-sm text-muted-foreground">
                   {plan.canImport
                     ? "Everything above is applied in one step, or nothing is."

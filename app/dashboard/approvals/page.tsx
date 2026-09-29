@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { requireAdmin, view } from "@/lib/api/session";
+import { requireSignedIn, view } from "@/lib/api/session";
 import type { listApprovals } from "@/lib/server/services/approvals";
 import type { publishersSummary } from "@/lib/server/services/access";
-import { ActionForm, EmptyState, PageHeader, Section, StatusBadge } from "@/components/admin/ui";
+import { ActionForm, EmptyState, Pager, PageHeader, Section, StatusBadge } from "@/components/admin/ui";
 import { bulkApproveAction, ruleStatusAction } from "../actions";
 
 type Publishers = Awaited<ReturnType<typeof publishersSummary>>;
@@ -10,22 +10,27 @@ const scopeWord = (scope: string, value: string) => (scope === "ALL" ? "all" : s
 const what = (k: string) => (k === "posts.publish" ? "posts" : k === "events.publish" ? "events" : "everything");
 
 export default async function ApprovalsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const session = await requireAdmin("/dashboard/approvals");
+  // Everyone can follow their own requests here; leaders see the rest.
+  const session = await requireSignedIn("/dashboard/approvals");
+  const reads = Boolean(session.caps["approvals.read"]);
   const sp = await searchParams;
   const status = sp.status ?? "PENDING";
+  const page = Math.max(1, Number(sp.page) || 1);
   const [rows, publishers] = await Promise.all([
-    view<Awaited<ReturnType<typeof listApprovals>>>("approvals.list", { status, mine: sp.mine === "1" }, "/dashboard/approvals"),
-    view<Publishers>("access.publishers", {}, "/dashboard/approvals"),
+    view<Awaited<ReturnType<typeof listApprovals>>>("approvals.list", { status, mine: sp.mine === "1", page }, "/dashboard/approvals"),
+    reads ? view<Publishers>("access.publishers", {}, "/dashboard/approvals") : Promise.resolve(null),
   ]);
   const tabs = [["PENDING", "Pending"], ["APPROVED", "Approved"], ["REJECTED", "Changes requested"], ["ALL", "All"]];
-  const decidable = rows.filter((r) => r.canDecide && r.status === "PENDING");
+  // Access changes are decided one at a time from their own page, never in bulk.
+  const bulkable = (r: (typeof rows)[number]) => r.canDecide && r.status === "PENDING" && r.resource_type !== "governance";
+  const decidable = rows.filter(bulkable);
   const mayRules = Boolean(session.caps["rules.activate"]);
   const list = (
     <ul className="divide-y rounded-xl border bg-card">
       {rows.map((r) => (
         <li key={r.id} className="flex flex-wrap items-center gap-3 p-4">
-          {r.canDecide && r.status === "PENDING" ? (
-            <input type="checkbox" name="ids" value={r.id} aria-label={`Select ${r.title ?? r.action}`} className="h-4 w-4" />
+          {bulkable(r) ? (
+            <input type="checkbox" name="ids" value={r.id} aria-label={`Select ${r.title ?? r.action}`} className="h-5 w-5" />
           ) : null}
           <div className="min-w-0 flex-1">
             <Link prefetch={false} href={`/dashboard/approvals/${r.id}`} className="font-medium hover:underline">{r.title ?? r.action}</Link>
@@ -47,9 +52,9 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
       <PageHeader title="Approvals" description="Posts, events and access changes waiting for a decision. You can decide where the approval policy names you; you never approve your own requests." />
       <div className="mb-4 flex flex-wrap gap-2 text-sm">
         {tabs.map(([k, label]) => (
-          <Link prefetch={false} key={k} href={`/dashboard/approvals?status=${k}${sp.mine === "1" ? "&mine=1" : ""}`} className={`rounded-full border px-3 py-1 ${status === k ? "bg-primary text-primary-foreground" : ""}`}>{label}</Link>
+          <Link prefetch={false} key={k} href={`/dashboard/approvals?status=${k}${sp.mine === "1" ? "&mine=1" : ""}`} className={`inline-flex min-h-9 items-center rounded-full border px-3 ${status === k ? "bg-primary text-primary-foreground" : ""}`}>{label}</Link>
         ))}
-        <Link prefetch={false} href={`/dashboard/approvals?status=${status}${sp.mine === "1" ? "" : "&mine=1"}`} className="rounded-full border px-3 py-1">{sp.mine === "1" ? "Everyone's" : "Only mine"}</Link>
+        <Link prefetch={false} href={`/dashboard/approvals?status=${status}${sp.mine === "1" ? "" : "&mine=1"}`} className="inline-flex min-h-9 items-center rounded-full border px-3">{sp.mine === "1" ? "Everyone's" : "Only mine"}</Link>
       </div>
       {rows.length === 0 ? (
         <EmptyState>No requests here.</EmptyState>
@@ -58,7 +63,9 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
           {list}
         </ActionForm>
       ) : list}
+      <Pager page={page} hasMore={rows.length === 50} base="/dashboard/approvals" params={{ status, mine: sp.mine }} />
 
+      {publishers && (
       <Section title="Who can publish without approval" description="Everyone else's posts and events come here first." className="mt-8">
         <div className="grid gap-6 md:grid-cols-2">
           <div>
@@ -106,6 +113,7 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
           </div>
         )}
       </Section>
+      )}
     </>
   );
 }

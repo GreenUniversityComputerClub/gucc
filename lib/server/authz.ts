@@ -3,7 +3,7 @@
  * This is the single entry point for authorization: services call
  * `authorize()` / `requirePermission()`, never compare role or position names.
  */
-import { evaluate, heldScopes } from "../governance/engine";
+import { evaluate, heldScopes, MODERATOR_EQUAL_POSITIONS } from "../governance/engine";
 import type { Decision, Grant, Resource, Rule, RuleEffect, Scope, Subject, SubjectPosition } from "../governance/types";
 import type { Actor, Ctx } from "./context";
 import type { Db } from "./db";
@@ -26,6 +26,22 @@ const MY_LISTINGS = `
   WHERE cm.deleted_at IS NULL AND cm.is_active = 1 AND (cm.end_date IS NULL OR cm.end_date >= date('now'))`;
 
 const MY_POSITION_IDS = `SELECT cm.position_id ${MY_LISTINGS} AND ${GOVERNING_UNIT_SQL}`;
+/** The account holds the President's or the General Secretary's position (equal to a Moderator). */
+const MY_MODERATOR_EQUAL = `SELECT 1 FROM positions lp WHERE lp.id IN (${MY_POSITION_IDS}) AND lp.key IN (${MODERATOR_EQUAL_POSITIONS.map((k) => `'${k}'`).join(", ")})`;
+
+/**
+ * SQL: does the account `userCol` hold Moderator authority (the Moderator role, or the President's
+ * or General Secretary's position in a governing unit of the current committee)?
+ */
+export const HAS_MODERATOR_AUTHORITY_SQL = (userCol: string) => `(
+  EXISTS (SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+          WHERE ur.user_id = ${userCol} AND ur.revoked_at IS NULL AND (ur.expires_at IS NULL OR ur.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now')) AND r.is_protected = 1)
+  OR EXISTS (SELECT 1 FROM committee_members cm
+          JOIN profiles pr ON pr.id = cm.profile_id AND pr.user_id = ${userCol} AND pr.deleted_at IS NULL
+          JOIN committees c ON c.id = cm.committee_id AND c.status = 'CURRENT' AND c.deleted_at IS NULL
+          JOIN positions p ON p.id = cm.position_id AND p.is_active = 1 AND p.deleted_at IS NULL
+          WHERE cm.deleted_at IS NULL AND cm.is_active = 1 AND (cm.end_date IS NULL OR cm.end_date >= date('now')) AND ${GOVERNING_UNIT_SQL}
+            AND p.key IN (${MODERATOR_EQUAL_POSITIONS.map((k) => `'${k}'`).join(", ")})))`;
 const MY_AFFILIATE_LISTING = `SELECT 1 ${MY_LISTINGS} AND NOT ${GOVERNING_UNIT_SQL}`;
 
 export async function loadActor(db: Db, userId: string): Promise<Actor | null> {
@@ -53,21 +69,25 @@ export async function loadActor(db: Db, userId: string): Promise<Actor | null> {
       userId,
     ),
     db.stmt(
-      `SELECT 'role:' || r.key AS source, pm.key AS permission, rp.scope, rp.scope_value, pm.is_sensitive
+      `SELECT 'role:' || r.key AS source, pm.key AS permission, rp.scope, rp.scope_value, pm.is_sensitive,
+              COALESCE((SELECT MIN(ur.granted_at) FROM user_roles ur WHERE ur.user_id = ?1 AND ur.role_id = r.id AND ur.revoked_at IS NULL),
+                       (SELECT MIN(MAX(cm.created_at, COALESCE(cm.start_date, ''))) ${MY_LISTINGS})) AS since
        FROM role_permissions rp
        JOIN roles r ON r.id = rp.role_id AND r.deleted_at IS NULL
        JOIN permissions pm ON pm.id = rp.permission_id
        WHERE r.id IN (SELECT role_id FROM user_roles WHERE user_id = ?1 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?2))
           OR (r.key = 'executive' AND EXISTS (${MY_POSITION_IDS}))
+          OR (r.key = 'moderator' AND EXISTS (${MY_MODERATOR_EQUAL}))
           OR (r.key = 'unit-executive' AND EXISTS (${MY_AFFILIATE_LISTING}) AND NOT EXISTS (${MY_POSITION_IDS}))
        UNION ALL
-       SELECT 'position:' || p.key, pm.key, pp.scope, pp.scope_value, pm.is_sensitive
+       SELECT 'position:' || p.key, pm.key, pp.scope, pp.scope_value, pm.is_sensitive,
+              (SELECT MIN(MAX(cm.created_at, COALESCE(cm.start_date, ''))) ${MY_LISTINGS} AND cm.position_id = p.id)
        FROM position_permissions pp
        JOIN positions p ON p.id = pp.position_id AND p.is_active = 1 AND p.deleted_at IS NULL
        JOIN permissions pm ON pm.id = pp.permission_id
        WHERE pp.position_id IN (${MY_POSITION_IDS})
        UNION ALL
-       SELECT 'direct', pm.key, up.scope, up.scope_value, pm.is_sensitive
+       SELECT 'direct', pm.key, up.scope, up.scope_value, pm.is_sensitive, up.granted_at
        FROM user_permissions up
        JOIN permissions pm ON pm.id = up.permission_id
        WHERE up.user_id = ?1 AND up.revoked_at IS NULL AND (up.expires_at IS NULL OR up.expires_at > ?2)`,
@@ -88,6 +108,8 @@ export async function loadActor(db: Db, userId: string): Promise<Actor | null> {
   }));
   const roles = [...new Set((roleRes.results ?? []).map((r) => String(r.key)))];
   if (positions.length > 0 && !roles.includes("executive")) roles.push("executive");
+  // The President and the General Secretary have the Moderators' authority (while they hold the position).
+  if (positions.some((p) => (MODERATOR_EQUAL_POSITIONS as readonly string[]).includes(p.key)) && !roles.includes("moderator")) roles.push("moderator");
   // Affiliated committees (e.g. CSS) only: their own content, with the leaders' approval.
   if (positions.length === 0 && (affiliateRes.results ?? []).length > 0 && !roles.includes("unit-executive")) roles.push("unit-executive");
   const allGrants = (grantRes.results ?? []).map((g) => ({
@@ -96,23 +118,29 @@ export async function loadActor(db: Db, userId: string): Promise<Actor | null> {
     scopeValue: String(g.scope_value ?? ""),
     source: String(g.source),
     sensitive: Number(g.is_sensitive) === 1,
+    since: typeof g.since === "string" ? g.since : null,
   }));
-  const security = mfaState(row, allGrants.some((g) => g.sensitive));
+  // When the account first held a sensitive permission it holds now: the two-factor grace period
+  // starts there, not when the account was created (a long-standing member who is promoted gets
+  // the full grace period).
+  const sensitiveSince = allGrants.filter((g) => g.sensitive && g.since).map((g) => g.since!).sort()[0] ?? null;
+  const security = mfaState(row, allGrants.some((g) => g.sensitive), sensitiveSince);
   // Past the grace period without two-factor, sensitive permissions are withheld (everything
   // else keeps working, including turning two-factor on).
-  const grants: Grant[] = allGrants.filter((g) => !(security.mfaBlocked && g.sensitive)).map(({ sensitive: _s, ...g }) => g);
+  const grants: Grant[] = allGrants.filter((g) => !(security.mfaBlocked && g.sensitive)).map(({ sensitive: _s, since: _since, ...g }) => g);
   const subject: Subject = { userId: user.id, status: user.status, roles, positions, grants };
   const rules = await loadRules(db);
   const profile = (profileRes.results?.[0] as Actor["profile"]) ?? null;
   return { user, profile, subject, rules, security };
 }
 
-function mfaState(row: { created_at: string; mfa_at: string | null; mfa_required: string | null; mfa_required_since: string | null; mfa_grace_days: string | null }, holdsSensitive: boolean) {
+function mfaState(row: { created_at: string; mfa_at: string | null; mfa_required: string | null; mfa_required_since: string | null; mfa_grace_days: string | null }, holdsSensitive: boolean, sensitiveSince: string | null = null) {
   const mfaEnabled = Boolean(row.mfa_at);
   const mfaRequired = holdsSensitive && row.mfa_required !== "false";
   const graceDays = Number(row.mfa_grace_days ?? 7);
-  // The grace period runs from when the rule was switched on, or from when the account was created.
-  const since = [row.created_at, row.mfa_required_since].filter(Boolean).sort().at(-1) ?? row.created_at;
+  // The grace period runs from the latest of: the account's creation, the rule being switched on,
+  // and the account first holding a sensitive permission.
+  const since = [row.created_at, row.mfa_required_since, sensitiveSince].filter(Boolean).sort().at(-1) ?? row.created_at;
   const mfaDeadline = mfaRequired && !mfaEnabled ? new Date(new Date(since).getTime() + (Number.isFinite(graceDays) ? graceDays : 7) * 86_400_000).toISOString() : null;
   return { mfaEnabled, holdsSensitive, mfaRequired, mfaDeadline, mfaBlocked: Boolean(mfaDeadline && mfaDeadline < nowIso()) };
 }
@@ -239,7 +267,7 @@ export async function eventResource(db: Db, id: string): Promise<Resource | null
 export async function userResource(db: Db, id: string): Promise<Resource | null> {
   const row = await db.first<{ id: string; status: string; is_mod: number }>(
     `SELECT u.id, u.status,
-            EXISTS (SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = u.id AND ur.revoked_at IS NULL AND r.is_protected = 1) AS is_mod
+            ${HAS_MODERATOR_AUTHORITY_SQL("u.id")} AS is_mod
      FROM users u WHERE u.id = ?1 AND u.deleted_at IS NULL`,
     id,
   );

@@ -19,8 +19,9 @@ export interface Env {
   AUTH_SECRET?: string;
   PASSWORD_PEPPER?: string;
   TURNSTILE_SECRET_KEY?: string;
-  RESEND_API_KEY?: string;
-  RESEND_FROM_EMAIL?: string;
+  SMTP2GO_API_KEY?: string;
+  /** The verified SMTP2GO sender, e.g. "GUCC <gucc@green.edu.bd>". */
+  EMAIL_FROM?: string;
   CONTACT_EMAIL?: string;
   GOOGLE_API_KEY?: string;
   GEMINI_MODEL?: string;

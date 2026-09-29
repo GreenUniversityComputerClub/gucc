@@ -8,7 +8,7 @@ import type { rolesOverview } from "@/lib/server/views/governance";
 import { GrantRoleBar } from "./grant-role-bar";
 import { approveAndLinkAction, approveMemberAction, linkProfileAction, reactivateUserAction, rejectMemberAction, requestCorrectionAction, reviewNoteAction, suspendUserAction } from "../actions";
 
-const TABS: Array<[string, string]> = [["PENDING_APPROVAL", "Waiting for approval"], ["ACTIVE", "Active"], ["EMAIL_VERIFICATION_PENDING", "Email not verified"], ["SUSPENDED", "Suspended"], ["REJECTED", "Rejected"], ["", "All"]];
+const TABS: Array<[string, string]> = [["PENDING_APPROVAL", "Waiting for approval"], ["ACTIVE", "Active"], ["EMAIL_VERIFICATION_PENDING", "Email not verified"], ["SUSPENDED", "Suspended"], ["REJECTED", "Rejected"], ["ALL", "All"]];
 const date = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short", year: "numeric" }) : "—");
 const inputCls = "h-8 w-full min-w-0 rounded-md border bg-background px-2 text-sm sm:w-56";
 
@@ -17,7 +17,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const status = sp.status ?? "PENDING_APPROVAL";
   const page = Number(sp.page ?? 1);
-  const { rows, total } = await view<{ rows: MemberListRow[]; total: number }>("members.list", { status: status || undefined, q: sp.q || undefined, page, batch: sp.batch || undefined, department: sp.department || undefined }, "/dashboard/members");
+  const { rows, total } = await view<{ rows: MemberListRow[]; total: number }>("members.list", { status: status === "ALL" || !status ? undefined : status, q: sp.q || undefined, page, batch: sp.batch || undefined, department: sp.department || undefined }, "/dashboard/members");
   const mayApprove = Boolean(session.caps["members.approve"]);
   const mayReject = Boolean(session.caps["members.reject"]);
   const maySuspend = Boolean(session.caps["users.suspend"]);
@@ -38,17 +38,17 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   return (
     <>
       <PageHeader title="Members" description={`${total} account${total === 1 ? "" : "s"} in this view. New accounts wait here (after confirming their email, when email is set up) until club leadership approves them. Approving makes them members only — positions and roles are assigned separately.`}
-        actions={mayLink ? <a href={`/api/admin/members/export${["ACTIVE", "PENDING_APPROVAL", "SUSPENDED"].includes(status) ? `?status=${status}` : ""}`} className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted">Download CSV</a> : undefined} />
+        actions={mayLink ? <a href={`/api/admin/members/export?${qs({ status })}`} className="inline-flex min-h-9 items-center rounded-md border px-3 text-sm hover:bg-muted" title="The accounts in this view, with the filters above">Download CSV</a> : undefined} />
       <div className="mb-3 flex flex-wrap gap-2 text-sm">
         {TABS.map(([k, label]) => (
-          <Link prefetch={false} key={k || "all"} href={`/dashboard/members?${qs({ status: k })}${k ? "" : "&status="}`} className={`rounded-full border px-3 py-1 ${status === k ? "bg-primary text-primary-foreground" : ""}`}>{label}</Link>
+          <Link prefetch={false} key={k} href={`/dashboard/members?${qs({ status: k })}`} className={`inline-flex min-h-9 items-center rounded-full border px-3 ${status === k || (k === "ALL" && !status) ? "bg-primary text-primary-foreground" : ""}`}>{label}</Link>
         ))}
       </div>
       <form className="mb-4 flex flex-wrap gap-2" role="search">
         <input type="hidden" name="status" value={status} />
-        <input name="q" defaultValue={sp.q ?? ""} placeholder="Name, email or student ID" aria-label="Search members" className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm sm:min-w-56" />
-        <input name="batch" defaultValue={sp.batch ?? ""} placeholder="Batch" aria-label="Batch" className="h-9 w-24 rounded-md border bg-background px-3 text-sm" />
-        <input name="department" defaultValue={sp.department ?? ""} placeholder="Department" aria-label="Department" className="h-9 w-32 rounded-md border bg-background px-3 text-sm" />
+        <input name="q" defaultValue={sp.q ?? ""} placeholder="Name, email or student ID" aria-label="Search members" className="h-10 md:h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-base md:text-sm sm:min-w-56" />
+        <input name="batch" defaultValue={sp.batch ?? ""} placeholder="Batch" aria-label="Batch" className="h-10 md:h-9 w-24 rounded-md border bg-background px-3 text-base md:text-sm" />
+        <input name="department" defaultValue={sp.department ?? ""} placeholder="Department" aria-label="Department" className="h-10 md:h-9 w-32 rounded-md border bg-background px-3 text-base md:text-sm" />
         <button className="h-9 rounded-md border px-4 text-sm">Search</button>
       </form>
       {rows.length === 0 ? (

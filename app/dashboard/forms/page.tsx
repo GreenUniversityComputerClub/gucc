@@ -1,6 +1,6 @@
 import { view } from "@/lib/api/session";
 import type { listForms } from "@/lib/server/services/community";
-import { ActionForm, Field, PageHeader, Section } from "@/components/admin/ui";
+import { ActionForm, EmptyState, Field, PageHeader, Section } from "@/components/admin/ui";
 import { archiveFormAction, saveFormAction } from "../actions";
 
 export default async function FormsAdmin() {
@@ -8,6 +8,7 @@ export default async function FormsAdmin() {
   return (
     <>
       <PageHeader title="Forms" description="External forms embedded at /forms/<slug>. Only Google, Microsoft, Tally and Airtable forms are accepted." />
+      {forms.length === 0 && <EmptyState>No forms yet. Add a Google, Microsoft, Tally or Airtable form below.</EmptyState>}
       <div className="space-y-3">
         {forms.map((f) => (
           <details key={f.id} className="rounded-xl border bg-card p-4">

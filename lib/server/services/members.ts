@@ -13,6 +13,7 @@ import { AppError, NotFoundError } from "../errors";
 import { notifyStmts, usersWithPermission } from "../notifications";
 import { deliverEmail, requireRecentAuth } from "../security";
 import { Validator } from "../validate";
+import { claimEmailTasksStmts } from "./task-claim";
 
 export interface MemberListRow {
   id: string;
@@ -54,7 +55,7 @@ export async function listMembers(ctx: Ctx, opts: { status?: string; q?: string;
             cp.id AS claim_profile_id, cp.full_name AS claim_name,
             (SELECT group_concat(c2.slug || ' ' || cm2.position_title, '; ') FROM committee_members cm2 JOIN committees c2 ON c2.id = cm2.committee_id
                WHERE cm2.profile_id = cp.id AND cm2.deleted_at IS NULL) AS claim_holds,
-            (SELECT group_concat(r.name, ', ') FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = u.id AND ur.revoked_at IS NULL) AS roles,
+            (SELECT group_concat(r.name, ', ') FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = u.id AND ur.revoked_at IS NULL AND (ur.expires_at IS NULL OR ur.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now'))) AS roles,
             (SELECT group_concat(cm.position_title, ', ') FROM committee_members cm JOIN committees c ON c.id = cm.committee_id AND c.status = 'CURRENT'
                WHERE cm.profile_id = p.id AND cm.deleted_at IS NULL AND cm.is_active = 1) AS positions
      FROM users u LEFT JOIN profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
@@ -104,15 +105,7 @@ export async function approveMember(ctx: Ctx, userId: string, opts: { linkProfil
     ctx.db.stmt("INSERT INTO user_roles (id, user_id, role_id, granted_by, granted_at, reason) VALUES (?1, ?2, 'role:member', ?3, ?4, 'Membership approved') ON CONFLICT DO NOTHING", newId("ur"), userId, actor.user.id, now),
     auditStmt(ctx, { action: "member.approve", resourceType: "user", resourceId: userId, before: { status: target.status }, after: { status: "ACTIVE" }, reason: target.status === "EMAIL_VERIFICATION_PENDING" ? "Approved before email verification (verified by the approver)" : null, decision }),
     ...notifyStmts(ctx, [userId], { type: "member.approved", title: "Your GUCC account has been approved", body: "Welcome to the Green University Computer Club.", link: "/dashboard/profile" }),
-    // Tasks given to this email address before the account existed now belong to the account.
-    ctx.db.stmt(
-      `INSERT INTO notifications (id, user_id, type, title, link, resource_type, resource_id, channel, created_at)
-       SELECT 'ntf_' || lower(hex(randomblob(16))), ?1, 'task.assigned', 'Task waiting for you: ' || substr(t.title, 1, 150), '/dashboard/tasks/' || t.id, 'task', t.id, 'IN_APP', ?2
-       FROM tasks t WHERE t.assignee_user_id IS NULL AND t.deleted_at IS NULL AND t.status IN ('OPEN','IN_PROGRESS')
-         AND t.assignee_email = (SELECT lower(email) FROM users WHERE id = ?1)`, userId, now),
-    ctx.db.stmt(
-      `UPDATE tasks SET assignee_user_id = ?1, assignee_email = NULL, assignee_name = NULL, updated_at = ?2
-       WHERE assignee_user_id IS NULL AND deleted_at IS NULL AND assignee_email = (SELECT lower(email) FROM users WHERE id = ?1)`, userId, now),
+    ...claimEmailTasksStmts(ctx, userId, now),
   ], () => alreadyDone(ctx, "users", userId, "This application"));
   const email = await ctx.db.value<string>("SELECT email FROM users WHERE id = ?1", userId);
   if (email) await deliverEmail(ctx, { to: email, subject: "Your GUCC account has been approved", text: `Welcome to the Green University Computer Club!\n\nYour membership is approved. Sign in to register for events and keep your profile up to date:\n${(ctx.env.PUBLIC_BASE_URL ?? "").replace(/\/+$/, "")}/dashboard/profile` }, { type: "member.approved", userId });
@@ -183,6 +176,8 @@ export async function reactivateUser(ctx: Ctx, userId: string): Promise<void> {
   const target = await loadTarget(ctx, userId);
   const decision = requirePermission(ctx, "users.suspend", target);
   assertNotSelf(actor.subject, userId, "account status");
+  // A suspended Moderator comes back only with Moderator authority, as suspending needed.
+  if (target.isProtected) requirePermission(ctx, "governance.protected");
   if (!["SUSPENDED", "INACTIVE"].includes(String(target.status))) throw new AppError(409, "BAD_STATE", "Only suspended or inactive accounts can be reactivated.");
   const now = nowIso();
   const token = newTransition();
@@ -300,18 +295,26 @@ const csvCell = (v: unknown) => {
 };
 
 /** Every member as CSV for people who manage members. Needs a recent password; audited. */
-export async function exportMembersCsv(ctx: Ctx, opts: { status?: string } = {}): Promise<{ filename: string; csv: string }> {
+export async function exportMembersCsv(ctx: Ctx, opts: { status?: string; q?: string; batch?: string; department?: string } = {}): Promise<{ filename: string; csv: string }> {
   const decision = requirePermission(ctx, "members.manage");
   await requireRecentAuth(ctx);
-  const status = ["ACTIVE", "PENDING_APPROVAL", "SUSPENDED"].includes(String(opts.status)) ? String(opts.status) : null;
+  // The same view as the Members page: its tab and filters.
+  const status = ["ACTIVE", "PENDING_APPROVAL", "SUSPENDED", "REJECTED", "EMAIL_VERIFICATION_PENDING"].includes(String(opts.status)) ? String(opts.status) : null;
+  const q = opts.q ? `%${opts.q.replace(/[%_]/g, "").slice(0, 60)}%` : null;
+  const batch = opts.batch?.trim().slice(0, 20) || null;
+  const department = opts.department?.trim().slice(0, 60) || null;
   const rows = await ctx.db.all<Record<string, unknown>>(
     `SELECT u.email, u.status, u.created_at, u.approved_at, u.last_login_at, p.full_name, p.student_id, p.department, p.batch, p.phone,
             (SELECT group_concat(cm.position_title, '; ') FROM committee_members cm JOIN committees c ON c.id = cm.committee_id AND c.status = 'CURRENT'
-               WHERE cm.profile_id = p.id AND cm.deleted_at IS NULL AND cm.is_active = 1) AS positions
+               WHERE cm.profile_id = p.id AND cm.deleted_at IS NULL AND cm.is_active = 1) AS positions,
+            (SELECT group_concat(r.name, '; ') FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+               WHERE ur.user_id = u.id AND ur.revoked_at IS NULL AND (ur.expires_at IS NULL OR ur.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now'))) AS roles
      FROM users u LEFT JOIN profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
-     WHERE u.deleted_at IS NULL AND (?1 IS NULL OR u.status = ?1) ORDER BY p.full_name, u.email LIMIT 20000`, status);
-  const head = ["Name", "Email", "Student ID", "Department", "Batch", "Phone", "Status", "Current positions", "Joined", "Approved", "Last sign-in"];
-  const lines = [head.map(csvCell).join(","), ...rows.map((r) => [r.full_name, r.email, r.student_id, r.department, r.batch, r.phone, r.status, r.positions, r.created_at, r.approved_at, r.last_login_at].map(csvCell).join(","))];
+     WHERE u.deleted_at IS NULL AND (?1 IS NULL OR u.status = ?1)
+       AND (?2 IS NULL OR u.email LIKE ?2 OR p.full_name LIKE ?2 OR p.student_id LIKE ?2) AND (?3 IS NULL OR p.batch = ?3) AND (?4 IS NULL OR p.department LIKE ?4)
+     ORDER BY p.full_name, u.email LIMIT 20000`, status, q, batch, department ? `%${department}%` : null);
+  const head = ["Name", "Email", "Student ID", "Department", "Batch", "Phone", "Status", "Current positions", "Roles", "Joined", "Approved", "Last sign-in"];
+  const lines = [head.map(csvCell).join(","), ...rows.map((r) => [r.full_name, r.email, r.student_id, r.department, r.batch, r.phone, r.status, r.positions, r.roles, r.created_at, r.approved_at, r.last_login_at].map(csvCell).join(","))];
   await auditStmt(ctx, { action: "members.export", resourceType: "user", after: { rows: rows.length, status: status ?? "all" }, decision }).run();
   return { filename: `gucc-members${status ? `-${status.toLowerCase()}` : ""}-${new Date().toISOString().slice(0, 10)}.csv`, csv: `\ufeff${lines.join("\r\n")}\r\n` };
 }

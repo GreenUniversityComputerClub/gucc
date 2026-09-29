@@ -40,8 +40,8 @@ export default async function CampaignPage({ params, searchParams }: { params: P
       </div>
       <form className="mb-4 flex flex-wrap gap-2" role="search">
         {sp.status && <input type="hidden" name="status" value={sp.status} />}
-        <input name="q" defaultValue={sp.q ?? ""} placeholder="Name, student ID or email" aria-label="Search applications" className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm sm:min-w-56" />
-        <select name="position" defaultValue={sp.position ?? ""} aria-label="Position" className="h-9 rounded-md border bg-background px-3 text-sm">
+        <input name="q" defaultValue={sp.q ?? ""} placeholder="Name, student ID or email" aria-label="Search applications" className="h-10 md:h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-base md:text-sm sm:min-w-56" />
+        <select name="position" defaultValue={sp.position ?? ""} aria-label="Position" className="h-10 md:h-9 rounded-md border bg-background px-3 text-base md:text-sm">
           <option value="">All positions</option>
           {offered.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>

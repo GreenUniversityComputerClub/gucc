@@ -21,11 +21,11 @@ export function ExplainTool({ permissions, userId }: { permissions: string[]; us
     <div className="space-y-4">
       <form onSubmit={onSubmit} className="grid gap-2 sm:grid-cols-4">
         {userId ? <input type="hidden" name="userId" value={userId} /> : <div className="sm:col-span-4"><PersonPicker name="userId" label="Member" valueKind="user" required /></div>}
-        <select name="permission" aria-label="Permission" className="h-9 rounded-md border bg-background px-2 text-sm">
+        <select name="permission" aria-label="Permission" className="h-10 md:h-9 rounded-md border bg-background px-2 text-base md:text-sm">
           {permissions.map((p) => <option key={p}>{p}</option>)}
         </select>
-        <input name="resourceType" placeholder="Resource type (optional)" aria-label="Resource type" className="h-9 rounded-md border bg-background px-3 text-sm" />
-        <input name="category" placeholder="Category (optional)" aria-label="Category" className="h-9 rounded-md border bg-background px-3 text-sm" />
+        <input name="resourceType" placeholder="Resource type (optional)" aria-label="Resource type" className="h-10 md:h-9 rounded-md border bg-background px-3 text-base md:text-sm" />
+        <input name="category" placeholder="Category (optional)" aria-label="Category" className="h-10 md:h-9 rounded-md border bg-background px-3 text-base md:text-sm" />
         <Button type="submit" disabled={pending} className="sm:w-fit">{pending ? "Checking…" : "Explain"}</Button>
       </form>
       {state && !state.ok && <p role="alert" className="text-sm text-destructive">{state.error}</p>}

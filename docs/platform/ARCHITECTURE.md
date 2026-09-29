@@ -137,9 +137,11 @@ shows each step.
   grant permissions you hold club-wide; protected rules, settings, roles and permission assignment
   need Moderator authority, and a second Moderator's approval when one exists.
 
-Default hierarchy (all editable): Moderators have everything. The President and General Secretary run operations
-(members, executives, committees, events, posts, media, recruitment, inbox, operational rules) but
-cannot touch protected governance. VPs, secretaries and coordinators get category- or
+Default hierarchy (all editable): Moderators have everything. Since 2026-09-29 the President and the
+General Secretary have exactly the Moderators' authority while they hold the position in a governing
+unit of the current committee (`MODERATOR_EQUAL_POSITIONS` in `lib/governance/engine.ts`): every
+permission, protected governance, approving what "a Moderator" approves, and appointing Moderators
+(a protected change another of them confirms). Nobody changes their own access. VPs, secretaries and coordinators get category- or
 assignment-scoped rights (for example, the Sports Secretary manages sports events, the Photography
 Secretary uploads to events they're assigned to, and the Publication Secretary's posts need President
 or General Secretary approval). Executive Members draft their own posts and submit them for approval.
@@ -161,7 +163,7 @@ or General Secretary approval). Executive Members draft their own posts and subm
 
 ## Accounts and email
 
-- **Mode A, email available** (a Resend key, or development): sign up → verify email → wait for
+- **Mode A, email available** (an SMTP2GO key, or development): sign up → verify email → wait for
   approval → active. Verification, reset and invitation links are emailed.
 - **Mode B, no provider** (staging or production without one): sign up → wait for approval → active,
   with the message "Your account has been created and is awaiting GUCC approval." Reviewers are

@@ -40,11 +40,11 @@ export function FlashMessage() {
         {link && (
           <div className="mt-2 flex items-start gap-2">
             <code className="min-w-0 flex-1 break-all rounded bg-muted px-2 py-1 text-xs">{link}</code>
-            <button type="button" onClick={copy} className="shrink-0 rounded-md border px-2 py-1 text-xs hover:bg-muted">{copied ? "Copied" : "Copy"}</button>
+            <button type="button" onClick={copy} className="inline-flex min-h-9 shrink-0 items-center rounded-md border px-3 text-xs hover:bg-muted">{copied ? "Copied" : "Copy"}</button>
           </div>
         )}
       </div>
-      <button type="button" onClick={() => setMessage(null)} aria-label="Dismiss" className="rounded p-0.5 hover:bg-muted"><X className="h-4 w-4" /></button>
+      <button type="button" onClick={() => setMessage(null)} aria-label="Dismiss" className="-m-1.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md hover:bg-muted"><X className="h-4 w-4" /></button>
     </div>
   );
 }

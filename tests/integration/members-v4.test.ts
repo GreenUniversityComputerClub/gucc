@@ -5,7 +5,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { hashPassword } from "@/lib/server/crypto";
 import { activityFeed, diffSnapshots } from "@/lib/server/services/activity";
-import { changeEmail, deleteOwnAccount, mySessions, revokeOtherSessions } from "@/lib/server/services/account";
+import { changeEmail, confirmEmailChange, deleteOwnAccount, mySessions, revokeOtherSessions } from "@/lib/server/services/account";
 import { cancelMyRegistration } from "@/lib/server/services/events";
 import {
   deleteMessage, editMessage, listReports, myConversations, reportMessage, resolveReport, sendInThread, sendToPerson, setBlock, setMessagePrivacy, thread, unreadConversations,
@@ -138,8 +138,31 @@ describe("self-service", () => {
     expect(devices.map((d) => d.device).sort()).toEqual(["Chrome on Android", "Firefox on Windows"]);
     expect((await revokeOtherSessions(await w.ctx(m), null)).signedOut).toBe(2);
     await expect(changeEmail(await w.ctx(m), { password: "wrong", email: "new@x.bd" })).rejects.toMatchObject({ code: "VALIDATION" });
-    await changeEmail(await w.ctx(m), { password: "correct-Horse-battery", email: "New@X.bd" });
-    expect(w.sqlite.prepare("SELECT email FROM users WHERE id = ?").get(m)).toEqual({ email: "new@x.bd" });
+    // With email working, the new address confirms from a link; the old one is told, and nothing changes until then.
+    const asked = await changeEmail(await w.ctx(m), { password: "correct-Horse-battery", email: "New@X.bd" });
+    expect(asked.message).toMatch(/Check new@x.bd for a confirmation link.*spam/);
+    expect(w.sqlite.prepare("SELECT email FROM users WHERE id = ?").get(m)).toEqual({ email: "m@x.bd" });
+    expect(w.emails.map((e) => e.to).sort()).toEqual(["m@x.bd", "new@x.bd"]);
+    const link = w.emails.find((e) => e.to === "new@x.bd")!.text.match(/confirm-email\?token=([\w-]+)/)![1]!;
+    await expect(confirmEmailChange(await w.ctx(null), "not-a-real-token")).rejects.toMatchObject({ code: "TOKEN_INVALID" });
+    w.sqlite.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, '2099-01-01')").run("c".repeat(64), m);
+    expect(await confirmEmailChange(await w.ctx(null), link)).toEqual({ email: "new@x.bd" });
+    expect(w.sqlite.prepare("SELECT email, email_verified_at IS NOT NULL AS verified FROM users WHERE id = ?").get(m)).toEqual({ email: "new@x.bd", verified: 1 });
+    // Every device signs in again, the old address hears about it, and the link works once.
+    expect(w.sqlite.prepare("SELECT COUNT(*) n FROM sessions WHERE user_id = ? AND revoked_at IS NULL").get(m)).toEqual({ n: 0 });
+    expect(w.emails.at(-1)).toMatchObject({ to: "m@x.bd", subject: "Your GUCC sign-in email was changed" });
+    await expect(confirmEmailChange(await w.ctx(null), link)).rejects.toMatchObject({ code: "TOKEN_INVALID" });
+  });
+
+  it("changes the sign-in email at once when email isn't set up, signing out other devices", async () => {
+    const m = await w.user({ email: "m@x.bd", roles: ["member"] });
+    w.sqlite.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(await hashPassword("correct-Horse-battery", PEPPER), m);
+    w.sqlite.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, '2099-01-01')").run("d".repeat(64), m);
+    const c = await w.ctx(m);
+    const res = await changeEmail({ ...c, sendEmail: undefined, env: { ...c.env, APP_ENV: "production" } }, { password: "correct-Horse-battery", email: "other@x.bd" });
+    expect(res.message).toMatch(/Sign in with other@x.bd/);
+    expect(w.sqlite.prepare("SELECT email FROM users WHERE id = ?").get(m)).toEqual({ email: "other@x.bd" });
+    expect(w.sqlite.prepare("SELECT COUNT(*) n FROM sessions WHERE user_id = ? AND revoked_at IS NULL").get(m)).toEqual({ n: 0 });
   });
 
   it("deleting an account removes private details, keeps committee history and protects the last Moderator", async () => {

@@ -6,7 +6,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { authorize } from "@/lib/server/authz";
 import { approveMember, requestCorrection } from "@/lib/server/services/members";
-import { grantRole, revokeRole, setPositionGrant, setRoleGrant, createRule } from "@/lib/server/services/governance";
+import { grantRole, revokeRole, setPositionGrant, setRoleGrant } from "@/lib/server/services/governance";
 import { assignExecutive, endAssignment } from "@/lib/server/services/committees";
 import { createEvent, updateEvent } from "@/lib/server/services/events";
 import { createPost, publishPost } from "@/lib/server/services/posts";
@@ -112,27 +112,25 @@ describe("permission matrix (defaults, all changeable in the admin)", () => {
 });
 
 describe("privilege escalation is blocked", () => {
-  it("the President manages roles within bounds: never themselves, never Moderator, never protected powers; sensitive ones wait for a Moderator", async () => {
+  it("the President has a Moderator's authority but never over their own access; others stay within bounds", async () => {
     const p = await people();
     await expect(grantRole(await w.ctx(p.president), p.president, "moderator", null)).rejects.toMatchObject({ code: "SELF_ESCALATION" });
-    await expect(grantRole(await w.ctx(p.president), p.gs, "moderator", null)).rejects.toMatchObject({ code: "PROTECTED_ROLE" });
-    // The administrator role carries sensitive permissions: a Moderator approves first.
-    const pending = await grantRole(await w.ctx(p.president), p.member, "administrator", "Runs the media library");
-    expect(pending).toMatchObject({ applied: false });
-    expect(w.sqlite.prepare("SELECT COUNT(*) n FROM user_roles WHERE user_id = ? AND role_id = 'role:administrator'").get(p.member)).toEqual({ n: 0 });
-    // Something they hold club-wide and isn't sensitive applies at once.
+    // Appointing a Moderator is a protected change: another Moderator (or the General Secretary) confirms it.
+    expect(await grantRole(await w.ctx(p.president), p.gs, "moderator", null)).toMatchObject({ applied: false, requestId: expect.any(String) });
+    // Sensitive roles apply at once, as for a Moderator.
+    expect(await grantRole(await w.ctx(p.president), p.member, "administrator", "Runs the media library")).toMatchObject({ applied: true });
     await expect(setRoleGrant(await w.ctx(p.president), "role:member", { permission: "events.read", scope: "ALL", scopeValue: "" }, true)).resolves.toMatchObject({ applied: true });
-    // Governance powers themselves stay with Moderators.
-    await expect(setPositionGrant(await w.ctx(p.president), "pos:vice-president", { permission: "roles.assign", scope: "ALL", scopeValue: "" }, true)).rejects.toMatchObject({ code: "PROTECTED_PERMISSION" });
-    await expect(createRule(await w.ctx(p.president), { name: "Give me everything", effect: "ALLOW", permission: "*", scope: "ALL", scopeValue: "", priority: 999, conditions: [] } as never)).rejects.toBeTruthy();
+    await expect(setPositionGrant(await w.ctx(p.president), "pos:vice-president", { permission: "roles.assign", scope: "ALL", scopeValue: "" }, true)).resolves.toMatchObject({ applied: true });
+    // Someone without Moderator authority still can't hand out governance powers.
+    await expect(setPositionGrant(await w.ctx(p.administrator), "pos:vice-president", { permission: "users.delete", scope: "ALL", scopeValue: "" }, true)).rejects.toBeTruthy();
   });
 
-  it("nobody assigns themselves a position, and protected positions need a Moderator", async () => {
+  it("nobody assigns themselves a position; the President may fill protected positions", async () => {
     const p = await people();
     const presProfile = (w.sqlite.prepare("SELECT id FROM profiles WHERE user_id = ?").get(p.president) as { id: string }).id;
     await expect(assignExecutive(await w.ctx(p.president), w.committeeId, { profileId: presProfile, positionId: "pos:general-secretary", section: "STUDENT" })).rejects.toBeTruthy();
     const someone = (w.sqlite.prepare("SELECT id FROM profiles WHERE user_id = ?").get(p.member) as { id: string }).id;
-    await expect(assignExecutive(await w.ctx(p.president), w.committeeId, { profileId: someone, positionId: "pos:moderator", section: "FACULTY" })).rejects.toBeTruthy();
+    expect((await assignExecutive(await w.ctx(p.president), w.committeeId, { profileId: someone, positionId: "pos:moderator", section: "FACULTY" })).id).toBeTruthy();
     const ok = await assignExecutive(await w.ctx(p.moderator), w.committeeId, { profileId: someone, positionId: "pos:deputy-moderator", section: "FACULTY" });
     expect(ok.id).toBeTruthy();
   });

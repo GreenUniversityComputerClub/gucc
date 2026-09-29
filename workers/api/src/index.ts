@@ -256,8 +256,9 @@ async function serveMedia(env: Env, req: Request, ctx: Ctx, key: string, signatu
     "Cache-Control": access.cacheControl,
     ETag: obj.httpEtag,
     "X-Content-Type-Options": "nosniff",
-    // Public images are embedded by the frontend on another origin.
-    "Cross-Origin-Resource-Policy": access.bucket === "public" ? "cross-origin" : "same-origin",
+    // Public images are embedded by the website on another origin. Private files are opened
+    // with a signed, expiring link, and the dashboard shows applicant photos from it too.
+    "Cross-Origin-Resource-Policy": "cross-origin",
     "Content-Security-Policy": type === "application/pdf" ? "default-src 'none'; object-src 'self'" : "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox",
   });
   if (type === "application/pdf") headers.set("Content-Disposition", "inline");
@@ -332,11 +333,17 @@ export default {
         try {
           report = await runMaintenance(c);
           // Free-tier guard: warn Moderators, and pause uploads near R2's free limits.
-          const guard = await guardFreeTier(c).catch((e) => ({ paused: false, alerts: [`guard failed: ${e instanceof Error ? e.message : "error"}`] }));
+          let guardFailed = false;
+          const guard = await guardFreeTier(c).catch((e) => {
+            guardFailed = true;
+            console.error("free-tier guard failed", e);
+            return { paused: false, alerts: [`guard failed: ${e instanceof Error ? e.message : "error"}`] };
+          });
           const seal = await sealAuditLog(c);
           // The digest also goes to the Worker log, outside the database it protects.
           if (seal.digest) console.log("audit-seal", JSON.stringify(seal));
-          await recordHeartbeat(c, "maintenance", true, { ...report, auditSealed: seal.sealed, guard });
+          // A guard that didn't run means uploads wouldn't pause near the free limit: System health shows the run as failed.
+          await recordHeartbeat(c, "maintenance", !guardFailed, { ...report, auditSealed: seal.sealed, guard, ...(guardFailed ? { error: "The free-tier guard failed; see the Worker log." } : {}) });
           await flushOutbox(c);
         } catch (e) {
           // Only the error's message is kept: no request data or secrets.

@@ -50,13 +50,13 @@ never add test accounts to yours.
 
 One file, `.env.local` (git-ignored), copied from the committed template `.env.example`:
 
-| Section                                                                          | Read by                                                                                |
-| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Website (`NEXT_PUBLIC_*`)                                                        | Next.js                                                                                |
-| `API_SHARED_SECRET`                                                              | Next.js and the local API Worker (same value)                                          |
-| API Worker secrets (`AUTH_SECRET`, `PASSWORD_PEPPER`, Turnstile, Resend, Gemini) | `wrangler dev`, which takes only the names listed under `secrets` in `wrangler.jsonc`  |
-| Cloudflare (`CLOUDFLARE_ACCOUNT_ID`, optional `CLOUDFLARE_API_TOKEN`)            | Wrangler and the platform scripts; with the token empty they use `bunx wrangler login` |
-| `PRODUCTION_API_SHARED_SECRET`                                                   | Written by `production:setup`, for copying into Vercel                                 |
+| Section                                                                           | Read by                                                                                |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Website (`NEXT_PUBLIC_*`)                                                         | Next.js                                                                                |
+| `API_SHARED_SECRET`                                                               | Next.js and the local API Worker (same value)                                          |
+| API Worker secrets (`AUTH_SECRET`, `PASSWORD_PEPPER`, Turnstile, SMTP2GO, Gemini) | `wrangler dev`, which takes only the names listed under `secrets` in `wrangler.jsonc`  |
+| Cloudflare (`CLOUDFLARE_ACCOUNT_ID`, optional `CLOUDFLARE_API_TOKEN`)             | Wrangler and the platform scripts; with the token empty they use `bunx wrangler login` |
+| `PRODUCTION_API_SHARED_SECRET`                                                    | Written by `production:setup`, for copying into Vercel                                 |
 
 Don't create a `.dev.vars` file: Wrangler would read it instead of `.env.local`. Production secrets live
 in Cloudflare (`wrangler secret put`) and in the Vercel project settings; see

@@ -198,7 +198,9 @@ export async function uploadMedia(ctx: Ctx, input: UploadInput): Promise<MediaRe
   // Applicants' documents are never shared between applications; a replacement is always stored.
   if (purpose !== "recruitment" && !replacing) {
     const existing = await ctx.db.first<{ id: string; object_key: string }>(
-      "SELECT id, object_key FROM media WHERE checksum_sha256 = ?1 AND deleted_at IS NULL AND status = 'READY' AND visibility = ?2", checksum, visibility);
+      // Only public files are shared; a private file is reused only for the person who uploaded it.
+      "SELECT id, object_key FROM media WHERE checksum_sha256 = ?1 AND deleted_at IS NULL AND status = 'READY' AND visibility = ?2 AND (visibility = 'PUBLIC' OR uploaded_by = ?3)",
+      checksum, visibility, ctx.actor?.user.id ?? "");
     if (existing) {
       // The same photo may already be in the library: still add it to this event's gallery.
       await ctx.db.batch([
@@ -321,6 +323,8 @@ export interface MediaListRow {
   refs: number;
   /** When the daily job last found it unused (null while something uses it). */
   unreferenced_since: string | null;
+  /** Set when archived (listed only with the "archived" filter). */
+  deleted_at: string | null;
 }
 
 const REFS_SQL = `(SELECT COUNT(*) FROM media_references r WHERE r.media_id = m.id)
@@ -342,7 +346,7 @@ export const MEDIA_REFS_SQL = REFS_SQL;
 /** Files unused this long may be deleted permanently by a Moderator. */
 export const PURGE_AFTER_DAYS = 30;
 
-export async function listMedia(ctx: Ctx, opts: { q?: string; type?: string; visibility?: string; page?: number; unused?: boolean; stale?: boolean }) {
+export async function listMedia(ctx: Ctx, opts: { q?: string; type?: string; visibility?: string; page?: number; unused?: boolean; stale?: boolean; archived?: boolean }) {
   const actor = requireActor(ctx);
   const all = authorize(ctx, "media.read").outcome === "ALLOW";
   if (!all && authorize(ctx, "media.upload", { type: "media", ownerId: actor.user.id }).outcome === "DENY") throw new ForbiddenError("You cannot browse the media library.");
@@ -351,15 +355,16 @@ export async function listMedia(ctx: Ctx, opts: { q?: string; type?: string; vis
   return ctx.db.all<MediaListRow>(
     `SELECT * FROM (
        SELECT m.id, m.storage, m.object_key, m.legacy_path, m.external_url, m.original_filename, m.mime_type, m.media_type, m.size_bytes, m.width, m.height, m.visibility,
-              m.alt_text, m.created_at, m.variants_json, m.unreferenced_since, ${REFS_SQL} AS refs
+              m.alt_text, m.created_at, m.variants_json, m.unreferenced_since, m.deleted_at, ${REFS_SQL} AS refs
        FROM media m
-       WHERE m.deleted_at IS NULL AND (?1 IS NULL OR m.original_filename LIKE ?1 OR m.legacy_path LIKE ?1 OR m.alt_text LIKE ?1)
+       -- Archived files (not yet deleted for good) are listed on request, to delete them permanently.
+       WHERE ((?9 = 0 AND m.deleted_at IS NULL) OR (?9 = 1 AND m.deleted_at IS NOT NULL AND m.purged_at IS NULL)) AND (?1 IS NULL OR m.original_filename LIKE ?1 OR m.legacy_path LIKE ?1 OR m.alt_text LIKE ?1)
          AND (?2 IS NULL OR m.media_type = ?2) AND (?3 IS NULL OR m.visibility = ?3) AND (?4 = 1 OR m.uploaded_by = ?5)
          AND (?8 IS NULL OR (m.unreferenced_since IS NOT NULL AND m.unreferenced_since <= ?8))
      ) WHERE (?7 = 0 OR refs = 0)
      ORDER BY created_at DESC LIMIT 48 OFFSET ?6`,
     q, opts.type ?? null, opts.visibility ?? null, all ? 1 : 0, actor.user.id, (page - 1) * 48, opts.unused || opts.stale ? 1 : 0,
-    opts.stale ? new Date(Date.now() - PURGE_AFTER_DAYS * 86_400_000).toISOString() : null,
+    opts.stale ? new Date(Date.now() - PURGE_AFTER_DAYS * 86_400_000).toISOString() : null, opts.archived ? 1 : 0,
   );
 }
 
@@ -414,12 +419,27 @@ export async function updateMedia(ctx: Ctx, id: string, input: { altText?: strin
   const decision = requirePermission(ctx, "media.update", { type: "media", id, ownerId: m.uploaded_by, createdBy: m.uploaded_by });
   if (input.visibility && !["PUBLIC", "PRIVATE", "RESTRICTED"].includes(input.visibility)) throw new ValidationError("Invalid visibility.");
   const nextBucket = input.visibility ? bucketFor(input.visibility) : m.bucket;
-  if (nextBucket !== m.bucket && m.storage === "R2") await moveObjects(ctx, m.variants_json, m.bucket, nextBucket);
+  const moving = nextBucket !== m.bucket && m.storage === "R2";
+  if (moving) {
+    // Copying to the other bucket writes each object again: it counts against the daily write cap.
+    const objects = Object.keys(JSON.parse(m.variants_json ?? "{}")).length;
+    const budget = await reserveUploadBudget(ctx, { objects, bytes: 0, anonymous: false });
+    try {
+      await moveObjects(ctx, m.variants_json, m.bucket, nextBucket);
+    } catch (e) {
+      await budget.release();
+      throw e;
+    }
+  }
+  // "" clears the alt text; leaving the field out keeps it.
+  const alt = input.altText === undefined || input.altText === null ? null : input.altText.trim().slice(0, 300);
   await ctx.db.batch([
-    ctx.db.stmt("UPDATE media SET alt_text = COALESCE(?2, alt_text), visibility = COALESCE(?3, visibility), bucket = ?4, updated_at = ?5, updated_by = ?6 WHERE id = ?1",
-      id, input.altText?.slice(0, 300) ?? null, input.visibility ?? null, nextBucket, nowIso(), requireActor(ctx).user.id),
+    ctx.db.stmt(`UPDATE media SET alt_text = CASE WHEN ?2 IS NULL THEN alt_text WHEN ?2 = '' THEN NULL ELSE ?2 END, visibility = COALESCE(?3, visibility), bucket = ?4, updated_at = ?5, updated_by = ?6 WHERE id = ?1`,
+      id, alt, input.visibility ?? null, nextBucket, nowIso(), requireActor(ctx).user.id),
     auditStmt(ctx, { action: "media.update", resourceType: "media", resourceId: id, before: { visibility: m.visibility }, after: input, decision }),
   ]);
+  // Pages that show this file must drop (or pick up) its public URL.
+  if (moving) ctx.revalidate?.([TAGS.committees, TAGS.events, TAGS.posts, TAGS.contests, TAGS.settings]);
 }
 
 /** Archive media. Refused while anything still references it. Objects stay in R2 until the cleanup script runs. */
@@ -462,6 +482,31 @@ export async function purgeMedia(ctx: Ctx, id: string, reason: unknown): Promise
   const keys = Object.values(JSON.parse(m.variants_json ?? "{}") as Record<string, { key: string }>).map((v) => v.key);
   if (ctx.media && keys.length) await ctx.media[m.bucket ?? "public"].delete(keys);
   return { message: "Deleted permanently. Its storage is free again." };
+}
+
+/**
+ * Take a file offline at once because of what it shows (a moderator removed it): once nothing
+ * uses it any more, it becomes private and archived, and its stored objects are deleted, so the
+ * old public URL stops working. Nothing happens while another post or page still uses it.
+ */
+export async function takeDownIfUnused(ctx: Ctx, mediaId: string | null | undefined, reason: string): Promise<boolean> {
+  if (!mediaId) return false;
+  const m = await ctx.db.first<{ storage: string; bucket: Bucket | null; variants_json: string | null; refs: number }>(
+    `SELECT m.storage, m.bucket, m.variants_json, ${REFS_SQL} AS refs FROM media m WHERE m.id = ?1 AND m.purged_at IS NULL`, mediaId);
+  if (!m || m.refs > 0) return false;
+  const now = nowIso();
+  await ctx.db.batch([
+    ctx.db.stmt("UPDATE media SET visibility = 'PRIVATE', status = 'ARCHIVED', deleted_at = COALESCE(deleted_at, ?2), purged_at = ?2, updated_at = ?2 WHERE id = ?1 AND purged_at IS NULL", mediaId, now),
+    auditStmt(ctx, { action: "media.taken_down", resourceType: "media", resourceId: mediaId, reason }),
+  ]);
+  // This isolate's remembered public lookups for the file go too (other isolates' expire within minutes,
+  // and the objects are gone anyway).
+  for (const requested of [...publicLookups.keys()]) if (requested.includes(`/${mediaId}`)) publicLookups.delete(requested);
+  const keys = Object.values(JSON.parse(m.variants_json ?? "{}") as Record<string, { key: string }>).map((v) => v.key);
+  if (m.storage === "R2" && ctx.media && keys.length) {
+    await ctx.media[m.bucket ?? "public"].delete(keys).catch((e) => console.error(`[${ctx.meta.requestId}] take-down delete failed`, e));
+  }
+  return true;
 }
 
 /**
@@ -516,8 +561,10 @@ export async function resolveMediaAccess(
   requestedKey: string,
   signature?: { exp?: string | null; sig?: string | null },
 ): Promise<{ key: string; bucket: Bucket; cacheControl: string; cached?: boolean } | null> {
-  // Uploads: media/<yyyy>/<mm>/med_<uuid>/<variant>.<ext>; migrated legacy files: media/legacy/media_<hash>/<variant>.<ext>
-  const m = requestedKey.match(/^media\/(?:\d{4}\/\d{2}|legacy)\/(med_[0-9a-f-]{36}|media_[0-9a-f]{24})\/(thumb|sm|md|lg|master)\.(webp|jpg|png|avif|pdf)$/);
+  // Uploads: media/<yyyy>/<mm>/med_<uuid>/<variant>.<ext>, and a replaced file's new keys add
+  // -<8 hex> to the folder (public files are cached as immutable); migrated legacy files:
+  // media/legacy/media_<hash>/<variant>.<ext>. The database decides which object is served.
+  const m = requestedKey.match(/^media\/(?:\d{4}\/\d{2}|legacy)\/(med_[0-9a-f-]{36}|media_[0-9a-f]{24})(?:-[0-9a-f]{8})?\/(thumb|sm|md|lg|master)\.(webp|jpg|png|avif|pdf)$/);
   if (!m) return null;
   // Signed (private) links are always checked against the database.
   const hit = signature?.sig ? undefined : publicLookups.get(requestedKey);

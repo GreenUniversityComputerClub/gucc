@@ -81,7 +81,8 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
       </nav>
       <form className="mb-5 grid gap-3 rounded-xl border bg-card p-3 sm:grid-cols-2 lg:grid-cols-5" role="search">
         {sp.area && <input type="hidden" name="area" value={sp.area} />}
-        <div className="lg:col-span-2"><PersonPicker name="actor" label="Person" valueKind="user" placeholder="Anyone" /></div>
+        <div className="lg:col-span-2"><PersonPicker name="actor" label="Person" valueKind="user" placeholder="Anyone"
+          initial={sp.actor ? { id: sp.actor, user_id: sp.actor, full_name: feed.entries.find((e) => e.actor.id === sp.actor)?.actor.name ?? (sp.actor === session.user.id ? "Me" : "Selected person"), student_id: null, email: null, person_type: null, roles_held: null } as never : null} /></div>
         <label className="grid gap-1.5 text-sm font-medium">Search<input name="q" defaultValue={sp.q ?? ""} placeholder="Words in the entry" className={input} /></label>
         <label className="grid gap-1.5 text-sm font-medium">From<input type="date" name="from" defaultValue={sp.from ?? ""} className={input} /></label>
         <label className="grid gap-1.5 text-sm font-medium">To<input type="date" name="to" defaultValue={sp.to ?? ""} className={input} /></label>

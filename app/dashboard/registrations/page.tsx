@@ -17,12 +17,12 @@ export default async function RegistrationsPage({ searchParams }: { searchParams
     <>
       <PageHeader title="Registrations" description="Everyone who registered for an event on the site. Change a registration's status, or export an event's list, from its event page." />
       <form className="mb-4 flex flex-wrap gap-2" role="search">
-        <input name="q" defaultValue={sp.q ?? ""} placeholder="Name, email or student ID" aria-label="Search registrations" className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm sm:min-w-56" />
-        <select name="event" defaultValue={sp.event ?? ""} aria-label="Event" className="h-9 min-w-0 max-w-full rounded-md border bg-background px-3 text-sm sm:max-w-72">
+        <input name="q" defaultValue={sp.q ?? ""} placeholder="Name, email or student ID" aria-label="Search registrations" className="h-10 md:h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-base md:text-sm sm:min-w-56" />
+        <select name="event" defaultValue={sp.event ?? ""} aria-label="Event" className="h-10 md:h-9 min-w-0 max-w-full rounded-md border bg-background px-3 text-base md:text-sm sm:max-w-72">
           <option value="">All events</option>
           {data.events.map((e) => <option key={e.id} value={e.id}>{e.title} ({e.n})</option>)}
         </select>
-        <select name="status" defaultValue={sp.status ?? ""} aria-label="Status" className="h-9 rounded-md border bg-background px-3 text-sm">
+        <select name="status" defaultValue={sp.status ?? ""} aria-label="Status" className="h-10 md:h-9 rounded-md border bg-background px-3 text-base md:text-sm">
           <option value="">Any status</option>
           {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>)}
         </select>

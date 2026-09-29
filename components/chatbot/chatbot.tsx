@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import type { KeyboardEvent } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Send, AlertCircle, Loader2, X } from "lucide-react"
+import { Send, AlertCircle, Loader2, RotateCcw, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { MessageModal } from "./message-modal"
@@ -15,10 +15,17 @@ interface Message {
   timestamp: Date
 }
 
-interface PredefinedQuestion {
-  question: string
-  answer: string
-}
+/** How long to wait for an answer before giving up. */
+const ANSWER_TIMEOUT_MS = 25_000
+
+/** Suggested questions; they are answered by the assistant like any other question. */
+const PREDEFINED_QUESTIONS = [
+  "What is GUCC?",
+  "How can I join GUCC?",
+  "What events does GUCC organize?",
+  "How can GUCC help my career?",
+  "What are the benefits of being a GUCC member?",
+]
 
 export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: () => void; isChatbotDark?: boolean }) {
   const [messages, setMessages] = useState<Message[]>([])
@@ -31,6 +38,15 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  // The request in flight: aborted on timeout, on "New chat" and when the chat closes.
+  const requestRef = useRef<AbortController | null>(null)
+
+  useEffect(() => () => requestRef.current?.abort(), [])
+
+  /** Focus the input only where it doesn't pop up an on-screen keyboard over the answer. */
+  const focusInput = useCallback(() => {
+    if (typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches) inputRef.current?.focus()
+  }, [])
 
   // Load messages from sessionStorage on mount
   useEffect(() => {
@@ -78,111 +94,30 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
     }
   }, [sessionId])
 
-  // Define predefined questions and answers
-  const predefinedQuestions: PredefinedQuestion[] = [
-    {
-      question: "What is GUCC?",
-      answer:
-        "GUCC (Green University Computer Club) is a student-driven non-profit and non-political organization operating in collaboration with the Department of Computer Science and Engineering at Green University of Bangladesh.",
-    },
-    {
-      question: "How can I join GUCC?",
-      answer:
-        "You can join GUCC by registering through our website or visiting our office at the CSE department. Membership is open to all CSE students at Green University.",
-    },
-    {
-      question: "What events does GUCC organize?",
-      answer:
-        "GUCC organizes various events including workshops, seminars, coding competitions, hackathons, tech talks, and industry visits to enhance students' technical and professional skills.",
-    },
-    {
-      question: "How can GUCC help my career?",
-      answer:
-        "GUCC helps your career by providing networking opportunities, skill development workshops, industry connections, mentorship programs, and hands-on project experience in various technology domains.",
-    },
-    {
-      question: "What are the benefits of being a GUCC member?",
-      answer:
-        "Benefits include access to exclusive workshops, networking with industry professionals, participation in competitions, leadership opportunities, technical resources, and being part of a community of like-minded tech enthusiasts.",
-    },
-  ]
-
   // The assistant is stateless (the browser sends recent turns with each message), so the
   // conversation id is made here: opening the chat costs no request.
   useEffect(() => {
     setSessionId((current) => current ?? (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Date.now().toString()))
 
-    // Focus the input field when the component mounts
-    const focus = setTimeout(() => {
-      inputRef.current?.focus()
-    }, 100)
+    // Focus the input field when the component mounts (not on phones: the keyboard would cover the chat)
+    const focus = setTimeout(focusInput, 100)
     return () => clearTimeout(focus)
-  }, [])
+  }, [focusInput])
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // Function to handle predefined questions directly
-  const handlePredefinedQuestion = useCallback(
-    (question: string) => {
-      // Find the matching predefined question
-      const predefinedQuestion = predefinedQuestions.find((item) => item.question.trim() === question.trim())
-
-      if (!predefinedQuestion) return false
-
-      // Add user message
-      const userMessage: Message = {
-        text: question,
-        role: "user",
-        timestamp: new Date(),
-      }
-
-      setMessages((prevMessages) => [...prevMessages, userMessage])
-      setUserInput("")
-
-      // Show loading indicator
-      setIsLoading(true)
-
-      // Add a small delay to simulate processing
-      setTimeout(() => {
-        // Add bot response with predefined answer
-        const botMessage: Message = {
-          text: predefinedQuestion.answer,
-          role: "model",
-          timestamp: new Date(),
-        }
-
-        setMessages((prevMessages) => [...prevMessages, botMessage])
-        setIsLoading(false)
-        setShowSuggestions(true)
-
-        // Scroll to bottom
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-        }, 100)
-      }, 800)
-
-      return true
-    },
-    [predefinedQuestions],
-  )
-
   const handleSendMessage = useCallback(
     async (input?: string) => {
-      const messageToSend = input || userInput
-      if (!messageToSend.trim() || !sessionId) return
+      const messageToSend = (input || userInput).trim()
+      if (!messageToSend || !sessionId || isLoading) return
 
       // Hide suggestions when sending a message
       setShowSuggestions(false)
+      setError(null)
 
-      // Check if it's a predefined question first
-      // If it is, handle it and return early
-      const isPredefined = handlePredefinedQuestion(messageToSend)
-      if (isPredefined) return
-
-      // If not a predefined question, proceed with normal flow
       const userMessage: Message = {
         text: messageToSend,
         role: "user",
@@ -194,9 +129,13 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
 
       // For non-predefined questions, make the API call
       setIsLoading(true)
+      const request = new AbortController()
+      requestRef.current = request
+      const timer = setTimeout(() => request.abort(), ANSWER_TIMEOUT_MS)
       try {
         const response = await fetch("/api/chat", {
           method: "POST",
+          signal: request.signal,
           headers: {
             "Content-Type": "application/json",
           },
@@ -220,21 +159,46 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
         setMessages((prevMessages) => [...prevMessages, botMessage])
         setShowSuggestions(true)
       } catch (err: unknown) {
-        setError("Failed to send message: " + (err instanceof Error ? err.message : String(err)))
+        // Closed or restarted on purpose: nothing to report.
+        if (requestRef.current !== request) return
+        const timedOut = err instanceof DOMException && err.name === "AbortError"
+        setError(timedOut ? "The assistant took too long to answer. Please try again." : "Couldn't reach the assistant. Check your connection and try again.")
+        setShowSuggestions(true)
       } finally {
-        setIsLoading(false)
-        // Focus the input field after sending a message
-        setTimeout(() => {
-          inputRef.current?.focus()
-          // Scroll to the bottom after a short delay to ensure the DOM has updated
+        clearTimeout(timer)
+        if (requestRef.current === request) {
+          requestRef.current = null
+          setIsLoading(false)
+          // Focus the input field after sending a message
           setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+            focusInput()
+            // Scroll to the bottom after a short delay to ensure the DOM has updated
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+            }, 100)
           }, 100)
-        }, 100)
+        }
       }
     },
-    [sessionId, userInput, handlePredefinedQuestion, messages],
+    [sessionId, userInput, messages, isLoading, focusInput],
   )
+
+  /** Start over: forget this conversation (it only lives in this tab). */
+  const newChat = useCallback(() => {
+    requestRef.current?.abort()
+    requestRef.current = null
+    setIsLoading(false)
+    setMessages([])
+    setError(null)
+    setShowSuggestions(true)
+    setUserInput("")
+    try {
+      sessionStorage.removeItem("gucc-chat-messages")
+    } catch {
+      /* storage unavailable: nothing to clear */
+    }
+    focusInput()
+  }, [focusInput])
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -248,9 +212,9 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
 
   const handlePredefinedQuestionClick = useCallback(
     (question: string) => {
-      handlePredefinedQuestion(question)
+      handleSendMessage(question)
     },
-    [handlePredefinedQuestion],
+    [handleSendMessage],
   )
 
   const handleMessageClick = useCallback((message: Message) => {
@@ -263,10 +227,10 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
   }, [])
 
   // Filter out the questions that have already been asked
-  const getUnaskedQuestions = useCallback(() => {
+  const unaskedQuestions = useMemo(() => {
     const askedQuestions = messages.filter((msg) => msg.role === "user").map((msg) => msg.text)
-    return predefinedQuestions.filter((item) => !askedQuestions.includes(item.question))
-  }, [messages, predefinedQuestions])
+    return PREDEFINED_QUESTIONS.filter((question) => !askedQuestions.includes(question))
+  }, [messages])
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-transparent font-sans">
@@ -301,11 +265,29 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             </div>
           </div>
         </div>
+        <div className="flex items-center gap-1">
+        {messages.length > 0 && (
+          <button
+            type="button"
+            onClick={newChat}
+            className={cn(
+              "p-2 rounded-lg transition-colors",
+              isChatbotDark
+                ? "hover:bg-[#10301f]/50 text-emerald-400 hover:text-emerald-200"
+                : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800"
+            )}
+            aria-label="New chat"
+            title="New chat"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+        )}
         {onClose && (
           <button
+            type="button"
             onClick={onClose}
             className={cn(
-              "p-1.5 rounded-lg transition-colors",
+              "p-2 rounded-lg transition-colors",
               isChatbotDark
                 ? "hover:bg-[#10301f]/50 text-emerald-400 hover:text-emerald-200"
                 : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800"
@@ -315,18 +297,22 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             <X className="h-4.5 w-4.5" />
           </button>
         )}
+        </div>
       </div>
 
       {/* Scrollable Content Area */}
       <div className={cn("flex-grow overflow-hidden relative", isChatbotDark ? "bg-[#07140e]" : "bg-[#f4faf7]")}>
         {error && (
-          <Alert variant="destructive" className="m-3">
+          <Alert variant="destructive" className="m-3 pr-10" role="alert">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-xs">{error}</AlertDescription>
+            <button type="button" onClick={() => setError(null)} aria-label="Dismiss" className="absolute right-2 top-2 rounded-md p-1.5 hover:bg-destructive/10">
+              <X className="h-3.5 w-3.5" />
+            </button>
           </Alert>
         )}
 
-        <div className="h-full overflow-y-auto pb-4">
+        <div className="h-full overflow-y-auto overscroll-contain pb-4" aria-live="polite" aria-busy={isLoading}>
           <div className="p-4 sm:p-5">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center h-full mt-6">
@@ -337,13 +323,15 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                   Ask me anything about Green University Computer Club, events, membership, or how we can help your career in tech!
                 </p>
                 <div className="w-full space-y-2 max-w-xs sm:max-w-sm">
-                  <p className={cn("text-[10px] font-bold tracking-wider uppercase text-left pl-1", isChatbotDark ? "text-emerald-500/60 font-semibold" : "text-zinc-450")}>
+                  <p className={cn("text-[10px] font-bold tracking-wider uppercase text-left pl-1", isChatbotDark && "text-emerald-500/60 font-semibold")}>
                     Frequently Asked Questions:
                   </p>
-                  {predefinedQuestions.map((item, index) => (
+                  {PREDEFINED_QUESTIONS.map((question) => (
                     <button
-                      key={index}
-                      onClick={() => handlePredefinedQuestionClick(item.question)}
+                      key={question}
+                      type="button"
+                      disabled={isLoading}
+                      onClick={() => handlePredefinedQuestionClick(question)}
                       className={cn(
                         "w-full justify-start text-left text-xs py-3 px-4 rounded-xl transition-all font-normal whitespace-normal h-auto min-h-[44px] border",
                         isChatbotDark
@@ -351,7 +339,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                           : "bg-white border-emerald-200 hover:bg-emerald-50/50 hover:text-emerald-900 text-emerald-800"
                       )}
                     >
-                      {item.question}
+                      {question}
                     </button>
                   ))}
                 </div>
@@ -361,9 +349,18 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                 {messages.map((msg, index) => (
                   <div
                     key={index}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${msg.role === "user" ? "Your message" : "Assistant's answer"}: open in full`}
                     onClick={() => handleMessageClick(msg)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        handleMessageClick(msg)
+                      }
+                    }}
                     className={cn(
-                      "flex flex-col rounded-2xl cursor-pointer transition-all duration-155 p-3 sm:p-4 shadow-sm",
+                      "flex flex-col rounded-2xl cursor-pointer transition-all duration-155 p-3 sm:p-4 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
                       msg.role === "user"
                         ? "ml-auto bg-emerald-600 hover:bg-emerald-500 text-white rounded-tr-none"
                         : cn("mr-auto rounded-tl-none border",
@@ -380,7 +377,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                       <span
                         className={cn(
                           "text-[9px] sm:text-[10px]",
-                          msg.role === "user" ? "text-emerald-250" : (isChatbotDark ? "text-emerald-500/60" : "text-zinc-450"),
+                          msg.role !== "user" && isChatbotDark && "text-emerald-500/60",
                         )}
                       >
                         {format(msg.timestamp, "h:mm a")}
@@ -396,7 +393,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                       ? "bg-[#0d261a] text-emerald-100 border-emerald-900/30"
                       : "bg-white text-zinc-800 border-zinc-200"
                   )}>
-                    <div className="flex items-center gap-2 text-zinc-450">
+                    <div className="flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
                       <span className="text-xs">Thinking...</span>
                     </div>
@@ -409,16 +406,18 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                     "my-4 p-3 border rounded-xl max-w-3xl mx-auto shadow-sm",
                     isChatbotDark ? "bg-[#081d13]/30 border-emerald-950/40" : "bg-white border-zinc-200"
                   )}>
-                    <p className={cn("text-[10px] font-bold tracking-wider uppercase mb-2", isChatbotDark ? "text-emerald-500/60 font-semibold" : "text-zinc-450")}>
+                    <p className={cn("text-[10px] font-bold tracking-wider uppercase mb-2", isChatbotDark && "text-emerald-500/60 font-semibold")}>
                       You might also want to ask:
                     </p>
                     <div className="space-y-1.5">
-                      {getUnaskedQuestions()
+                      {unaskedQuestions
                         .slice(0, 3)
-                        .map((item, index) => (
+                        .map((question) => (
                           <button
-                            key={index}
-                            onClick={() => handlePredefinedQuestionClick(item.question)}
+                            key={question}
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => handlePredefinedQuestionClick(question)}
                             className={cn(
                               "w-full text-left justify-start text-xs py-2 px-3 h-auto min-h-[36px] rounded-lg font-normal whitespace-normal border transition-all",
                               isChatbotDark
@@ -426,7 +425,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                                 : "bg-white hover:bg-emerald-50/50 hover:text-emerald-900 text-emerald-800 border-emerald-200"
                             )}
                           >
-                            {item.question}
+                            {question}
                           </button>
                         ))}
                     </div>
@@ -452,12 +451,15 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             onChange={(e) => setUserInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask something about GUCC..."
+            aria-label="Ask the GUCC Assistant"
+            maxLength={2000}
+            enterKeyHint="send"
             disabled={isLoading || !sessionId}
             className={cn(
-              "flex-1 rounded-full h-11 text-xs sm:text-sm pl-4 focus:outline-none border",
+              "flex-1 min-w-0 rounded-full h-11 text-base sm:text-sm pl-4 pr-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 border",
               isChatbotDark
                 ? "bg-[#0b2016] border-emerald-900/30 text-emerald-50 placeholder-emerald-700/60"
-                : "bg-white border-emerald-250 text-emerald-950 placeholder-emerald-700/50"
+                : "bg-white text-emerald-950 placeholder-emerald-700/50"
             )}
           />
           <button

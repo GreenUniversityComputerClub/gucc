@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Plus, Search, X } from "lucide-react";
 import { setGrantAction } from "@/app/dashboard/actions";
@@ -40,6 +40,8 @@ export function PermissionMatrix({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [local, setLocal] = useState<Grant[]>(grants);
+  // After a save the page refreshes: show what the server now holds, not the optimistic guess.
+  useEffect(() => setLocal(grants), [grants]);
   const [q, setQ] = useState("");
   const [onlyGranted, setOnlyGranted] = useState(false);
   // Plain language by default; permission codes and narrower scopes only on request.
@@ -69,7 +71,7 @@ export function PermissionMatrix({
 
   function change(grant: Grant, add: boolean, confirmed = false) {
     const perm = permissions.find((p) => p.key === grant.permission);
-    if (add && !confirmed && perm?.is_sensitive && !window.confirm(`"${perm.description ?? perm.key}" is a sensitive permission. Give it to everyone who holds ${holderName}? Unless you're a Moderator, a Moderator approves it first.`)) return;
+    if (add && !confirmed && perm?.is_sensitive && !window.confirm(`"${perm.description ?? perm.key}" is a sensitive permission. Give it to everyone who holds ${holderName}? Unless you're a Moderator, the President or the General Secretary, one of them approves it first.`)) return;
     const before = local;
     const same = (g: Grant) => g.permission === grant.permission && g.scope === grant.scope && g.scope_value === grant.scope_value;
     setLocal(add ? [...local, grant] : local.filter((g) => !same(g)));
@@ -136,7 +138,7 @@ export function PermissionMatrix({
                       <label htmlFor={id} className="text-sm font-medium leading-snug">
                         {p.description ?? p.key}
                         {p.is_sensitive ? (
-                          <span className="ml-2 inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400" title="Needs a Moderator's approval when granted by anyone else">
+                          <span className="ml-2 inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400" title="Needs approval by a Moderator, the President or the General Secretary when granted by anyone else">
                             <AlertTriangle className="h-3 w-3" aria-hidden /> sensitive
                           </span>
                         ) : null}
@@ -148,7 +150,7 @@ export function PermissionMatrix({
                             <li key={`${g.scope}:${g.scope_value}`} className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-xs">
                               {describeScope(g.scope, g.scope_value, names)}
                               {canEdit && (
-                                <button type="button" onClick={() => change(g, false)} disabled={pending} className="rounded-full p-0.5 hover:bg-muted" aria-label={`Remove ${p.key} for ${describeScope(g.scope, g.scope_value, names)}`}>
+                                <button type="button" onClick={() => change(g, false)} disabled={pending} className="-my-1 -mr-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted" aria-label={`Remove ${p.key} for ${describeScope(g.scope, g.scope_value, names)}`}>
                                   <X className="h-3 w-3" />
                                 </button>
                               )}

@@ -160,7 +160,7 @@ secret into chat, an issue or a commit.
 | `AUTH_SECRET`                                             | Worker          | `wrangler secret put AUTH_SECRET_PREVIOUS` (old value), then `wrangler secret put AUTH_SECRET` (new). Upload links and private-file links made before keep working until they expire; two-factor secrets are re-encrypted with the new key the next time they're used. Remove `AUTH_SECRET_PREVIOUS` after 30 days. Sessions aren't affected (they're random tokens). |
 | `PASSWORD_PEPPER`                                         | Worker          | `wrangler secret put PASSWORD_PEPPER_PREVIOUS` (old), then `PASSWORD_PEPPER` (new). Passwords are re-hashed with the new pepper at each person's next sign-in; recovery codes keep working. Keep the previous pepper until everyone active has signed in (months); accounts that never did need an admin reset link afterwards.                                       |
 | `TURNSTILE_SECRET_KEY` + `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Worker + Vercel | Cloudflare → Turnstile → the widget → Rotate secret key. Put the new secret on the Worker. (The site key doesn't change.)                                                                                                                                                                                                                                             |
-| `RESEND_API_KEY`                                          | Worker          | Resend → API Keys → create a new key → `wrangler secret put RESEND_API_KEY` → delete the old key in Resend. Send a test email from System health.                                                                                                                                                                                                                     |
+| `SMTP2GO_API_KEY`                                         | Worker          | SMTP2GO → Settings → API Keys → add a new key (Emails permission) → `wrangler secret put SMTP2GO_API_KEY --env production` → delete the old key in SMTP2GO. Sending stops only between the two steps.                                                                                                                                                                 |
 | `GOOGLE_API_KEY`                                          | Worker          | Google Cloud → the project **without billing** → Credentials → create a key restricted to the Generative Language API → put it on the Worker → delete the old one.                                                                                                                                                                                                    |
 | `CF_ANALYTICS_TOKEN`                                      | Worker          | Cloudflare → My Profile → API Tokens → roll the "Account Analytics: Read" token → put it on the Worker.                                                                                                                                                                                                                                                               |
 | `CLOUDFLARE_API_TOKEN`                                    | GitHub secret   | Create a new token (Workers Scripts Edit, D1 Edit, Workers R2 Storage Edit, Account Settings Read), update the secret, revoke the old token.                                                                                                                                                                                                                          |
@@ -189,17 +189,26 @@ bun scripts/platform/break-glass.ts time-travel --target production          # p
 
 ## Turning email on
 
-Email stays off until a real message has arrived. Resend's free plan sends 100 emails a day; the
-platform stops at 90 (`email.daily_limit`).
+Email goes through SMTP2GO and stays off until a real message has arrived. SMTP2GO's free plan
+sends 1,000 emails a month (then refuses; nothing is billed) and 200 a day, and 25 an hour until a
+sending domain is verified (extra ones wait in its queue). The platform stops at
+`email.daily_limit` (40 a day) and `email.monthly_limit` (1,000 a month), and sends at most 25 per
+request or cron run.
 
-1. Resend: verify a sending domain (needs DNS, so someone with access to the domain's DNS does
-   this), or use Resend's test sender, which only delivers to the Resend account's own address.
-2. Worker: `wrangler secret put RESEND_API_KEY` and set `RESEND_FROM_EMAIL` (for example
-   `GUCC <noreply@your-verified-domain>`).
-3. System health → _Switches_ → **Send me a test email** (a Moderator). Resend's answer is shown.
+1. SMTP2GO: add `gucc@green.edu.bd` as a verified **single sender** (Settings → Verified Senders;
+   SMTP2GO emails that address a link to click). No DNS change is needed. Create an API key
+   (Settings → API Keys) with the "Emails" send permission.
+2. Worker: `bunx wrangler secret put SMTP2GO_API_KEY --env production`. The sender is the plain
+   variable `EMAIL_FROM="GUCC <gucc@green.edu.bd>"` in `wrangler.jsonc`.
+3. System health → _Switches_ → **Send me a test email** (a Moderator). SMTP2GO's answer is shown.
+   Check the inbox **and the spam folder**: without the university's DNS records for SMTP2GO,
+   some mail providers file club email as spam (every "check your email" screen says so).
 4. When the email has arrived: **Switch email on**. With other Moderators, one of them confirms.
+
+Optional, better delivery: whoever manages green.edu.bd's DNS adds SMTP2GO's SPF include and DKIM
+records (SMTP2GO → Sender Domains) and merges the two SPF records the domain has today into one.
 
 From then on: account emails (verification, password reset, invitations, membership decisions)
 and email copies of notifications, by each person's choices (My profile → _Email
-notifications_; security notices always). Every message and Resend's answer are listed in System
+notifications_; security notices always). Every message and SMTP2GO's answer are listed in System
 health. Club-wide announcements stay in the dashboard (they would use a whole day's allowance).
