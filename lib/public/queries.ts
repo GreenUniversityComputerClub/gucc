@@ -13,13 +13,14 @@ WHERE deleted_at IS NULL AND status <> 'UPCOMING'
 ORDER BY CAST(slug AS INTEGER), slug`;
 
 /**
- * The photo a committee listing shows. The person's profile is the truth while the committee is
- * current or being prepared, so a new profile photo shows at once; a past committee keeps the
- * photo frozen onto its listing when it was archived. Either side falls back to the other.
- * The dashboard's committee page uses the same rule, so admins and visitors see one photo.
+ * The photo a committee listing shows, in every year (past committees too): the person's profile
+ * photo when they have a usable one, so a new photo shows at once on the roster, their executive
+ * page and every past year they served. A listing's own photo is only the fallback for people
+ * whose profile has none (older imports). The dashboard's committee page uses the same rule, so
+ * admins and visitors always see one photo.
  */
-export const listingAvatarIdSql = (cm: string, p: string, committeeStatus: string) =>
-  `CASE WHEN ${committeeStatus} = 'ARCHIVED' THEN COALESCE(${cm}.avatar_media_id, ${p}.avatar_media_id) ELSE COALESCE(${p}.avatar_media_id, ${cm}.avatar_media_id) END`;
+export const listingAvatarIdSql = (cm: string, p: string) =>
+  `COALESCE((SELECT pm.id FROM media pm WHERE pm.id = ${p}.avatar_media_id AND pm.deleted_at IS NULL AND pm.visibility = 'PUBLIC' AND pm.status = 'READY'), ${cm}.avatar_media_id)`;
 
 const MEMBER_COLUMNS = `
   cm.committee_id, cm.section, cm.unit_type, cm.unit_key, cm.display_order, cm.position_title,
@@ -29,13 +30,14 @@ const MEMBER_COLUMNS = `
   p.linkedin_url, p.github_url, p.twitter_url, p.facebook_url,
   p.avatar_position_x AS p_avatar_x, p.avatar_position_y AS p_avatar_y, p.avatar_scale AS p_avatar_scale,
   (m.id IS NOT NULL AND m.id IS p.avatar_media_id) AS avatar_is_profile,
+  CASE WHEN p.visibility = 'PUBLIC' THEN p.slug END AS public_handle,
   m.storage AS avatar_storage, m.object_key AS avatar_object_key, m.legacy_path AS avatar_legacy_path, m.external_url AS avatar_external_url`;
 
 const MEMBER_FROM = `
 FROM committee_members cm
 JOIN committees co ON co.id = cm.committee_id
 JOIN profiles p ON p.id = cm.profile_id AND p.deleted_at IS NULL
-LEFT JOIN media m ON m.id = ${listingAvatarIdSql("cm", "p", "co.status")}
+LEFT JOIN media m ON m.id = ${listingAvatarIdSql("cm", "p")}
   AND m.deleted_at IS NULL AND m.visibility = 'PUBLIC' AND m.status = 'READY'
 WHERE cm.deleted_at IS NULL
   -- Someone whose assignment ended leaves the current roster (their year keeps them in history).

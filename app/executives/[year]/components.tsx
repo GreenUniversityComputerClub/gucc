@@ -547,6 +547,7 @@ export function ExecutiveProfile({ executives }: { executives: ExecutiveWithYear
 
   const primaryExecutive = sortedExecutives[0];
   const avatar = getExecutiveAvatar(primaryExecutive);
+  const handle = sortedExecutives.find((e) => e.profileHandle)?.profileHandle;
 
   return (
     <div className="container py-4 md:py-8">
@@ -642,6 +643,12 @@ export function ExecutiveProfile({ executives }: { executives: ExecutiveWithYear
                 </a>
               )}
             </div>
+            {/* Their member page, when they made it public: bio, skills, posts and events. */}
+            {handle && (
+              <Link href={`/members/${handle}`} className="mt-3 inline-flex min-h-10 items-center text-sm font-medium text-primary hover:underline">
+                Full profile →
+              </Link>
+            )}
           </div>
         </div>
       </div>

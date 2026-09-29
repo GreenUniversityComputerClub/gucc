@@ -3,6 +3,7 @@
  * the migration verifier can call them with any D1-compatible Db). Only
  * published, public data is ever selected here.
  */
+import { avatarOfProfileSql, avatarUrl } from "../server/avatar";
 import type { Db } from "../server/db";
 import { buildCommittee, buildContest, buildEvent, mediaUrl, type CommitteeRow, type ContestRow, type ContestTeamRow, type EventRow, type MediaRow, type MemberRow, type PublicCommittee, type PublicContest, type PublicEvent } from "./shapes";
 import { COMMITTEES_SQL, CONTEST_IMAGES_SQL, CONTEST_TEAMS_SQL, CONTESTS_SQL, EVENT_BY_SLUG_SQL, EVENTS_SQL, MEMBERS_SQL } from "./queries";
@@ -172,5 +173,13 @@ export async function readSitemap(db: Db) {
     `SELECT DISTINCT p.student_id, MAX(p.updated_at, cm.updated_at) AS updated_at FROM committee_members cm JOIN profiles p ON p.id = cm.profile_id AND p.deleted_at IS NULL
      JOIN committees c ON c.id = cm.committee_id AND c.status <> 'UPCOMING' AND c.deleted_at IS NULL
      WHERE cm.deleted_at IS NULL AND p.student_id IS NOT NULL AND length(p.student_id) = 9`);
-  return { events, posts, committees, contests, people };
+  // Member pages their owners made public (approved members, and people who served).
+  const members = (await db.all<{ handle: string; updated_at: string; avatar_json: string | null }>(
+    `SELECT p.slug AS handle, p.updated_at, ${avatarOfProfileSql("p")} AS avatar_json FROM profiles p LEFT JOIN users u ON u.id = p.user_id AND u.deleted_at IS NULL
+     WHERE p.visibility = 'PUBLIC' AND p.slug IS NOT NULL AND p.deleted_at IS NULL AND p.merged_into_id IS NULL
+       AND (u.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM committee_members cm JOIN committees c ON c.id = cm.committee_id AND c.status <> 'UPCOMING' AND c.deleted_at IS NULL
+                                          WHERE cm.profile_id = p.id AND cm.deleted_at IS NULL))
+     ORDER BY p.updated_at DESC LIMIT 2000`,
+  )).map(({ avatar_json, ...m }) => ({ ...m, avatar: avatarUrl(avatar_json, "md") }));
+  return { events, posts, committees, contests, people, members };
 }

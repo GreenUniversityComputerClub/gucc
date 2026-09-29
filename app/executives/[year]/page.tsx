@@ -14,7 +14,7 @@ import {
 import { CampusTabs, AdminPanel, ExecutiveProfile, ExecutivesEditorProvider } from "./components";
 import { JsonLd } from "@/components/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
-import { PARENT_ORGANIZATION, SITE } from "@/lib/seo/site";
+import { PARENT_ORGANIZATION, SITE, absoluteUrl } from "@/lib/seo/site";
 import {
   breadcrumbSchema,
   collectionPageSchema,
@@ -175,7 +175,8 @@ export default async function ExecutivesYearPage({
       image: getExecutiveAvatar(primary),
       year: primary.year,
       description: `${primary.name} — ${roleSummary(executives)} at the ${SITE.name} (${SITE.shortName}), ${PARENT_ORGANIZATION.name}.`,
-      sameAs: [primary.linkedin, primary.github, primary.facebook, primary.twitter],
+      // The same person's member page, when they made it public: one entity for search engines.
+      sameAs: [primary.linkedin, primary.github, primary.facebook, primary.twitter, ...executives.filter((e) => e.profileHandle).slice(0, 1).map((e) => absoluteUrl(`/members/${e.profileHandle}`))],
     };
 
     return (

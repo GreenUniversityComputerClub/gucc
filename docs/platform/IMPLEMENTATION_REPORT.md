@@ -13,12 +13,25 @@ Everything below is in the working tree and **not released**. Schema and data ch
 `migrations/0010_platform_v6.sql`, which is additive: the round-6 Worker keeps working against a
 migrated database, so the release order (API first, then the website) is safe.
 
-**People data has one source.** A new profile photo didn't show on the Executives page because each
-committee listing kept its own copy of the photo (52 of 53 current listings) and the copy won. Now the
-profile is the truth for the current and upcoming committee, and archived years keep a snapshot taken
-when the committee is archived. The same rule covers name, designation, crop, links and position
-titles. `0010` removes the copies that equal the profile (nothing visible changes) and strips the
-`mailto:` prefix stored on 64 public emails.
+**People data has one source.** A new profile photo didn't show on the Executives pages because each
+committee listing kept its own copy of the photo (52 of 53 current listings, 213 past ones) and the
+copy won.
+
+- **Photo:** the person's profile photo is their photo in every year, past committees included.
+  The roster, their executive page (`/executives/<student id>`), every past year they served, link
+  previews and the sitemap all update the moment they change it. A listing's own photo is only the
+  fallback for people whose profile has none (older imports). A new photo also clears the old
+  framing, and removing it shows initials everywhere.
+- **Name, faculty designation and links:** these follow the profile for the current and upcoming
+  committee. Archived years keep a snapshot of who held which post, taken when the committee is
+  archived. Position titles follow a renamed position on live listings.
+- **`0010`:**
+  - drops listing photo copies wherever the profile has a usable photo, in every year;
+  - removes live copies of name and designation that equal the profile;
+  - strips the `mailto:` prefix stored on 64 public emails.
+
+  On production the photo clean-up changes what shows on exactly 4 listings: the past years of a
+  member whose new photo wasn't showing (`/executives/221902084`). Everything else is identical.
 
 **Photos wherever a person appears**: chat list, thread and bubbles, notifications (the sender is now
 recorded), person search, members, people, approvals, activity, tasks and comments, meetings,
@@ -77,6 +90,14 @@ images, inside the existing query, so no page makes an extra D1 call. One compon
 
 **Profiles**
 
+- Public member pages carry full search and link-preview data:
+  - a title and description built from role, bio and skills;
+  - an Open Graph card with the photo;
+  - `ProfilePage` and `Person` structured data, with breadcrumbs;
+  - a canonical address.
+- Public member pages are in the sitemap with their photo. They link to the person's executive page
+  and back (in the page and in `sameAs`), so search engines see one person. Members-only and
+  private pages stay `noindex`.
 - `/members/<handle>` shows:
   - photo, positions, bio and skills;
   - links and club journey;

@@ -297,16 +297,17 @@ export async function applyBulk(ctx: Ctx, req: BulkRequest): Promise<{ changed: 
       `INSERT INTO committee_members (id, committee_id, profile_id, position_id, position_title, display_name, designation, section, unit_type, unit_key, campus_label,
                                       avatar_media_id, avatar_position_x, avatar_position_y, avatar_scale, display_order, is_active, bio, created_at, created_by, updated_at, updated_by)
        SELECT json_extract(j.value, '$.id'), ?2, s.profile_id, s.position_id, s.position_title,
-              -- A live committee follows the profile: copies of the profile's name, designation and photo
-              -- are not carried over (only a deliberately different name or title is), and the framing
-              -- comes along only when it belongs to the photo the new listing will show.
+              -- A live committee follows the profile: copies of the profile's name and designation are not
+              -- carried over (only a deliberately different name or title is). The photo always follows
+              -- the profile; a listing's own photo is carried only for someone whose profile has none,
+              -- and the framing comes along with the photo it was set for.
               CASE WHEN ?5 = 'ARCHIVED' OR s.display_name IS NOT pr.full_name THEN s.display_name END,
               CASE WHEN ?5 = 'ARCHIVED' OR s.designation IS NOT pr.designation THEN s.designation END,
               s.section, s.unit_type, s.unit_key, s.campus_label,
-              CASE WHEN ?5 = 'ARCHIVED' THEN s.avatar_media_id END,
-              CASE WHEN ?5 = 'ARCHIVED' OR s.avatar_media_id IS NULL OR s.avatar_media_id IS pr.avatar_media_id THEN s.avatar_position_x END,
-              CASE WHEN ?5 = 'ARCHIVED' OR s.avatar_media_id IS NULL OR s.avatar_media_id IS pr.avatar_media_id THEN s.avatar_position_y END,
-              CASE WHEN ?5 = 'ARCHIVED' OR s.avatar_media_id IS NULL OR s.avatar_media_id IS pr.avatar_media_id THEN s.avatar_scale END,
+              CASE WHEN pr.avatar_media_id IS NULL THEN s.avatar_media_id END,
+              CASE WHEN s.avatar_media_id IS NULL OR s.avatar_media_id IS pr.avatar_media_id OR pr.avatar_media_id IS NULL THEN s.avatar_position_x END,
+              CASE WHEN s.avatar_media_id IS NULL OR s.avatar_media_id IS pr.avatar_media_id OR pr.avatar_media_id IS NULL THEN s.avatar_position_y END,
+              CASE WHEN s.avatar_media_id IS NULL OR s.avatar_media_id IS pr.avatar_media_id OR pr.avatar_media_id IS NULL THEN s.avatar_scale END,
               json_extract(j.value, '$.display_order'), json_extract(j.value, '$.is_active'), s.bio, ?3, ?4, ?3, ?4
        FROM json_each(?1) AS j JOIN committee_members s ON s.id = json_extract(j.value, '$.source') JOIN profiles pr ON pr.id = s.profile_id`,
       JSON.stringify(p.inserts), p.target.id, p.now, actor.user.id, p.target.status));

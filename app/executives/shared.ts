@@ -18,6 +18,8 @@ export interface Executive {
   twitter?: string | null;
   facebook?: string | null;
   mail?: string;
+  /** Their member page (/members/<handle>), when they made it public. */
+  profileHandle?: string;
 }
 
 export interface ExecutiveYear {

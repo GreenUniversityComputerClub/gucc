@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createCommittee } from "@/lib/server/services/committees";
 import { savePosition } from "@/lib/server/services/governance";
@@ -35,29 +36,70 @@ function roster(committeeId: string): Record<string, PublicExecutive> {
 const row = (sql: string, ...params: Array<string | number | null>) => w.sqlite.prepare(sql).get(...params) as Record<string, unknown>;
 
 describe("people data has one source", () => {
-  it("a new profile photo shows on the current roster at once; past committees keep theirs", async () => {
+  it("a new profile photo shows at once in every year the person served, past committees included", async () => {
     const exec = await w.user({ email: "exec@x.bd", name: "Nadia Rahman", roles: ["member"], positions: ["executive-member"] });
     const old = photo("med_old", exec);
-    // As in production: the listing carries a copy of the profile photo, with a framing.
-    w.sqlite.prepare("UPDATE profiles SET avatar_media_id = ?, avatar_position_x = 40, avatar_position_y = 30, avatar_scale = 1.5 WHERE user_id = ?").run(old, exec);
+    // As in production: the listings carry a copy of the profile photo, with a framing.
+    w.sqlite.prepare("UPDATE profiles SET avatar_media_id = ?, avatar_position_x = 40, avatar_position_y = 30, avatar_scale = 1.5, student_id = '221902084' WHERE user_id = ?").run(old, exec);
     w.sqlite.prepare("UPDATE committee_members SET avatar_media_id = ?, avatar_position_x = 40, avatar_position_y = 30, avatar_scale = 1.5 WHERE committee_id = ?").run(old, w.committeeId);
     w.sqlite.prepare("INSERT INTO committees (id, slug, name, term_label, status) VALUES ('cmt_2025', '2025', 'GUCC 2025', '2025', 'ARCHIVED')").run();
-    w.sqlite.prepare("INSERT INTO committee_members (id, committee_id, profile_id, position_id, position_title, section, display_order, avatar_media_id) SELECT 'cm_2025', 'cmt_2025', id, 'pos:executive-member', 'Executive Member', 'STUDENT', 0, ? FROM profiles WHERE user_id = ?").run(old, exec);
+    w.sqlite.prepare("INSERT INTO committee_members (id, committee_id, profile_id, position_id, position_title, section, display_order, avatar_media_id, avatar_position_x, avatar_position_y, avatar_scale) SELECT 'cm_2025', 'cmt_2025', id, 'pos:executive-member', 'Executive Member', 'STUDENT', 0, ?, 5, 5, 2 FROM profiles WHERE user_id = ?").run(old, exec);
     expect(roster(w.committeeId)["Nadia Rahman"]!.avatarUrl).toContain("med_old");
+    expect(roster("cmt_2025")["Nadia Rahman"]!.avatarUrl).toContain("med_old");
 
     await setOwnAvatar(await w.ctx(exec), photo("med_new", exec));
 
-    const now = roster(w.committeeId)["Nadia Rahman"]!;
-    expect(now.avatarUrl).toContain("med_new");
-    // The old zoom belonged to the old picture.
-    expect(now.avatarPosition).toBeUndefined();
-    expect(now.avatarScale).toBeUndefined();
-    expect(roster("cmt_2025")["Nadia Rahman"]!.avatarUrl).toContain("med_old");
+    // The current roster, and the past year (which the /executives/<student id> page also reads).
+    for (const year of [w.committeeId, "cmt_2025"]) {
+      const shown = roster(year)["Nadia Rahman"]!;
+      expect(shown.avatarUrl).toContain("med_new");
+      // The old zoom belonged to the old picture.
+      expect(shown.avatarPosition).toBeUndefined();
+      expect(shown.avatarScale).toBeUndefined();
+    }
+    expect(count("SELECT COUNT(*) n FROM committee_members WHERE avatar_media_id IS NOT NULL AND profile_id = (SELECT id FROM profiles WHERE user_id = ?)", exec)).toBe(0);
 
-    // Removing the photo shows initials, not an old copy.
+    // Removing the photo shows initials everywhere, not an old copy.
     await setOwnAvatar(await w.ctx(exec), null);
     expect(roster(w.committeeId)["Nadia Rahman"]!.avatarUrl).toBeUndefined();
-    expect(roster("cmt_2025")["Nadia Rahman"]!.avatarUrl).toContain("med_old");
+    expect(roster("cmt_2025")["Nadia Rahman"]!.avatarUrl).toBeUndefined();
+  });
+
+  it("an admin changing someone's photo (no account needed) updates their past years too", async () => {
+    const pres = await w.user({ email: "pres@x.bd", roles: ["member"], positions: ["president"] });
+    w.sqlite.prepare("INSERT INTO profiles (id, full_name, person_type, student_id, avatar_media_id) VALUES ('prf_alumna', 'Farhana Alam', 'STUDENT', '191902001', ?)").run(photo("med_2019"));
+    w.sqlite.prepare("INSERT INTO committees (id, slug, name, term_label, status) VALUES ('cmt_2020', '2020', 'GUCC 2020', '2020', 'ARCHIVED')").run();
+    w.sqlite.prepare("INSERT INTO committee_members (id, committee_id, profile_id, position_id, position_title, section, display_order, avatar_media_id) VALUES ('cm_2020', 'cmt_2020', 'prf_alumna', 'pos:executive-member', 'Executive Member', 'STUDENT', 0, 'med_2019')").run();
+    await updatePerson(await w.ctx(pres), "prf_alumna", { fullName: "Farhana Alam", avatarMediaId: photo("med_2026") });
+    expect(roster("cmt_2020")["Farhana Alam"]!.avatarUrl).toContain("med_2026");
+  });
+
+  it("someone without a profile photo keeps the photo their past listing has", async () => {
+    w.sqlite.prepare("INSERT INTO profiles (id, full_name, person_type) VALUES ('prf_old', 'Imported Person', 'STUDENT')").run();
+    w.sqlite.prepare("INSERT INTO committees (id, slug, name, term_label, status) VALUES ('cmt_2018', '2018', 'GUCC 2018', '2018', 'ARCHIVED')").run();
+    w.sqlite.prepare("INSERT INTO committee_members (id, committee_id, profile_id, position_id, position_title, section, display_order, avatar_media_id) VALUES ('cm_2018', 'cmt_2018', 'prf_old', 'pos:executive-member', 'Executive Member', 'STUDENT', 0, ?)").run(photo("med_legacy"));
+    expect(roster("cmt_2018")["Imported Person"]!.avatarUrl).toContain("med_legacy");
+    // A profile photo that isn't usable yet (still being processed) doesn't hide it either.
+    w.sqlite.prepare("INSERT INTO media (id, storage, bucket, object_key, original_filename, mime_type, media_type, visibility, status) VALUES ('med_wip', 'R2', 'public', 'media/med_wip/master.png', 'p.png', 'image/png', 'IMAGE', 'PUBLIC', 'PENDING')").run();
+    w.sqlite.prepare("UPDATE profiles SET avatar_media_id = 'med_wip' WHERE id = 'prf_old'").run();
+    expect(roster("cmt_2018")["Imported Person"]!.avatarUrl).toContain("med_legacy");
+  });
+
+  it("the 0010 clean-up gives past listings the profile's photo and keeps the only copy someone has", async () => {
+    const exec = await w.user({ email: "exec@x.bd", name: "Rafi", roles: ["member"], positions: ["executive-member"] });
+    const profileId = row("SELECT id FROM profiles WHERE user_id = ?", exec).id as string;
+    w.sqlite.prepare("UPDATE profiles SET avatar_media_id = ? WHERE id = ?").run(photo("med_now", exec), profileId);
+    w.sqlite.prepare("INSERT INTO profiles (id, full_name, person_type) VALUES ('prf_nophoto', 'No Photo', 'STUDENT')").run();
+    w.sqlite.prepare("INSERT INTO committees (id, slug, name, term_label, status) VALUES ('cmt_2022', '2022', 'GUCC 2022', '2022', 'ARCHIVED')").run();
+    const add = w.sqlite.prepare("INSERT INTO committee_members (id, committee_id, profile_id, position_id, position_title, section, display_order, avatar_media_id, avatar_position_x, avatar_position_y, avatar_scale) VALUES (?, 'cmt_2022', ?, 'pos:executive-member', 'Executive Member', 'STUDENT', ?, ?, 10, 10, 1.4)");
+    add.run("cm_old_photo", profileId, 0, photo("med_then"));
+    add.run("cm_only_copy", "prf_nophoto", 1, photo("med_only"));
+    const sql = readFileSync("migrations/0010_platform_v6.sql", "utf8");
+    const step = sql.slice(sql.indexOf("UPDATE committee_members SET\n    avatar_position_x"), sql.indexOf("-- Name and faculty designation"));
+    w.sqlite.exec(step);
+    expect(row("SELECT avatar_media_id, avatar_scale FROM committee_members WHERE id = 'cm_old_photo'")).toEqual({ avatar_media_id: null, avatar_scale: null });
+    expect(row("SELECT avatar_media_id, avatar_scale FROM committee_members WHERE id = 'cm_only_copy'")).toEqual({ avatar_media_id: "med_only", avatar_scale: 1.4 });
+    expect(roster("cmt_2022")["Rafi"]!.avatarUrl).toContain("med_now");
   });
 
   it("keeps the framing when the same photo is saved again", async () => {
@@ -81,21 +123,23 @@ describe("people data has one source", () => {
     expect(row("SELECT public_email FROM profiles WHERE user_id = ?", exec).public_email).toBe("new@x.bd");
   });
 
-  it("archiving a committee freezes what it showed; later profile changes don't rewrite history", async () => {
+  it("archiving a committee freezes who held which post; the photo keeps following the person", async () => {
     const pres = await w.user({ email: "pres@x.bd", name: "Leader", roles: ["member"], positions: ["president"] });
     const exec = await w.user({ email: "e@x.bd", name: "Tanvir", roles: ["member"], positions: ["executive-member"] });
     w.sqlite.prepare("UPDATE profiles SET avatar_media_id = ?, github_url = 'https://github.com/tanvir' WHERE user_id = ?").run(photo("med_term", exec), exec);
 
     await createCommittee(await w.ctx(pres), { name: "GUCC 2027", slug: "2027", termLabel: "2027", status: "CURRENT" });
     const frozen = row("SELECT avatar_media_id, display_name, legacy_json FROM committee_members WHERE committee_id = ? AND profile_id = (SELECT id FROM profiles WHERE user_id = ?)", w.committeeId, exec);
-    expect(frozen).toMatchObject({ avatar_media_id: "med_term", display_name: "Tanvir" });
+    // No photo copy: the photo stays the profile's.
+    expect(frozen).toMatchObject({ avatar_media_id: null, display_name: "Tanvir" });
     expect(JSON.parse(String(frozen.legacy_json))).toMatchObject({ github: "https://github.com/tanvir" });
 
     await updateOwnProfile(await w.ctx(exec), { fullName: "Tanvir Hasan", github: "https://github.com/other" });
     await setOwnAvatar(await w.ctx(exec), photo("med_later", exec));
     const past = roster(w.committeeId)["Tanvir"]!;
-    expect(past.avatarUrl).toContain("med_term");
+    // The name and links of that term stay; the photo is the person's newest.
     expect(past.github).toBe("https://github.com/tanvir");
+    expect(past.avatarUrl).toContain("med_later");
   });
 
   it("renaming a position renames live listings that used the old name, not chosen titles or history", async () => {
@@ -342,6 +386,24 @@ describe("profiles people can visit", () => {
     expect((await getProfile(await w.ctx(owner), handle)).restricted).toBe(false);
     expect((await membersDirectory(await w.ctx(viewer), {})).rows.map((r) => r.name)).not.toContain("Rafi Hasan");
     await expect(membersDirectory(await w.ctx(null), {})).rejects.toBeTruthy();
+  });
+
+  it("a public member page is linked from the executive page, listed in the sitemap, and links back", async () => {
+    const { getProfile } = await import("@/lib/server/services/profiles");
+    const { readSitemap } = await import("@/lib/public/read");
+    const exec = await w.user({ email: "e@x.bd", name: "Sadia Karim", roles: ["member"], positions: ["executive-member"] });
+    w.sqlite.prepare("UPDATE profiles SET student_id = '221902084' WHERE user_id = ?").run(exec);
+    await updateOwnProfile(await w.ctx(exec), { fullName: "Sadia Karim", visibility: "PUBLIC" });
+    const handle = String(row("SELECT slug FROM profiles WHERE user_id = ?", exec).slug);
+    expect(roster(w.committeeId)["Sadia Karim"]!.profileHandle).toBe(handle);
+    const page = await getProfile(await w.ctx(null), handle);
+    expect(!page.restricted && page.executivePage).toBe("/executives/221902084");
+    expect((await readSitemap(w.db)).members.map((m) => m.handle)).toContain(handle);
+
+    // Members-only again: no link from the executive page, not in the sitemap.
+    await updateOwnProfile(await w.ctx(exec), { fullName: "Sadia Karim", visibility: "MEMBERS" });
+    expect(roster(w.committeeId)["Sadia Karim"]!.profileHandle).toBeUndefined();
+    expect((await readSitemap(w.db)).members.map((m) => m.handle)).not.toContain(handle);
   });
 
   it("names clash into distinct handles; committee members stay visible by name and position", async () => {

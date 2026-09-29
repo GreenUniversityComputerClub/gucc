@@ -87,6 +87,19 @@ test("profiles: a member's page shows to members, private data never shows, and 
   await expect(page.getByRole("link", { name: new RegExp(A.name) })).toBeVisible();
 });
 
+test("a public member page is ready for search and link previews", async ({ page }) => {
+  d1(`UPDATE profiles SET visibility = 'PUBLIC' WHERE user_id = (SELECT id FROM users WHERE email = '${A.email}')`);
+  const handle = d1<{ slug: string }>(`SELECT slug FROM profiles WHERE user_id = (SELECT id FROM users WHERE email = '${A.email}')`)[0]!.slug;
+  await page.context().clearCookies();
+  await page.goto(`/members/${handle}`);
+  await expect(page.getByRole("heading", { name: A.name })).toBeVisible();
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", /\/api\/og\?/);
+  await expect(page.locator('meta[property="og:type"]')).toHaveAttribute("content", "profile");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", new RegExp(`/members/${handle}$`));
+  expect(await page.evaluate(() => document.querySelector('meta[name="robots"]')?.getAttribute("content") ?? "")).not.toContain("noindex");
+  expect(await page.locator('script[type="application/ld+json"]').allTextContents()).toEqual(expect.arrayContaining([expect.stringContaining('"ProfilePage"')]));
+});
+
 test("a member writes a blog post; a reviewer approves it from the queue", async ({ page }) => {
   test.setTimeout(180_000);
   const title = `A member's post ${run}`;
@@ -104,6 +117,34 @@ test("a member writes a blog post; a reviewer approves it from the queue", async
   await page.getByRole("button", { name: "Approve & publish" }).click();
   await expect(page).toHaveURL(/\/dashboard\/approvals/);
   expect(d1<{ status: string }>(`SELECT status FROM posts WHERE title = '${title.replace(/'/g, "''")}'`)[0]!.status).toBe("PUBLISHED");
+});
+
+test("an executive page shows the person's current profile photo, in past years too", async ({ page }) => {
+  // Two different public photos: an old copy on a past listing, and the profile's current one.
+  const old = { id: `med_e2e_old_${run}`, object_key: `media/e2e/${run}/old.webp` };
+  const current = { id: `med_e2e_new_${run}`, object_key: `media/e2e/${run}/new.webp` };
+  for (const m of [old, current]) {
+    d1(`INSERT INTO media (id, storage, bucket, object_key, original_filename, mime_type, media_type, visibility, status) VALUES ('${m.id}', 'R2', 'public', '${m.object_key}', 'p.webp', 'image/webp', 'IMAGE', 'PUBLIC', 'READY')`);
+  }
+  const sid = `99${run.replace(/\D/g, "").padEnd(7, "7").slice(0, 7)}`;
+  d1(`INSERT INTO profiles (id, full_name, person_type, student_id, avatar_media_id) VALUES ('prf_e2e_${run}', 'Past Executive ${run}', 'STUDENT', '${sid}', '${current.id}')`);
+  d1("INSERT OR IGNORE INTO committees (id, slug, name, term_label, status) VALUES ('cmt_e2e_1999', '1999', 'GUCC 1999', '1999', 'ARCHIVED')");
+  d1(`INSERT INTO committee_members (id, committee_id, profile_id, position_id, position_title, section, display_order, avatar_media_id)
+      VALUES ('cm_e2e_${run}', 'cmt_e2e_1999', 'prf_e2e_${run}', 'pos:executive-member', 'Executive Member', 'STUDENT', 0, '${old.id}')`);
+  // Rows written straight to the database don't refresh the cached pages; a profile save does
+  // (it refreshes everything that shows people), exactly as a real photo change would.
+  await login(page, A.email, A.password, "/dashboard/profile");
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByText("Profile saved.").first()).toBeVisible();
+  await expect.poll(async () => (await page.goto(`/executives/${sid}`))?.status(), { timeout: 30_000, intervals: [1000, 2000, 3000] }).toBe(200);
+  const portrait = page.getByAltText(new RegExp(`Past Executive ${run}`)).first();
+  // (The test files don't exist in storage, so the image itself may not load; its address is what matters.)
+  await portrait.waitFor({ state: "attached" });
+  // Through the image optimizer the file's address is URL-encoded inside the src.
+  const src = (await portrait.getAttribute("src")) ?? "";
+  const shows = (key: string) => src.includes(key) || src.includes(encodeURIComponent(key));
+  expect(shows(current.object_key)).toBe(true);
+  expect(shows(old.object_key)).toBe(false);
 });
 
 test("contact: a clear 'Message sent' panel, and another message can follow", async ({ page }) => {

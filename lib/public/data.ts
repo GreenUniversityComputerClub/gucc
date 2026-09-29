@@ -66,6 +66,8 @@ export interface SitemapData {
   committees: Array<{ slug: string; updated_at: string; status: string }>;
   contests: Array<{ legacy_id: number; updated_at: string }>;
   people: Array<{ student_id: string; updated_at: string }>;
+  /** Public member pages (missing from an older API). */
+  members?: Array<{ handle: string; updated_at: string; avatar: string | null }>;
 }
 
 export const getSitemapData = cache(async (): Promise<SitemapData> =>

@@ -1,9 +1,11 @@
 -- Platform v6 (2026-09-29). Additive only: nullable columns, indexes, seed rows, and data updates
 -- that touch a row only while it still holds a copy or the seeded value.
 --
---   * people data           live committee listings stop carrying copies of the profile's photo,
---                           name and faculty designation (identical today, so nothing visible
---                           changes); the profile is the one source for the current committee
+--   * people data           a person's profile photo is their photo in every committee, past ones
+--                           included: listing copies go wherever the profile has a photo (4 past
+--                           listings on production showed an old photo; they now show the new
+--                           one). Live listings also stop carrying copies of the profile's name
+--                           and faculty designation (identical today, so nothing changes there)
 --   * public_email          "mailto:" prefixes stored by the legacy import are removed
 --   * notifications         who caused each one (actor_user_id), for the sender's name and photo
 --   * reports / users       a report category, and a moderator's pause on someone's messaging
@@ -15,19 +17,27 @@
 --                           reviewers" policies add anyone who may publish club-wide as a reviewer;
 --                           a switch (content.member_submissions) pauses it
 --
--- Release order: the previous Worker still reads COALESCE(listing, profile), which gives the same
--- result once an identical copy is gone, so it keeps working on the migrated database.
+-- Release order: the previous Worker still reads COALESCE(listing, profile). Once a listing's copy
+-- is gone it shows the profile's photo too, which is the intended result, so it keeps working on
+-- the migrated database.
 --
 -- Restore: this migration only adds; to undo, restore the D1 backup taken by the release
 -- (release.ts / deploy.yml) or use D1 Time Travel to the point before it ran.
 
--- ── People data: the profile is the truth for the live committees ───────────────
--- Only copies equal to the profile's value, and only on the current or upcoming committee.
--- Past committees keep their snapshot.
-UPDATE committee_members SET avatar_media_id = NULL
-  WHERE deleted_at IS NULL AND avatar_media_id IS NOT NULL
-    AND committee_id IN (SELECT id FROM committees WHERE status IN ('CURRENT', 'UPCOMING'))
-    AND avatar_media_id = (SELECT p.avatar_media_id FROM profiles p WHERE p.id = committee_members.profile_id);
+-- ── People data: one photo per person, in every year ─────────────────────────────
+-- Every listing (past committees too) whose person has a usable profile photo drops its own copy,
+-- so the profile photo shows. A copy that was a different (older) photo also drops the framing
+-- that was set for it. People without a profile photo keep their listing's photo as it is.
+UPDATE committee_members SET
+    avatar_position_x = CASE WHEN committee_members.avatar_media_id = p.avatar_media_id THEN committee_members.avatar_position_x END,
+    avatar_position_y = CASE WHEN committee_members.avatar_media_id = p.avatar_media_id THEN committee_members.avatar_position_y END,
+    avatar_scale = CASE WHEN committee_members.avatar_media_id = p.avatar_media_id THEN committee_members.avatar_scale END,
+    avatar_media_id = NULL
+  FROM profiles p JOIN media pm ON pm.id = p.avatar_media_id AND pm.deleted_at IS NULL AND pm.visibility = 'PUBLIC' AND pm.status = 'READY'
+  WHERE p.id = committee_members.profile_id AND committee_members.deleted_at IS NULL AND committee_members.avatar_media_id IS NOT NULL;
+
+-- Name and faculty designation: only copies equal to the profile's value, and only on the current
+-- or upcoming committee. Past committees keep their snapshot of who held which post.
 UPDATE committee_members SET display_name = NULL
   WHERE deleted_at IS NULL AND display_name IS NOT NULL
     AND committee_id IN (SELECT id FROM committees WHERE status IN ('CURRENT', 'UPCOMING'))

@@ -63,6 +63,8 @@ export interface PublicExecutive {
   twitter?: string;
   facebook?: string;
   mail?: string;
+  /** The person's member page (/members/<handle>), when they made it public. */
+  profileHandle?: string;
 }
 
 export interface CommitteeRow {
@@ -102,11 +104,13 @@ export interface MemberRow {
   p_avatar_scale: number | null;
   /** 1 when the photo shown is the profile's own (so the profile's framing fits it). */
   avatar_is_profile?: number | null;
-  /** The photo shown: the profile's for current committees, the frozen copy for past ones. */
+  /** The photo shown: the profile's, or the listing's own when the profile has none. */
   avatar_storage: MediaRow["storage"] | null;
   avatar_object_key: string | null;
   avatar_legacy_path: string | null;
   avatar_external_url: string | null;
+  /** The member page address, only when its owner made it public. */
+  public_handle?: string | null;
 }
 
 export interface CommitteeLayout {
@@ -155,6 +159,7 @@ function toExecutive(r: MemberRow, historic = false): PublicExecutive {
       : null,
   );
   if (avatar) e.avatarUrl = avatar;
+  if (r.public_handle) e.profileHandle = r.public_handle;
   // The listing's framing (set on the year page) wins; otherwise the profile's, when the photo
   // shown is the profile's own. A new photo clears both, so an old zoom never lands on it.
   const own = Boolean(r.avatar_is_profile);

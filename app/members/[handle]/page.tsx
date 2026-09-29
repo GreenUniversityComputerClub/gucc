@@ -4,6 +4,10 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { BookOpen, CalendarDays, Eye, Facebook, Github, Globe, GraduationCap, Linkedin, Lock, Mail, MessageSquare, Pencil, Sparkles, Twitter, Users } from "lucide-react";
 import { rpc } from "@/lib/api/session";
+import { JsonLd } from "@/components/seo/json-ld";
+import { buildMetadata } from "@/lib/seo/metadata";
+import { absoluteUrl } from "@/lib/seo/site";
+import { breadcrumbSchema, graph, profilePageSchema } from "@/lib/seo/schema";
 import type { PublicProfile } from "@/lib/server/services/profiles";
 import { PersonAvatar } from "@/components/person-avatar";
 import { Button } from "@/components/ui/button";
@@ -23,19 +27,34 @@ const ROLE: Record<string, string> = { SPEAKER: "Speaker", COORDINATOR: "Coordin
 const VISIBILITY: Record<string, string> = { PUBLIC: "Visible to everyone", MEMBERS: "Visible to signed-in members", PRIVATE: "Only you can see this" };
 const monthYear = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", month: "long", year: "numeric" }) : null);
 
+/** "General Secretary, GUCC 2026", else "Faculty · CSE", else "Member of GUCC". */
+function roleLine(p: PublicProfile): string {
+  if (p.current[0]) return `${p.current[0].title}, GUCC ${p.current[0].year}`;
+  const last = p.journey[0];
+  if (last) return `Former ${last.title}, GUCC ${last.year}`;
+  return [p.designation ?? TYPE[p.personType] ?? "Member", p.department].filter(Boolean).join(" · ") || "Member of GUCC";
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
   const { handle } = await params;
   const r = await load(decodeURIComponent(handle));
   if (!r.ok || r.data.restricted) return { title: "Member profile", robots: { index: false, follow: false } };
   const p = r.data;
-  const role = p.current[0] ? `${p.current[0].title}, GUCC` : `${TYPE[p.personType] ?? "Member"} at Green University Computer Club`;
-  return {
-    title: p.name,
-    description: `${p.name} — ${role}.${p.bio ? ` ${p.bio.slice(0, 140)}` : ""}`,
+  const role = roleLine(p);
+  const about = p.bio ? ` ${p.bio.replace(/\s+/g, " ").slice(0, 160)}` : "";
+  const skills = p.skills.length ? ` Skills: ${p.skills.slice(0, 6).join(", ")}.` : "";
+  return buildMetadata({
+    title: `${p.name} — ${role}`,
+    description: `${p.name}, ${role} at the Green University Computer Club (GUCC), Green University of Bangladesh.${about}${skills}`,
+    path: `/members/${p.handle}`,
+    type: "profile",
+    keywords: [p.name, `${p.name} GUCC`, `${p.name} Green University`, ...p.skills.slice(0, 5), "GUCC member", "Green University Computer Club"],
+    // A card with their photo, name and role for link previews (Facebook, WhatsApp, LinkedIn, X).
+    image: { eyebrow: "GUCC member", title: p.name, subtitle: role, photo: p.avatarUrl ?? undefined, variant: "portrait" },
+    modifiedTime: p.updatedAt ?? undefined,
     // Only profiles their owners made public are indexed.
-    robots: p.visibility === "PUBLIC" ? undefined : { index: false, follow: false },
-    alternates: { canonical: `/members/${p.handle}` },
-  };
+    noIndex: p.visibility !== "PUBLIC",
+  });
 }
 
 export default async function MemberProfile({ params }: { params: Promise<{ handle: string }> }) {
@@ -49,6 +68,17 @@ export default async function MemberProfile({ params }: { params: Promise<{ hand
   const p = r.data;
   // Opened by its internal id (or an old address): go to the readable one.
   if (decodeURIComponent(handle) !== p.handle) permanentRedirect(`/members/${p.handle}`);
+  const path = `/members/${p.handle}`;
+  // Structured data for search engines, only for profiles their owners made public.
+  const schema = p.visibility === "PUBLIC" ? graph(
+    breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Members", path: "/members" }, { name: p.name, path }]),
+    profilePageSchema({
+      name: p.name, path, position: p.current[0]?.title ?? p.journey[0]?.title, designation: p.designation ?? undefined,
+      image: p.avatarUrl ?? undefined, year: p.current[0]?.year ?? p.journey[0]?.year,
+      description: `${p.name} — ${roleLine(p)} at the Green University Computer Club.${p.bio ? ` ${p.bio.replace(/\s+/g, " ").slice(0, 200)}` : ""}`,
+      sameAs: [p.links.linkedin, p.links.github, p.links.facebook, p.links.twitter, p.links.website, p.executivePage ? absoluteUrl(p.executivePage) : null],
+    }, p.updatedAt ?? undefined),
+  ) : null;
   const links = [
     p.links.github && { href: p.links.github, label: "GitHub", icon: Github },
     p.links.linkedin && { href: p.links.linkedin, label: "LinkedIn", icon: Linkedin },
@@ -62,6 +92,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ hand
 
   return (
     <div className="container max-w-5xl py-6 sm:py-10">
+      {schema && <JsonLd id={`member-${p.handle}`} data={schema} />}
       <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="h-28 bg-gradient-to-r from-emerald-700 via-emerald-500 to-teal-400 sm:h-36" aria-hidden />
         <div className="px-4 pb-5 sm:px-8 sm:pb-7">
@@ -133,6 +164,9 @@ export default async function MemberProfile({ params }: { params: Promise<{ hand
                   </li>
                 ))}
               </ol>
+              {p.executivePage && (
+                <Link prefetch={false} href={p.executivePage} className="mt-4 inline-flex min-h-10 items-center text-sm font-medium text-primary hover:underline">Executive page →</Link>
+              )}
             </Card>
           )}
           {p.posts.length > 0 && (

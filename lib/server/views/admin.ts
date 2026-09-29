@@ -91,7 +91,7 @@ export async function committeeView(ctx: Ctx, id: string) {
   const avatars = await ctx.db.all<MediaRow & { profile_id: string }>(
     `SELECT pr.id AS profile_id, m.id, m.storage, m.object_key, m.legacy_path, m.external_url, m.variants_json
      FROM committee_members cm JOIN committees co ON co.id = cm.committee_id JOIN profiles pr ON pr.id = cm.profile_id
-     JOIN media m ON m.id = ${listingAvatarIdSql("cm", "pr", "co.status")} AND m.deleted_at IS NULL
+     JOIN media m ON m.id = ${listingAvatarIdSql("cm", "pr")} AND m.deleted_at IS NULL
      WHERE cm.committee_id = ?1 AND cm.deleted_at IS NULL`, id);
   const removed = await ctx.db.all<{ id: string; name: string; position_title: string; deleted_at: string }>(
     `SELECT cm.id, COALESCE(cm.display_name, pr.full_name) AS name, cm.position_title, cm.deleted_at FROM committee_members cm JOIN profiles pr ON pr.id = cm.profile_id

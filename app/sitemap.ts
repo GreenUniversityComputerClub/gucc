@@ -117,6 +117,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(event.image ? { images: [absoluteUrl(event.image)] } : {}),
   }));
 
+  // Member pages their owners made public, with their photo for image search.
+  const memberEntries: Entry[] = (meta.members ?? []).map((m) => ({
+    url: absoluteUrl(`/members/${m.handle}`),
+    lastModified: latest(m.updated_at) ?? latestContentDate,
+    changeFrequency: "monthly",
+    priority: 0.5,
+    ...(m.avatar ? { images: [absoluteUrl(m.avatar)] } : {}),
+  }));
+
   // Only contests with results: a page without teams has nothing to index.
   const contestEntries: Entry[] = contests.filter((contest) => contest.teams.length > 0).map((contest) => ({
     url: absoluteUrl(`/contests/${contest.id}`),
@@ -132,6 +141,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticEntries,
     ...yearEntries,
     ...profileEntries,
+    ...memberEntries,
     ...eventEntries,
     ...contestEntries,
     ...(await blogEntries()),

@@ -1,9 +1,9 @@
 # Legacy data migration report
 
-Run `run_2026-09-29T16-58-01-016Z_d4557e10` · 2026-09-29T16:58:01.016Z · target **local** · mode insert-missing
+Run `run_2026-09-29T17-53-00-300Z_e1133b2d` · 2026-09-29T17:53:00.300Z · target **local** · mode insert-missing
 
 Private values (phone numbers, participant emails) are masked in this report. The generated SQL and the source backup
-(`migration/backup/2026-09-29T16-58-01-016Z`) contain them and are git-ignored.
+(`migration/backup/2026-09-29T17-53-00-300Z`) contain them and are git-ignored.
 
 ## Summary
 

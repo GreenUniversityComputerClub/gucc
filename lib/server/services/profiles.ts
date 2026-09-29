@@ -60,7 +60,7 @@ interface ProfileRow {
   id: string; slug: string | null; user_id: string | null; full_name: string; person_type: string; department: string | null; batch: string | null; designation: string | null;
   bio: string | null; skills_json: string | null; public_email: string | null; linkedin_url: string | null; github_url: string | null; twitter_url: string | null; facebook_url: string | null;
   website_url: string | null; visibility: ProfileVisibility; avatar_json: string | null; account_status: string | null; member_since: string | null;
-  message_privacy: string | null; served: number;
+  message_privacy: string | null; served: number; student_id: string | null; updated_at: string | null;
 }
 
 /**
@@ -73,6 +73,7 @@ export async function getProfile(ctx: Ctx, rawHandle: unknown) {
   const p = await ctx.db.first<ProfileRow>(
     `SELECT pr.id, pr.slug, pr.user_id, pr.full_name, pr.person_type, pr.department, pr.batch, pr.designation, pr.bio, pr.skills_json, pr.public_email,
             pr.linkedin_url, pr.github_url, pr.twitter_url, pr.facebook_url, pr.website_url, pr.visibility, ${avatarOfProfileSql("pr")} AS avatar_json,
+            pr.student_id, pr.updated_at,
             u.status AS account_status, COALESCE(u.approved_at, u.created_at) AS member_since, u.message_privacy,
             EXISTS (SELECT 1 FROM committee_members cm JOIN committees c ON c.id = cm.committee_id AND c.status <> 'UPCOMING' AND c.deleted_at IS NULL
                     WHERE cm.profile_id = pr.id AND cm.deleted_at IS NULL) AS served
@@ -142,6 +143,10 @@ export async function getProfile(ctx: Ctx, rawHandle: unknown) {
     posts: posts.map((x) => ({ ...x, href: x.type === "BLOG" ? `/blog/${x.slug}` : x.type === "NEWS" ? `/news/${x.slug}` : `/announcements/${x.slug}` })),
     events: events.map((e) => ({ ...e, href: `/events/${e.slug}` })),
     visibility: p.visibility,
+    // Someone who served on a committee also has a public executive page (addressed by student ID,
+    // which that page already shows); linked so search engines see one person.
+    executivePage: p.served && p.student_id && /^\d{9}$/.test(p.student_id) ? `/executives/${p.student_id}` : null,
+    updatedAt: p.updated_at,
     isSelf: self,
     limited: !full,
     canMessage,

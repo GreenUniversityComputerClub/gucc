@@ -386,8 +386,7 @@ async function buildPlan(ctx: Ctx, req: ImportRequest): Promise<{ plan: ImportPl
       put("designation", "designation", src.designation?.slice(0, 80) ?? null, listing.designation);
       put("start_date", "start date", startDate ?? null, listing.start_date);
       put("end_date", "end date", endDate ?? null, listing.end_date);
-      // Past committees keep their own photo; a live listing shows the profile's (filled below if empty).
-      if (committee?.status === "ARCHIVED") put("avatar_media_id", "photo", photoId, listing.avatar_media_id);
+      // The photo belongs to the person (their profile, filled below if empty), in every year.
       if (src.crop && (src.crop.x !== listing.avatar_position_x || src.crop.y !== listing.avatar_position_y || src.crop.scale !== listing.avatar_scale)) {
         Object.assign(listingPatch, { avatar_position_x: src.crop.x, avatar_position_y: src.crop.y, avatar_scale: src.crop.scale });
         changes.push("portrait framing");
@@ -539,8 +538,8 @@ export async function applyExecutiveImport(ctx: Ctx, req: ImportRequest & { plan
         id, committee_id: committee.id, profile_id: profileId, position_id: r.position!.id, position_title: (r.positionTitle ?? r.position!.name).slice(0, 120),
         display_name: w.profile && r.name && lower(r.name) !== lower(w.profile.full_name) ? r.name : null,
         designation: w.src.designation?.slice(0, 80) ?? null, section: r.section, unit_type: r.unit ? w.unitType : null, unit_key: r.unit,
-        // Only a past committee stores its own photo; a live listing shows the person's profile photo.
-        campus_label: w.unitLabel, avatar_media_id: committee.status === "ARCHIVED" ? w.photoId : null,
+        // The listing shows the person's profile photo (the file's photo fills an empty profile).
+        campus_label: w.unitLabel, avatar_media_id: null,
         avatar_position_x: w.src.crop?.x ?? null, avatar_position_y: w.src.crop?.y ?? null, avatar_scale: w.src.crop?.scale ?? null,
         display_order: orderFor(committee.id, r.section, r.unit, w.src.displayOrder), start_date: w.startDate, end_date: w.endDate,
         // Active in the current committee unless the listing has already ended.
