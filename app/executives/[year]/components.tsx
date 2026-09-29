@@ -213,7 +213,7 @@ export function ExecutiveCard({
 
       {/* Social Media Links - Enhanced for Dark Mode */}
       {hasSocialLinks && (
-        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 bg-card/95 backdrop-blur-sm border border-border/50 px-3 py-2 rounded-full flex space-x-1 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg hover:shadow-xl transform group-hover:scale-105 z-10">
+        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 bg-card/95 backdrop-blur-sm border border-border/50 px-3 py-2 rounded-full flex space-x-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-all duration-300 shadow-lg hover:shadow-xl transform group-hover:scale-105 z-10">
           {executive.linkedin && (
             <a
               href={executive.linkedin}
@@ -593,6 +593,7 @@ export function ExecutiveProfile({ executives }: { executives: ExecutiveWithYear
                   href={sortedExecutives[0].linkedin} 
                   target="_blank" 
                   rel="noopener noreferrer"
+                  aria-label={`${sortedExecutives[0].name} on LinkedIn`}
                   className="text-blue-600 hover:text-blue-800 transition-colors"
                 >
                   <Linkedin className="h-5 w-5" />
@@ -603,6 +604,7 @@ export function ExecutiveProfile({ executives }: { executives: ExecutiveWithYear
                   href={sortedExecutives[0].github} 
                   target="_blank" 
                   rel="noopener noreferrer"
+                  aria-label={`${sortedExecutives[0].name} on GitHub`}
                   className="text-gray-800 hover:text-gray-600 transition-colors"
                 >
                   <Github className="h-5 w-5" />
@@ -613,6 +615,7 @@ export function ExecutiveProfile({ executives }: { executives: ExecutiveWithYear
                   href={sortedExecutives[0].facebook} 
                   target="_blank" 
                   rel="noopener noreferrer"
+                  aria-label={`${sortedExecutives[0].name} on Facebook`}
                   className="text-blue-600 hover:text-blue-800 transition-colors"
                 >
                   <Facebook className="h-5 w-5" />
@@ -623,6 +626,7 @@ export function ExecutiveProfile({ executives }: { executives: ExecutiveWithYear
                   href={sortedExecutives[0].twitter} 
                   target="_blank" 
                   rel="noopener noreferrer"
+                  aria-label={`${sortedExecutives[0].name} on X (Twitter)`}
                   className="text-blue-400 hover:text-blue-600 transition-colors"
                 >
                   <Twitter className="h-5 w-5" />
@@ -631,6 +635,7 @@ export function ExecutiveProfile({ executives }: { executives: ExecutiveWithYear
               {mailtoHref(sortedExecutives[0].mail) && (
                 <a 
                   href={mailtoHref(sortedExecutives[0].mail)} 
+                  aria-label={`Email ${sortedExecutives[0].name}`}
                   className="text-red-600 hover:text-red-800 transition-colors"
                 >
                   <Mail className="h-5 w-5" />

@@ -39,14 +39,17 @@ export default async function CertificateVerifyPage({ searchParams }: VerifyPage
   const participant = res.ok ? (res.data as Parameters<typeof CertificateVerifyClient>[0]['participant'] | null) : null
 
   if (!participant) {
+    // Only a clear "no match" means not found; an outage or too many tries says so and when to retry.
+    const busy = !res.ok && res.code === 'RATE_LIMITED'
+    const down = !res.ok && !busy
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">
-            Certificate Not Found
+          <h2 className={`text-2xl font-bold mb-4 ${down || busy ? 'text-amber-700' : 'text-red-700'}`}>
+            {busy ? 'Too many checks' : down ? 'Verification is unavailable right now' : 'Certificate Not Found'}
           </h2>
-          <p className="text-gray-600 mb-6">
-            Participant not found. Please verify your credentials.
+          <p className="text-gray-700 mb-6">
+            {busy ? 'Please wait a few minutes, then try again.' : down ? 'We could not reach the certificate records. Please try again in a few minutes.' : 'No participant matches that team name and email. Check the spelling and try again.'}
           </p>
           <a
             href="/certificates/hacktheai"

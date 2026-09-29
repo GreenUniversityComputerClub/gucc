@@ -34,7 +34,7 @@ export async function generateMetadata({
     });
   }
 
-  const readableDate = new Date(event.date).toLocaleDateString("en-GB", {
+  const readableDate = new Date(event.date).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka",
     day: "numeric",
     month: "long",
     year: "numeric",

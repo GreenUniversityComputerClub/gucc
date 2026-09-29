@@ -27,6 +27,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   return (
     <>
       <PageHeader
+        back={{ href: "/dashboard/recruitment", label: "Recruitment" }}
         title={c.title}
         description={`${total} applications${c.isOpenNow ? " · accepting applications now" : ""}`}
         actions={<><StatusBadge status={c.status} /><a href={`/api/admin/recruitment/${id}/export`} className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted">Download CSV</a>{c.isOpenNow && <Link prefetch={false} href="/recruitment" className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted">Public form</Link>}</>}

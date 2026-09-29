@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { resetPasswordAction } from '@/app/auth/actions'
+import { PasswordChecklist } from '@/components/password-checklist'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
@@ -50,9 +51,12 @@ export function UpdatePasswordForm({ className, ...props }: React.ComponentProps
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="password">New password</Label>
-                <PasswordInput id="password" placeholder="At least 10 characters" required minLength={10} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                {/* Lets password managers save the new password for the right account. */}
+                <input type="text" name="username" autoComplete="username" value={params.get('email') ?? ''} readOnly hidden aria-hidden />
+                <PasswordInput id="password" placeholder="At least 10 characters" required minLength={10} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-describedby="pw-rules" aria-invalid={Boolean(error)} />
+                <PasswordChecklist id="pw-rules" password={password} email={params.get('email')} />
               </div>
-              {error && <p className="text-sm text-red-500" role="alert">{error}</p>}
+              {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
               <Button type="submit" className="w-full" disabled={pending}>
                 {pending ? 'Saving...' : 'Save new password'}
               </Button>

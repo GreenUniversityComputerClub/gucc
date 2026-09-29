@@ -18,7 +18,7 @@ const dashIdx = args.indexOf("--dashboard");
 const creds = dashIdx >= 0 ? { email: args[dashIdx + 1], password: args[dashIdx + 2] } : null;
 
 const PUBLIC = ["/", "/executives", "/events", "/blog", "/news", "/announcements", "/contests", "/join", "/contact", "/sponsors", "/collaborations",
-  "/socials", "/scheduler", "/lost-found", "/recruitment", "/certificates/hacktheai", "/certificates/hacktheai/verify", "/auth/login", "/auth/sign-up"];
+  "/socials", "/lost-found", "/recruitment", "/certificates/hacktheai", "/certificates/hacktheai/verify", "/auth/login", "/auth/sign-up"];
 const DASHBOARD = ["/dashboard", "/dashboard/profile", "/dashboard/security", "/dashboard/notifications", "/dashboard/chat", "/dashboard/tasks", "/dashboard/meetings",
   "/dashboard/members", "/dashboard/committees", "/dashboard/positions", "/dashboard/access", "/dashboard/roles", "/dashboard/rules", "/dashboard/approvals",
   "/dashboard/events", "/dashboard/posts?type=BLOG", "/dashboard/activity", "/dashboard/health", "/dashboard/settings", "/dashboard/lost-found"];

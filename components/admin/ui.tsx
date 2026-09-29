@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { reloadWith } from "@/lib/flash";
 import { reauthAction } from "@/app/dashboard/reauth-actions";
 import { fieldClass } from "./field-class";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export type Result = { ok: true; data?: unknown; message?: string } | { ok: false; error: string; code: string; fields?: Record<string, string>; trace?: string[] };
 type ServerAction = (fd: FormData) => Promise<Result>;
@@ -18,9 +19,26 @@ type ServerAction = (fd: FormData) => Promise<Result>;
 const FieldErrors = createContext<Record<string, string>>({});
 
 /**
+ * Forms with unsaved changes on this page. Leaving the page (or submitting another form, such
+ * as "Publish" next to an edited post) warns first, so typed work is never lost silently.
+ */
+const unsaved = new Map<symbol, string>();
+let leaveGuard = false;
+function guardLeaving() {
+  if (leaveGuard || typeof window === "undefined") return;
+  leaveGuard = true;
+  window.addEventListener("beforeunload", (e) => {
+    if (unsaved.size === 0) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
+}
+
+/**
  * A form bound to a server action. Shows success, validation errors next to
  * their fields, authorization denials with the engine's explanation, and
- * keeps the button disabled while the action runs.
+ * keeps the button disabled while the action runs. `confirm` asks in an
+ * accessible dialog (never the browser's pop-up, which some browsers block).
  */
 export function ActionForm({
   action,
@@ -34,6 +52,7 @@ export function ActionForm({
   resetOnSuccess = false,
   inline = false,
   onSuccess,
+  submitAriaLabel,
 }: {
   action: ServerAction;
   children?: React.ReactNode;
@@ -48,14 +67,37 @@ export function ActionForm({
   inline?: boolean;
   /** Called after a successful submit (e.g. to close a dialog or reset client state). */
   onSuccess?: (data: unknown) => void;
+  /** A fuller name for the button when several on a page share a label ("Sign out: Chrome on Android"). */
+  submitAriaLabel?: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const lastData = useRef<FormData | null>(null);
   const [state, setState] = useState<Result | null>(null);
   const [pending, startTransition] = useTransition();
+  const [ask, askDialog] = useConfirm();
+  const me = useRef(Symbol("form"));
+
+  useEffect(() => {
+    guardLeaving();
+    const id = me.current;
+    return () => void unsaved.delete(id);
+  }, []);
+  const markDirty = () => {
+    if (!unsaved.has(me.current)) unsaved.set(me.current, submitLabel);
+  };
+
+  // After a refused submit, take the reader to the problem: the first field marked invalid, else the message.
+  useEffect(() => {
+    if (!state || state.ok || state.code === "REAUTH_REQUIRED") return;
+    const form = formRef.current;
+    const first = form?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    if (first) first.focus();
+    else form?.querySelector<HTMLElement>("[data-form-error]")?.focus();
+  }, [state]);
 
   useEffect(() => {
     if (!state?.ok) return;
+    unsaved.delete(me.current);
     const data = state.data as { id?: string; message?: string } | undefined;
     const msg = typeof data?.message === "string" ? data.message : state.message ?? successMessage;
     if (onSuccess) {
@@ -74,11 +116,23 @@ export function ActionForm({
    * action finishes, which would wipe what the user typed when the server
    * answers with a validation error.
    */
-  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (pending) return;
-    if (confirm && !window.confirm(confirm)) return;
-    run(new FormData(e.currentTarget));
+    const fd = new FormData(e.currentTarget);
+    // Another form on this page has changes that this action would throw away (it reloads the page).
+    const others = [...unsaved.entries()].filter(([id]) => id !== me.current).map(([, label]) => label);
+    if (others.length > 0) {
+      const go = await ask({
+        title: "You have unsaved changes",
+        description: <p>Changes in the form with “{others[0]}” aren&apos;t saved yet. Save them first, or continue and lose them.</p>,
+        confirmLabel: "Continue without saving", cancelLabel: "Go back and save", destructive: true,
+      });
+      if (!go) return;
+      unsaved.clear();
+    }
+    if (confirm && !(await ask({ title: confirm, confirmLabel: submitLabel, destructive: variant === "destructive" }))) return;
+    run(fd);
   };
 
   const run = (fd: FormData) => {
@@ -98,21 +152,24 @@ export function ActionForm({
 
   return (
     <FieldErrors.Provider value={state && !state.ok ? state.fields ?? {} : {}}>
+      {askDialog}
       <form
         ref={formRef}
         onSubmit={submit}
+        onInput={markDirty}
+        onChange={markDirty}
         className={cn(inline ? "inline-flex flex-wrap items-center gap-2" : "space-y-4", className)}
         noValidate
       >
         {children}
         <div className={cn("flex flex-wrap items-center gap-3", inline && "contents")}>
-          <Button type="submit" size={inline ? "sm" : "default"} variant={variant} disabled={pending}>
+          <Button type="submit" size={inline ? "sm" : "default"} variant={variant} disabled={pending} aria-label={submitAriaLabel} className="min-h-11 md:min-h-10">
             {pending ? "Working…" : submitLabel}
           </Button>
           {message && !inline && <span role="status" className="text-sm text-green-600 dark:text-green-400">{message}</span>}
         </div>
         {state && !state.ok && state.code !== "REAUTH_REQUIRED" && (
-          <div role="alert" className={cn("rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive", inline && "basis-full")}>
+          <div role="alert" tabIndex={-1} data-form-error className={cn("rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive focus:outline-none", inline && "basis-full")}>
             <p>{state.error}</p>
             {state.trace && state.trace.length > 0 && (
               <details className="mt-2 text-xs text-muted-foreground">
@@ -201,11 +258,16 @@ export function Field({
   // Unique per field: pages often hold several forms with the same field names, and each label
   // must point at its own input.
   const id = `f-${name}-${useId().replace(/:/g, "")}`;
+  const describedBy = error || hint ? `${id}-help` : undefined;
   if (type === "checkbox") {
     return (
-      <label className={cn("flex min-h-9 items-center gap-2 text-sm", className)}>
-        <input type="checkbox" name={name} defaultChecked={Boolean(defaultValue)} disabled={disabled} className="h-4 w-4" /> {label}
-      </label>
+      <div className={cn("grid gap-1", className)}>
+        <label className="flex min-h-11 items-center gap-2 text-sm md:min-h-9">
+          <input type="checkbox" name={name} defaultChecked={Boolean(defaultValue)} disabled={disabled} aria-invalid={Boolean(error)} aria-describedby={describedBy} className="h-4 w-4" /> {label}
+        </label>
+        {hint && !error && <p id={`${id}-help`} className="text-xs text-muted-foreground">{hint}</p>}
+        {error && <p id={`${id}-help`} className="text-xs text-destructive">{error}</p>}
+      </div>
     );
   }
   return (
@@ -215,16 +277,16 @@ export function Field({
         {required ? <span className="text-destructive"> *</span> : null}
       </Label>
       {type === "textarea" ? (
-        <Textarea id={id} name={name} defaultValue={defaultValue == null ? "" : String(defaultValue)} rows={rows ?? 4} placeholder={placeholder} aria-invalid={Boolean(error)} disabled={disabled} />
+        <Textarea id={id} name={name} defaultValue={defaultValue == null ? "" : String(defaultValue)} rows={rows ?? 4} placeholder={placeholder} aria-invalid={Boolean(error)} aria-describedby={describedBy} disabled={disabled} required={required} />
       ) : type === "select" ? (
-        <select id={id} name={name} defaultValue={defaultValue == null ? "" : String(defaultValue)} aria-invalid={Boolean(error)} disabled={disabled}
+        <select id={id} name={name} defaultValue={defaultValue == null ? "" : String(defaultValue)} aria-invalid={Boolean(error)} aria-describedby={describedBy} disabled={disabled} required={required}
           className={cn(fieldClass, "w-full")}>
           {(options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       ) : type === "password" ? (
-        <PasswordInput id={id} name={name} placeholder={placeholder} aria-invalid={Boolean(error)} aria-describedby={error || hint ? `${id}-help` : undefined} disabled={disabled} autoComplete={autoComplete ?? "current-password"} required={required} />
+        <PasswordInput id={id} name={name} placeholder={placeholder} aria-invalid={Boolean(error)} aria-describedby={describedBy} disabled={disabled} autoComplete={autoComplete ?? "current-password"} required={required} />
       ) : (
-        <Input id={id} name={name} type={type} defaultValue={defaultValue == null ? "" : String(defaultValue)} placeholder={placeholder} aria-invalid={Boolean(error)} aria-describedby={error || hint ? `${id}-help` : undefined} disabled={disabled} list={list} autoComplete={autoComplete} required={required} />
+        <Input id={id} name={name} type={type} defaultValue={defaultValue == null ? "" : String(defaultValue)} placeholder={placeholder} aria-invalid={Boolean(error)} aria-describedby={describedBy} disabled={disabled} list={list} autoComplete={autoComplete} required={required} />
       )}
       {hint && !error && <p id={`${id}-help`} className="text-xs text-muted-foreground">{hint}</p>}
       {error && <p id={`${id}-help`} className="text-xs text-destructive">{error}</p>}
@@ -258,18 +320,41 @@ const STATUS_COLORS: Record<string, string> = {
   CHANGES_REQUESTED: "bg-rose-500/15 text-rose-700 dark:text-rose-300",
   ONGOING: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
   COMPLETED: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  NEW: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+  HANDLED: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  SUBMITTED: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+  REGISTERED: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+  ATTENDED: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  WAITLISTED: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+  POSTPONED: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+  DISMISSED: "bg-slate-500/15 text-slate-700 dark:text-slate-300",
+  RESOLVED: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
 };
 
-export function StatusBadge({ status }: { status: string }) {
+/** Words for statuses whose code name reads badly. */
+const STATUS_WORDS: Record<string, string> = { PENDING_APPROVAL: "waiting for approval", CHANGES_REQUESTED: "changes requested", WAITLISTED: "waitlist" };
+
+/**
+ * A status as a coloured chip. `content` is for posts and events, where a reviewer's REJECTED
+ * means "changes requested" (the author edits and sends it again), the same words as the banner.
+ */
+export function StatusBadge({ status, content }: { status: string; content?: boolean }) {
   const key = status.replace(/\s+/g, "_").toUpperCase();
-  return <span className={cn("inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium", STATUS_COLORS[key] ?? "bg-muted text-muted-foreground")}>{status.replace(/_/g, " ").toLowerCase()}</span>;
+  const word = content && key === "REJECTED" ? "changes requested" : STATUS_WORDS[key] ?? status.replace(/_/g, " ").toLowerCase();
+  return <span className={cn("inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium", STATUS_COLORS[content && key === "REJECTED" ? "CHANGES_REQUESTED" : key] ?? "bg-muted text-muted-foreground")}>{word}</span>;
 }
 
-export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: React.ReactNode }) {
+/** `back` is the list this page belongs to ("Blog posts"), shown above the title on detail pages. */
+export function PageHeader({ title, description, actions, back }: { title: string; description?: string; actions?: React.ReactNode; back?: { href: string; label: string } }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+      <div className="min-w-0">
+        {back && (
+          <Link prefetch={false} href={back.href} className="mb-1 inline-flex min-h-9 items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <span aria-hidden>←</span> {back.label}
+          </Link>
+        )}
+        <h1 className="break-words text-2xl font-bold tracking-tight">{title}</h1>
         {description && <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}

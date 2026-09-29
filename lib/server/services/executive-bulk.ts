@@ -6,6 +6,7 @@
  * ones: executives.assign / executives.remove on the committee, Moderators only for
  * protected positions, nobody changes their own listing, single-holder limits.
  */
+import { csvCell } from "../csv";
 import { assertStmt, batchTransition } from "../transition";
 import { holdsProtectedRole } from "../../governance/engine";
 import { auditManyStmt, auditStmt, type AuditEntry } from "../audit";
@@ -295,10 +296,20 @@ export async function applyBulk(ctx: Ctx, req: BulkRequest): Promise<{ changed: 
     stmts.push(ctx.db.stmt(
       `INSERT INTO committee_members (id, committee_id, profile_id, position_id, position_title, display_name, designation, section, unit_type, unit_key, campus_label,
                                       avatar_media_id, avatar_position_x, avatar_position_y, avatar_scale, display_order, is_active, bio, created_at, created_by, updated_at, updated_by)
-       SELECT json_extract(j.value, '$.id'), ?2, s.profile_id, s.position_id, s.position_title, s.display_name, s.designation, s.section, s.unit_type, s.unit_key, s.campus_label,
-              s.avatar_media_id, s.avatar_position_x, s.avatar_position_y, s.avatar_scale, json_extract(j.value, '$.display_order'), json_extract(j.value, '$.is_active'), s.bio, ?3, ?4, ?3, ?4
-       FROM json_each(?1) AS j JOIN committee_members s ON s.id = json_extract(j.value, '$.source')`,
-      JSON.stringify(p.inserts), p.target.id, p.now, actor.user.id));
+       SELECT json_extract(j.value, '$.id'), ?2, s.profile_id, s.position_id, s.position_title,
+              -- A live committee follows the profile: copies of the profile's name, designation and photo
+              -- are not carried over (only a deliberately different name or title is), and the framing
+              -- comes along only when it belongs to the photo the new listing will show.
+              CASE WHEN ?5 = 'ARCHIVED' OR s.display_name IS NOT pr.full_name THEN s.display_name END,
+              CASE WHEN ?5 = 'ARCHIVED' OR s.designation IS NOT pr.designation THEN s.designation END,
+              s.section, s.unit_type, s.unit_key, s.campus_label,
+              CASE WHEN ?5 = 'ARCHIVED' THEN s.avatar_media_id END,
+              CASE WHEN ?5 = 'ARCHIVED' OR s.avatar_media_id IS NULL OR s.avatar_media_id IS pr.avatar_media_id THEN s.avatar_position_x END,
+              CASE WHEN ?5 = 'ARCHIVED' OR s.avatar_media_id IS NULL OR s.avatar_media_id IS pr.avatar_media_id THEN s.avatar_position_y END,
+              CASE WHEN ?5 = 'ARCHIVED' OR s.avatar_media_id IS NULL OR s.avatar_media_id IS pr.avatar_media_id THEN s.avatar_scale END,
+              json_extract(j.value, '$.display_order'), json_extract(j.value, '$.is_active'), s.bio, ?3, ?4, ?3, ?4
+       FROM json_each(?1) AS j JOIN committee_members s ON s.id = json_extract(j.value, '$.source') JOIN profiles pr ON pr.id = s.profile_id`,
+      JSON.stringify(p.inserts), p.target.id, p.now, actor.user.id, p.target.status));
     stmts.push(ctx.db.stmt("UPDATE committees SET layout_json = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1", p.target.id, JSON.stringify(p.target.layout), p.now, actor.user.id));
   }
   // Positions that may gain holders: re-checked inside the transaction, so a change made by someone
@@ -379,11 +390,6 @@ export async function quickEditListings(ctx: Ctx, committeeId: string, raw: unkn
   return { changed: updates.length, message: `Saved ${updates.length} listing${updates.length === 1 ? "" : "s"}.` };
 }
 
-const csvCell = (v: unknown) => {
-  const s = v === null || v === undefined ? "" : String(v);
-  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
-  return `"${safe.replace(/"/g, '""')}"`;
-};
 
 /**
  * A committee's listings in the import format (lib/executive-import/parse.ts reads it back), as

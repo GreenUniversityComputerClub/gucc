@@ -50,8 +50,9 @@ export function CollaborationScroll({ partners: collaborators }: { partners: Par
                 />
               </div>
               <div className="p-2">
-                <h3 className="text-sm font-medium truncate">{collab.name}</h3>
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{collab.description}</p>
+                {/* The tile is white in both themes, so its text stays dark in both. */}
+                <h3 className="text-sm font-medium truncate text-gray-900">{collab.name}</h3>
+                <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{collab.description}</p>
               </div>
             </div>
           ))}

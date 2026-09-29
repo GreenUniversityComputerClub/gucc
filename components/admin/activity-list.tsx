@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ActivityEntry } from "@/lib/server/services/activity";
+import { PersonAvatar } from "@/components/person-avatar";
 
 const AREA_STYLE: Record<string, string> = {
   Members: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
@@ -33,7 +34,8 @@ export function ActivityList({ entries }: { entries: ActivityEntry[] }) {
             {items.map((e) => (
               <li key={e.id} className="px-4 py-3 text-sm">
                 <details>
-                  <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                  <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                    <PersonAvatar name={e.actor.name} url={e.actor.avatarUrl ?? null} size="xs" className="mt-px" />
                     <span className="min-w-0 flex-1">
                       <span className="font-medium">{e.actor.name}</span> {e.verb}
                       {e.showTarget && e.target && <> {e.target.link ? <Link prefetch={false} href={e.target.link} className="underline underline-offset-2">{e.target.name}</Link> : e.target.name}</>}

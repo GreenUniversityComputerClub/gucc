@@ -9,7 +9,7 @@
  * Accounts holding sensitive permissions must turn it on after a grace period
  * (security.mfa_required_for_sensitive); until they do, those permissions are withheld.
  */
-import { limit } from "../limits";
+import { limit, checkFailures, limitFailure } from "../limits";
 import { auditStmt } from "../audit";
 import { loadActor, requireActor, requirePermission, userResource } from "../authz";
 import { assertCanGrantPermissions, GovernanceViolation } from "../../governance/invariants";
@@ -246,14 +246,16 @@ export async function verifyMfaLogin(ctx: Ctx, token: unknown, code: unknown) {
   const s = await ctx.db.first<{ user_id: string; expires_at: string; revoked_at: string | null; mfa_pending: number; email: string; status: string }>(
     "SELECT s.user_id, s.expires_at, s.revoked_at, s.mfa_pending, u.email, u.status FROM sessions s JOIN users u ON u.id = s.user_id AND u.deleted_at IS NULL WHERE s.id = ?1", id);
   if (!s || !s.mfa_pending || s.revoked_at || s.expires_at < nowIso()) throw new AuthRequiredError("That sign-in has expired. Enter your email and password again.");
+  // Wrong codes are counted per account, so starting a new sign-in doesn't reset the count.
   try {
-    await limit(ctx, "mfa.login", id);
-  } catch (e) {
+    await checkFailures(ctx, "mfa.login", s.user_id);
+  } catch {
     await ctx.db.run("UPDATE sessions SET revoked_at = ?2 WHERE id = ?1", id, nowIso());
-    throw e;
+    throw new AppError(429, "RATE_LIMITED", "Too many wrong codes. For your safety this sign-in was stopped: wait 15 minutes, then sign in again with your email and password.");
   }
   const kind = await checkSecondFactor(ctx, s.user_id, String(code ?? ""));
   if (!kind) {
+    await limitFailure(ctx, "mfa.login", s.user_id);
     await (await authEventStmt(ctx, "MFA_FAILED", s.user_id, s.email)).run();
     throw new ValidationError("That code isn't right. Use the newest code from your app, or a recovery code.", { code: "Wrong code." });
   }

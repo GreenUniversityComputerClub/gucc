@@ -18,9 +18,10 @@ import { notifyStmts } from "../notifications";
 import { getSetting, requireRecentAuth, verifyTurnstile } from "../security";
 import { toSlug, Validator, EMAIL_RE, STUDENT_ID_RE } from "../validate";
 import { registerApprovalHandler, startApproval } from "./approvals";
-import { csvCell } from "./recruitment";
+import { csvCell } from "../csv";
 import { TAGS } from "./cache-tags";
 import { triggerStmts } from "../triggers";
+import { checkMemberCreate, checkMemberSubmit } from "./member-content";
 
 export const EVENT_STATUSES = ["DRAFT", "PENDING_APPROVAL", "APPROVED", "PUBLISHED", "ONGOING", "COMPLETED", "CANCELLED", "ARCHIVED"] as const;
 const PUBLIC = ["PUBLISHED", "ONGOING", "COMPLETED"];
@@ -100,6 +101,7 @@ export async function createEvent(ctx: Ctx, input: Record<string, unknown>): Pro
   const d = parseEvent(input);
   const cat = await ensureCategory(ctx, d.category);
   const decision = requirePermission(ctx, "events.create", { type: "event", category: cat.slug, createdBy: actor.user.id, ownerId: actor.user.id, committeeId: d.committeeId });
+  await checkMemberCreate(ctx, "event");
   // A title with no Latin letters (e.g. in Bangla) still gets a working address.
   const slug = d.slug || toSlug(d.title!) || `event-${newId().slice(0, 8)}`;
   if (await ctx.db.first("SELECT id FROM events WHERE slug = ?1", slug)) throw new ValidationError("That URL is taken.", { slug: "Another event already uses this URL." });
@@ -153,11 +155,14 @@ export async function updateEvent(ctx: Ctx, id: string, input: Record<string, un
     ...fresh,
     ...notifyStmts(ctx, registrants, { type: "event.updated", title: `Changed: ${d.title}`, body: [d.timeText, d.venue].filter(Boolean).join(" · ") || "The date or place changed. Check the event page.", link: `/events/${slug}` }),
     ctx.db.stmt(
-      `UPDATE events SET slug = ?2, title = ?3, description = ?4, category_id = ?5, organizer = ?6, committee_id = ?7, venue = ?8, mode = ?9, start_at = ?10, end_at = ?11,
+      `UPDATE events SET slug = ?2, title = ?3, description = ?4, category_id = ?5, organizer = ?6, committee_id = COALESCE(?7, committee_id), venue = ?8, mode = ?9, start_at = ?10, end_at = ?11,
               time_text = ?12, external_link = ?13, guests_text = ?14, capacity = ?15, registration_enabled = ?16, registration_opens_at = ?17, registration_closes_at = ?18,
               registration_fields_json = ?19, banner_media_id = ?20, updated_at = ?21, updated_by = ?22,
               judges_text = ?23, participants_reported = ?24, participants_text = ?25, registration_form_url = ?26, registration_form_label = ?27,
-              status = CASE WHEN status IN ('PENDING_APPROVAL','APPROVED') THEN 'DRAFT' ELSE status END
+              status = CASE WHEN status IN ('PENDING_APPROVAL','APPROVED') THEN 'DRAFT'
+                            -- Postponed after it started or ended: it's upcoming again, so registration reopens.
+                            WHEN status IN ('ONGOING','COMPLETED') AND ?10 IS NOT NULL AND ?10 > ?21 THEN 'PUBLISHED'
+                            ELSE status END
        WHERE id = ?1`,
       id, slug, d.title, d.description, cat.id, d.organizer, d.committeeId, d.venue, d.mode, d.startAt, d.endAt, d.timeText, d.externalLink, d.guestsText, d.capacity,
       d.registrationEnabled ? 1 : 0, d.registrationOpensAt, d.registrationClosesAt, JSON.stringify(d.registrationFields), d.bannerMediaId, now, actor.user.id,
@@ -165,14 +170,15 @@ export async function updateEvent(ctx: Ctx, id: string, input: Record<string, un
     ),
     ctx.db.stmt("UPDATE approval_requests SET status = 'CANCELLED', resolved_at = ?2, resolution_note = 'Edited after submission', updated_at = ?2 WHERE resource_type = 'event' AND resource_id = ?1 AND status = 'PENDING'", id, now),
     // More seats (or no limit any more): the waitlist moves up.
-    ...promoteWaitlistStmts(ctx, id, d.title!, slug),
+    ...(await promoteWaitlistStmts(ctx, id, d.title!, slug)),
     ctx.db.stmt("DELETE FROM event_media WHERE event_id = ?1 AND kind = 'BANNER'", id),
     ctx.db.stmt("DELETE FROM media_references WHERE resource_type = 'event' AND resource_id = ?1 AND field = 'banner'", id),
     ...(d.bannerMediaId ? [ctx.db.stmt("INSERT INTO event_media (event_id, media_id, kind, sort_order) VALUES (?1, ?2, 'BANNER', 0) ON CONFLICT DO NOTHING", id, d.bannerMediaId),
       ctx.db.stmt("INSERT INTO media_references (media_id, resource_type, resource_id, field) VALUES (?1, 'event', ?2, 'banner') ON CONFLICT DO NOTHING", d.bannerMediaId, id)] : []),
     auditStmt(ctx, { action: "event.update", resourceType: "event", resourceId: id, before, after: { slug, title: d.title }, decision }),
   ], () => staleAnswer(ctx, "events", id));
-  ctx.revalidate?.([TAGS.events, TAGS.event(before!.slug), TAGS.event(slug)]);
+  // Contest cards show event names too.
+  ctx.revalidate?.([TAGS.events, TAGS.event(before!.slug), TAGS.event(slug), TAGS.contests]);
 }
 
 export async function publishEvent(ctx: Ctx, id: string): Promise<{ outcome: string; requestId?: string; message: string }> {
@@ -198,6 +204,7 @@ export async function publishEvent(ctx: Ctx, id: string): Promise<{ outcome: str
   let policyKey: string | undefined;
   if (decision.outcome === "REQUIRE_APPROVAL") policyKey = decision.approvalPolicyKey;
   else if (authorize(ctx, "events.update", resource).outcome === "ALLOW") {
+    await checkMemberSubmit(ctx, "event");
     // Affiliated committees (e.g. CSS) publish after the President or General Secretary approves.
     policyKey = isAffiliateExecutive(actor.subject)
       ? await getSetting(ctx, "content.affiliate_approval_policy", "president-or-gs")
@@ -278,6 +285,23 @@ export async function setEventStatus(ctx: Ctx, id: string, status: "CANCELLED" |
   ctx.revalidate?.([TAGS.events, TAGS.event(ev.slug)]);
 }
 
+/** Bring an archived event back as a draft (by whoever may archive it). */
+export async function restoreEvent(ctx: Ctx, id: string): Promise<void> {
+  const actor = requireActor(ctx);
+  const row = await ctx.db.first<{ created_by: string | null; category: string | null; slug: string; committee_id: string | null }>(
+    "SELECT e.created_by, c.slug AS category, e.slug, e.committee_id FROM events e LEFT JOIN categories c ON c.id = e.category_id WHERE e.id = ?1 AND e.deleted_at IS NOT NULL AND e.status = 'ARCHIVED'", id);
+  if (!row) throw new NotFoundError("Archived event");
+  const decision = requirePermission(ctx, "events.delete", { type: "event", id, createdBy: row.created_by, ownerId: row.created_by, category: row.category, committeeId: row.committee_id, status: "ARCHIVED" });
+  if (await ctx.db.first("SELECT 1 FROM events WHERE slug = ?1 AND id <> ?2 AND deleted_at IS NULL", row.slug, id)) {
+    throw new AppError(409, "SLUG_TAKEN", "Another event now uses this address. Rename that one first, then restore this event.");
+  }
+  const now = nowIso();
+  await ctx.db.batch([
+    ctx.db.stmt("UPDATE events SET status = 'DRAFT', deleted_at = NULL, updated_at = ?2, updated_by = ?3 WHERE id = ?1", id, now, actor.user.id),
+    auditStmt(ctx, { action: "event.restore", resourceType: "event", resourceId: id, after: { status: "DRAFT" }, decision }),
+  ]);
+}
+
 /**
  * Speakers and the event team. Coordinators and photographers linked to an account are what
  * the ASSIGNED and EVENT:ASSIGNED scopes match. Guests and judges stay in the event's text
@@ -313,14 +337,22 @@ export async function setEventPeople(ctx: Ctx, id: string, people: Array<{ role:
     ctx.db.stmt("DELETE FROM event_people WHERE event_id = ?1 AND role IN ('SPEAKER','COORDINATOR','PHOTOGRAPHER')", id),
     ...(clean.length
       ? [ctx.db.stmt(
-          `INSERT INTO event_people (id, event_id, role, name, title, user_id, sort_order)
+          `INSERT INTO event_people (id, event_id, role, name, title, user_id, profile_id, sort_order)
            SELECT 'ep_' || lower(hex(randomblob(16))), ?1, json_extract(j.value, '$.role'), json_extract(j.value, '$.name'), json_extract(j.value, '$.title'),
-                  json_extract(j.value, '$.userId'), CAST(j.key AS INTEGER) FROM json_each(?2) AS j`,
+                  json_extract(j.value, '$.userId'),
+                  -- The person's profile, so their page lists the events they spoke at or organised.
+                  (SELECT pr.id FROM profiles pr WHERE pr.user_id = json_extract(j.value, '$.userId') AND pr.deleted_at IS NULL),
+                  CAST(j.key AS INTEGER) FROM json_each(?2) AS j`,
           id, JSON.stringify(clean.map((p) => ({ role: p.role, name: p.name.trim().slice(0, 120), title: p.title?.trim().slice(0, 200) || null, userId: p.userId ?? null })))),
         ]
       : []),
     // Only people newly linked hear about it (not everyone, on every save).
-    ...notifyStmts(ctx, [...new Set(added.map((p) => p.userId!))], { type: "event.assigned", title: "You were assigned to an event", link: `/dashboard/events/${id}` }),
+    ...(added.length ? notifyStmts(ctx, [...new Set(added.map((p) => p.userId!))], {
+      type: "event.assigned",
+      title: `You're on the team for ${(await ctx.db.value<string>("SELECT title FROM events WHERE id = ?1", id)) ?? "an event"}`.slice(0, 200),
+      body: `As ${added.map((p) => p.role.toLowerCase()).filter((v, i, a) => a.indexOf(v) === i).join(" / ")}. You can now help with this event in the dashboard.`,
+      link: `/dashboard/events/${id}`, resourceType: "event", resourceId: id,
+    }) : []),
     auditStmt(ctx, { action: "event.people", resourceType: "event", resourceId: id, after: clean.map((p) => ({ role: p.role, name: p.name, userId: p.userId ?? null })), decision }),
   ]);
   // Speakers are shown on the public event page.
@@ -334,13 +366,13 @@ export async function getEventForEdit(ctx: Ctx, id: string) {
   const event = await ctx.db.first<Record<string, unknown>>(`SELECT e.*, c.name AS category_name FROM events e LEFT JOIN categories c ON c.id = e.category_id WHERE e.id = ?1`, id);
   const people = await ctx.db.all<{ id: string; role: string; name: string; title: string | null; user_id: string | null }>(
     "SELECT id, role, name, title, user_id FROM event_people WHERE event_id = ?1 AND role IN ('SPEAKER','COORDINATOR','PHOTOGRAPHER') ORDER BY sort_order", id);
-  const counts = await ctx.db.first<{ registered: number; waitlisted: number }>(
-    "SELECT SUM(status = 'REGISTERED') AS registered, SUM(status = 'WAITLISTED') AS waitlisted FROM event_registrations WHERE event_id = ?1", id);
+  const counts = await ctx.db.first<{ registered: number; attended: number; waitlisted: number }>(
+    "SELECT SUM(status = 'REGISTERED') AS registered, SUM(status = 'ATTENDED') AS attended, SUM(status = 'WAITLISTED') AS waitlisted FROM event_registrations WHERE event_id = ?1", id);
   const d = (p: string) => authorize(ctx, p, resource);
   return {
     event: event!,
     people,
-    counts: { registered: counts?.registered ?? 0, waitlisted: counts?.waitlisted ?? 0 },
+    counts: { registered: counts?.registered ?? 0, attended: counts?.attended ?? 0, waitlisted: counts?.waitlisted ?? 0 },
     capabilities: { edit: d("events.update").outcome === "ALLOW", publish: d("events.publish").outcome, publishExplanation: d("events.publish").summary, registrations: d("events.manage_registration").outcome === "ALLOW", delete: d("events.delete").outcome === "ALLOW" },
   };
 }
@@ -356,9 +388,9 @@ export async function listEventsAdmin(ctx: Ctx, opts: { status?: string; q?: str
   const q = opts.q ? `%${opts.q.replace(/[%_]/g, "")}%` : null;
   return ctx.db.all<{ id: string; slug: string; title: string; status: string; start_at: string | null; category_name: string | null; registrations: number; capacity: number | null }>(
     `SELECT e.id, e.slug, e.title, e.status, e.start_at, c.name AS category_name, e.capacity,
-            (SELECT COUNT(*) FROM event_registrations r WHERE r.event_id = e.id AND r.status = 'REGISTERED') AS registrations
+            (SELECT COUNT(*) FROM event_registrations r WHERE r.event_id = e.id AND r.status IN ('REGISTERED','ATTENDED')) AS registrations
      FROM events e LEFT JOIN categories c ON c.id = e.category_id
-     WHERE e.deleted_at IS NULL AND (?1 IS NULL OR e.status = ?1) AND (?2 IS NULL OR e.title LIKE ?2) AND (?3 IS NULL OR c.slug = ?3)
+     WHERE (CASE WHEN ?1 = 'ARCHIVED' THEN e.deleted_at IS NOT NULL ELSE e.deleted_at IS NULL END) AND (?1 IS NULL OR e.status = ?1) AND (?2 IS NULL OR e.title LIKE ?2) AND (?3 IS NULL OR c.slug = ?3)
        AND (?5 = 1 OR e.created_by = ?6 OR (?7 <> '' AND instr(',' || ?7 || ',', ',' || c.slug || ',') > 0))
      ORDER BY e.start_at DESC LIMIT 30 OFFSET ?4`,
     opts.status ?? null, q, opts.category ?? null, (page - 1) * 30, all ? 1 : 0, actor.user.id, cats.join(","),
@@ -412,10 +444,12 @@ export async function registerForEvent(ctx: Ctx, eventSlug: string, input: Recor
   const res = await ctx.db.first<{ status: string }>(
     `INSERT INTO event_registrations (id, event_id, user_id, name, email, student_id, phone, answers_json, status, created_at, updated_at)
      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
-             CASE WHEN ?9 IS NULL OR (SELECT COUNT(*) FROM event_registrations WHERE event_id = ?2 AND status = 'REGISTERED') < ?9 THEN 'REGISTERED' ELSE 'WAITLISTED' END,
+             CASE WHEN ?9 IS NULL OR (SELECT COUNT(*) FROM event_registrations WHERE event_id = ?2 AND status IN ('REGISTERED','ATTENDED')) < ?9 THEN 'REGISTERED' ELSE 'WAITLISTED' END,
              ?10, ?10)
-     ON CONFLICT(event_id, email) DO UPDATE SET status = CASE WHEN ?9 IS NULL OR (SELECT COUNT(*) FROM event_registrations WHERE event_id = ?2 AND status = 'REGISTERED') < ?9 THEN 'REGISTERED' ELSE 'WAITLISTED' END,
-             name = excluded.name, answers_json = excluded.answers_json, updated_at = excluded.updated_at
+     ON CONFLICT(event_id, email) DO UPDATE SET status = CASE WHEN ?9 IS NULL OR (SELECT COUNT(*) FROM event_registrations WHERE event_id = ?2 AND status IN ('REGISTERED','ATTENDED')) < ?9 THEN 'REGISTERED' ELSE 'WAITLISTED' END,
+             -- Coming back after cancelling: today's details, and the back of the queue.
+             name = excluded.name, answers_json = excluded.answers_json, student_id = excluded.student_id, phone = excluded.phone,
+             user_id = COALESCE(excluded.user_id, event_registrations.user_id), created_at = excluded.created_at, updated_at = excluded.updated_at
        WHERE event_registrations.status = 'CANCELLED'
      RETURNING status`,
     id, ev.id, ctx.actor?.user.id ?? null, name, email, studentId, phone, JSON.stringify(answers), ev.capacity, now,
@@ -426,6 +460,8 @@ export async function registerForEvent(ctx: Ctx, eventSlug: string, input: Recor
     auditStmt(ctx, { action: "event.registration", resourceType: "event", resourceId: ev.id, after: { status } }),
     ...(ctx.actor ? notifyStmts(ctx, [ctx.actor.user.id], { type: "event.registered", title: status === "REGISTERED" ? `Registered: ${ev.title}` : `Waitlisted: ${ev.title}`, link: `/events/${eventSlug}` }) : []),
   ]);
+  // The page shows seats left: refresh it.
+  ctx.revalidate?.([TAGS.event(eventSlug)]);
   return { status, message: status === "REGISTERED" ? "You're registered. See you there!" : "The event is full; you're on the waitlist." };
 }
 
@@ -436,21 +472,26 @@ export async function registerForEvent(ctx: Ctx, eventSlug: string, input: Recor
 /** Oldest waitlisted people for the event while seats are free (all of them without a capacity). */
 const WAITLIST_TO_PROMOTE = `SELECT id FROM event_registrations WHERE event_id = ?1 AND status = 'WAITLISTED' ORDER BY created_at
   LIMIT (SELECT CASE WHEN e.capacity IS NULL THEN -1
-                     ELSE MAX(0, e.capacity - (SELECT COUNT(*) FROM event_registrations r WHERE r.event_id = e.id AND r.status = 'REGISTERED')) END
+                     ELSE MAX(0, e.capacity - (SELECT COUNT(*) FROM event_registrations r WHERE r.event_id = e.id AND r.status IN ('REGISTERED','ATTENDED'))) END
          FROM events e WHERE e.id = ?1)`;
 
 /**
  * Fill free seats from the waitlist, oldest first, and tell each person (in the dashboard).
  * Two statements whatever the number; run after anything that can free seats or add capacity.
  */
-export function promoteWaitlistStmts(ctx: Ctx, eventId: string, title: string, slug: string): D1StatementLike[] {
+export async function promoteWaitlistStmts(ctx: Ctx, eventId: string, title: string, slug: string): Promise<D1StatementLike[]> {
   const now = nowIso();
+  // Each notice gets an id we can predict, so its email copy goes out like any other (the outbox
+  // sends only the ones that were really written: people who actually moved up).
+  const nonce = newId("p").slice(-10);
+  const waiting = await ctx.db.all<{ id: string }>("SELECT id FROM event_registrations WHERE event_id = ?1 AND status = 'WAITLISTED' AND user_id IS NOT NULL LIMIT 200", eventId);
+  ctx.outbox?.push(...waiting.map((w) => `ntf_prm_${w.id}_${nonce}`));
   return [
     ctx.db.stmt(
-      `INSERT INTO notifications (id, user_id, type, title, body, link, resource_type, resource_id, channel, created_at)
-       SELECT 'ntf_' || lower(hex(randomblob(12))), r.user_id, 'event.promoted', ?2, 'You''re off the waitlist and registered.', ?3, 'event', ?1, 'IN_APP', ?4
+      `INSERT INTO notifications (id, user_id, type, title, body, link, resource_type, resource_id, channel, created_at, actor_user_id)
+       SELECT 'ntf_prm_' || r.id || '_' || ?5, r.user_id, 'event.promoted', ?2, 'You''re off the waitlist and registered.', ?3, 'event', ?1, 'IN_APP', ?4, ?6
        FROM event_registrations r WHERE r.user_id IS NOT NULL AND r.id IN (${WAITLIST_TO_PROMOTE})`,
-      eventId, `A seat opened up: ${title}`.slice(0, 200), `/events/${slug}`, now),
+      eventId, `A seat opened up: ${title}`.slice(0, 200), `/events/${slug}`, now, nonce, ctx.actor?.user.id ?? null),
     ctx.db.stmt(`UPDATE event_registrations SET status = 'REGISTERED', updated_at = ?2 WHERE id IN (${WAITLIST_TO_PROMOTE})`, eventId, now),
   ];
 }
@@ -476,6 +517,7 @@ export async function cancelMyRegistration(ctx: Ctx, registrationId: string): Pr
     ...(next?.user_id ? notifyStmts(ctx, [next.user_id], { type: "event.promoted", title: `A seat opened up: ${reg.title}`, body: "You're off the waitlist and registered.", link: `/events/${reg.slug}` }) : []),
     auditStmt(ctx, { action: "event.registration_cancel", resourceType: "event", resourceId: reg.event_id, after: { promoted: Boolean(next) } }),
   ], () => new AppError(409, "NOT_ACTIVE", "This registration was already cancelled."));
+  ctx.revalidate?.([TAGS.event(reg.slug)]);
   return { message: "Your registration is cancelled." };
 }
 
@@ -512,23 +554,35 @@ export async function listAllRegistrations(ctx: Ctx, opts: { q?: string; status?
 }
 
 export async function setRegistrationStatus(ctx: Ctx, registrationId: string, status: "REGISTERED" | "WAITLISTED" | "CANCELLED" | "ATTENDED" | "REJECTED"): Promise<void> {
-  const reg = await ctx.db.first<{ event_id: string; status: string; title: string; slug: string; capacity: number | null }>(
-    `SELECT r.event_id, r.status, e.title, e.slug, e.capacity FROM event_registrations r JOIN events e ON e.id = r.event_id AND e.deleted_at IS NULL WHERE r.id = ?1`, registrationId);
+  const reg = await ctx.db.first<{ event_id: string; status: string; title: string; slug: string; capacity: number | null; user_id: string | null }>(
+    `SELECT r.event_id, r.status, e.title, e.slug, e.capacity, r.user_id FROM event_registrations r JOIN events e ON e.id = r.event_id AND e.deleted_at IS NULL WHERE r.id = ?1`, registrationId);
   if (!reg) throw new NotFoundError("Registration");
   const resource = await eventResource(ctx.db, reg.event_id);
   if (!resource) throw new NotFoundError("Event");
   const decision = requirePermission(ctx, "events.manage_registration", resource);
   // Admitting someone takes a seat: not past the capacity (the waitlist is for that).
-  if (status === "REGISTERED" && reg.status !== "REGISTERED" && reg.capacity !== null) {
-    const taken = (await ctx.db.value<number>("SELECT COUNT(*) FROM event_registrations WHERE event_id = ?1 AND status = 'REGISTERED'", reg.event_id)) ?? 0;
+  // People marked attended keep their seat.
+  const seated = (s: string) => s === "REGISTERED" || s === "ATTENDED";
+  if (seated(status) && !seated(reg.status) && reg.capacity !== null) {
+    const taken = (await ctx.db.value<number>("SELECT COUNT(*) FROM event_registrations WHERE event_id = ?1 AND status IN ('REGISTERED','ATTENDED')", reg.event_id)) ?? 0;
     if (taken >= reg.capacity) throw new AppError(409, "FULL", `The event is full (${reg.capacity} seats). Raise the capacity first, or keep them on the waitlist.`);
   }
   await ctx.db.batch([
     ctx.db.stmt("UPDATE event_registrations SET status = ?2, updated_at = ?3 WHERE id = ?1", registrationId, status, nowIso()),
     // A freed seat goes to the next person on the waitlist.
-    ...(reg.status === "REGISTERED" && status !== "REGISTERED" && status !== "ATTENDED" ? promoteWaitlistStmts(ctx, reg.event_id, reg.title, reg.slug) : []),
+    ...(seated(reg.status) && !seated(status) ? await promoteWaitlistStmts(ctx, reg.event_id, reg.title, reg.slug) : []),
     auditStmt(ctx, { action: "event.registration_status", resourceType: "event", resourceId: reg.event_id, before: { status: reg.status }, after: { status, registrationId }, decision }),
+    // The person hears when organisers cancel, reject or admit them (checking in needs no notice).
+    ...(reg.user_id && reg.status !== status && ["CANCELLED", "REJECTED", "REGISTERED"].includes(status) && reg.status !== "ATTENDED"
+      ? notifyStmts(ctx, [reg.user_id], {
+          type: status === "REGISTERED" ? "event.promoted" : "event.registration_cancelled",
+          title: status === "REGISTERED" ? `You're registered: ${reg.title}` : `Your registration was cancelled: ${reg.title}`,
+          body: status === "REGISTERED" ? "The organisers gave you a seat." : "The organisers cancelled it. Contact them if you think this is a mistake.",
+          link: `/events/${reg.slug}`, resourceType: "event", resourceId: reg.event_id,
+        })
+      : []),
   ]);
+  ctx.revalidate?.([TAGS.event(reg.slug)]);
 }
 
 /** CSV for spreadsheets: UTF-8 with a BOM (Bangla names open correctly in Excel), CRLF lines, formula-safe cells. */

@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import sharp from "sharp";
-import { d1, login, MODERATOR, settle } from "./helpers";
+import { d1, login, MODERATOR, settle, acceptConfirms } from "./helpers";
 
 const run = Date.now().toString(36);
 test.describe.configure({ mode: "serial" });
-test.beforeEach(async ({ page }) => page.on("dialog", (d) => d.accept()));
+test.beforeEach(async ({ page }) => acceptConfirms(page));
 
 test("leadership opens recruitment; an applicant applies with private documents; reviewers shortlist", async ({ page, browser }) => {
   // Only one recruitment can be open at a time; close any left by earlier runs.
@@ -57,7 +57,12 @@ test("leadership opens recruitment; an applicant applies with private documents;
   expect((await page.request.get(href!)).status()).toBe(200);
   // Without the signature the private file is not served.
   expect((await page.request.get(href!.split("?")[0])).status()).toBe(404);
-  await page.getByRole("button", { name: "Shortlist" }).click();
+  const decision = page.getByRole("group", { name: "Outcome" });
+  await decision.getByLabel(/Shortlist/).check();
+  await page.getByLabel(/Email the applicant/).check();
+  await expect(page.getByText(/you have been shortlisted/)).toBeVisible(); // the email is previewed
+  await page.getByLabel(/Email the applicant/).uncheck();
+  await page.getByRole("button", { name: "Save: shortlist" }).click();
   await expect(page.getByText("shortlisted").first()).toBeVisible();
 });
 

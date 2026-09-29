@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { requireSignedIn, view } from "@/lib/api/session";
 import type { meetingDetail } from "@/lib/server/services/work";
 import { ActionForm, Field, PageHeader, Section, StatusBadge } from "@/components/admin/ui";
+import { PersonAvatar } from "@/components/person-avatar";
 import { MeetingFields } from "../meeting-fields";
 import { cancelMeetingAction, meetingNotesAction, respondMeetingAction, updateMeetingAction } from "../actions";
 
@@ -17,7 +17,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
   const others = participants.filter((p) => p.user_id !== m.created_by);
   return (
     <>
-      <PageHeader title={m.title} description={`Organised by ${m.organizer}`} actions={<Link href="/dashboard/meetings" className="text-sm underline">All meetings</Link>} />
+      <PageHeader back={{ href: "/dashboard/meetings", label: "Meetings" }} title={m.title} description={`Organised by ${m.organizer}`} />
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-6">
           <Section title="When and where">
@@ -55,10 +55,11 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
         </div>
         <div className="space-y-6">
           <Section title={`Participants (${participants.length})`}>
-            <ul className="space-y-1.5 text-sm">
+            <ul className="space-y-2 text-sm">
               {participants.map((p) => (
-                <li key={p.user_id} className="flex justify-between gap-2">
-                  <span className="min-w-0 truncate">{p.name}{p.user_id === m.created_by ? " (organiser)" : ""}</span>
+                <li key={p.user_id} className="flex items-center justify-between gap-2">
+                  <PersonAvatar name={p.name} url={p.avatarUrl} size="xs" />
+                  <span className="min-w-0 flex-1 truncate">{p.name}{p.user_id === m.created_by ? " (organiser)" : ""}</span>
                   <span className="shrink-0 text-xs text-muted-foreground">{p.user_id === m.created_by ? "" : RESPONSE[p.response]}</span>
                 </li>
               ))}

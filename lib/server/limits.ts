@@ -8,6 +8,7 @@
  */
 import type { Ctx } from "./context";
 import { rateLimit } from "./security";
+import { RateLimitError } from "./errors";
 
 export const LIMITS = {
   // Sign-in and account recovery: very strict.
@@ -16,8 +17,9 @@ export const LIMITS = {
   "auth.passwordReset": { limit: 5, windowSeconds: 3600, label: "Password reset requests per address, hour" },
   "auth.register": { limit: 5, windowSeconds: 3600, label: "Sign-ups per address, hour" },
   "auth.resendVerification": { limit: 5, windowSeconds: 3600, label: "Verification emails per address, hour" },
+  "auth.emailTo": { limit: 3, windowSeconds: 3600, label: "Verification or reset emails to one email address, hour" },
   "auth.acceptInvite": { limit: 10, windowSeconds: 3600, label: "Invitation acceptances per address, hour" },
-  "mfa.login": { limit: 5, windowSeconds: 600, label: "Two-factor codes per pending sign-in, 10 minutes" },
+  "mfa.login": { limit: 5, windowSeconds: 900, label: "Two-factor codes per account, 15 minutes" },
   "mfa.setup": { limit: 10, windowSeconds: 3600, label: "Two-factor setups per account, hour" },
   "mfa.confirm": { limit: 10, windowSeconds: 900, label: "Two-factor confirmations per account, 15 minutes" },
   "account.reauth": { limit: 10, windowSeconds: 900, label: "Password confirmations per account, 15 minutes" },
@@ -38,6 +40,8 @@ export const LIMITS = {
   "chat.newConversation": { limit: 10, windowSeconds: 86_400, label: "New conversations per account, day" },
   "report": { limit: 10, windowSeconds: 3600, label: "Reports per account, hour" },
   "lostfound.post": { limit: 10, windowSeconds: 86_400, label: "Lost & found posts per account, day" },
+  "content.create": { limit: 10, windowSeconds: 86_400, label: "New posts and events per member, day" },
+  "content.submit": { limit: 5, windowSeconds: 86_400, label: "Posts and events sent for approval per member, day" },
   "people.invite": { limit: 30, windowSeconds: 3600, label: "Invitations per account, hour" },
   "tasks.create": { limit: 60, windowSeconds: 3600, label: "Tasks given per account, hour" },
   "tasks.comment": { limit: 60, windowSeconds: 600, label: "Task comments per account, 10 minutes" },
@@ -53,4 +57,21 @@ export type LimitName = keyof typeof LIMITS;
 export async function limit(ctx: Ctx, name: LimitName, subject: string | null | undefined): Promise<void> {
   const l = LIMITS[name];
   await rateLimit(ctx, `${name}:${subject ?? "unknown"}`, l.limit, l.windowSeconds);
+}
+
+/**
+ * Limits that count only failures (wrong codes): refuse while the subject is already over the
+ * limit, without counting this attempt. Record a failure with `limitFailure` afterwards.
+ */
+export async function checkFailures(ctx: Ctx, name: LimitName, subject: string): Promise<void> {
+  const l = LIMITS[name];
+  const now = Math.floor(Date.now() / 1000);
+  const windowStart = now - (now % l.windowSeconds);
+  const row = await ctx.db.first<{ count: number }>("SELECT count FROM rate_limits WHERE key = ?1 AND window_start = ?2", `${name}:${subject}`, windowStart);
+  if ((row?.count ?? 0) >= l.limit) throw new RateLimitError(windowStart + l.windowSeconds - now);
+}
+
+/** Count one failure (never throws: the next attempt is refused by `checkFailures`). */
+export async function limitFailure(ctx: Ctx, name: LimitName, subject: string): Promise<void> {
+  await limit(ctx, name, subject).catch(() => undefined);
 }

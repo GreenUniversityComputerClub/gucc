@@ -15,6 +15,9 @@
  * holders of recruitment.manage can read them, documents open through
  * short-lived signed links, and exports are audited.
  */
+import { csvCell } from "../csv";
+import { avatarOfProfileSql, withAvatars } from "../avatar";
+import { decisionEmail } from "../../recruitment/decision-emails";
 import { assertStmt, batchTransition } from "../transition";
 import { limit } from "../limits";
 import { auditStmt } from "../audit";
@@ -293,9 +296,9 @@ export async function getApplication(ctx: Ctx, id: string) {
   await auditStmt(ctx, { action: "recruitment.view", resourceType: "recruitment_application", resourceId: id, decision }).run();
   const { ip_hash: _ip, ...application } = a;
   const [notes, reviewers] = await Promise.all([
-    ctx.db.all<{ id: string; body: string; created_at: string; author: string | null }>(
-      `SELECT n.id, n.body, n.created_at, COALESCE(p.full_name, u.email) AS author FROM recruitment_notes n
-       LEFT JOIN users u ON u.id = n.author_id LEFT JOIN profiles p ON p.user_id = n.author_id WHERE n.application_id = ?1 ORDER BY n.created_at`, id),
+    ctx.db.all<{ id: string; body: string; created_at: string; author: string | null; avatar_json: string | null }>(
+      `SELECT n.id, n.body, n.created_at, COALESCE(p.full_name, u.email) AS author, ${avatarOfProfileSql("p")} AS avatar_json FROM recruitment_notes n
+       LEFT JOIN users u ON u.id = n.author_id LEFT JOIN profiles p ON p.user_id = n.author_id AND p.deleted_at IS NULL WHERE n.application_id = ?1 ORDER BY n.created_at`, id).then((r) => withAvatars(r)),
     reviewerChoices(ctx),
   ]);
   return { application: application as Record<string, unknown>, documents: { cv, photo, idCard }, notes, reviewers };
@@ -322,7 +325,7 @@ export async function assignReviewer(ctx: Ctx, id: string, reviewerId: string | 
   await ctx.db.batch([
     ctx.db.stmt("UPDATE recruitment_applications SET assigned_to = ?2, updated_at = ?3 WHERE id = ?1", id, reviewerId, now),
     auditStmt(ctx, { action: "recruitment.assign", resourceType: "recruitment_application", resourceId: id, before: { assignedTo: app.assigned_to }, after: { assignedTo: reviewerId }, decision }),
-    ...(reviewerId ? notifyStmts(ctx, [reviewerId], { type: "recruitment.assigned", title: "An application to review", body: app.full_name, link: `/dashboard/recruitment/applications/${id}` }) : []),
+    ...(reviewerId ? notifyStmts(ctx, [reviewerId], { type: "recruitment.assigned", title: `Review ${app.full_name}'s application`.slice(0, 200), body: "You were asked to review it.", link: `/dashboard/recruitment/applications/${id}`, resourceType: "recruitment_application", resourceId: id }) : []),
   ]);
   return { message: reviewerId ? "Reviewer assigned." : "Reviewer removed." };
 }
@@ -356,29 +359,14 @@ export async function reviewApplication(ctx: Ctx, id: string, input: { status: s
     ...(note ? [ctx.db.stmt("INSERT INTO recruitment_notes (id, application_id, author_id, body, created_at) VALUES (?1, ?2, ?3, ?4, ?5)", newId("rnote"), id, actor.user.id, note, now)] : []),
     auditStmt(ctx, { action: "recruitment.review", resourceType: "recruitment_application", resourceId: id, before: { status: before.status }, after: { status: input.status }, decision }),
   ]);
-  const messages: Record<string, string> = {
-    SHORTLISTED: "Congratulations — you have been shortlisted. We will email you the next steps soon.",
-    INTERVIEW: "You are invited to an interview. We will email you the schedule.",
-    ACCEPTED: "Congratulations — your application has been accepted. Welcome to the team!",
-    REJECTED: "Thank you for applying. After careful review we are unable to offer you a position this time.",
-  };
-  if (input.notify && messages[input.status]) {
-    const sent = await deliverEmail(ctx, {
-      to: before.email,
-      subject: `Your GUCC application: ${before.campaign_title}`,
-      text: `Hello ${before.full_name},\n\n${messages[input.status]}\n\nPosition: ${before.position_name}\n\nGreen University Computer Club`,
-    }, { type: "recruitment.status" });
+  const email = decisionEmail(input.status, { fullName: before.full_name, campaignTitle: before.campaign_title, positionName: before.position_name });
+  if (input.notify && email) {
+    const sent = await deliverEmail(ctx, { to: before.email, ...email }, { type: "recruitment.status" });
     return { message: sent ? "Updated, and the applicant was emailed." : "Updated. The applicant was NOT emailed: email isn't available, so tell them another way." };
   }
   return { message: "Updated." };
 }
 
-export const csvCell = (v: unknown) => {
-  const s = v === null || v === undefined ? "" : String(v);
-  // Neutralise spreadsheet formulas, then quote.
-  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
-  return `"${safe.replace(/"/g, '""')}"`;
-};
 
 export async function applicationsCsv(ctx: Ctx, campaignId: string): Promise<{ filename: string; csv: string }> {
   const decision = requirePermission(ctx, "recruitment.manage");

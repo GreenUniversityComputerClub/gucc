@@ -18,6 +18,7 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
   const [token, setToken] = useState<string | null>(null)
   const [pending, start] = useTransition()
   const onToken = useCallback((t: string | null) => setToken(t), [])
+  const [attempt, setAttempt] = useState(0)
 
   const handle = (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,7 +26,10 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
     start(async () => {
       const res = await forgotPasswordAction({ email, turnstileToken: token ?? undefined })
       if (res.ok) setDone(res.data?.message ?? `Check your email. ${SPAM_HINT}`)
-      else setError(res.error)
+      else {
+        setError(res.error)
+        setAttempt((n) => n + 1)
+      }
     })
   }
 
@@ -52,10 +56,10 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
               <div className="flex flex-col gap-6">
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="m@example.com" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Input id="email" type="email" placeholder="you@student.green.ac.bd" required autoComplete="username" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
-                <Turnstile onToken={onToken} />
-                {error && <p className="text-sm text-red-500" role="alert">{error}</p>}
+                <Turnstile onToken={onToken} resetKey={attempt} />
+                {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
                 <Button type="submit" className="w-full" disabled={pending}>
                   {pending ? 'Sending...' : 'Send reset email'}
                 </Button>

@@ -27,9 +27,17 @@ from one address.
 
 ## Who can see it
 
-- **Everyone:** published pages only: committee listings, events, posts, public photos.
-- **Members:** their own account, registrations, tasks, messages; other members' names (and
-  department and batch) when starting a conversation, never their email.
+- **Everyone:** published pages only: committee listings, events, posts, public photos, and the
+  profile pages (`/members/<handle>`) of members who chose "Everyone".
+- **Members:** their own account, registrations, tasks, messages; other members' profile pages
+  when the member chose "Signed-in members" (the default) or "Everyone": name, photo, department,
+  batch, bio, skills, links, public email, club positions, published posts and events. Phone,
+  student ID and the sign-in email are never on a profile. "Only me" hides the profile and leaves
+  the member out of the directory; someone who served on a committee stays on the executives page
+  by name, photo, position and links (as before). A member's photo appears next to their name in
+  messages, notifications and lists; only photos already public are ever shown.
+- **Moderators (`chat.moderate`):** only a reported message, as it was when reported, plus the two
+  messages before it when the reporter chose to share them; never the rest of a conversation.
 - **Leaders by permission**, not by title (see "Who can do what" in the dashboard):
   `members.read` shows account emails and applications; `recruitment.manage` shows applicants and
   their documents (signed links that expire in 10 minutes); `audit.read` shows the activity log;

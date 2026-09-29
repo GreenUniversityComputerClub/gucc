@@ -21,6 +21,7 @@ import type { Ctx } from "../context";
 import { nowIso } from "../db";
 
 export interface MaintenanceReport {
+  endedListings?: number;
   sessions: number;
   tokens: number;
   rateLimits: number;
@@ -49,14 +50,17 @@ export async function runMaintenance(ctx: Ctx, now = new Date()): Promise<Mainte
     // Longest window in use is one day.
     rateLimits: await ctx.db.run("DELETE FROM rate_limits WHERE window_start < ?1", epoch - 2 * 86_400),
     eventsOngoing: await ctx.db.run(
-      "UPDATE events SET status = 'ONGOING', updated_at = ?1 WHERE status = 'PUBLISHED' AND deleted_at IS NULL AND start_at IS NOT NULL AND start_at <= ?1 AND (end_at IS NULL OR end_at > ?1)",
+      // updated_by cleared: the change is the club's schedule, not the last person who edited it.
+      "UPDATE events SET status = 'ONGOING', updated_at = ?1, updated_by = NULL WHERE status = 'PUBLISHED' AND deleted_at IS NULL AND start_at IS NOT NULL AND start_at <= ?1 AND (end_at IS NULL OR end_at > ?1)",
       iso),
     eventsCompleted: await ctx.db.run(
-      `UPDATE events SET status = 'COMPLETED', updated_at = ?1 WHERE status IN ('PUBLISHED','ONGOING') AND deleted_at IS NULL
+      `UPDATE events SET status = 'COMPLETED', updated_at = ?1, updated_by = NULL WHERE status IN ('PUBLISHED','ONGOING') AND deleted_at IS NULL
          AND ((end_at IS NOT NULL AND end_at <= ?1) OR (end_at IS NULL AND start_at IS NOT NULL AND start_at <= ?2))`,
       iso, dayAgo),
     orphanUploads: 0,
     expiredGrants: await ctx.db.run("UPDATE user_permissions SET revoked_at = expires_at WHERE revoked_at IS NULL AND expires_at IS NOT NULL AND expires_at <= ?1", iso),
+    // Assignments whose end date has passed stop counting (approvers, positions' permissions).
+    endedListings: await ctx.db.run("UPDATE committee_members SET is_active = 0, updated_at = ?1 WHERE is_active = 1 AND deleted_at IS NULL AND end_date IS NOT NULL AND end_date < substr(?1, 1, 10)", iso),
     oldNotifications: 0,
     lostFoundNoticed: 0,
     lostFoundArchived: 0,
@@ -121,22 +125,27 @@ async function reminders(ctx: Ctx, now: Date, report: MaintenanceReport): Promis
   const iso = now.toISOString();
   const dayAhead = new Date(now.getTime() + DAY).toISOString();
   const hourAhead = new Date(now.getTime() + 3600_000).toISOString();
-  report.taskReminders = await ctx.db.run(
+  // RETURNING id: the new notices go through the email outbox like any other (flushed after this run).
+  const tasks = await ctx.db.all<{ id: string }>(
     `INSERT INTO notifications (id, user_id, type, title, body, link, resource_type, resource_id, channel, created_at)
      SELECT 'ntf_' || lower(hex(randomblob(16))), t.assignee_user_id, 'task.due', 'Due soon: ' || substr(t.title, 1, 150), 'Due within a day.', '/dashboard/tasks/' || t.id, 'task', t.id, 'IN_APP', ?1
      FROM tasks t WHERE t.deleted_at IS NULL AND t.status IN ('OPEN','IN_PROGRESS') AND t.assignee_user_id IS NOT NULL AND t.reminded_at IS NULL
-       AND t.due_at IS NOT NULL AND t.due_at > ?1 AND t.due_at <= ?2`, iso, dayAhead);
+       AND t.due_at IS NOT NULL AND t.due_at > ?1 AND t.due_at <= ?2 RETURNING id`, iso, dayAhead);
+  report.taskReminders = tasks.length;
+  ctx.outbox?.push(...tasks.map((t) => t.id));
   if (report.taskReminders) {
     await ctx.db.run(`UPDATE tasks SET reminded_at = ?1 WHERE deleted_at IS NULL AND status IN ('OPEN','IN_PROGRESS') AND assignee_user_id IS NOT NULL AND reminded_at IS NULL
       AND due_at IS NOT NULL AND due_at > ?1 AND due_at <= ?2`, iso, dayAhead);
   }
-  report.meetingReminders = await ctx.db.run(
+  const meetings = await ctx.db.all<{ id: string }>(
     `INSERT INTO notifications (id, user_id, type, title, body, link, resource_type, resource_id, channel, created_at)
      SELECT 'ntf_' || lower(hex(randomblob(16))), p.user_id, 'meeting.soon', 'Starting soon: ' || substr(m.title, 1, 150),
             COALESCE(m.location, CASE WHEN m.meet_url IS NOT NULL THEN 'Online (Google Meet)' END), '/dashboard/meetings/' || m.id, 'meeting', m.id, 'IN_APP', ?1
      FROM meetings m JOIN meeting_participants p ON p.meeting_id = m.id AND p.response <> 'NO'
      JOIN users u ON u.id = p.user_id AND u.status = 'ACTIVE'
-     WHERE m.deleted_at IS NULL AND m.status = 'SCHEDULED' AND m.reminded_at IS NULL AND m.starts_at > ?1 AND m.starts_at <= ?2`, iso, hourAhead);
+     WHERE m.deleted_at IS NULL AND m.status = 'SCHEDULED' AND m.reminded_at IS NULL AND m.starts_at > ?1 AND m.starts_at <= ?2 RETURNING id`, iso, hourAhead);
+  report.meetingReminders = meetings.length;
+  ctx.outbox?.push(...meetings.map((m) => m.id));
   if (report.meetingReminders) {
     await ctx.db.run("UPDATE meetings SET reminded_at = ?1 WHERE deleted_at IS NULL AND status = 'SCHEDULED' AND reminded_at IS NULL AND starts_at > ?1 AND starts_at <= ?2", iso, hourAhead);
   }

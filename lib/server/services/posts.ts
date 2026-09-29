@@ -21,6 +21,7 @@ import { toSlug, Validator } from "../validate";
 import { registerApprovalHandler, startApproval, WITHDRAWN } from "./approvals";
 import { tagsForPost } from "./cache-tags";
 import { triggerStmts } from "../triggers";
+import { checkMemberCreate, checkMemberSubmit } from "./member-content";
 
 export const POST_TYPES = ["BLOG", "NEWS", "ANNOUNCEMENT"] as const;
 export type PostType = (typeof POST_TYPES)[number];
@@ -116,6 +117,7 @@ export async function createPost(ctx: Ctx, input: Record<string, unknown>): Prom
   const categoryId = await ensureCategory(ctx, d.category);
   const categorySlug = d.category ? toSlug(d.category) : null;
   const decision = requirePermission(ctx, "posts.create", { type: "post", createdBy: actor.user.id, ownerId: actor.user.id, category: categorySlug, meta: { postType: d.type } });
+  await checkMemberCreate(ctx, "post", d.type);
   const slug = d.slug ?? toSlug(d.title!);
   if (!slug) throw new ValidationError("Choose a slug.", { slug: "Choose a slug." });
   const clash = await ctx.db.first("SELECT id FROM posts WHERE type = ?1 AND slug = ?2", d.type, slug);
@@ -253,6 +255,7 @@ export async function publishPost(ctx: Ctx, id: string): Promise<PublishResult> 
     policyKey = decision.approvalPolicyKey;
     ruleId = decision.approvalRuleId ?? null;
   } else if (authorize(ctx, "posts.submit", resource).outcome === "ALLOW") {
+    await checkMemberSubmit(ctx, "post");
     // Affiliated committees (e.g. CSS) publish after the President or General Secretary approves.
     policyKey = isAffiliateExecutive(actor.subject)
       ? await getSetting(ctx, "content.affiliate_approval_policy", "president-or-gs")
@@ -325,21 +328,44 @@ export async function archivePost(ctx: Ctx, id: string, reason: string | null): 
   ctx.revalidate?.(tagsForPost(post!.type, post!.slug));
 }
 
+/** Bring an archived post back as a draft (by whoever may archive it). */
+export async function restorePost(ctx: Ctx, id: string): Promise<void> {
+  const actor = requireActor(ctx);
+  const row = await ctx.db.first<{ id: string; created_by: string | null; category: string | null; type: string; slug: string }>(
+    "SELECT p.id, p.created_by, c.slug AS category, p.type, p.slug FROM posts p LEFT JOIN categories c ON c.id = p.category_id WHERE p.id = ?1 AND p.deleted_at IS NOT NULL AND p.status = 'ARCHIVED'", id);
+  if (!row) throw new NotFoundError("Archived post");
+  const decision = requirePermission(ctx, "posts.delete", { type: "post", id, createdBy: row.created_by, ownerId: row.created_by, category: row.category, status: "ARCHIVED", meta: { postType: row.type } });
+  if (await ctx.db.first("SELECT 1 FROM posts WHERE type = ?1 AND slug = ?2 AND id <> ?3 AND deleted_at IS NULL", row.type, row.slug, id)) {
+    throw new AppError(409, "SLUG_TAKEN", "Another post now uses this address. Rename that one first, then restore this post.");
+  }
+  const now = nowIso();
+  await ctx.db.batch([
+    ctx.db.stmt("UPDATE posts SET status = 'DRAFT', deleted_at = NULL, updated_at = ?2, updated_by = ?3 WHERE id = ?1", id, now, actor.user.id),
+    auditStmt(ctx, { action: "post.restore", resourceType: "post", resourceId: id, after: { status: "DRAFT" }, decision }),
+  ]);
+}
+
 export async function restoreRevision(ctx: Ctx, postId: string, revisionId: string): Promise<void> {
   const rev = await ctx.db.first<{ snapshot_json: string; version: number }>("SELECT snapshot_json, version FROM post_revisions WHERE id = ?1 AND post_id = ?2", revisionId, postId);
   if (!rev) throw new NotFoundError("Revision");
-  const snap = JSON.parse(rev.snapshot_json) as Record<string, unknown>;
+  // The address stays as it is now: restoring old text must not break links to a live post.
+  const { slug: _oldSlug, ...snap } = JSON.parse(rev.snapshot_json) as Record<string, unknown>;
   await updatePost(ctx, postId, { ...snap, tags: Array.isArray(snap.tags) ? (snap.tags as string[]).join(", ") : snap.tags, changeReason: `Restored version ${rev.version}` });
 }
 
+/** One saved version of a post, to read before restoring it. */
 export async function getRevision(ctx: Ctx, postId: string, revisionId: string) {
   const resource = await postResource(ctx.db, postId);
   if (!resource) throw new NotFoundError("Post");
   requirePermission(ctx, "posts.read", resource);
-  return ctx.db.first<{ version: number; title: string; excerpt: string | null; body_markdown: string | null; change_reason: string | null; created_at: string }>(
-    "SELECT version, title, excerpt, body_markdown, change_reason, created_at FROM post_revisions WHERE id = ?1 AND post_id = ?2",
+  const rev = await ctx.db.first<{ id: string; version: number; title: string; excerpt: string | null; body_markdown: string | null; change_reason: string | null; created_at: string; changed_by_name: string | null; current_version: number }>(
+    `SELECT r.id, r.version, r.title, r.excerpt, r.body_markdown, r.change_reason, r.created_at, COALESCE(pr.full_name, u.email) AS changed_by_name, p.current_version
+     FROM post_revisions r JOIN posts p ON p.id = r.post_id LEFT JOIN users u ON u.id = r.changed_by LEFT JOIN profiles pr ON pr.user_id = u.id AND pr.deleted_at IS NULL
+     WHERE r.id = ?1 AND r.post_id = ?2`,
     revisionId, postId,
   );
+  if (!rev) throw new NotFoundError("Version");
+  return rev;
 }
 
 export async function listPostsAdmin(ctx: Ctx, opts: { type?: string; status?: string; q?: string; category?: string; page?: number }) {
@@ -354,7 +380,7 @@ export async function listPostsAdmin(ctx: Ctx, opts: { type?: string; status?: s
     `SELECT p.id, p.type, p.slug, p.title, p.status, p.published_at, p.updated_at, p.created_by, c.name AS category_name, c.slug AS category_slug,
             COALESCE(pr.full_name, p.author_name) AS author_display
      FROM posts p LEFT JOIN categories c ON c.id = p.category_id LEFT JOIN profiles pr ON pr.id = p.author_profile_id
-     WHERE p.deleted_at IS NULL
+     WHERE (CASE WHEN ?2 = 'ARCHIVED' THEN p.deleted_at IS NOT NULL ELSE p.deleted_at IS NULL END)
        AND (?1 IS NULL OR p.type = ?1) AND (?2 IS NULL OR p.status = ?2) AND (?3 IS NULL OR p.title LIKE ?3) AND (?4 IS NULL OR c.slug = ?4)
        AND (?5 = 1 OR p.created_by = ?6 OR (?7 <> '' AND instr(',' || ?7 || ',', ',' || c.slug || ',') > 0))
      ORDER BY p.updated_at DESC LIMIT 30 OFFSET ?8`,

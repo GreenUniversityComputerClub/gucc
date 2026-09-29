@@ -101,3 +101,9 @@ export interface Ctx {
    */
   outbox?: string[];
 }
+
+/**
+ * The website's address (PUBLIC_BASE_URL without a trailing slash) followed by `path`, for links in
+ * emails and notices. Locally, without the setting, links point at the dev server.
+ */
+export const siteUrl = (ctx: Pick<Ctx, "env">, path = "") => `${(ctx.env.PUBLIC_BASE_URL || "http://localhost:3000").replace(/\/+$/, "")}${path}`;

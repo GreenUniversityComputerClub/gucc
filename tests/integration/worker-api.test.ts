@@ -75,10 +75,10 @@ describe("sessions and authorization", () => {
     const me = await rpc<{ adminAccess: boolean; caps: Record<string, boolean> }>("session.me", {}, token);
     expect(me.body.data.adminAccess).toBe(true);
     expect(me.body.data.caps["members.approve"]).toBe(true);
-    expect((await rpc("views.dashboard", {}, token)).body.ok).toBe(true);
+    expect((await rpc("views.home", {}, token)).body.ok).toBe(true);
     await rpc("auth.logout", {}, token);
     expect((await rpc("session.me", {}, token)).body.data).toBeNull();
-    expect((await rpc("views.dashboard", {}, token)).status).toBe(401);
+    expect((await rpc("views.home", {}, token)).status).toBe(401);
   });
 
   it("wrong passwords are rejected with a generic message", async () => {

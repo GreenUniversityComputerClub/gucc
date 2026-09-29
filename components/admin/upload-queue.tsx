@@ -38,7 +38,8 @@ export function UploadQueue({ accept, max, label, hint, upload, onFinished, disa
   hint: string;
   upload: (file: File, h: UploadHandlers) => Promise<UploadResult>;
   /** Called once when nothing is waiting or running any more (with how many succeeded). */
-  onFinished?: (succeeded: number) => void;
+  /** When every file has settled: how many went up, and how many failed (and are still listed to retry). */
+  onFinished?: (succeeded: number, failed: number) => void;
   disabled?: boolean;
 }) {
   const [items, setItems] = useState<Item[]>([]);
@@ -75,7 +76,7 @@ export function UploadQueue({ accept, max, label, hint, upload, onFinished, disa
     const busy = items.some((i) => i.status === "waiting" || i.status === "preparing" || i.status === "uploading");
     if (!busy && items.length && !finishedReported.current) {
       finishedReported.current = true;
-      onFinished?.(items.filter((i) => i.status === "done").length);
+      onFinished?.(items.filter((i) => i.status === "done").length, items.filter((i) => i.status === "failed").length);
     }
   }, [items, start, onFinished]);
 

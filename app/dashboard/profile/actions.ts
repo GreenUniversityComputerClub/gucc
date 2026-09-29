@@ -11,10 +11,6 @@ export async function setAvatarAction(mediaId: string | null) {
   return runAction("account.setAvatar", { mediaId }, { message: "Photo updated." });
 }
 
-export async function markNotificationsReadAction() {
-  return runAction("notifications.markRead", { ids: "all" });
-}
-
 export async function saveEmailPreferencesAction(fd: FormData) {
   const choices: Record<string, boolean> = {};
   for (const key of ["approvals", "roles", "work", "events", "messages"]) choices[key] = fd.get(key) === "on";

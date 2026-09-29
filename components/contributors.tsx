@@ -60,6 +60,9 @@ export function ContributorCard({ contributor }: { contributor: Contributor }) {
               <span>{contributor.additions !== undefined ? "Commits:" : "Contributions:"}</span>
               <span className="font-semibold text-primary">
                 {contributor.contributions}
+                {contributor.realCommits !== undefined && contributor.realCommits !== contributor.contributions && (
+                  <span className="font-normal text-muted-foreground"> ({contributor.realCommits} counted)</span>
+                )}
               </span>
             </p>
             {contributor.additions !== undefined && (

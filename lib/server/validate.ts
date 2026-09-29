@@ -2,11 +2,11 @@
  * Small, dependency-free input validation. Each helper returns a clean value
  * or records a field error; `done()` throws one ValidationError listing all.
  */
+import { slugify } from "../governance/positions";
 import { ValidationError } from "./errors";
 
 export const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
 export const STUDENT_ID_RE = /^\d{9}$/;
-export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export class Validator {
   readonly errors: Record<string, string> = {};
@@ -116,26 +116,10 @@ export class Validator {
   }
 }
 
-const COMMON_PASSWORDS = new Set(["password", "password1", "12345678", "123456789", "1234567890", "qwerty123", "iloveyou", "gucc1234", "greenuniversity", "11111111"]);
+/** Password rules live in lib/password-rules.ts, shared with the forms that show them. */
+export { passwordProblem } from "../password-rules";
 
-export function passwordProblem(password: string, email?: string | null): string | null {
-  if (password.length < 10) return "Use at least 10 characters.";
-  if (password.length > 200) return "Use at most 200 characters.";
-  if (COMMON_PASSWORDS.has(password.toLowerCase())) return "That password is too common.";
-  const local = email ? email.split("@")[0].toLowerCase() : "";
-  if (local.length >= 4 && password.toLowerCase().includes(local)) return "Do not include your email name in the password.";
-  if (new Set(password).size < 5) return "Use a less repetitive password.";
-  return null;
-}
-
-/** Slug from a title, ASCII only. */
+/** Slug from a title, ASCII only, at most 120 characters (the same rule as position keys). */
 export function toSlug(input: string): string {
-  return input
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 120);
+  return slugify(input).slice(0, 120).replace(/-+$/, "");
 }

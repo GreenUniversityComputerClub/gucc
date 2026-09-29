@@ -42,7 +42,6 @@ const NOT_MIGRATED: Array<[string, string, string]> = [
     "Accounts are created fresh by registering on the new site; the lost & found board starts empty."],
   ["Hashnode blog posts", "Out of scope by decision (external; the old site did not show them because HASHNODE_HOST was unset).", "None."],
   ["data/contributors.ts", "Application configuration (a fallback for the GitHub contributors API), not club data.", "Kept in code."],
-  ["app/scheduler/data/courses.ts", "Dataset for the course-routine planner tool, not club records.", "Kept in code."],
   ["Social links, site name, address (lib/seo/site.ts)", "Site configuration used for SEO metadata.", "Kept in code."],
 ];
 

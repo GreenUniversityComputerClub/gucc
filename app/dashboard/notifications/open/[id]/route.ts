@@ -1,10 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { rpc } from "@/lib/api/session";
+import { safeLocalPath } from "@/lib/safe-path";
 
 export const dynamic = "force-dynamic";
 
 /** Only paths on this site. */
-const samePath = (p: string | null | undefined) => (p && p.startsWith("/") && !p.startsWith("//") && !p.startsWith("/\\") && p.length <= 500 ? p : null);
+const samePath = (p: string | null | undefined) => {
+  const safe = safeLocalPath(p, "");
+  return safe || null;
+};
 
 /**
  * Open a notification: mark it read and go where it points (always a path on this site). A

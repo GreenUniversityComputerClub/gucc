@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { d1, login, MODERATOR, settle } from "./helpers";
+import { d1, login, MODERATOR, settle, acceptConfirms } from "./helpers";
 
 /**
  * Leadership tools end to end: importing executives from a file (preview, resolve, import,
@@ -14,7 +14,7 @@ const committeeId = () => d1<{ id: string }>("SELECT id FROM committees WHERE st
 
 test.describe.configure({ mode: "serial" });
 test.beforeEach(async ({ page }) => {
-  page.on("dialog", (d) => d.accept());
+  await acceptConfirms(page);
 });
 
 test("executives import from JSON: preview, resolve, import, verify, public page", async ({ page, browser }) => {

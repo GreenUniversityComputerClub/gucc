@@ -8,8 +8,9 @@ import { activityFeed, diffSnapshots } from "@/lib/server/services/activity";
 import { changeEmail, confirmEmailChange, deleteOwnAccount, mySessions, revokeOtherSessions } from "@/lib/server/services/account";
 import { cancelMyRegistration } from "@/lib/server/services/events";
 import {
-  deleteMessage, editMessage, listReports, myConversations, reportMessage, resolveReport, sendInThread, sendToPerson, setBlock, setMessagePrivacy, thread, unreadConversations,
+  deleteMessage, editMessage, listReports, myConversations, reportMessage, resolveReport, sendInThread, sendToPerson, setBlock, setMessagePrivacy, thread,
 } from "@/lib/server/services/messaging";
+import { sessionCounts } from "@/lib/server/services/community";
 import { updateOwnProfile } from "@/lib/server/services/members";
 import { createWorld, type TestWorld } from "../support/d1";
 
@@ -26,10 +27,10 @@ describe("messaging", () => {
     const { conversationId } = await sendToPerson(await w.ctx(a), { userId: b, body: "Hi! Are you coming to the workshop?" });
     await sendInThread(await w.ctx(a), conversationId, "It starts at 3.");
     expect(w.sqlite.prepare("SELECT COUNT(*) n FROM notifications WHERE user_id = ? AND type = 'message.received'").get(b)).toEqual({ n: 1 });
-    expect(await unreadConversations(await w.ctx(b))).toBe(1);
+    expect((await sessionCounts(await w.ctx(b))).unreadMessages).toBe(1);
     const t = await thread(await w.ctx(b), conversationId);
     expect(t.messages.map((m) => m.body)).toEqual(["Hi! Are you coming to the workshop?", "It starts at 3."]);
-    expect(await unreadConversations(await w.ctx(b))).toBe(0);
+    expect((await sessionCounts(await w.ctx(b))).unreadMessages).toBe(0);
     await sendInThread(await w.ctx(b), conversationId, "Yes, see you there.");
     const list = await myConversations(await w.ctx(a));
     expect(list[0]).toMatchObject({ id: conversationId, unread: 1, last_body: "Yes, see you there." });

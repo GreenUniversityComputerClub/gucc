@@ -7,6 +7,7 @@ import { ResetLinkButton, ResetMfaButton } from "@/components/admin/reset-link";
 import type { rolesOverview } from "@/lib/server/views/governance";
 import { GrantRoleBar } from "./grant-role-bar";
 import { approveAndLinkAction, approveMemberAction, linkProfileAction, reactivateUserAction, rejectMemberAction, requestCorrectionAction, reviewNoteAction, suspendUserAction } from "../actions";
+import { PersonAvatar } from "@/components/person-avatar";
 
 const TABS: Array<[string, string]> = [["PENDING_APPROVAL", "Waiting for approval"], ["ACTIVE", "Active"], ["EMAIL_VERIFICATION_PENDING", "Email not verified"], ["SUSPENDED", "Suspended"], ["REJECTED", "Rejected"], ["ALL", "All"]];
 const date = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short", year: "numeric" }) : "—");
@@ -61,6 +62,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
                   {mayGrant && bulkRoles.length > 0 && m.status === "ACTIVE" && <input type="checkbox" data-member-id value={m.id} aria-label={`Select ${m.full_name ?? m.email}`} className="mt-1.5 h-4 w-4 shrink-0" />}
+                  <PersonAvatar name={m.full_name ?? m.email} url={m.avatarUrl} size="md" />
                 <div className="min-w-0">
                   <h2 className="font-medium">{m.full_name ?? "—"} <StatusBadge status={m.status} /></h2>
                   <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm">

@@ -16,6 +16,7 @@ export default async function PersonAccessPage({ params }: { params: Promise<{ u
   return (
     <>
       <PageHeader
+        back={self ? { href: "/dashboard/profile", label: "Your profile" } : { href: "/dashboard/access", label: "Access" }}
         title={self ? "Your access" : `Access: ${a.person.name ?? a.person.email}`}
         description={self ? "What your account can do and why. Ask the President, General Secretary or a Moderator if you need more for your work." : a.person.email}
       />

@@ -55,8 +55,9 @@ describe("permission matrix (defaults, all changeable in the admin)", () => {
   it("the developer role sees System health and the activity log, and nothing else until granted", async () => {
     const p = await people();
     const me = await sessionMe(await w.ctx(p.developer));
-    // The member baseline (own profile, messages) comes from the member role, not this one.
-    const held = Object.entries(me!.caps).filter(([k, v]) => v && !["profile.update", "chat.send"].includes(k)).map(([k]) => k).sort();
+    // The member baseline (own profile, messages, own blog posts and events) comes from the member role, not this one.
+    const baseline = ["profile.update", "chat.send", "posts.read", "posts.create", "posts.update", "posts.submit", "events.read", "events.create", "events.update", "media.upload", "media.update"];
+    const held = Object.entries(me!.caps).filter(([k, v]) => v && !baseline.includes(k)).map(([k]) => k).sort();
     expect(held).toEqual(["audit.read", "system.health"]);
   });
 
@@ -77,17 +78,19 @@ describe("permission matrix (defaults, all changeable in the admin)", () => {
     for (const l of ["moderator", "president", "gs"] as const) expect(await outcome(p[l], "events.delete", techEvent)).toBe("ALLOW");
   });
 
-  it("posts: Publication Secretary needs approval, Programming Secretary publishes technical posts, members cannot create", async () => {
+  it("posts: Publication Secretary needs approval, Programming Secretary publishes technical posts, members submit their own blog posts", async () => {
     const p = await people();
     const prog = await w.user({ email: "prog@x.bd", roles: ["member"], positions: ["programming-secretary"] });
     expect(await outcome(p.publication, "posts.publish", { type: "post", category: "club-news" })).toBe("REQUIRE_APPROVAL");
     expect(await outcome(prog, "posts.publish", { type: "post", category: "technical" })).toBe("ALLOW");
     expect(await outcome(prog, "posts.publish", { type: "post", category: "club-news" })).toBe("DENY");
     expect(await outcome(p.president, "posts.publish", { type: "post", category: "club-news" })).toBe("ALLOW");
-    expect(await outcome(p.member, "posts.create", { type: "post" })).toBe("DENY");
+    expect(await outcome(p.member, "posts.create", { type: "post" })).toBe("DENY"); // someone else's
+    expect(await outcome(p.member, "posts.publish", { type: "post", createdBy: p.member, ownerId: p.member })).toBe("DENY");
     const { id } = await createPost(await w.ctx(p.executiveMember), { type: "BLOG", title: "My first article", body: "Hello" });
     expect((await publishPost(await w.ctx(p.executiveMember), id)).outcome).toBe("PENDING_APPROVAL");
-    await expect(createPost(await w.ctx(p.member), { type: "BLOG", title: "Nope", body: "x" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const own = await createPost(await w.ctx(p.member), { type: "BLOG", title: "A member writes", body: "x" });
+    expect((await publishPost(await w.ctx(p.member), own.id)).outcome).toBe("PENDING_APPROVAL");
   });
 
   it("recruitment and the contact inbox: President, GS, Moderators (and Information Secretary for messages)", async () => {

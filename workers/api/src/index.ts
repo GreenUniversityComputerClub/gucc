@@ -18,6 +18,7 @@ import { readCommittees, readContests, readEvent, readEvents, readForm, readPost
 import type { VariantName } from "../../../lib/media/bytes";
 import { forgetMediaLookup, resolveMediaAccess, uploadMedia, uploadsOpen, MAX_BYTES_PER_REQUEST } from "../../../lib/server/services/media";
 import { recordHeartbeat, runMaintenance } from "../../../lib/server/services/maintenance";
+import { remindStaleApprovals } from "../../../lib/server/services/approvals";
 import { runRetention } from "../../../lib/server/services/retention";
 import { sealAuditLog } from "../../../lib/server/services/audit-seal";
 import { guardFreeTier } from "../../../lib/server/services/cloudflare-usage";
@@ -108,6 +109,9 @@ async function recordError(env: Env, e: { requestId: string; procedure: string; 
   }
 }
 
+/** Frequent checks answered from the session alone (see buildCtx `light`). */
+const LIGHT_PROCEDURES = new Set(["session.counts", "chat.pulse", "notifications.seenPath"]);
+
 async function handleRpc(env: Env, req: Request, name: string, ectx: ExecutionContext): Promise<Response> {
   const requestId = req.headers.get("x-request-id")?.slice(0, 64) || crypto.randomUUID();
   const proc = Object.prototype.hasOwnProperty.call(procedures, name) ? procedures[name] : undefined;
@@ -122,7 +126,7 @@ async function handleRpc(env: Env, req: Request, name: string, ectx: ExecutionCo
     })) as { input?: unknown };
     const input = body?.input && typeof body.input === "object" && !Array.isArray(body.input) ? (body.input as Record<string, unknown>) : {};
     const sessionToken = bearer(req);
-    const { ctx, tags } = await buildCtx(env, req, { trusted: true, sessionToken });
+    const { ctx, tags } = await buildCtx(env, req, { trusted: true, sessionToken, light: LIGHT_PROCEDURES.has(name) });
     built = ctx;
     actorId = ctx.actor?.user.id ?? null;
     // Signed-in mutations have a per-account ceiling too, so spreading requests over many
@@ -132,7 +136,13 @@ async function handleRpc(env: Env, req: Request, name: string, ectx: ExecutionCo
     if (ctx.actor?.security?.holdsSensitive && STEP_UP.has(name)) await requireRecentAuth(ctx);
     // A repeat of the same action (double-click, retry) returns the first result instead of running again.
     const idem = isIdempotent(name) ? await beginIdempotent(ctx, name, input, req.headers.get("idempotency-key")) : null;
-    if (idem?.replay !== undefined) return json({ ok: true, data: idem.replay ?? null, revalidate: [], replayed: true });
+    if (idem?.replay !== undefined) {
+      // A repeat gets the first answer, including which public pages to refresh (the first
+      // refresh may not have got through).
+      const r = idem.replay as { __replay?: number; data?: unknown; tags?: string[] } | null;
+      const envelope = r && typeof r === "object" && r.__replay === 2;
+      return json({ ok: true, data: envelope ? r.data ?? null : r ?? null, revalidate: envelope ? r.tags ?? [] : [], replayed: true });
+    }
     let data: unknown;
     try {
       data = await proc({ ctx, input, sessionToken });
@@ -140,8 +150,11 @@ async function handleRpc(env: Env, req: Request, name: string, ectx: ExecutionCo
       await idem?.abort().catch(() => undefined);
       throw e;
     }
-    await idem?.finish(data).catch(() => undefined);
+    await idem?.finish({ __replay: 2, data: data ?? null, tags: [...tags] }).catch(() => undefined);
     warnIfNearQueryLimit(name, requestId, ctx.db.queries);
+    // Public pages that changed are also refreshed from here, so an update never depends on the
+    // website's own refresh call alone getting through.
+    if (tags.size) background(ectx, pingRevalidate(env, new Set(tags)));
     return json({ ok: true, data: data ?? null, revalidate: [...tags] });
   } catch (e) {
     if (statusOf(e) >= 500) background(ectx, recordError(env, { requestId, procedure: name, error: e, actorId }));
@@ -332,6 +345,13 @@ export default {
         let report;
         try {
           report = await runMaintenance(c);
+          // Pages whose data just changed (e.g. an event that started) refresh now, even if a
+          // later step of this run fails.
+          if (tags.size) {
+            await pingRevalidate(env, tags).catch((e) => console.error("revalidate ping failed", e));
+            tags.clear();
+          }
+          report = { ...report, approvalReminders: await remindStaleApprovals(c).catch((e) => { console.error("approval reminders failed", e); return 0; }) };
           // Free-tier guard: warn Moderators, and pause uploads near R2's free limits.
           let guardFailed = false;
           const guard = await guardFreeTier(c).catch((e) => {

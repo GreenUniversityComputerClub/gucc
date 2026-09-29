@@ -36,8 +36,11 @@ test("events come in numbered pages of 12", async ({ page }) => {
   await page.goBack();
   await expect(pager.getByRole("link", { name: "Page 1" })).toHaveAttribute("aria-current", "page");
   await page.goto("/events?page=2");
-  await page.getByRole("textbox", { name: "Search events" }).fill("a");
-  await expect(page).toHaveURL(/\/events$/);
+  await page.getByRole("searchbox", { name: "Search events" }).fill("a");
+  // The search is kept in the address (shareable) and starts again from page 1.
+  await expect(page).toHaveURL(/\/events\?q=a$/);
+  await page.getByRole("button", { name: "Upcoming" }).click();
+  await expect(page).toHaveURL(/\/events\?q=a&when=upcoming$/);
 });
 
 test("admin pages fit a phone screen, and the menu opens every section", async ({ page }) => {
@@ -48,8 +51,8 @@ test("admin pages fit a phone screen, and the menu opens every section", async (
   await page.goto("/dashboard");
   const menu = page.getByRole("button", { name: /^Dashboard menu/ });
   await expect(menu).toBeVisible();
-  // The bar stays under the site header while the page scrolls.
-  await page.mouse.wheel(0, 1500);
+  // The bar stays under the site header while the page scrolls (within the dashboard, above the footer).
+  await page.mouse.wheel(0, 500);
   await page.waitForTimeout(300);
   await expect(menu).toBeInViewport();
   await menu.click();

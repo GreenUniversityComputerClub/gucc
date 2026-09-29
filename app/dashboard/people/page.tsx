@@ -2,8 +2,8 @@ import Link from "next/link";
 import { requireAdmin, view } from "@/lib/api/session";
 import type { listPeople } from "@/lib/server/services/people";
 import { ActionForm, EmptyState, Field, PageHeader, Pager, Section } from "@/components/admin/ui";
-import { mediaHref } from "@/lib/api/config";
 import { createPersonAction } from "../actions";
+import { PersonAvatar } from "@/components/person-avatar";
 
 const FILTERS: Array<[string, string]> = [["", "Everyone"], ["executives", "Current executives"], ["faculty", "Faculty"], ["accounts", "With account"], ["no-account", "No account"], ["invited", "Invited"]];
 
@@ -28,16 +28,10 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
       {rows.length === 0 ? <EmptyState>No one matches.</EmptyState> : (
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((p) => {
-            const photo = p.avatar_key ? mediaHref(`/media/${p.avatar_key}`) : p.avatar_legacy ?? null;
             return (
               <li key={p.id} className="min-w-0">
                 <Link prefetch={false} href={`/dashboard/people/${p.id}`} className="flex items-center gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40">
-                  {photo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={photo} alt="" loading="lazy" className="h-11 w-11 shrink-0 rounded-full border object-cover" />
-                  ) : (
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground" aria-hidden>{p.full_name.split(/\s+/).slice(0, 2).map((w) => w[0]).join("")}</span>
-                  )}
+                  <PersonAvatar name={p.full_name} url={p.avatarUrl} size="md" className="h-11 w-11" />
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{p.full_name}</span>
                     <span className="block truncate text-xs text-muted-foreground">{[p.roles_held, p.student_id, p.email ?? (p.invite_pending ? "invited" : p.user_id ? "account" : "no account")].filter(Boolean).join(" · ")}</span>

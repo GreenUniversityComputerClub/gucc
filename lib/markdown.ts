@@ -13,14 +13,16 @@
  * server Worker over Cloudflare's size limit and can execute JSX.
  */
 import { Marked, type Tokens } from "marked";
+import { safeLocalPath } from "./safe-path";
 
-const ESC: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-export const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ESC[c]);
+import { escapeHtml } from "./html";
+
+export { escapeHtml };
 
 export function safeUrl(href: string | null | undefined): string | null {
   if (!href) return null;
   const h = href.trim();
-  if (h.startsWith("/") && !h.startsWith("//")) return h;
+  if (h.startsWith("/")) return safeLocalPath(h, "") || null;
   if (h.startsWith("#")) return h;
   try {
     const u = new URL(h);

@@ -1,9 +1,10 @@
-import Link from "next/link";
+import { PersonAvatar } from "@/components/person-avatar";
 import { Fragment } from "react";
 import { view } from "@/lib/api/session";
 import type { getApplication } from "@/lib/server/services/recruitment";
 import { ActionForm, PageHeader, Section, StatusBadge } from "@/components/admin/ui";
-import { addApplicationNoteAction, assignReviewerAction, reviewApplicationAction } from "../../../actions";
+import { addApplicationNoteAction, assignReviewerAction } from "../../../actions";
+import { DecisionForm } from "./decision-form";
 
 export default async function ApplicationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,10 +16,9 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
     ["Semester", v("semester")], ["Batch", v("batch")], ["CGPA", v("cgpa")], ["Completed credits", v("completed_credit")],
     ["Submitted", new Date(String(a.created_at)).toLocaleString("en-GB", { timeZone: "Asia/Dhaka" })],
   ];
-  const statuses: Array<[string, string, "default" | "outline" | "destructive"]> = [["SHORTLISTED", "Shortlist", "default"], ["INTERVIEW", "Invite to interview", "outline"], ["ACCEPTED", "Accept", "default"], ["REJECTED", "Reject", "destructive"]];
   return (
     <>
-      <PageHeader title={v("full_name")} description={`${v("campaign_title")} · reference ${id.slice(4, 12).toUpperCase()}`} actions={<><StatusBadge status={v("status")} /><Link prefetch={false} href={`/dashboard/recruitment/${String(a.campaign_id)}`} className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted">All applications</Link></>} />
+      <PageHeader back={{ href: `/dashboard/recruitment/${String(a.campaign_id)}`, label: `All applications: ${v("campaign_title")}` }} title={v("full_name")} description={`${v("position_name")} · reference ${id.slice(4, 12).toUpperCase()}`} actions={<StatusBadge status={v("status")} />} />
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-6">
           <Section title="Application">
@@ -60,7 +60,12 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
         <Section title="Notes" description="Only reviewers see these.">
           {notes.length > 0 ? (
             <ul className="mb-3 space-y-2 text-sm">
-              {notes.map((n) => <li key={n.id} className="rounded-md bg-muted p-2"><p className="whitespace-pre-wrap">{n.body}</p><p className="mt-1 text-xs text-muted-foreground">{n.author ?? "Someone"} · {when(n.created_at)}</p></li>)}
+              {notes.map((n) => (
+                <li key={n.id} className="flex gap-2 rounded-md bg-muted p-2">
+                  <PersonAvatar name={n.author} url={n.avatarUrl} size="xs" className="mt-0.5" />
+                  <div className="min-w-0 flex-1"><p className="whitespace-pre-wrap break-words">{n.body}</p><p className="mt-1 text-xs text-muted-foreground">{n.author ?? "Someone"} · {when(n.created_at)}</p></div>
+                </li>
+              ))}
             </ul>
           ) : a.reviewer_note ? <p className="mb-3 rounded-md bg-muted p-2 text-xs">Note: {String(a.reviewer_note)}</p> : null}
           <ActionForm action={addApplicationNoteAction.bind(null, id)} submitLabel="Add note" resetOnSuccess>
@@ -68,15 +73,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
           </ActionForm>
         </Section>
         <Section title="Decision">
-          <div className="space-y-4">
-            {statuses.map(([status, label, variant]) => (
-              <ActionForm key={status} action={reviewApplicationAction.bind(null, id, status)} submitLabel={label} variant={variant} confirm={status === "REJECTED" ? "Reject this application?" : undefined}>
-                <label className="flex items-center gap-2 text-xs"><input type="checkbox" name="notify" /> Email the applicant</label>
-                <textarea name="note" rows={1} placeholder="Note for reviewers (optional)" aria-label={`Note with ${label.toLowerCase()}`} className="w-full rounded-md border bg-background p-2 text-base md:text-sm" />
-              </ActionForm>
-            ))}
-          </div>
-          <p className="mt-3 text-xs text-muted-foreground">If email isn&apos;t available, the result tells you and the applicant isn&apos;t emailed.</p>
+          <DecisionForm id={id} current={v("status")} applicant={{ fullName: v("full_name"), email: v("email"), campaignTitle: v("campaign_title"), positionName: v("position_name") }} />
         </Section>
         </div>
       </div>

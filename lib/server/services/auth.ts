@@ -14,7 +14,7 @@
  */
 import { limit } from "../limits";
 import { assertCanGrantPermissions, assertNotSelf, GovernanceViolation } from "../../governance/invariants";
-import type { Ctx, SessionInfo, UserRow } from "../context";
+import { siteUrl, type Ctx, type SessionInfo, type UserRow } from "../context";
 import { loadActor, requireActor, requirePermission, userResource } from "../authz";
 import { auditStmt } from "../audit";
 import { hashPassword, randomToken, sha256Hex, verifyPassword } from "../crypto";
@@ -28,6 +28,7 @@ import { passwordProblem, STUDENT_ID_RE, Validator } from "../validate";
 import { triggerStmts } from "../triggers";
 import { describeAgent } from "./account";
 import { claimEmailTasksStmts } from "./task-claim";
+import { assertStmt, batchTransition } from "../transition";
 
 const LOCK_AFTER = 5;
 const LOCK_MINUTES = 15;
@@ -36,9 +37,7 @@ const RESET_MINUTES = 60;
 
 const addMinutes = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
 
-function baseUrl(ctx: Ctx): string {
-  return (ctx.env.PUBLIC_BASE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
-}
+const baseUrl = (ctx: Ctx) => siteUrl(ctx);
 
 export async function authEventStmt(ctx: Ctx, event: string, userId: string | null, email: string | null, detail?: string) {
   return ctx.db.stmt(
@@ -138,13 +137,23 @@ export async function register(ctx: Ctx, input: RegisterInput): Promise<{ messag
   ]);
   if (!withEmail) return generic;
   const token = await issueToken(ctx, userId, "EMAIL_VERIFY", VERIFY_HOURS * 60);
-  await deliverEmail(ctx, {
+  const sent = await deliverEmail(ctx, {
     to: email!,
     subject: "Verify your GUCC account",
     text: `Hello ${fullName},\n\nConfirm your email address to continue your GUCC membership application:\n${baseUrl(ctx)}/auth/confirm?token=${token}\n\nThe link expires in ${VERIFY_HOURS} hours. If you did not sign up, ignore this email.`,
   }, { type: "account.verify", userId });
+  // Honest when it didn't go out (the daily email limit, or the email service is down).
+  if (!sent) return { message: EMAIL_DELAYED("verification link", "Use “Resend verification email” on the sign-in page") };
   return generic;
 }
+
+/** "Try again after 3:45 PM (Dhaka time)", without seconds. */
+const lockedMessage = (until: string) =>
+  `Too many wrong passwords, so sign-in is paused. Try again after ${new Date(until).toLocaleTimeString("en-US", { timeZone: "Asia/Dhaka", hour: "numeric", minute: "2-digit" })} (Dhaka time), or reset your password now.`;
+
+/** What to say when an account email couldn't be sent right now. */
+const EMAIL_DELAYED = (what: string, retry: string) =>
+  `Your ${what} couldn't be emailed just now (the club's daily email limit, or a temporary problem). ${retry} in a few hours, or ask a GUCC leader for help.`;
 
 export async function resendVerification(ctx: Ctx, emailRaw: string): Promise<{ message: string }> {
   await limit(ctx, "auth.resendVerification", ctx.meta.ipHash ?? "unknown");
@@ -152,8 +161,11 @@ export async function resendVerification(ctx: Ctx, emailRaw: string): Promise<{ 
   const email = String(emailRaw ?? "").trim().toLowerCase();
   const user = await ctx.db.first<{ id: string; status: string }>("SELECT id, status FROM users WHERE email = ?1 AND deleted_at IS NULL", email);
   if (user && user.status === "EMAIL_VERIFICATION_PENDING") {
+    // A few per address an hour, so nobody can use up the club's daily emails on one inbox.
+    await limit(ctx, "auth.emailTo", email);
     const token = await issueToken(ctx, user.id, "EMAIL_VERIFY", VERIFY_HOURS * 60);
-    await deliverEmail(ctx, { to: email, subject: "Verify your GUCC account", text: `Confirm your email address:\n${baseUrl(ctx)}/auth/confirm?token=${token}` }, { type: "account.verify", userId: user.id });
+    const sent = await deliverEmail(ctx, { to: email, subject: "Verify your GUCC account", text: `Confirm your email address:\n${baseUrl(ctx)}/auth/confirm?token=${token}\n\nThe link expires in ${VERIFY_HOURS} hours.` }, { type: "account.verify", userId: user.id });
+    if (!sent) return { message: EMAIL_DELAYED("verification link", "Try again") };
   }
   return { message: `If that account is waiting for verification, a new link is on its way. ${SPAM_HINT}` };
 }
@@ -210,7 +222,7 @@ export async function login(ctx: Ctx, input: { email: string; password: string; 
     email,
   );
   if (user?.locked_until && user.locked_until > nowIso()) {
-    throw new AppError(423, "LOCKED", `Too many failed attempts. Try again after ${new Date(user.locked_until).toLocaleTimeString("en-GB", { timeZone: "Asia/Dhaka" })} (Dhaka time) or reset your password.`);
+    throw new AppError(423, "LOCKED", lockedMessage(user.locked_until));
   }
   const { ok, needsRehash } = await verifyPassword(String(input.password ?? ""), user?.password_hash ?? null, ctx.env.PASSWORD_PEPPER, ctx.env.PASSWORD_PEPPER_PREVIOUS);
   if (!user || !ok) {
@@ -228,6 +240,8 @@ export async function login(ctx: Ctx, input: { email: string; password: string; 
             body: `Someone entered a wrong password for your account ${LOCK_AFTER} times, so sign-in is paused for ${LOCK_MINUTES} minutes. If it wasn't you, choose a new password once you're in and sign out other devices.`, link: "/dashboard/security" }),
         ] : []),
       ]);
+      // Say so on the attempt that locks it, not the next one.
+      if (lock) throw new AppError(423, "LOCKED", lockedMessage(lock));
     } else {
       await (await authEventStmt(ctx, "LOGIN_FAILED", null, email, "unknown account")).run();
     }
@@ -235,11 +249,12 @@ export async function login(ctx: Ctx, input: { email: string; password: string; 
   }
   if (["SUSPENDED", "ARCHIVED", "REJECTED", "INACTIVE"].includes(user.status)) {
     await (await authEventStmt(ctx, "LOGIN_BLOCKED", user.id, email, user.status)).run();
+    const contact = "Use the contact form (/contact) or message the club's Facebook page.";
     const messages: Record<string, string> = {
-      SUSPENDED: "Your account is currently suspended. Contact the club administrators if you think this is a mistake.",
-      REJECTED: "Your registration requires attention. Contact the club administrators.",
-      ARCHIVED: "This account has been closed.",
-      INACTIVE: "This account is inactive. Contact the club administrators to reactivate it.",
+      SUSPENDED: `Your account is currently suspended. If you think this is a mistake, contact the club: ${contact}`,
+      REJECTED: `Your registration wasn't approved. The email we sent says why; to ask about it, contact the club: ${contact}`,
+      ARCHIVED: "This account has been closed. You can sign up again with the same email.",
+      INACTIVE: `This account is inactive. To reactivate it, contact the club: ${contact}`,
     };
     throw new AppError(403, "ACCOUNT_BLOCKED", messages[user.status] ?? "This account is not active.");
   }
@@ -350,38 +365,62 @@ export async function requestPasswordReset(ctx: Ctx, input: { email: string; tur
   const email = String(input.email ?? "").trim().toLowerCase();
   const user = await ctx.db.first<{ id: string; status: string }>("SELECT id, status FROM users WHERE email = ?1 AND deleted_at IS NULL", email);
   if (user && !["ARCHIVED", "REJECTED"].includes(user.status)) {
+    await limit(ctx, "auth.emailTo", email);
     const token = await issueToken(ctx, user.id, "PASSWORD_RESET", RESET_MINUTES);
     await (await authEventStmt(ctx, "PASSWORD_RESET_REQUESTED", user.id, email)).run();
-    await deliverEmail(ctx, {
+    const sent = await deliverEmail(ctx, {
       to: email,
       subject: "Reset your GUCC password",
       text: `Use this link to choose a new password:\n${baseUrl(ctx)}/auth/update-password?token=${token}\n\nIt expires in ${RESET_MINUTES} minutes. If you did not ask for this, you can ignore this email.`,
     }, { type: "account.reset", userId: user.id });
+    if (!sent) return { message: EMAIL_DELAYED("reset link", "Try again") };
   }
   return { message: `If an account exists for that email, a reset link is on its way. ${SPAM_HINT}` };
 }
 
 export async function resetPassword(ctx: Ctx, input: { token: string; password: string }): Promise<void> {
   const password = String(input.password ?? "");
-  const userId = await consumeToken(ctx, String(input.token ?? ""), "PASSWORD_RESET");
-  const user = await ctx.db.first<{ email: string; status: string; email_verified_at: string | null }>("SELECT email, status, email_verified_at FROM users WHERE id = ?1", userId);
-  if (!user) throw new AppError(400, "TOKEN_INVALID", "Account not found.");
-  const problem = passwordProblem(password, user.email);
+  const hash = await sha256Hex(String(input.token ?? ""));
+  // The new password is checked before the link is used, so one the server refuses leaves the
+  // link working for another try.
+  const pending = await ctx.db.first<{ id: string; user_id: string; email: string; status: string; invited: number }>(
+    `SELECT t.id, t.user_id, u.email, u.status,
+            EXISTS (SELECT 1 FROM auth_tokens i WHERE i.user_id = u.id AND i.purpose = 'INVITE') AS invited
+     FROM auth_tokens t JOIN users u ON u.id = t.user_id AND u.deleted_at IS NULL
+     WHERE t.token_hash = ?1 AND t.purpose = 'PASSWORD_RESET' AND t.used_at IS NULL AND t.expires_at > ?2`, hash, nowIso());
+  if (!pending) throw new AppError(400, "TOKEN_INVALID", "This link is invalid, has expired or was already used. Request a new one.");
+  const problem = passwordProblem(password, pending.email);
   if (problem) throw new ValidationError(problem, { password: problem });
+  const userId = pending.user_id;
   const now = nowIso();
-  await ctx.db.batch([
-    // Receiving the reset email proves ownership of the address.
+  // Receiving the reset email proves ownership of the address. An account an executive invited
+  // (created for them, never activated) becomes active as accepting the invitation would; one
+  // still waiting for its email check moves on as verifying would (approval if the club requires it).
+  const unverified = ["EMAIL_VERIFICATION_PENDING", "REGISTERED"].includes(pending.status);
+  const requireApproval = await getSetting(ctx, "members.require_approval", true);
+  const next = !unverified ? pending.status : pending.invited || !requireApproval ? "ACTIVE" : "PENDING_APPROVAL";
+  const approvers = next === "PENDING_APPROVAL" && unverified ? await usersWithPermission(ctx, "members.approve") : [];
+  await batchTransition(ctx, [
+    // Used exactly once: a second request with the same link fails here and changes nothing.
+    ctx.db.stmt("UPDATE auth_tokens SET used_at = ?2 WHERE id = ?1 AND used_at IS NULL", pending.id, now),
+    assertStmt(ctx, "EXISTS (SELECT 1 FROM auth_tokens WHERE id = ?1 AND used_at = ?2)", pending.id, now),
     ctx.db.stmt(
       `UPDATE users SET password_hash = ?2, password_changed_at = ?3, failed_login_count = 0, locked_until = NULL, updated_at = ?3,
-              email_verified_at = COALESCE(email_verified_at, ?3),
-              status = CASE WHEN status IN ('EMAIL_VERIFICATION_PENDING','REGISTERED') THEN 'PENDING_APPROVAL' ELSE status END
+              email_verified_at = COALESCE(email_verified_at, ?3), status = ?4,
+              approved_at = CASE WHEN ?4 = 'ACTIVE' THEN COALESCE(approved_at, ?3) ELSE approved_at END
        WHERE id = ?1`,
-      userId, await hashPassword(password, ctx.env.PASSWORD_PEPPER), now,
+      userId, await hashPassword(password, ctx.env.PASSWORD_PEPPER), now, next,
     ),
+    ...(next === "ACTIVE" && unverified
+      ? [ctx.db.stmt("INSERT INTO user_roles (id, user_id, role_id, granted_at, reason) VALUES (?1, ?2, 'role:member', ?3, ?4) ON CONFLICT DO NOTHING",
+          newId("ur"), userId, now, pending.invited ? "Activated an executive invitation by resetting the password" : "Automatic: approval not required"),
+        ...claimEmailTasksStmts(ctx, userId, now)]
+      : []),
+    ...notifyStmts(ctx, approvers, { type: "member.pending", title: "New membership application", body: `${pending.email} confirmed their email and is waiting for approval.`, link: "/dashboard/members?status=PENDING_APPROVAL", resourceType: "user", resourceId: userId }),
     ctx.db.stmt("UPDATE sessions SET revoked_at = ?2 WHERE user_id = ?1 AND revoked_at IS NULL", userId, now),
-    await authEventStmt(ctx, "PASSWORD_RESET", userId, user.email),
-    auditStmt(ctx, { action: "auth.password_reset", resourceType: "user", resourceId: userId, actorUserId: userId, actorLabel: user.email }),
-  ]);
+    await authEventStmt(ctx, "PASSWORD_RESET", userId, pending.email),
+    auditStmt(ctx, { action: "auth.password_reset", resourceType: "user", resourceId: userId, actorUserId: userId, actorLabel: pending.email, after: next !== pending.status ? { status: next } : undefined }),
+  ], () => new AppError(400, "TOKEN_INVALID", "This link has already been used."));
 }
 
 /**

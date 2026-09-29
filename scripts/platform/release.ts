@@ -14,6 +14,8 @@
  *   4. deploy      the Worker; the previous version's id is kept
  *   5. smoke test  /health answers with this code's API version; unauthenticated calls refused
  *   6. integrity   read-only quick_check and foreign_key_check
+ *   7. ranking     the footer's contributor ranking is recomputed from the git history (optional:
+ *                  a failure leaves the previous ranking and doesn't fail the release)
  *
  * If 4 or 5 fails, the previous Worker version is restored automatically (`wrangler rollback`);
  * the migrations stay, which is safe because they are additive. Failures in 1–3 stop before the
@@ -128,4 +130,10 @@ if (integrity[0]?.quick_check !== "ok" || fk.length > 0) {
   // The Worker is fine; the data needs a look. Stop the pipeline so the website isn't deployed on top.
   fail("The database reports problems (above). The API release itself is live; investigate before deploying the website (RUNBOOK.md, 'Integrity check failed'). Nothing was modified by this check.");
 }
+step(7, "Contributor ranking");
+// Every release refreshes the footer's fair ranking from the full history (no GitHub secret needed
+// for most commits); a failure only means the site keeps the previous ranking.
+const ranking = spawnSync("bun", ["scripts/platform/contributors.ts", "--apply", "--target", target, ...(target === "production" ? ["--confirm-production"] : [])], { stdio: "inherit", env });
+if (ranking.status !== 0) console.log("  The contributor ranking wasn't refreshed; the site keeps the previous one. Run it again later with: bun scripts/platform/contributors.ts --apply --target " + target + (target === "production" ? " --confirm-production" : ""));
+
 console.log(`\n✓ Released to ${target} (${base}), API version ${API_VERSION}.`);

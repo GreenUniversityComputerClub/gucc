@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { requireSignedIn } from "@/lib/api/session";
 import { AdminNav, AdminNavMobile } from "./nav";
+import { SeenOnOpen } from "@/components/dashboard/seen-on-open";
 import { FlashMessage } from "@/components/admin/flash";
 import { API_VERSION } from "@/lib/version";
 
@@ -39,13 +40,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ] },
     { label: "Content", items: [
       { href: "/dashboard/posts?type=BLOG", label: "Blog", show: writes("posts") },
-      { href: "/dashboard/posts?type=NEWS", label: "News", show: c("posts.read") },
-      { href: "/dashboard/posts?type=ANNOUNCEMENT", label: "Announcements", show: c("posts.read") },
+      // Members write blog posts only; news and announcements are the committee's.
+      { href: "/dashboard/posts?type=NEWS", label: "News", show: c("posts.read") && session.adminAccess },
+      { href: "/dashboard/posts?type=ANNOUNCEMENT", label: "Announcements", show: c("posts.read") && session.adminAccess },
       { href: "/dashboard/media", label: "Media", show: c("media.read") },
     ] },
     { label: "Events", items: [
       { href: "/dashboard/events", label: "Events", show: writes("events") },
-      { href: "/dashboard/registrations", label: "Registrations", show: c("events.manage_registration") },
+      // The all-events list is for club-wide managers; others manage registrations on their event's page.
+      { href: "/dashboard/registrations", label: "Registrations", show: Boolean(session.wideCaps?.["events.manage_registration"]) },
     ] },
     { label: "Operations", items: [
       { href: "/dashboard/tasks", label: "Tasks", show: active, badge: session.openTasks || undefined },
@@ -75,6 +78,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // The President and the General Secretary have Moderator authority; their title is their position.
   const leader = session.positions.some((p) => p.key === "president" || p.key === "general-secretary");
   const titles = [...(session.isModerator && !leader ? ["Moderator"] : []), ...session.positions.map((p) => p.name)];
+  // The badges start from this render and stay live while the page is open.
+  const counts = { unread: session.unread ?? 0, unreadMessages: session.unreadMessages ?? 0, openTasks: session.openTasks ?? 0 };
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -82,7 +87,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* Phones and tablets: sticky bar with a menu. It sits directly in this full-height column
             so it stays under the site header while the page scrolls. */}
         <Suspense fallback={<div className="h-14 lg:hidden" />}>
-          <AdminNavMobile groups={visible} who={titles.length > 0 ? `${who} · ${titles.slice(0, 2).join(", ")}` : who} />
+          <AdminNavMobile groups={visible} counts={counts} who={titles.length > 0 ? `${who} · ${titles.slice(0, 2).join(", ")}` : who} />
         </Suspense>
         <aside className="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:w-60 lg:shrink-0 lg:overflow-y-auto">
           <div className="mb-3">
@@ -92,7 +97,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </p>
           </div>
           <Suspense fallback={null}>
-            <AdminNav groups={visible} />
+            <AdminNav groups={visible} counts={counts} />
           </Suspense>
           <div className="mt-4 text-xs text-muted-foreground">
             <Link prefetch={false} href="/" className="hover:underline">View site</Link>
@@ -115,6 +120,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {children}
         </main>
         <FlashMessage />
+        <Suspense fallback={null}>
+          <SeenOnOpen seed={counts} />
+        </Suspense>
       </div>
     </div>
   );

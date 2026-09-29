@@ -7,7 +7,10 @@ test("the Services menu lists Lost & Found only, and the pages it dropped still 
   await expect(menu.getByText("Lost & Found")).toBeVisible();
   await expect(menu.getByText("Class Scheduler")).toHaveCount(0);
   await expect(menu.getByText("Certificate Verification")).toHaveCount(0);
-  for (const p of ["/scheduler", "/certificates/hacktheai/verify"]) expect((await page.goto(p))?.status(), p).toBe(200);
+  expect((await page.goto("/certificates/hacktheai/verify"))?.status()).toBe(200);
+  // The retired routine maker sends old links home.
+  await page.goto("/scheduler");
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test("the home page shows Sagufta Sabah Nakshi among the Deputy Moderators", async ({ page }) => {

@@ -32,6 +32,7 @@ import * as auditSeal from "../../../lib/server/services/audit-seal";
 import * as media from "../../../lib/server/services/media";
 import * as members from "../../../lib/server/services/members";
 import * as people from "../../../lib/server/services/people";
+import * as profiles from "../../../lib/server/services/profiles";
 import * as posts from "../../../lib/server/services/posts";
 import * as recruitment from "../../../lib/server/services/recruitment";
 import * as views from "../../../lib/server/views/admin";
@@ -129,6 +130,9 @@ export const STEP_UP = new Set([
 export const procedures: Record<string, Handler> = {
   // ── session & authentication ──
   "session.me": ({ ctx }) => views.sessionMe(ctx),
+  "session.counts": ({ ctx }) => community.sessionCounts(ctx),
+  "people.profile": ({ ctx, input }) => profiles.getProfile(ctx, input.handle),
+  "members.directory": ({ ctx, input }) => profiles.membersDirectory(ctx, input),
   "auth.login": async ({ ctx, input }) => {
     const r = await auth.login(ctx, { email: s(input, "email"), password: s(input, "password"), turnstileToken: opt(input, "turnstileToken") });
     return { token: r.token, expiresAt: r.expiresAt, status: r.status, mfaRequired: r.mfaRequired === true };
@@ -153,10 +157,11 @@ export const procedures: Record<string, Handler> = {
   "account.setAvatar": ({ ctx, input }) => people.setOwnAvatar(ctx, opt(input, "mediaId") ?? null),
   "notifications.list": ({ ctx, input }) => community.myNotifications(ctx, Math.min(n(input, "limit") ?? 30, 100), { unreadOnly: input.unread === true, before: typeof input.before === "string" ? input.before : null }),
   "notifications.markRead": ({ ctx, input }) => community.markNotificationsRead(ctx, Array.isArray(input.ids) ? input.ids.map(String) : "all"),
+  "notifications.markUnread": ({ ctx, input }) => community.markNotificationUnread(ctx, s(input, "id")),
+  "notifications.seenPath": ({ ctx, input }) => community.markSeenAtPath(ctx, input.path),
   "notifications.open": ({ ctx, input }) => community.openNotification(ctx, s(input, "id"), input.markRead !== false),
 
   // ── admin views ──
-  "views.dashboard": ({ ctx }) => views.dashboardView(ctx),
   "views.home": ({ ctx }) => homeViews.homeView(ctx),
   "account.sessions": ({ ctx, sessionToken }) => account.mySessions(ctx, sessionToken),
   "account.revokeSession": ({ ctx, input }) => account.revokeMySession(ctx, s(input, "ref")),
@@ -210,12 +215,10 @@ export const procedures: Record<string, Handler> = {
   "roles.update": ({ ctx, input }) => governance.updateRole(ctx, s(input, "roleId"), o(input, "input")),
   "roles.archive": ({ ctx, input }) => governance.archiveRole(ctx, s(input, "roleId")),
   "grants.copy": ({ ctx, input }) => governance.copyGrants(ctx, holder(input, "target"), holder(input, "source")),
-  "permissions.list": ({ ctx }) => governance.listPermissions(ctx),
   "permissions.grantDirect": ({ ctx, input }) => governance.grantDirectPermission(ctx, o(input, "input")),
   "permissions.revokeDirect": ({ ctx, input }) => governance.revokeDirectPermission(ctx, s(input, "id"), opt(input, "reason") ?? null),
   "permissions.trustAuthor": ({ ctx, input }) => governance.trustAuthor(ctx, o(input, "input")),
   "positions.archive": ({ ctx, input }) => governance.archivePosition(ctx, s(input, "positionId")),
-  "positions.move": ({ ctx, input }) => governance.movePosition(ctx, s(input, "positionId"), oneOf(input, "direction", ["up", "down"] as const)),
   "access.person": ({ ctx, input }) => access.personAccess(ctx, s(input, "userId")),
   "access.matrix": ({ ctx, input }) => access.accessMatrix(ctx, { q: opt(input, "q") }),
   "access.publishers": ({ ctx }) => access.publishersSummary(ctx),
@@ -241,7 +244,7 @@ export const procedures: Record<string, Handler> = {
   "settings.org": ({ ctx, input }) => governance.updateOrgSetting(ctx, s(input, "key"), s(input, "value"), opt(input, "expectedUpdatedAt") ?? null),
 
   // ── approvals ──
-  "approvals.list": ({ ctx, input }) => approvals.listApprovals(ctx, { status: opt(input, "status"), mine: input.mine === true, page: n(input, "page") }),
+  "approvals.list": ({ ctx, input }) => approvals.listApprovals(ctx, { status: opt(input, "status"), mine: input.mine === true, page: n(input, "page"), forMe: input.forMe === true }),
   "approvals.get": ({ ctx, input }) => approvals.getApproval(ctx, s(input, "id")),
   "approvals.decide": ({ ctx, input }) => approvals.decideApproval(ctx, s(input, "id"), oneOf(input, "decision", ["APPROVE", "REJECT"] as const), opt(input, "comment") ?? null, { bulk: input.bulk === true }),
   "approvals.cancel": ({ ctx, input }) => approvals.cancelApproval(ctx, s(input, "id")),
@@ -271,6 +274,7 @@ export const procedures: Record<string, Handler> = {
   "events.create": ({ ctx, input }) => events.createEvent(ctx, o(input, "input")),
   "events.update": ({ ctx, input }) => events.updateEvent(ctx, s(input, "id"), o(input, "input")),
   "events.publish": ({ ctx, input }) => events.publishEvent(ctx, s(input, "id")),
+  "events.restore": ({ ctx, input }) => events.restoreEvent(ctx, s(input, "id")),
   "events.setStatus": ({ ctx, input }) => events.setEventStatus(ctx, s(input, "id"), oneOf(input, "status", ["CANCELLED", "COMPLETED", "ONGOING", "ARCHIVED", "DRAFT"] as const), opt(input, "reason") ?? null),
   "events.setPeople": ({ ctx, input }) => {
     if (!Array.isArray(input.people)) throw new ValidationError("Invalid people.");
@@ -289,6 +293,8 @@ export const procedures: Record<string, Handler> = {
   "posts.publish": ({ ctx, input }) => posts.publishPost(ctx, s(input, "id")),
   "posts.unpublish": ({ ctx, input }) => posts.unpublishPost(ctx, s(input, "id"), opt(input, "reason") ?? null),
   "posts.archive": ({ ctx, input }) => posts.archivePost(ctx, s(input, "id"), opt(input, "reason") ?? null),
+  "posts.restore": ({ ctx, input }) => posts.restorePost(ctx, s(input, "id")),
+  "posts.revision": ({ ctx, input }) => posts.getRevision(ctx, s(input, "postId"), s(input, "revisionId")),
   "posts.restoreRevision": ({ ctx, input }) => posts.restoreRevision(ctx, s(input, "postId"), s(input, "revisionId")),
 
   // ── media ──
@@ -312,23 +318,30 @@ export const procedures: Record<string, Handler> = {
   "forms.save": ({ ctx, input }) => community.saveForm(ctx, opt(input, "id") ?? null, o(input, "input")),
   "forms.archive": ({ ctx, input }) => community.archiveForm(ctx, s(input, "id")),
   "contests.save": ({ ctx, input }) => community.saveContest(ctx, opt(input, "id") ?? null, o(input, "input")),
+  "notifications.audiences": ({ ctx }) => community.broadcastAudiences(ctx),
   "notifications.broadcast": ({ ctx, input }) => community.broadcast(ctx, { title: s(input, "title"), body: s(input, "body"), link: opt(input, "link"), audience: input.audience === "executives" ? "executives" : "members" }),
   "chat.start": ({ ctx, input }) => messaging.sendToPerson(ctx, input),
   "chat.recipients": ({ ctx, input }) => messaging.searchRecipients(ctx, input.q),
-  "chat.send": ({ ctx, input }) => messaging.sendInThread(ctx, s(input, "conversationId"), input.body),
-  "chat.list": ({ ctx, input }) => messaging.myConversations(ctx, { archived: input.archived === true }),
+  "chat.send": ({ ctx, input }) => messaging.sendInThread(ctx, s(input, "conversationId"), input.body, input.clientId),
+  "chat.list": ({ ctx, input }) => messaging.myConversations(ctx, { archived: input.archived === true, before: opt(input, "before") ?? null }),
+  "chat.home": ({ ctx, input }) => messaging.chatHome(ctx, { archived: input.archived === true, to: opt(input, "to") ?? null }),
+  "chat.blocks": ({ ctx }) => messaging.myBlocks(ctx),
+  "chat.pulse": ({ ctx, input }) => messaging.pulse(ctx, s(input, "conversationId")),
   "chat.thread": ({ ctx, input }) => messaging.thread(ctx, s(input, "conversationId"), { before: opt(input, "before") }),
   "chat.edit": ({ ctx, input }) => messaging.editMessage(ctx, s(input, "id"), input.body),
   "chat.delete": ({ ctx, input }) => messaging.deleteMessage(ctx, s(input, "id")),
   "chat.state": ({ ctx, input }) => messaging.setConversationState(ctx, s(input, "conversationId"), { muted: typeof input.muted === "boolean" ? input.muted : undefined, archived: typeof input.archived === "boolean" ? input.archived : undefined }),
   "chat.block": ({ ctx, input }) => messaging.setBlock(ctx, s(input, "userId"), input.block === true),
   "chat.privacy": ({ ctx, input }) => messaging.setMessagePrivacy(ctx, input),
-  "chat.report": ({ ctx, input }) => messaging.reportMessage(ctx, s(input, "id"), input.reason),
-  "chat.unread": ({ ctx }) => messaging.unreadConversations(ctx),
+  "chat.report": ({ ctx, input }) => messaging.reportMessage(ctx, s(input, "id"), {
+    category: input.category, details: input.details, reason: input.reason, includeContext: input.includeContext === true, block: input.block === true,
+  }),
+  "chat.unrestrict": ({ ctx, input }) => messaging.liftChatRestriction(ctx, s(input, "userId")),
   "reports.list": ({ ctx, input }) => messaging.listReports(ctx, { status: opt(input, "status") }),
-  "reports.resolve": ({ ctx, input }) => messaging.resolveReport(ctx, s(input, "id"), oneOf(input, "outcome", ["DISMISSED", "ACTIONED"] as const), opt(input, "note") ?? null, input.remove === true),
+  "reports.resolve": ({ ctx, input }) => messaging.resolveReport(ctx, s(input, "id"), oneOf(input, "outcome", ["DISMISSED", "ACTIONED"] as const), opt(input, "note") ?? null, {
+    remove: input.remove === true, warn: input.warn === true, restrictDays: n(input, "restrictDays") ?? null,
+  }),
   "activity.feed": ({ ctx, input }) => activity.activityFeed(ctx, { actor: opt(input, "actor"), area: opt(input, "area"), q: opt(input, "q"), from: opt(input, "from"), to: opt(input, "to"), before: opt(input, "before"), request: opt(input, "request") }),
-  "activity.related": ({ ctx, input }) => activity.activityRelated(ctx, s(input, "requestId")),
   "tasks.create": ({ ctx, input }) => work.createTask(ctx, input),
   "tasks.update": ({ ctx, input }) => work.updateTask(ctx, s(input, "id"), input),
   "tasks.comment": ({ ctx, input }) => work.commentOnTask(ctx, s(input, "id"), input.body),
@@ -347,7 +360,6 @@ export const procedures: Record<string, Handler> = {
   "email.preferences": ({ ctx }) => systemControls.emailPreferences(ctx),
   "email.savePreferences": ({ ctx, input }) => systemControls.saveEmailPreferences(ctx, o(input, "choices")),
   "audit.verify": ({ ctx }) => auditSeal.verifyAuditLog(ctx),
-  "audit.list": ({ ctx, input }) => community.listAudit(ctx, { actor: opt(input, "actor"), action: opt(input, "action"), resource: opt(input, "resource"), from: opt(input, "from"), to: opt(input, "to"), page: n(input, "page") }),
   "audit.authEvents": ({ ctx, input }) => community.listAuthEvents(ctx, { q: opt(input, "q"), event: opt(input, "event"), page: n(input, "page") }),
 
   // ── lost & found ──
@@ -382,4 +394,3 @@ export const procedures: Record<string, Handler> = {
   "recruitment.import": ({ ctx, input }) => recruitment.importApplications(ctx, s(input, "campaignId"), input.rows, input.apply === true),
 };
 
-export type ProcedureName = keyof typeof procedures;

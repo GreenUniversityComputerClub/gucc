@@ -17,7 +17,15 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<{ message: string; code: string } | null>(null)
-  const [info, setInfo] = useState<string | null>(params.get('reset') ? 'Password updated. Sign in with your new password.' : params.get('email-changed') ? 'Your sign-in email was changed. Sign in with the new address.' : null)
+  // What just happened, when a link brought them here.
+  const verified = params.get('verified')
+  const [info, setInfo] = useState<string | null>(
+    verified === '1' ? 'Email confirmed. Your account is active: sign in to get started.'
+      : verified ? 'Email confirmed. Your application is now waiting for GUCC approval. Sign in any time to check its status; you\'ll get a notification when it\'s approved.'
+        : params.get('reset') ? 'Password updated. Sign in with your new password.'
+          : params.get('email-changed') ? 'Your sign-in email was changed. Sign in with the new address.' : null)
+  // A Turnstile token works once: a new one after every attempt.
+  const [attempt, setAttempt] = useState(0)
   const [token, setToken] = useState<string | null>(null)
   const [pending, start] = useTransition()
   const onToken = useCallback((t: string | null) => setToken(t), [])
@@ -28,7 +36,10 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
     start(async () => {
       const res = await loginAction({ email, password, next: params.get('next') ?? undefined, turnstileToken: token ?? undefined })
       // Success redirects on the server; only failures come back here.
-      if (res && !res.ok) setError({ message: res.error, code: res.code })
+      if (res && !res.ok) {
+        setError({ message: res.error, code: res.code })
+        setAttempt((n) => n + 1)
+      }
     })
   }
 
@@ -51,7 +62,7 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="m@example.com" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input id="email" type="email" placeholder="you@student.green.ac.bd" required autoComplete="username" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={Boolean(error)} />
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
@@ -62,10 +73,10 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
                 </div>
                 <PasswordInput id="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
-              <Turnstile onToken={onToken} />
-              {info && <p className="text-sm text-muted-foreground" role="status">{info}</p>}
+              <Turnstile onToken={onToken} resetKey={attempt} />
+              {info && <p className={cn('rounded-md p-3 text-sm', verified ? 'border border-emerald-500/40 bg-emerald-500/10' : 'text-muted-foreground')} role="status">{info}</p>}
               {error && (
-                <p className="text-sm text-red-500" role="alert">
+                <p className="text-sm text-destructive" role="alert">
                   {error.message}{' '}
                   {error.code === 'EMAIL_UNVERIFIED' && (
                     <button type="button" onClick={resend} className="underline underline-offset-4">Resend the link</button>

@@ -1,12 +1,163 @@
 # GUCC platform — implementation report
 
-Date: 2026-09-27 · Branch: `database` (uncommitted)
+Date: 2026-09-29 · Branch: `database` (round 7 uncommitted)
 
 The website is a Next.js frontend on Vercel's free plan, backed by one Cloudflare Worker (free plan)
 with D1 and R2. **The production backend is live** at `https://gucc-api.gucc.workers.dev`, with all club
-data imported and verified and migrations `0001`–`0006` applied. Once set up, a push to `main` deploys
-the database migrations, the API and the website in order (see "Workers"). The Vercel site runs the old
-code until its settings are added and it is redeployed. No DNS change is needed.
+data imported and verified and migrations `0001`–`0009` applied (0009 on 2026-09-29). Once set up, a push to `main` deploys
+the database migrations, the API and the website in order (see "Workers"). No DNS change is needed.
+
+## Round 7 (2026-09-29): one source for people, messages that work, member submissions, profiles
+
+Everything below is in the working tree and **not released**. Schema and data changes are in
+`migrations/0010_platform_v6.sql`, which is additive: the round-6 Worker keeps working against a
+migrated database, so the release order (API first, then the website) is safe.
+
+**People data has one source.** A new profile photo didn't show on the Executives page because each
+committee listing kept its own copy of the photo (52 of 53 current listings) and the copy won. Now the
+profile is the truth for the current and upcoming committee, and archived years keep a snapshot taken
+when the committee is archived. The same rule covers name, designation, crop, links and position
+titles. `0010` removes the copies that equal the profile (nothing visible changes) and strips the
+`mailto:` prefix stored on 64 public emails.
+
+**Photos wherever a person appears**: chat list, thread and bubbles, notifications (the sender is now
+recorded), person search, members, people, approvals, activity, tasks and comments, meetings,
+recruitment notes, blog bylines. One SQL fragment (`lib/server/avatar.ts`) returns only public, ready
+images, inside the existing query, so no page makes an extra D1 call. One component
+(`components/person-avatar.tsx`) falls back to initials.
+
+**Messages**
+
+- Report and Block now always say what happened. They were silent on success and used browser
+  pop-ups, which in-app browsers can block. Reports take a category, can include the two messages
+  before, and can block at the same time.
+- Moderators see the category, the context and the sender's earlier reports. They can dismiss,
+  remove, warn, or pause the sender's messaging for 1, 7 or 30 days. The reporter and the sender are
+  told the outcome.
+- Blocked people are listed in Message settings with Unblock. The settings load what you saved (they
+  used to reset).
+- A message is sent once even on a double Enter (a client id with a unique index). Links are
+  clickable. Polling costs one D1 statement when nothing changed (`chat.pulse`, answered from the
+  session alone).
+
+**Notifications**
+
+- They clear themselves: a row seen in the list for about a second, or any dashboard page a notice
+  points to once it's opened. "Mark unread" undoes it.
+- The badge updates without a reload (`session.counts`, one statement).
+- Titles say who and what:
+  - "You're on the team for …";
+  - "Review …'s application";
+  - "… changed the due date";
+  - a meeting move says what it was before.
+- Links open a page the person can use. Role notices go to the person's access page. People removed
+  from a task or meeting go to their list.
+- New notices:
+  - a default in-app one for contact messages (unless a rule already covers them);
+  - removed meeting participants;
+  - a reopened task, sent to its assignee;
+  - a lost & found post removed by a moderator.
+- Waiting-list promotions and reminders go through the email outbox. Announcements validate their
+  link and skip the sender.
+
+**Everyone can contribute, reviewers approve easily**
+
+- Every approved member can write blog posts and propose events. Members' posts and events are only
+  their own, and none is public until approved. Members have daily and pending limits, and a Settings
+  switch pauses submissions.
+- A new approver type, "anyone holding a permission club-wide", lets the President, the General
+  Secretary, Moderators and anyone who can publish (the Publication Secretary) approve. `0010`
+  changes the default policies only where they still hold the seeded value.
+- The Approvals queue:
+  - opens on "Waiting for me";
+  - shows the author, the wait time and the policy in words;
+  - previews the post or event inline;
+  - offers Approve & next.
+- Requests waiting 48 hours send one reminder. Items sent back show the reason on their own page.
+
+**Profiles**
+
+- `/members/<handle>` shows:
+  - photo, positions, bio and skills;
+  - links and club journey;
+  - published posts and events.
+- Visibility is Members (default), Public or Only me. Phone, student ID and sign-in email never
+  appear.
+- The `/members` directory searches by name, department, batch or skill.
+
+**Security and sign-in**
+
+- A reset link is used up only when the new password is accepted.
+- Redirects accept only same-site paths.
+- Two-factor attempts are counted per account.
+- Honest messages when email is delayed.
+- Resend has a per-address cooldown.
+- The lock is announced on the attempt that locks the account.
+- Invited accounts that reset their password become members.
+- Live password rules show while typing.
+- Every browser `confirm()`/`prompt()` is replaced by an accessible dialog. Forms warn before unsaved
+  text is lost.
+
+**Your requests**
+
+- **Contact**: a clear "Message sent" panel with "Send another message".
+- **Contributors**: the ranking is 75% authored lines and 25% real commits (at least 10 lines), from
+  D1. `release.ts` refreshes it after every API release, and the static list in the repo is
+  regenerated.
+- **The routine maker**: `/scheduler` is removed and redirects home. This drops about 7,450 lines
+  and four packages.
+
+**Public site (same look)**
+
+- Event pages:
+  - real capacity and seats;
+  - waitlist wording;
+  - registration opening and closing decided in the browser;
+  - the time taken from the start date.
+- The Events list keeps its search in the URL, and "Upcoming" shows the soonest first.
+- Partner names are readable in dark mode, and the home stats render their final values.
+- Other fixes:
+  - an unknown blog post returns 404;
+  - certificate checks tell an outage apart from "not found";
+  - social links on the Executives page work on touch devices;
+  - one menu at a time on phones.
+
+**Dashboard**
+
+- Registrations can be checked in, undone, admitted from the waitlist or cancelled, with search and
+  filters.
+- Archive now has Restore, and archiving never lands on a 404.
+- Save buttons say what saving does. Scheduled posts show "scheduled" with the Dhaka time.
+- Recruitment review uses one decision form with an email preview.
+- The Contact inbox has Reply (your email app, message quoted) and "Mark as new".
+- Lost & found has a "My posts" tab showing the moderator's reason and a "Fix and post again" button.
+- The gallery offers Remove only on photos you may remove. Uploads reload only when nothing failed.
+- The post editor keeps text typed during an image upload and asks for alt text. Earlier versions
+  of a post can be read before restoring, and restoring keeps the post's current address.
+- Anyone who publishes club-wide (the Publication Secretary) gets the "Waiting for me" queue and
+  the Home card, with how long the oldest request has waited.
+- Detail pages have a link back to their list. Content statuses use the same words everywhere
+  ("changes requested", "waiting for approval", "scheduled").
+- Forms focus the first invalid field. Hints and errors are announced with their fields.
+- Profile addresses are readable (`/members/anika-rahman`); an old id link redirects.
+
+**Clean-up**
+
+- Removed: the scheduler, six unused API procedures (`views.dashboard`, `permissions.list`,
+  `positions.move`, `chat.unread`, `activity.related`, `audit.list`) and about 20 unused exports.
+- CSV cells, HTML escaping, slugs and site links now each live in one place.
+- Blog and event pages have no loading screen, so a missing page answers 404, not 200.
+
+**Checks (2026-09-29)**
+
+- typecheck clean, lint without errors, 371 unit and integration tests;
+- seed check, migration lint, webpack build;
+- Worker 829 KiB (201 KiB gzip);
+- browser suite: all 69 pass (66 in the full run, then the round-7 file on its own after test fixes).
+
+Read-only production counts: 0 duplicate profile addresses, no clashing policy keys, the
+default approval policy still seeded, 64 `mailto:` emails to clean, 52 live photo copies
+(0 differ from the profile). So `0010` applies cleanly.
 
 ## Round 5 (2026-09-27): production safety, never paying, speed
 

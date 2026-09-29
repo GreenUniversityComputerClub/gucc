@@ -9,8 +9,8 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getPublicEvents, getPublicSetting } from "@/lib/public/data";
-import { Award, BookOpen, CalendarDays, Users } from "lucide-react";
+import { getPublicEvents, getPublicSetting, getRecruitment } from "@/lib/public/data";
+import { Award, BookOpen, CalendarDays, ChevronDown, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AnimatedStat } from "./component";
@@ -43,6 +43,10 @@ interface HomeContent {
   moderators: { heading: string; subheading: string; people: Person[] };
   stats: Array<{ value: number; suffix?: string; label: string }>;
 }
+
+/** "Md. Monirul Islam" and "Monirul Islam" are the same person: case, dots and titles are ignored. */
+const personKey = (name: string) =>
+  name.toLowerCase().replace(/[.,]/g, " ").split(/\s+/).filter((w) => w && !["mr", "mrs", "ms", "md", "dr", "prof"].includes(w)).join(" ");
 
 /** Shown until the page.home setting exists (it's seeded with exactly this). */
 const HOME_DEFAULTS: HomeContent = {
@@ -90,9 +94,25 @@ export default async function Home() {
   const latestYear = await getLatestExecutiveYear();
   const roster = await getYearRoster(latestYear);
   const eventsData = await getPublicEvents();
+  // A small "Recruitment open" link under the hero while a call is open.
+  const recruiting = (await getRecruitment().catch(() => null))?.open ?? null;
   const partners = (await getPublicSetting<{ partners: Array<{ name: string; image: string; description: string }> }>("page.collaborations"))?.partners ?? [];
   // Messages and figures are edited by leaders (Settings → Home page); the layout is fixed.
-  const home = { ...HOME_DEFAULTS, ...((await getPublicSetting<HomeContent>("page.home")) ?? {}) };
+  const content = { ...HOME_DEFAULTS, ...((await getPublicSetting<HomeContent>("page.home")) ?? {}) };
+  // A leader listed in the current committee shows their profile photo, so a new photo appears
+  // here too; the setting's photo is only the fallback.
+  const facultyPhoto = new Map(
+    (roster?.facultyMembers ?? []).flatMap((p) => {
+      const url = getExecutiveAvatar(p);
+      return url ? [[personKey(p.name), url] as const] : [];
+    }),
+  );
+  const livePhoto = (p: Person): Person => ({ ...p, photo: facultyPhoto.get(personKey(p.name)) ?? p.photo });
+  const home: HomeContent = {
+    ...content,
+    chairperson: { ...content.chairperson, person: livePhoto(content.chairperson.person) },
+    moderators: { ...content.moderators, people: content.moderators.people.map(livePhoto) },
+  };
   const leadership = [
     ...(roster?.facultyMembers ?? []),
     ...(roster?.studentExecutives ?? []),
@@ -138,6 +158,15 @@ export default async function Home() {
       )}
       {/* Hero Section */}
       <HeroSection />
+      {recruiting && (
+        <div className="container relative z-10 -mt-5 flex justify-center px-4">
+          <Link href="/recruitment" className="inline-flex max-w-full items-center gap-2 rounded-full border border-emerald-500/40 bg-background/95 px-4 py-2 text-sm font-medium shadow-md backdrop-blur hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500" aria-hidden />
+            <span className="truncate">Recruitment is open{recruiting.closesAt ? `, closes ${new Date(recruiting.closesAt).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short" })}` : ""}</span>
+            <span aria-hidden>→</span>
+          </Link>
+        </div>
+      )}
 
       {/* About Section */}
       <section className="w-full py-16 md:py-24 lg:py-32">
@@ -418,8 +447,9 @@ export default async function Home() {
                 key={item.question}
                 className="group rounded-lg border bg-card p-5 transition-colors hover:border-primary/40"
               >
-                <summary className="cursor-pointer list-none text-lg font-semibold marker:hidden">
+                <summary className="flex cursor-pointer list-none items-start justify-between gap-3 text-lg font-semibold marker:hidden [&::-webkit-details-marker]:hidden">
                   <h3 className="inline">{item.question}</h3>
+                  <ChevronDown className="mt-1 h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
                 </summary>
                 <p className="mt-3 leading-relaxed text-muted-foreground">
                   {item.answer}

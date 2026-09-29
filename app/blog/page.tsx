@@ -125,7 +125,7 @@ export default async function Blog() {
                               dateTime={post.node.publishedAt}
                               className="text-sm font-medium text-green-600 dark:text-green-400 uppercase tracking-wide"
                             >
-                              {new Date(post.node.publishedAt).toLocaleDateString("en-US", {
+                              {new Date(post.node.publishedAt).toLocaleDateString("en-US", { timeZone: "Asia/Dhaka",
                                 year: "numeric",
                                 month: "long",
                                 day: "numeric",
@@ -266,7 +266,7 @@ export default async function Blog() {
                                 dateTime={post.publishedAt}
                                 className="text-sm font-medium text-green-600 dark:text-green-400 uppercase tracking-wide"
                               >
-                                {new Date(post.publishedAt).toLocaleDateString("en-US", {
+                                {new Date(post.publishedAt).toLocaleDateString("en-US", { timeZone: "Asia/Dhaka",
                                   year: "numeric",
                                   month: "long",
                                   day: "numeric",

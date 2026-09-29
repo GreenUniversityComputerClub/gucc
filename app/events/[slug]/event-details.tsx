@@ -5,7 +5,7 @@ import type { ClubEvent } from "@/lib/events";
 import DateIcon from "@/components/svgIcon/Date";
 import Time from "@/components/svgIcon/Time";
 import Location from "@/components/svgIcon/Location";
-import { EventRegistration } from "./registration";
+import { RegistrationGate } from "./registration";
 import { User, ArrowLeft, Building2, Mic } from "lucide-react";
 
 type Person = { role: "SPEAKER"; name: string; title: string | null };
@@ -42,7 +42,7 @@ export function EventDetails({ event, fields, gallery = [], people = [], attachm
         >
           <ArrowLeft className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
           <span className="text-sm font-medium text-muted-foreground group-hover:text-primary transition-colors duration-200">
-            Back to event page
+            Back to events
           </span>
         </button>
 
@@ -162,23 +162,22 @@ export function EventDetails({ event, fields, gallery = [], people = [], attachm
                 <Location />
                 <span className="text-lg text-muted-foreground">{event.location}</span>
               </div>
-              {/* As on the original page; text attendance ("All Executive Members") shows as is, unknown as a dash. */}
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                  Participants
-                </h4>
-                <div className="flex items-center">
-                  <div className="flex-1 bg-muted rounded-full h-2">
-                    <div
-                      className="bg-primary h-2 rounded-full transition-all duration-300"
-                      style={{ width: typeof participants === "number" && participants > 0 ? "100%" : undefined }}
-                    />
-                  </div>
-                  <span className="ml-4 text-sm text-muted-foreground">
-                    {typeof participants === "number" ? `${participants} / ${participants + 50}` : participants || "—"}
-                  </span>
+              {/* Real numbers only: reported attendance, or seats taken of the limit while registration is on. */}
+              {(event.capacity || participants !== undefined) && (
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">{event.capacity ? "Seats" : "Participants"}</h4>
+                  {event.capacity ? (
+                    <div className="flex items-center" role="img" aria-label={`${event.seatsTaken ?? 0} of ${event.capacity} seats taken`}>
+                      <div className="flex-1 bg-muted rounded-full h-2">
+                        <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: `${Math.min(100, Math.round(((event.seatsTaken ?? 0) / event.capacity) * 100))}%` }} />
+                      </div>
+                      <span className="ml-4 text-sm text-muted-foreground">{event.seatsTaken ?? 0} / {event.capacity}</span>
+                    </div>
+                  ) : (
+                    <p className="text-lg text-muted-foreground">{typeof participants === "number" ? `${participants.toLocaleString("en-US")} participants` : participants || "—"}</p>
+                  )}
                 </div>
-              </div>
+              )}
               {event.registrationForm && (
                 <a
                   href={event.registrationForm.url}
@@ -232,7 +231,7 @@ export function EventDetails({ event, fields, gallery = [], people = [], attachm
 
         {/* Join Event Section */}
         <div className="mt-12 flex justify-center">
-          {event.registrationOpen && <EventRegistration slug={event.slug} fields={fields} />}
+          {event.registrationOpen !== undefined && <RegistrationGate event={event} fields={fields} />}
         </div>
       </div>
     </div>

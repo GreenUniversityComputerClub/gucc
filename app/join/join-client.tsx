@@ -178,11 +178,14 @@ export function JoinClient() {
 
     let animFrameId: number;
     let t = 0;
+    // With "reduce motion" on, the dots stay still: one frame, redrawn only when the size changes.
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     function resize() {
       if (!canvas) return;
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
+      if (still && ctx) draw();
     }
     resize();
 
@@ -210,7 +213,7 @@ export function JoinClient() {
         }
       }
       t += 0.02;
-      animFrameId = requestAnimationFrame(draw);
+      if (!still) animFrameId = requestAnimationFrame(draw);
     }
     draw();
 

@@ -5,7 +5,6 @@ import { SITE, SITE_URL, absoluteUrl } from "./site";
 import { SITE_LOGO_DATA_URI } from "./logo-data";
 
 export const OG_SIZE = { width: 1200, height: 630 } as const;
-export const OG_CONTENT_TYPE = "image/png";
 
 function initialsOf(name: string): string {
   return name

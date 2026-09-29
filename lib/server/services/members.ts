@@ -3,17 +3,21 @@
  * → ACTIVE, plus REJECTED / SUSPENDED / INACTIVE / ARCHIVED. Authentication
  * identity (users) stays separate from organisational identity (profiles).
  */
+import { csvCell } from "../csv";
 import { alreadyDone, assertTransition, batchTransition, newTransition } from "../transition";
 import { assertNotSelf } from "../../governance/invariants";
 import { auditStmt } from "../audit";
 import { authorize, requireActor, requirePermission, userResource } from "../authz";
-import type { Ctx } from "../context";
+import { siteUrl, type Ctx } from "../context";
 import { newId, nowIso } from "../db";
 import { AppError, NotFoundError } from "../errors";
 import { notifyStmts, usersWithPermission } from "../notifications";
 import { deliverEmail, requireRecentAuth } from "../security";
-import { Validator } from "../validate";
+import { STUDENT_ID_RE, Validator } from "../validate";
 import { claimEmailTasksStmts } from "./task-claim";
+import { cleanPublicEmail, PROFILE_TAGS } from "../people-sync";
+import { avatarOfProfileSql, withAvatars } from "../avatar";
+import { ensureProfileHandle } from "./profiles";
 
 export interface MemberListRow {
   id: string;
@@ -37,6 +41,8 @@ export interface MemberListRow {
   review_note: string | null;
   roles: string | null;
   positions: string | null;
+  /** Small version of the profile photo. */
+  avatarUrl: string | null;
 }
 
 export async function listMembers(ctx: Ctx, opts: { status?: string; q?: string; page?: number; batch?: string; department?: string }) {
@@ -47,8 +53,9 @@ export async function listMembers(ctx: Ctx, opts: { status?: string; q?: string;
   const showPhone = authorize(ctx, "members.manage").outcome === "ALLOW" ? 1 : 0;
   const batch = opts.batch?.trim().slice(0, 20) || null;
   const department = opts.department?.trim().slice(0, 60) || null;
-  const rows = await ctx.db.all<MemberListRow>(
+  const rows = withAvatars(await ctx.db.all<Omit<MemberListRow, "avatarUrl"> & { avatar_json: string | null }>(
     `SELECT u.id, u.email, u.status, u.created_at, u.last_login_at, u.email_verified_at, u.correction_note, u.review_note, p.full_name, p.student_id, p.department, p.batch,
+            ${avatarOfProfileSql("p")} AS avatar_json,
             CASE WHEN ?4 = 1 THEN p.phone END AS phone,
             EXISTS (SELECT 1 FROM user_mfa WHERE user_id = u.id AND confirmed_at IS NOT NULL) AS mfa,
             json_extract(p.legacy_json, '$.claimStudentId') AS claim,
@@ -66,7 +73,7 @@ export async function listMembers(ctx: Ctx, opts: { status?: string; q?: string;
      ORDER BY CASE u.status WHEN 'PENDING_APPROVAL' THEN 0 ELSE 1 END, u.created_at DESC
      LIMIT 50 OFFSET ?3`,
     opts.status ?? null, q, (page - 1) * 50, showPhone, batch, department ? `%${department.replace(/[%_]/g, "")}%` : null,
-  );
+  )) as MemberListRow[];
   const total = await ctx.db.value<number>(
     `SELECT COUNT(*) FROM users u LEFT JOIN profiles p ON p.user_id = u.id AND p.deleted_at IS NULL WHERE u.deleted_at IS NULL AND (?1 IS NULL OR u.status = ?1)
        AND (?2 IS NULL OR u.email LIKE ?2 OR p.full_name LIKE ?2 OR p.student_id LIKE ?2 OR json_extract(p.legacy_json, '$.claimStudentId') LIKE ?2)
@@ -108,7 +115,7 @@ export async function approveMember(ctx: Ctx, userId: string, opts: { linkProfil
     ...claimEmailTasksStmts(ctx, userId, now),
   ], () => alreadyDone(ctx, "users", userId, "This application"));
   const email = await ctx.db.value<string>("SELECT email FROM users WHERE id = ?1", userId);
-  if (email) await deliverEmail(ctx, { to: email, subject: "Your GUCC account has been approved", text: `Welcome to the Green University Computer Club!\n\nYour membership is approved. Sign in to register for events and keep your profile up to date:\n${(ctx.env.PUBLIC_BASE_URL ?? "").replace(/\/+$/, "")}/dashboard/profile` }, { type: "member.approved", userId });
+  if (email) await deliverEmail(ctx, { to: email, subject: "Your GUCC account has been approved", text: `Welcome to the Green University Computer Club!\n\nYour membership is approved. Sign in to register for events and keep your profile up to date:\n${siteUrl(ctx, "/dashboard/profile")}` }, { type: "member.approved", userId });
 }
 
 /**
@@ -130,7 +137,7 @@ export async function requestCorrection(ctx: Ctx, userId: string, note: string):
     ...notifyStmts(ctx, [userId], { type: "member.correction", title: "Your registration requires attention", body: text, link: "/dashboard/profile" }),
   ]);
   const email = await ctx.db.value<string>("SELECT email FROM users WHERE id = ?1", userId);
-  if (email) await deliverEmail(ctx, { to: email, subject: "Your GUCC registration requires attention", text: `Please update your registration details:\n\n${text}\n\nOpen your account: ${(ctx.env.PUBLIC_BASE_URL ?? "").replace(/\/+$/, "")}/dashboard/profile` }, { type: "member.correction", userId });
+  if (email) await deliverEmail(ctx, { to: email, subject: "Your GUCC registration requires attention", text: `Please update your registration details:\n\n${text}\n\nOpen your account: ${siteUrl(ctx, "/dashboard/profile")}` }, { type: "member.correction", userId });
 }
 
 export async function rejectMember(ctx: Ctx, userId: string, reason: string): Promise<void> {
@@ -147,7 +154,7 @@ export async function rejectMember(ctx: Ctx, userId: string, reason: string): Pr
     assertTransition(ctx, "users", userId, token),
     ctx.db.stmt("UPDATE sessions SET revoked_at = ?2 WHERE user_id = ?1 AND revoked_at IS NULL", userId, now),
     auditStmt(ctx, { action: "member.reject", resourceType: "user", resourceId: userId, reason, before: { status: target.status }, after: { status: "REJECTED" }, decision }),
-    ...notifyStmts(ctx, [userId], { type: "member.rejected", title: "Your registration requires attention", body: reason.trim() }),
+    ...notifyStmts(ctx, [userId], { type: "member.rejected", title: "Your membership application wasn't approved", body: reason.trim() }),
   ], () => alreadyDone(ctx, "users", userId, "This application"));
   const email = await ctx.db.value<string>("SELECT email FROM users WHERE id = ?1", userId);
   if (email) await deliverEmail(ctx, { to: email, subject: "Your GUCC registration", text: `Your membership application was not approved.\n\nReason: ${reason.trim()}\n\nIf you think this is a mistake, contact the club.` }, { type: "member.rejected", userId });
@@ -246,7 +253,7 @@ export async function updateOwnProfile(ctx: Ctx, input: Record<string, unknown>)
   // profile (the member role has it), so a governance rule can restrict it.
   const applying = ["PENDING_APPROVAL", "EMAIL_VERIFICATION_PENDING"].includes(actor.user.status);
   if (!applying) requirePermission(ctx, "profile.update", { type: "profile", id: actor.profile.id, ownerId: actor.user.id, createdBy: actor.user.id });
-  const v = new Validator(input);
+  const v = new Validator({ ...input, publicEmail: cleanPublicEmail(input.publicEmail) });
   const data = {
     full_name: v.string("fullName", { required: true, min: 2, max: 100, label: "Full name" }),
     department: v.string("department", { max: 60, label: "Department" }),
@@ -260,6 +267,13 @@ export async function updateOwnProfile(ctx: Ctx, input: Record<string, unknown>)
     public_email: v.string("publicEmail", { max: 254, label: "Public email", pattern: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, patternMessage: "Enter a valid email address." }),
     phone: v.string("phone", { max: 20, label: "Phone", pattern: /^\+?[0-9\s-]{6,20}$/, patternMessage: "Enter a valid phone number." }),
   };
+  // Applicants can still correct their student ID (it's fixed once they're approved). An ID that
+  // belongs to an existing profile is recorded as a claim for the reviewers to confirm, as at sign-up.
+  const studentId = applying && typeof input.studentId === "string" && input.studentId.trim()
+    ? v.string("studentId", { max: 9, label: "Student ID", pattern: STUDENT_ID_RE, patternMessage: "Student ID must be 9 digits." })
+    : null;
+  // Who sees my profile page; left as it is when the form doesn't send it.
+  const visibility = input.visibility === undefined ? null : v.oneOf("visibility", ["PUBLIC", "MEMBERS", "PRIVATE"] as const, { label: "Who can see my profile" });
   const skills = typeof input.skills === "string" || Array.isArray(input.skills)
     ? [...new Set((Array.isArray(input.skills) ? input.skills.map(String) : String(input.skills).split(",")).map((x) => x.trim()).filter(Boolean))]
     : null;
@@ -270,12 +284,20 @@ export async function updateOwnProfile(ctx: Ctx, input: Record<string, unknown>)
     ctx.db.stmt(
       `UPDATE profiles SET full_name = ?2, department = ?3, batch = ?4, bio = ?5, linkedin_url = ?6, github_url = ?7, facebook_url = ?8, website_url = ?9, phone = ?10,
               twitter_url = ?13, public_email = ?14, skills_json = CASE WHEN ?15 IS NULL THEN skills_json ELSE ?15 END,
-              updated_at = ?11, updated_by = ?12 WHERE id = ?1`,
+              visibility = COALESCE(?16, visibility), updated_at = ?11, updated_by = ?12 WHERE id = ?1`,
       actor.profile.id, data.full_name, data.department, data.batch, data.bio, data.linkedin_url, data.github_url, data.facebook_url, data.website_url, data.phone, nowIso(), actor.user.id,
-      data.twitter_url, data.public_email, skills ? JSON.stringify(skills) : null,
+      data.twitter_url, data.public_email, skills ? JSON.stringify(skills) : null, visibility ?? null,
     ),
     auditStmt(ctx, { action: "profile.update", resourceType: "profile", resourceId: actor.profile.id, after: { ...data, phone: undefined } }),
-  ]);
+  ]);  if (studentId) {
+    const holder = await ctx.db.first<{ id: string }>("SELECT id FROM profiles WHERE student_id = ?1 AND deleted_at IS NULL AND id <> ?2", studentId, actor.profile.id);
+    await ctx.db.run(
+      holder
+        ? "UPDATE profiles SET student_id = NULL, legacy_json = json_set(COALESCE(legacy_json, '{}'), '$.claimStudentId', ?2, '$.claimProfileId', ?3) WHERE id = ?1"
+        : "UPDATE profiles SET student_id = ?2, legacy_json = CASE WHEN legacy_json IS NULL THEN NULL ELSE json_remove(legacy_json, '$.claimStudentId', '$.claimProfileId') END WHERE id = ?1",
+      actor.profile.id, studentId, holder?.id ?? null);
+  }
+
   const pending = await ctx.db.first<{ correction_note: string | null; status: string }>("SELECT correction_note, status FROM users WHERE id = ?1", actor.user.id);
   if (pending?.correction_note && pending.status === "PENDING_APPROVAL") {
     const reviewers = await usersWithPermission(ctx, "members.approve");
@@ -284,15 +306,11 @@ export async function updateOwnProfile(ctx: Ctx, input: Record<string, unknown>)
       ...notifyStmts(ctx, reviewers, { type: "member.corrected", title: "An applicant updated their details", body: `${data.full_name} (${actor.user.email}) made the requested correction.`, link: "/dashboard/members?status=PENDING_APPROVAL", resourceType: "user", resourceId: actor.user.id }),
     ]);
   }
-  ctx.revalidate?.(["committees"]);
+  // Your page's address, made from your name the first time.
+  await ensureProfileHandle(ctx, actor.profile.id, data.full_name ?? actor.profile.full_name);
+  ctx.revalidate?.(PROFILE_TAGS);
 }
 
-const csvCell = (v: unknown) => {
-  const s = v === null || v === undefined ? "" : String(v);
-  // Neutralise spreadsheet formulas, then quote.
-  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
-  return `"${safe.replace(/"/g, '""')}"`;
-};
 
 /** Every member as CSV for people who manage members. Needs a recent password; audited. */
 export async function exportMembersCsv(ctx: Ctx, opts: { status?: string; q?: string; batch?: string; department?: string } = {}): Promise<{ filename: string; csv: string }> {

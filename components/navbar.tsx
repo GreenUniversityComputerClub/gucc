@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Bell, ChevronDown, LayoutDashboard, LogOut, Menu, User, X } from "lucide-react";
+import { Bell, ChevronDown, LayoutDashboard, LogOut, Menu, MessageSquare, User, X } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -17,13 +17,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { logoutAction } from "@/app/auth/actions";
 import { refreshSession, useSession, type ClientSession } from "@/lib/api/use-session";
-
-function initials(name?: string) {
-  return (name ?? "?").split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
-}
+import { initials } from "@/lib/initials";
+import { useLiveCounts } from "@/lib/api/live-counts";
+import { useCloseAbove, useExclusiveOverlay } from "@/lib/overlay";
 
 /** Shown only to signed-in people; visitors see the navbar exactly as before. */
-function AccountMenu({ s }: { s: ClientSession }) {
+function AccountMenu({ s: session }: { s: ClientSession }) {
+  // The badge stays current: the dashboard keeps these numbers live, and every page refreshes
+  // them when the tab comes back into view.
+  const counts = useLiveCounts({ unread: session.unread ?? 0, unreadMessages: session.unreadMessages ?? 0, openTasks: session.openTasks ?? 0 });
+  const s = { ...session, unread: counts?.unread ?? session.unread };
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -48,6 +51,7 @@ function AccountMenu({ s }: { s: ClientSession }) {
         <DropdownMenuItem asChild><Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</Link></DropdownMenuItem>
         <DropdownMenuItem asChild><Link href="/dashboard/profile"><User className="mr-2 h-4 w-4" />Profile</Link></DropdownMenuItem>
         <DropdownMenuItem asChild><Link href="/dashboard/notifications"><Bell className="mr-2 h-4 w-4" />Notifications{s.unread ? ` (${s.unread})` : ""}</Link></DropdownMenuItem>
+        <DropdownMenuItem asChild><Link href="/dashboard/chat"><MessageSquare className="mr-2 h-4 w-4" />Messages{counts?.unreadMessages ? ` (${counts.unreadMessages})` : ""}</Link></DropdownMenuItem>
         <DropdownMenuSeparator />
         <form action={logoutAction}>
           <DropdownMenuItem asChild>
@@ -70,9 +74,20 @@ export interface ServiceLink {
  * both from the database.
  */
 export function Navbar({ executivesHref = "/executives", services = [] }: { executivesHref?: string; services?: ServiceLink[] }) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // One menu at a time: opening this closes the dashboard menu and the assistant, and back.
+  const [isMenuOpen, setIsMenuOpen] = useExclusiveOverlay("site-menu");
   const [servicesOpen, setServicesOpen] = useState(false);
   const pathname = usePathname();
+  // The dashboard has its own menu on phones and tablets (with the website's pages in it), so
+  // this header doesn't offer a second one there.
+  const inDashboard = pathname.startsWith("/dashboard");
+  const closeMenu = useCallback(() => setIsMenuOpen(false), [setIsMenuOpen]);
+  useCloseAbove(768, isMenuOpen, closeMenu);
+  // A page change (a link, Back, a redirect) closes the menu.
+  useEffect(() => {
+    closeMenu();
+    setServicesOpen(false);
+  }, [pathname, closeMenu]);
   const session = useSession();
   const signedIn = Boolean(session?.signedIn);
   // Signing in or out ends in a client-side navigation, so ask again who is signed in when
@@ -84,9 +99,7 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
     if (from !== pathname && (from.startsWith("/auth") || from.startsWith("/dashboard") || pathname.startsWith("/auth"))) refreshSession();
   }, [pathname]);
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   // Close the mobile menu with Escape.
   useEffect(() => {
@@ -94,13 +107,14 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setIsMenuOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isMenuOpen]);
+  }, [isMenuOpen, setIsMenuOpen]);
 
+  // A section stays highlighted on its inner pages (/events/…, /blog/…).
   const isActive = (path: string) => {
     if (path === executivesHref) {
       return pathname.startsWith("/executives");
     }
-    return pathname === path;
+    return path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`);
   };
 
   const linkClass = (path: string) =>
@@ -130,22 +144,22 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          <Link href="/" className={linkClass("/")}>
+          <Link href="/" className={linkClass("/")} aria-current={isActive("/") ? "page" : undefined}>
             Home
           </Link>
-          <Link href="/events" className={linkClass("/events")}>
+          <Link href="/events" className={linkClass("/events")} aria-current={isActive("/events") ? "page" : undefined}>
             Events
           </Link>
-          <Link href="/blog" className={linkClass("/blog")}>
+          <Link href="/blog" className={linkClass("/blog")} aria-current={isActive("/blog") ? "page" : undefined}>
             Blog
           </Link>
-          <Link href={executivesHref} className={linkClass(executivesHref)}>
+          <Link href={executivesHref} className={linkClass(executivesHref)} aria-current={isActive(executivesHref) ? "page" : undefined}>
             Executives
           </Link>
-          <Link href="/sponsors" className={linkClass("/sponsors")}>
+          <Link href="/sponsors" className={linkClass("/sponsors")} aria-current={isActive("/sponsors") ? "page" : undefined}>
             Sponsors
           </Link>
-          <Link href="/contact" className={linkClass("/contact")}>
+          <Link href="/contact" className={linkClass("/contact")} aria-current={isActive("/contact") ? "page" : undefined}>
             Contact Us
           </Link>
           {services.length > 0 && (
@@ -172,7 +186,7 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
             </DropdownMenu>
           )}
           {!signedIn && (
-            <Link href={signInHref} className={linkClass("/auth/login")}>
+            <Link href={signInHref} className={linkClass("/auth/login")} aria-current={isActive("/auth/login") ? "page" : undefined}>
               Sign in
             </Link>
           )}
@@ -193,7 +207,7 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className={inDashboard ? "hidden" : "h-11 w-11 md:hidden"}
             onClick={toggleMenu}
             aria-expanded={isMenuOpen}
             aria-controls="mobile-nav"
@@ -209,25 +223,25 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
       </div>
 
       {/* Mobile Navigation */}
-      {isMenuOpen && (
+      {isMenuOpen && !inDashboard && (
         <div id="mobile-nav" className="container md:hidden py-4 border-t border-border">
-          <nav className="flex flex-col space-y-4">
-            <Link href="/" className={linkClass("/")} onClick={() => setIsMenuOpen(false)}>
+          <nav className="flex flex-col space-y-1 [&>a]:flex [&>a]:min-h-11 [&>a]:items-center">
+            <Link href="/" className={linkClass("/")} aria-current={isActive("/") ? "page" : undefined} onClick={() => setIsMenuOpen(false)}>
               Home
             </Link>
-            <Link href="/events" className={linkClass("/events")} onClick={() => setIsMenuOpen(false)}>
+            <Link href="/events" className={linkClass("/events")} aria-current={isActive("/events") ? "page" : undefined} onClick={() => setIsMenuOpen(false)}>
               Events
             </Link>
-            <Link href="/blog" className={linkClass("/blog")} onClick={() => setIsMenuOpen(false)}>
+            <Link href="/blog" className={linkClass("/blog")} aria-current={isActive("/blog") ? "page" : undefined} onClick={() => setIsMenuOpen(false)}>
               Blog
             </Link>
-            <Link href={executivesHref} className={linkClass(executivesHref)} onClick={() => setIsMenuOpen(false)}>
+            <Link href={executivesHref} className={linkClass(executivesHref)} aria-current={isActive(executivesHref) ? "page" : undefined} onClick={() => setIsMenuOpen(false)}>
               Executives
             </Link>
-            <Link href="/sponsors" className={linkClass("/sponsors")} onClick={() => setIsMenuOpen(false)}>
+            <Link href="/sponsors" className={linkClass("/sponsors")} aria-current={isActive("/sponsors") ? "page" : undefined} onClick={() => setIsMenuOpen(false)}>
               Sponsors
             </Link>
-            <Link href="/contact" className={linkClass("/contact")} onClick={() => setIsMenuOpen(false)}>
+            <Link href="/contact" className={linkClass("/contact")} aria-current={isActive("/contact") ? "page" : undefined} onClick={() => setIsMenuOpen(false)}>
               Contact
             </Link>
             {services.length > 0 && (
@@ -244,7 +258,7 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
                 {servicesOpen && (
                   <div className="flex flex-col space-y-2 pl-2">
                     {services.map((x) => (
-                      <Link key={x.href} href={x.href} className={linkClass(x.href)} onClick={() => { setIsMenuOpen(false); setServicesOpen(false); }}>
+                      <Link key={x.href} href={x.href} className={linkClass(x.href)} aria-current={isActive(x.href) ? "page" : undefined} onClick={() => { setIsMenuOpen(false); setServicesOpen(false); }}>
                         {x.label}
                       </Link>
                     ))}
@@ -253,7 +267,7 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
               </div>
             )}
             {!signedIn && (
-              <Link href={signInHref} className={linkClass("/auth/login")} onClick={() => setIsMenuOpen(false)}>
+              <Link href={signInHref} className={linkClass("/auth/login")} aria-current={isActive("/auth/login") ? "page" : undefined} onClick={() => setIsMenuOpen(false)}>
                 Sign in
               </Link>
             )}

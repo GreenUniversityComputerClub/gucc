@@ -34,11 +34,11 @@ const STATIC_ROUTES: Array<{
   { path: "/sponsors", priority: 0.7, changeFrequency: "monthly" },
   { path: "/collaborations", priority: 0.7, changeFrequency: "monthly" },
   { path: "/socials", priority: 0.6, changeFrequency: "monthly" },
-  { path: "/scheduler", priority: 0.6, changeFrequency: "monthly" },
   { path: "/lost-found", priority: 0.5, changeFrequency: "weekly" },
   { path: "/recruitment", priority: 0.5, changeFrequency: "monthly" },
   { path: "/recruitment/rules", priority: 0.4, changeFrequency: "yearly" },
   { path: "/certificates/hacktheai", priority: 0.5, changeFrequency: "monthly" },
+  { path: "/events/boishakh", priority: 0.4, changeFrequency: "yearly" },
 ];
 
 /** Published blog posts, news and announcements from D1. */
@@ -117,7 +117,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(event.image ? { images: [absoluteUrl(event.image)] } : {}),
   }));
 
-  const contestEntries: Entry[] = contests.map((contest) => ({
+  // Only contests with results: a page without teams has nothing to index.
+  const contestEntries: Entry[] = contests.filter((contest) => contest.teams.length > 0).map((contest) => ({
     url: absoluteUrl(`/contests/${contest.id}`),
     lastModified: latest(contestUpdated.get(String(contest.id))) ?? latestContentDate,
     changeFrequency: "yearly",

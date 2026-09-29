@@ -25,6 +25,9 @@ export interface NotificationChannel {
 /** Extra channels (email digests, push) register here. In-app is always on. */
 export const channels: NotificationChannel[] = [];
 
+/** Who caused a notification: the signed-in person making the request (none for scheduled jobs). */
+const actorOf = (ctx: Ctx) => ctx.actor?.user.id ?? null;
+
 /** One statement however many recipients: D1 counts statements per Worker invocation. */
 export function notifyStmts(ctx: Ctx, userIds: string[], n: NotificationInput): D1StatementLike[] {
   const unique = [...new Set(userIds.filter(Boolean))];
@@ -35,9 +38,10 @@ export function notifyStmts(ctx: Ctx, userIds: string[], n: NotificationInput): 
   ctx.outbox?.push(...rows.map((r) => r.id));
   return [
     ctx.db.stmt(
-      `INSERT INTO notifications (id, user_id, type, title, body, link, resource_type, resource_id, channel, created_at)
-       SELECT json_extract(j.value, '$.id'), json_extract(j.value, '$.u'), ?2, ?3, ?4, ?5, ?6, ?7, 'IN_APP', ?8 FROM json_each(?1) AS j`,
+      `INSERT INTO notifications (id, user_id, type, title, body, link, resource_type, resource_id, channel, created_at, actor_user_id)
+       SELECT json_extract(j.value, '$.id'), json_extract(j.value, '$.u'), ?2, ?3, ?4, ?5, ?6, ?7, 'IN_APP', ?8, ?9 FROM json_each(?1) AS j`,
       JSON.stringify(rows), n.type, n.title.slice(0, 200), n.body?.slice(0, 2000) ?? null, n.link ?? null, n.resourceType ?? null, n.resourceId ?? null, nowIso(),
+      actorOf(ctx),
     ),
   ];
 }
@@ -49,12 +53,12 @@ export function notifyEachStmts(ctx: Ctx, items: Array<NotificationInput & { use
   ctx.outbox?.push(...list.map((n) => n.id));
   return [
     ctx.db.stmt(
-      `INSERT INTO notifications (id, user_id, type, title, body, link, resource_type, resource_id, channel, created_at)
+      `INSERT INTO notifications (id, user_id, type, title, body, link, resource_type, resource_id, channel, created_at, actor_user_id)
        SELECT json_extract(j.value, '$.id'), json_extract(j.value, '$.u'), json_extract(j.value, '$.t'), json_extract(j.value, '$.ti'),
-              json_extract(j.value, '$.b'), json_extract(j.value, '$.l'), json_extract(j.value, '$.rt'), json_extract(j.value, '$.ri'), 'IN_APP', ?2
+              json_extract(j.value, '$.b'), json_extract(j.value, '$.l'), json_extract(j.value, '$.rt'), json_extract(j.value, '$.ri'), 'IN_APP', ?2, ?3
        FROM json_each(?1) AS j`,
       JSON.stringify(list.map((n) => ({ id: n.id, u: n.userId, t: n.type, ti: n.title.slice(0, 200), b: n.body?.slice(0, 2000) ?? null, l: n.link ?? null, rt: n.resourceType ?? null, ri: n.resourceId ?? null }))),
-      nowIso(),
+      nowIso(), actorOf(ctx),
     ),
   ];
 }

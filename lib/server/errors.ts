@@ -111,9 +111,3 @@ export function toActionResult(e: unknown, requestId?: string): ActionResult<nev
   console.error(`[${requestId ?? "no-request-id"}]`, e);
   return { ok: false, error: `Something went wrong. Reference: ${requestId ?? "n/a"}`, code: "INTERNAL" };
 }
-
-export function jsonError(e: unknown, requestId?: string): Response {
-  const r = toActionResult(e, requestId);
-  const status = e instanceof AppError ? e.status : r.ok ? 200 : r.code === "CONFLICT" ? 409 : r.code === "GOVERNANCE" ? 403 : 500;
-  return Response.json(r, { status });
-}

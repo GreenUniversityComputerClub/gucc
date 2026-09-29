@@ -173,6 +173,15 @@
   color-scheme: dark;
 }
 
+/* Error text readable in both themes (WCAG AA, 4.5:1 on the page background). The destructive
+ * colour itself stays for buttons and borders; only text uses these shades. */
+.text-destructive {
+  color: hsl(0 72% 42%);
+}
+.dark .text-destructive {
+  color: hsl(0 91% 71%);
+}
+
 /* Native dropdown lists follow the theme instead of the operating system's. */
 option,
 optgroup {

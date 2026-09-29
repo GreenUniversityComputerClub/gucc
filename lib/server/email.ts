@@ -17,6 +17,7 @@
  * caps first and is written to email_log with the provider's answer. Nothing here throws into
  * the caller.
  */
+import { escapeHtml } from "../html";
 import type { Ctx } from "./context";
 import { nowIso } from "./db";
 import { release, utcDay } from "./usage";
@@ -101,7 +102,6 @@ const consoleProvider: EmailProvider = {
   },
 };
 
-const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 /**
  * Account and member emails (verification, reset, invitation, decisions): the same text plus a

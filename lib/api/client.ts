@@ -26,10 +26,6 @@ function secret(): string | null {
   return process.env.API_SHARED_SECRET || null;
 }
 
-export function apiConfigured(): boolean {
-  return Boolean(secret());
-}
-
 export class ApiUnavailableError extends Error {
   constructor(message: string) {
     super(message);

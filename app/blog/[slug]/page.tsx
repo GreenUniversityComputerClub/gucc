@@ -3,6 +3,7 @@ import { fetchSubstackArticle, markdownToReact } from "./util";
 import PostContent from "../component";
 import { Post } from "../types";
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/seo/json-ld";
 import { brandTitle } from "@/lib/seo/metadata";
 import { articleSchema, breadcrumbSchema, graph } from "@/lib/seo/schema";
@@ -194,18 +195,7 @@ export default async function BlogPost({
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
-        <div className="w-full max-w-2xl mx-auto space-y-8">
-          <h1 className="text-4xl font-bold mb-4 text-black dark:text-white">
-            Post Not Found
-          </h1>
-          <p className="text-lg text-neutral-600 dark:text-neutral-400">
-            The post you’re looking for doesn’t exist.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+  // An unknown address is a real 404 (search engines drop it; the site's not-found page shows).
+  notFound();
+
 }

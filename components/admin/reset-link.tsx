@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { resetLinkAction, resetMfaAction } from "@/app/dashboard/actions";
 import { ReauthPrompt } from "./ui";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 /** Creates a one-time password reset link and shows it once, to pass on privately. */
 export function ResetLinkButton({ userId, name }: { userId: string; name: string }) {
@@ -11,9 +12,14 @@ export function ResetLinkButton({ userId, name }: { userId: string; name: string
   const [copied, setCopied] = useState(false);
   const [reauth, setReauth] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [confirm, dialog] = useConfirm();
 
-  const create = (confirmed = false) => {
-    if (!confirmed && !window.confirm(`Create a password reset link for ${name}? Whoever has the link can set their password, so give it only to them.`)) return;
+  const create = async (confirmed = false) => {
+    if (!confirmed && !(await confirm({
+      title: `Create a password reset link for ${name}?`,
+      description: "Whoever has the link can set their password, so give it only to them, privately. It works once, for 24 hours.",
+      confirmLabel: "Create link",
+    }))) return;
     start(async () => {
       setError(null);
       try {
@@ -53,6 +59,7 @@ export function ResetLinkButton({ userId, name }: { userId: string; name: string
   }
   return (
     <span className="inline-flex flex-col gap-1">
+      {dialog}
       <button type="button" onClick={() => create()} disabled={pending} className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-60">
         {pending ? "Creating…" : "Password reset link"}
       </button>
@@ -66,6 +73,7 @@ export function ResetLinkButton({ userId, name }: { userId: string; name: string
 export function ResetMfaButton({ userId, name }: { userId: string; name: string }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [reauth, setReauth] = useState<{ text: string; reason: string } | null>(null);
+  const [, dialog, ask] = useConfirm();
   const [pending, start] = useTransition();
   const run = (reason: string) => start(async () => {
     const r = await resetMfaAction(userId, reason);
@@ -75,8 +83,14 @@ export function ResetMfaButton({ userId, name }: { userId: string; name: string 
   });
   return (
     <span className="inline-flex flex-col gap-1">
-      <button type="button" disabled={pending} className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-60" onClick={() => {
-        const reason = window.prompt(`Reset two-factor sign-in for ${name}? Only do this after checking who is asking. Reason (kept in the activity log):`);
+      {dialog}
+      <button type="button" disabled={pending} className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-60" onClick={async () => {
+        const reason = await ask({
+          title: `Reset two-factor sign-in for ${name}?`,
+          description: "Only do this after checking who is asking (for example in person). They'll sign in with just their password and should set it up again.",
+          input: { label: "Reason (kept in the activity log)", minLength: 5 },
+          confirmLabel: "Reset two-factor", destructive: true,
+        });
         if (reason) run(reason);
       }}>{pending ? "Resetting…" : "Reset two-factor"}</button>
       {msg && <span role={msg.ok ? "status" : "alert"} className={msg.ok ? "text-xs text-emerald-700 dark:text-emerald-300" : "text-xs text-destructive"}>{msg.text}</span>}

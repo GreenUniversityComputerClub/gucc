@@ -38,7 +38,7 @@ const socials = [
   },
   {
     icon: Facebook,
-    href: "https://www.facebook.com/groups/greenuniversitycomputerclub",
+    href: "https://www.facebook.com/GreenUniversityComputerClub",
     label: "Facebook",
   },
 ];

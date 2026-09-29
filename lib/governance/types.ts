@@ -137,7 +137,12 @@ export interface Decision {
 }
 
 export interface ApproverSpec {
-  type: "position" | "role" | "user" | "assigned";
+  /**
+   * position/role: holders of it; user: one person; assigned: people assigned to the item;
+   * permission: anyone holding that permission club-wide (e.g. "posts.publish"), so whoever
+   * leaders trust to publish can also review.
+   */
+  type: "position" | "role" | "user" | "assigned" | "permission";
   value?: string;
 }
 

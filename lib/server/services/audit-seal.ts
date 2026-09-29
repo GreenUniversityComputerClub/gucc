@@ -59,4 +59,4 @@ export async function checkAuditSeals(ctx: Ctx, recompute = 1) {
 }
 
 /** For the offline verifier: recompute one seal from exported rows. */
-export { digestOf as auditDigest, line as auditLine };
+export { digestOf as auditDigest };

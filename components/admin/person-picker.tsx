@@ -4,8 +4,9 @@ import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { searchPeopleAction, searchRecipientsAction } from "@/app/dashboard/search-actions";
 import type { PersonRow } from "@/lib/server/services/people";
 import { cn } from "@/lib/utils";
+import { PersonAvatar } from "@/components/person-avatar";
 
-export type PickedPerson = Pick<PersonRow, "id" | "full_name" | "student_id" | "user_id" | "email" | "person_type" | "roles_held">;
+export type PickedPerson = Pick<PersonRow, "id" | "full_name" | "student_id" | "user_id" | "email" | "person_type" | "roles_held"> & { avatarUrl?: string | null };
 
 /**
  * Accessible typeahead over people (name, student ID or email). Writes the
@@ -70,13 +71,14 @@ export function PersonPicker({
       {name && <input type="hidden" name={name} value={value} />}
       {picked ? (
         <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
-          <span className="min-w-0">
+          <PersonAvatar name={picked.full_name} url={picked.avatarUrl} size="sm" />
+          <span className="min-w-0 flex-1">
             <span className="font-medium">{picked.full_name}</span>
             <span className="block truncate text-xs text-muted-foreground">
               {(source === "recipients" ? [picked.roles_held] : [picked.student_id, picked.email ?? (picked.user_id ? "has account" : "no account"), picked.roles_held]).filter(Boolean).join(" · ")}
             </span>
           </span>
-          <button type="button" onClick={() => choose(null)} className="shrink-0 rounded px-2 py-1 text-xs underline hover:bg-muted">Change</button>
+          <button type="button" onClick={() => choose(null)} className="inline-flex min-h-10 shrink-0 items-center rounded px-2 text-xs underline hover:bg-muted">Change</button>
         </div>
       ) : (
         <div className="relative">
@@ -103,7 +105,7 @@ export function PersonPicker({
               else if (e.key === "Enter" && open && results[active]) { e.preventDefault(); choose(results[active]); }
               else if (e.key === "Escape") setOpen(false);
             }}
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-9 md:text-sm"
           />
           {open && (q.trim().length >= 2) && (
             <ul id={`${id}-list`} role="listbox" className="absolute z-50 mt-1 max-h-72 w-full overflow-auto rounded-md border bg-popover p-1 text-sm shadow-lg">
@@ -120,12 +122,15 @@ export function PersonPicker({
                     aria-disabled={disabled}
                     onMouseDown={(e) => { e.preventDefault(); if (!disabled) choose(p); }}
                     onMouseEnter={() => setActive(i)}
-                    className={cn("cursor-pointer rounded px-3 py-2", i === active && "bg-muted", disabled && "cursor-not-allowed opacity-50")}
+                    className={cn("flex cursor-pointer items-center gap-2.5 rounded px-2 py-2", i === active && "bg-muted", disabled && "cursor-not-allowed opacity-50")}
                   >
-                    <span className="font-medium">{p.full_name}</span>
-                    {p.person_type === "FACULTY" && <span className="ml-1 text-xs text-muted-foreground">(faculty)</span>}
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {(source === "recipients" ? [p.roles_held] : [p.student_id, p.email ?? (p.user_id ? "has account" : "no account yet"), p.roles_held]).filter(Boolean).join(" · ")}
+                    <PersonAvatar name={p.full_name} url={p.avatarUrl} size="sm" />
+                    <span className="min-w-0">
+                      <span className="font-medium">{p.full_name}</span>
+                      {p.person_type === "FACULTY" && <span className="ml-1 text-xs text-muted-foreground">(faculty)</span>}
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {(source === "recipients" ? [p.roles_held] : [p.student_id, p.email ?? (p.user_id ? "has account" : "no account yet"), p.roles_held]).filter(Boolean).join(" · ")}
+                      </span>
                     </span>
                   </li>
                 );

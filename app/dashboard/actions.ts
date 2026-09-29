@@ -87,10 +87,6 @@ export async function revokeRoleAction(userRoleId: string, fd: Fd) {
 export async function createRoleAction(fd: Fd) {
   return runAction("roles.create", { input: obj(fd) }, { message: "Role created." });
 }
-export async function roleGrantAction(roleId: string, add: boolean, fd: Fd) {
-  const r = await runAction<{ applied: boolean; message?: string }>("roles.setGrant", { roleId, add, permission: s(fd, "permission"), scope: s(fd, "scope") || "ALL", scopeValue: s(fd, "scopeValue") });
-  return r.ok ? { ...r, data: applied(r.data, add ? "Permission added." : "Permission removed.") } : r;
-}
 /** One cell of the permission matrix (roles and positions). */
 export async function setGrantAction(kind: "role" | "position", id: string, grant: { permission: string; scope: string; scopeValue: string }, add: boolean) {
   const r = await runAction<{ applied: boolean; message?: string }>(kind === "role" ? "roles.setGrant" : "positions.setGrant",
@@ -131,10 +127,6 @@ export async function archivePositionAction(positionId: string, _fd: Fd) {
 }
 export async function savePositionAction(id: string | null, fd: Fd) {
   return runAction("positions.save", { id, input: { ...obj(fd), isActive: fd.get("isActive") === "on" } }, { message: "Position saved." });
-}
-export async function positionGrantAction(positionId: string, add: boolean, fd: Fd) {
-  const r = await runAction<{ applied: boolean; message?: string }>("positions.setGrant", { positionId, add, permission: s(fd, "permission"), scope: s(fd, "scope") || "ALL", scopeValue: s(fd, "scopeValue") });
-  return r.ok ? { ...r, data: applied(r.data, add ? "Permission added." : "Permission removed.") } : r;
 }
 
 // ── rules, policies, settings ─────────────────────────────
@@ -329,7 +321,7 @@ export async function publishEventAction(id: string, _fd: Fd) {
   return r.ok ? { ...r, data: { message: r.data?.message } } : r;
 }
 export async function eventStatusAction(id: string, status: "CANCELLED" | "COMPLETED" | "ONGOING" | "ARCHIVED" | "DRAFT", fd: Fd) {
-  return runAction("events.setStatus", { id, status, reason: s(fd, "reason") || null }, { message: "Updated." });
+  return runAction("events.setStatus", { id, status, reason: s(fd, "reason") || null }, { message: status === "ARCHIVED" ? "Archived. It's under “Archived” if you need it back." : "Updated." });
 }
 export async function eventPeopleAction(id: string, fd: Fd) {
   return runAction("events.setPeople", { id, people: json(fd, "people", [] as unknown[]) }, { message: "People saved." });
@@ -356,7 +348,13 @@ export async function unpublishPostAction(id: string, fd: Fd) {
   return runAction("posts.unpublish", { id, reason: s(fd, "reason") || null }, { message: "Unpublished." });
 }
 export async function archivePostAction(id: string, fd: Fd) {
-  return runAction("posts.archive", { id, reason: s(fd, "reason") || null }, { message: "Archived." });
+  return runAction("posts.archive", { id, reason: s(fd, "reason") || null }, { message: "Archived. It's under “Archived” if you need it back." });
+}
+export async function restorePostAction(id: string, _fd: Fd) {
+  return runAction("posts.restore", { id }, { message: "Restored as a draft." });
+}
+export async function restoreEventAction(id: string, _fd: Fd) {
+  return runAction("events.restore", { id }, { message: "Restored as a draft." });
 }
 export async function restoreRevisionAction(postId: string, revisionId: string, _fd: Fd) {
   return runAction("posts.restoreRevision", { postId, revisionId }, { message: "Restored as a new version." });
@@ -387,13 +385,6 @@ export async function broadcastAction(fd: Fd) {
   const r = await runAction<{ sent: number }>("notifications.broadcast", { title: s(fd, "title"), body: s(fd, "body"), link: s(fd, "link") || undefined, audience: s(fd, "audience") });
   return r.ok ? { ...r, data: { message: `Sent to ${r.data?.sent ?? 0} people.` } } : r;
 }
-export async function markAllReadAction(_fd: Fd) {
-  return runAction("notifications.markRead", { ids: "all" });
-}
-
-export async function markReadAction(id: string, _fd: Fd) {
-  return runAction("notifications.markRead", { ids: [id] });
-}
 
 // ── contact inbox ─────────────────────────────────────────
 export async function messageStatusAction(id: string, status: "NEW" | "READ" | "ARCHIVED", _fd: Fd) {
@@ -404,8 +395,9 @@ export async function messageStatusAction(id: string, status: "NEW" | "READ" | "
 export async function saveCampaignAction(id: string | null, fd: Fd) {
   return runAction<{ id: string }>("recruitment.saveCampaign", { id, input: { ...obj(fd), positionIds: fd.getAll("positionIds").map(String) } }, { message: "Saved." });
 }
-export async function reviewApplicationAction(id: string, status: string, fd: Fd) {
-  return runAction<{ message: string }>("recruitment.review", { id, status, note: s(fd, "note") || null, notify: fd.get("notify") === "on" });
+/** One decision form: the status comes from the form (the review page's radio group). */
+export async function reviewApplicationAction(id: string, fd: Fd) {
+  return runAction<{ message: string }>("recruitment.review", { id, status: s(fd, "status"), note: s(fd, "note") || null, notify: fd.get("notify") === "on" });
 }
 export async function assignReviewerAction(id: string, fd: Fd) {
   return runAction<{ message: string }>("recruitment.assign", { id, reviewerId: s(fd, "reviewerId") || null });

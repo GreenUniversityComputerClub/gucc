@@ -438,8 +438,11 @@ export async function updateMedia(ctx: Ctx, id: string, input: { altText?: strin
       id, alt, input.visibility ?? null, nextBucket, nowIso(), requireActor(ctx).user.id),
     auditStmt(ctx, { action: "media.update", resourceType: "media", resourceId: id, before: { visibility: m.visibility }, after: input, decision }),
   ]);
-  // Pages that show this file must drop (or pick up) its public URL.
-  if (moving) ctx.revalidate?.([TAGS.committees, TAGS.events, TAGS.posts, TAGS.contests, TAGS.settings]);
+  // Pages that show this file must drop (or pick up) its public URL, or show its new alt text.
+  // Visibility decides whether public pages may show a file whatever the bucket (static and
+  // external files too), so any visibility change counts.
+  const visibilityChanged = Boolean(input.visibility && input.visibility !== m.visibility);
+  if (moving || visibilityChanged || alt !== null) ctx.revalidate?.([TAGS.committees, TAGS.events, TAGS.posts, TAGS.contests, TAGS.settings]);
 }
 
 /** Archive media. Refused while anything still references it. Objects stay in R2 until the cleanup script runs. */

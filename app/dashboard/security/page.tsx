@@ -43,7 +43,7 @@ export default async function SecurityPage() {
                     <span className="block text-xs text-muted-foreground">Last active {when(d.last_seen_at ?? d.created_at)} · signed in {when(d.created_at)}</span>
                   </span>
                 </span>
-                {!d.current && <ActionForm action={revokeSessionAction.bind(null, d.ref)} submitLabel="Sign out" variant="outline" inline />}
+                {!d.current && <ActionForm action={revokeSessionAction.bind(null, d.ref)} submitLabel="Sign out" submitAriaLabel={`Sign out ${d.device}, last active ${when(d.last_seen_at ?? d.created_at)}`} variant="outline" inline />}
               </li>
             ))}
           </ul>

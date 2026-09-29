@@ -10,7 +10,7 @@
  */
 import { auditStmt } from "../audit";
 import { can, requireActor, requirePermission } from "../authz";
-import type { Ctx } from "../context";
+import { siteUrl, type Ctx } from "../context";
 import { nowIso } from "../db";
 import { emailProvider, forgetEmailSettings, lastSuccessfulTest, sendEmail, TEST_VALID_DAYS } from "../email";
 import { EMAIL_CATEGORIES, type EmailCategory } from "../email-outbox";
@@ -20,7 +20,6 @@ import { requireRecentAuth } from "../security";
 import { updateSystemSetting } from "./governance";
 
 export const SWITCHES = ["media.uploads_enabled", "email.enabled"] as const;
-export type SwitchKey = (typeof SWITCHES)[number];
 
 export async function setSwitch(ctx: Ctx, key: string, on: boolean): Promise<{ applied: boolean; message: string }> {
   const actor = requireActor(ctx);
@@ -60,7 +59,7 @@ export async function sendTestEmail(ctx: Ctx): Promise<{ ok: boolean; message: s
   await limit(ctx, "email.test", actor.user.id);
   const provider = emailProvider(ctx);
   if (!provider) throw new AppError(409, "EMAIL_NOT_CONFIGURED", "No email provider is configured on the API (the SMTP2GO_API_KEY secret and the EMAIL_FROM variable). Nothing was sent.");
-  const base = (ctx.env.PUBLIC_BASE_URL ?? "").replace(/\/+$/, "");
+  const base = siteUrl(ctx);
   const result = await sendEmail(ctx, {
     to: actor.user.email,
     subject: "GUCC test email",

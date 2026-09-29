@@ -2,10 +2,12 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { Db } from "@/lib/server/db";
 import { loadActor } from "@/lib/server/authz";
 import type { Ctx } from "@/lib/server/context";
-import { broadcast, saveContest } from "@/lib/server/services/community";
+import { broadcast, markSeenAtPath, saveContest, sessionCounts } from "@/lib/server/services/community";
+import { pulse, sendToPerson } from "@/lib/server/services/messaging";
+import { remindStaleApprovals } from "@/lib/server/services/approvals";
 import { moveAssignment } from "@/lib/server/services/committees";
 import { createEvent, publishEvent, setEventPeople, setEventStatus } from "@/lib/server/services/events";
-import { committeeView, contestsView, dashboardView, eventView, sessionMe } from "@/lib/server/views/admin";
+import { committeeView, contestsView, eventView, sessionMe } from "@/lib/server/views/admin";
 import { homeView } from "@/lib/server/views/home";
 import { activityFeed } from "@/lib/server/services/activity";
 import { systemHealth } from "@/lib/server/services/health";
@@ -71,7 +73,6 @@ describe("every request stays within the free plan's 50 D1 statements", () => {
     ["reorder a 60-person committee", (c: Ctx) => moveAssignment(c, firstListing, "up")],
     ["save 40 event people", (c: Ctx) => setEventPeople(c, eventId, Array.from({ length: 40 }, (_, i) => ({ role: "SPEAKER" as const, name: `Speaker ${i}` })))],
     ["save a contest with 30 teams", (c: Ctx) => saveContest(c, null, { type: "IUPC", title: "Big contest", teams: JSON.stringify(Array.from({ length: 30 }, (_, i) => ({ name: `Team ${i}`, members: ["A", "B", "C"], rank: i + 1 }))) })],
-    ["dashboard", (c: Ctx) => dashboardView(c)],
     ["committee page with 60 listings", (c: Ctx) => committeeView(c, w.committeeId)],
     ["event page", (c: Ctx) => eventView(c, eventId)],
     ["contests page", (c: Ctx) => contestsView(c)],
@@ -105,13 +106,36 @@ describe("every request stays within the free plan's 50 D1 statements", () => {
   // Scheduled runs are invocations too: the hourly job (with the free-tier guard and the seal) and
   // the daily clean-up each get their own 50.
   it("the hourly job, with the free-tier guard and the audit seal", async () => {
+    // Three requests waiting long enough for a reminder (the most one run sends).
+    const writer = await w.user({ email: "writer@x.bd", roles: ["member"] });
+    for (let i = 0; i < 4; i++) {
+      const { createPost, publishPost } = await import("@/lib/server/services/posts");
+      const { id } = await createPost(await w.ctx(pres), { type: "BLOG", title: `Waiting post ${i}`, body: "x" });
+      w.sqlite.prepare("UPDATE posts SET created_by = ? WHERE id = ?").run(writer, id);
+      await publishPost(await w.ctx(writer), id).catch(() => undefined);
+    }
     const db = new Db(w.db.raw);
     const ctx: Ctx = { ...(await w.ctx(null)), db, outbox: [] };
     await runMaintenance(ctx);
+    await remindStaleApprovals(ctx, new Date(Date.now() + 3 * 86_400_000));
     await guardFreeTier(ctx);
     await sealAuditLog(ctx);
     await flushOutbox(ctx);
     expect(db.queries + 1, `ran ${db.queries + 1} statements`).toBeLessThanOrEqual(HEADROOM);
+  });
+
+  // Frequent checks answered from the session alone (no permission load): the session lookup
+  // plus exactly one statement, so an open dashboard tab costs next to nothing.
+  it("live badges, 'anything new?' and clear-on-open use one statement each", async () => {
+    const other = await w.user({ email: "chat@x.bd", roles: ["member"] });
+    const me = await w.user({ email: "me@x.bd", roles: ["member"] });
+    const { conversationId } = await sendToPerson(await w.ctx(other), { userId: me, body: "hi" });
+    for (const op of [(c: Ctx) => sessionCounts(c), (c: Ctx) => pulse(c, conversationId), (c: Ctx) => markSeenAtPath(c, `/dashboard/chat/${conversationId}`)]) {
+      const db = new Db(w.db.raw);
+      const ctx: Ctx = { ...(await w.ctx(null)), db, session: { id: "s", userId: me, createdAt: "", lastSeenAt: null, reauthAt: null, idleHoursSensitive: 12 } };
+      await op(ctx);
+      expect(db.queries).toBe(1);
+    }
   });
 
   it("the daily clean-up", async () => {

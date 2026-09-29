@@ -38,6 +38,7 @@ export default async function CommitteeDetail({ params }: { params: Promise<{ id
   return (
     <>
       <PageHeader
+        back={{ href: "/dashboard/committees", label: "Committees" }}
         title={c.name}
         description={`${active} active listing${active === 1 ? "" : "s"} · public page /executives/${c.slug}`}
         actions={

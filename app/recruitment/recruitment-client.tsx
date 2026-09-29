@@ -431,7 +431,7 @@ function CallHeader({ campaign, children }: { campaign: Campaign; children?: Rea
               <p>
                 <strong className="text-foreground">To remain updated join: </strong>
                 <a
-                  href="https://m.facebook.com/groups/greenuniversitycomputerclub2021/"
+                  href="https://www.facebook.com/groups/1455061688068622"
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`font-semibold underline underline-offset-2 ${TEAL.link}`}
@@ -545,6 +545,8 @@ export function RecruitmentForm({ campaign, semesters: semesterOptions, genders 
   const [dragType, setDragType] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const onTurnstile = useCallback((t: string | null) => setTurnstileToken(t), []);
+  // A Turnstile token works once: a fresh one after every failed submission.
+  const [turnstileRound, setTurnstileRound] = useState(0);
 
   const cvInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -1027,6 +1029,7 @@ export function RecruitmentForm({ campaign, semesters: semesterOptions, genders 
           scrollToField(Object.keys(fieldErrors)[0]);
         }
         setSubmitError(result.error || "Submission failed. Please try again.");
+        setTurnstileRound((n) => n + 1);
         return;
       }
 
@@ -1655,7 +1658,7 @@ export function RecruitmentForm({ campaign, semesters: semesterOptions, genders 
             </CardContent>
           </AnimatedCard>
 
-          <Turnstile onToken={onTurnstile} />
+          <Turnstile onToken={onTurnstile} resetKey={turnstileRound} />
 
           {/* ─── Submit Error ───────────────────────────────────────── */}
           {submitError && (

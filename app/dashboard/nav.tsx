@@ -1,31 +1,50 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ExternalLink, Menu, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLiveCounts, type LiveCounts } from "@/lib/api/live-counts";
+import { useCloseAbove, useExclusiveOverlay } from "@/lib/overlay";
 
 type Item = { href: string; label: string; badge?: number };
 type Group = { label: string; items: Item[] };
 
-function useIsActive() {
+/** Whether `href` is this page; `loose` ignores the query (a post's own page has no ?type=). */
+type IsActive = (href: string, loose?: boolean) => boolean;
+
+function useIsActive(): IsActive {
   const path = usePathname();
   const params = useSearchParams();
-  return (href: string) => {
+  return (href, loose) => {
     const [p, q] = href.split("?");
     if (p === "/dashboard") return path === "/dashboard";
-    if (!path.startsWith(p!)) return false;
-    if (!q) return true;
+    if (path !== p && !path.startsWith(`${p}/`)) return false;
+    if (!q || loose) return true;
     const want = new URLSearchParams(q);
     return [...want.entries()].every(([k, v]) => params.get(k) === v);
   };
 }
 
-/** The most specific item for this page (e.g. "Access simulator" rather than "Who can do what"). */
-function activeItem(groups: Group[], isActive: (href: string) => boolean): Item | undefined {
-  return groups.flatMap((g) => g.items).filter((i) => isActive(i.href)).sort((a, b) => b.href.length - a.href.length)[0];
+/**
+ * The most specific item for this page (e.g. "Access simulator" rather than "Who can do what").
+ * A detail page under a list that the nav splits by a filter (/dashboard/posts/<id>) lights up
+ * the first of those items, so the reader still sees where they are.
+ */
+function activeItem(groups: Group[], isActive: IsActive): Item | undefined {
+  const items = groups.flatMap((g) => g.items);
+  const bySpecificity = (a: Item, b: Item) => b.href.length - a.href.length;
+  return items.filter((i) => isActive(i.href)).sort(bySpecificity)[0] ?? items.find((i) => i.href.includes("?") && isActive(i.href, true));
+}
+
+/** The live numbers replace the ones rendered with the page for these items. */
+const LIVE: Record<string, keyof LiveCounts> = { "/dashboard/notifications": "unread", "/dashboard/chat": "unreadMessages", "/dashboard/tasks": "openTasks" };
+
+function useLiveGroups(groups: Group[], seed: LiveCounts): Group[] {
+  const counts = useLiveCounts(seed) ?? seed;
+  return useMemo(() => groups.map((g) => ({ ...g, items: g.items.map((i) => (LIVE[i.href] ? { ...i, badge: counts[LIVE[i.href]!] || undefined } : i)) })), [groups, counts]);
 }
 
 const Badge = ({ n }: { n?: number }) =>
@@ -52,8 +71,21 @@ function NavLink({ item, active, onNavigate, className }: { item: Item; active: 
   );
 }
 
+const WEBSITE: Group = {
+  label: "Website",
+  items: [
+    { href: "/", label: "Home" },
+    { href: "/events", label: "Events" },
+    { href: "/blog", label: "Blog" },
+    { href: "/executives", label: "Executives" },
+    { href: "/sponsors", label: "Sponsors" },
+    { href: "/contact", label: "Contact us" },
+  ],
+};
+
 /** Desktop: the grouped sidebar. */
-export function AdminNav({ groups }: { groups: Group[] }) {
+export function AdminNav({ groups: rendered, counts: seed }: { groups: Group[]; counts: LiveCounts }) {
+  const groups = useLiveGroups(rendered, seed);
   const isActive = useIsActive();
   const current = activeItem(groups, isActive);
   return (
@@ -72,32 +104,38 @@ export function AdminNav({ groups }: { groups: Group[] }) {
  * Phones and tablets: a bar that stays under the site header with the current page and a Menu
  * button. The menu opens every section, grouped, with large touch targets and a quick filter.
  */
-export function AdminNavMobile({ groups, who }: { groups: Group[]; who: string }) {
+export function AdminNavMobile({ groups: rendered, who, counts: seed }: { groups: Group[]; who: string; counts: LiveCounts }) {
+  const groups = useLiveGroups(rendered, seed);
   const isActive = useIsActive();
   const path = usePathname();
-  const [open, setOpen] = useState(false);
+  // One menu at a time: opening this closes the site menu and the assistant.
+  const [open, setOpen] = useExclusiveOverlay("dashboard-menu");
+  const close = useCallback(() => setOpen(false), [setOpen]);
+  useCloseAbove(1024, open, close);
   const [filter, setFilter] = useState("");
   const current = activeItem(groups, isActive);
   const unread = groups.flatMap((g) => g.items).reduce((n, i) => n + (i.badge ?? 0), 0);
 
   // A page change (including Back) closes the menu.
-  useEffect(() => setOpen(false), [path]);
+  useEffect(() => close(), [path, close]);
   useEffect(() => {
     if (!open) setFilter("");
   }, [open]);
 
+  // The site header shows no menu of its own on the dashboard, so the website's pages are here.
+  const all = useMemo(() => [...groups, WEBSITE], [groups]);
   const shown = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    if (!q) return groups;
-    return groups.map((g) => ({ ...g, items: g.items.filter((i) => i.label.toLowerCase().includes(q) || g.label.toLowerCase().includes(q)) })).filter((g) => g.items.length > 0);
-  }, [groups, filter]);
+    if (!q) return all;
+    return all.map((g) => ({ ...g, items: g.items.filter((i) => i.label.toLowerCase().includes(q) || g.label.toLowerCase().includes(q)) })).filter((g) => g.items.length > 0);
+  }, [all, filter]);
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
       <div className="sticky top-16 z-30 -mx-4 flex items-center gap-2 border-b bg-background/95 px-4 py-2 backdrop-blur lg:hidden">
         <p className="min-w-0 flex-1 truncate text-sm font-medium" aria-live="polite">{current?.label ?? "Dashboard"}</p>
         <DialogPrimitive.Trigger asChild>
-          <button type="button" className="inline-flex h-10 items-center gap-2 rounded-md border bg-background px-3 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={unread ? `Dashboard menu, ${unread} unread` : "Dashboard menu"}>
+          <button type="button" className="inline-flex h-10 items-center gap-2 rounded-md border bg-background px-3 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={unread ? `Dashboard menu, ${unread} new` : "Dashboard menu"}>
             <Menu className="h-4 w-4" aria-hidden />
             Menu
             <Badge n={unread} />

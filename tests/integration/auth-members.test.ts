@@ -69,9 +69,11 @@ describe("login security", () => {
   it("locks the account after repeated failures and audits it", async () => {
     const id = await w.user({ email: "victim@x.bd" });
     w.sqlite.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(await hashPassword("correct-Horse-battery"), id);
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 4; i++) {
       await expect(login(await w.ctx(), { email: "victim@x.bd", password: `wrong-${i}` })).rejects.toMatchObject({ code: "INVALID_CREDENTIALS" });
     }
+    // The attempt that locks the account says so.
+    await expect(login(await w.ctx(), { email: "victim@x.bd", password: "wrong-4" })).rejects.toMatchObject({ code: "LOCKED" });
     await expect(login(await w.ctx(), { email: "victim@x.bd", password: "correct-Horse-battery" })).rejects.toMatchObject({ code: "LOCKED" });
     expect(w.sqlite.prepare("SELECT COUNT(*) n FROM audit_logs WHERE action = 'auth.locked'").get()).toEqual({ n: 1 });
   });

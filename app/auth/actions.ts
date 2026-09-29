@@ -4,11 +4,11 @@ import { redirect } from "next/navigation";
 import {
   clearMfaPendingCookie, clearSessionCookie, currentSessionToken, rpc, runAction, setMfaPendingCookie, setSessionCookie, takeMfaPendingToken, type ActionResult,
 } from "@/lib/api/session";
+import { safeLocalPath } from "@/lib/safe-path";
 
 /** Only same-site relative paths may be used as a post-login destination. */
 function safeNext(next: unknown): string {
-  const n = typeof next === "string" ? next : "";
-  return n.startsWith("/") && !n.startsWith("//") && !n.startsWith("/\\") ? n : "/dashboard/profile";
+  return safeLocalPath(next, "/dashboard/profile");
 }
 
 type Issued = { token: string; expiresAt: string; status: string; mfaRequired?: boolean };

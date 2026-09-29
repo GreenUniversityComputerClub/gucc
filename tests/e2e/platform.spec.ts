@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
-import { d1, login, mailLink, MODERATOR, settle, signUp } from "./helpers";
+import { d1, login, mailLink, MODERATOR, settle, signUp, acceptConfirms } from "./helpers";
 
 /**
  * One story through the platform, exercising each hierarchy level:
@@ -18,7 +18,7 @@ const committeeId = () => d1<{ id: string }>("SELECT id FROM committees WHERE st
 
 test.describe.configure({ mode: "serial" });
 test.beforeEach(async ({ page }) => {
-  page.on("dialog", (d) => d.accept());
+  await acceptConfirms(page);
   if (process.env.E2E_DEBUG) {
     page.on("console", (m) => (m.type() === "error" || m.type() === "warning") && !m.text().includes("Failed to load resource") && console.log("CONSOLE", m.type(), m.text().slice(0, 500)));
     page.on("pageerror", (e) => console.log("PAGEERROR", e.message));
@@ -149,8 +149,11 @@ test("President approves; the post goes live and is safely rendered", async ({ p
   await login(page, pres.email, pres.password, "/dashboard/approvals");
   await page.getByRole("link", { name: new RegExp(postTitle) }).click();
   await expect(page).toHaveURL(/\/dashboard\/approvals\/apr_/);
-  await page.getByRole("button", { name: "Approve", exact: true }).click();
-  await expect(page.getByText("approved", { exact: true }).first()).toBeVisible();
+  // The post is shown inline; approving publishes it and moves on to the next request.
+  await expect(page.getByRole("heading", { name: "The post, as it will appear" })).toBeVisible();
+  await page.getByRole("button", { name: "Approve & publish" }).click();
+  await expect(page.getByText("Request approved.")).toBeVisible();
+  await expect.poll(() => d1<{ status: string }>(`SELECT status FROM posts WHERE title = '${postTitle}'`)[0].status).toBe("PUBLISHED");
   const slug = d1<{ slug: string }>(`SELECT slug FROM posts WHERE title = '${postTitle}'`)[0].slug;
   const response = await page.goto(`/blog/${slug}`);
   expect(response?.status()).toBe(200);
@@ -227,9 +230,10 @@ test("an event posted from the dashboard (banner, guests, judges, photos) shows 
   await expect(visitor.getByAltText(eventTitle, { exact: true })).toHaveAttribute("src", /\/media\//);
   await expect(visitor.getByText("Prof. E2E Chief, Vice Chancellor, GUB")).toBeVisible();
   await expect(visitor.getByText("Special Guest")).toBeVisible();
-  // As on the original site: judges stay on record only, and attendance shows as "N / N+50".
+  // As on the original site, judges stay on record only. With registration on, the real seats show
+  // (they replaced the old invented "N / N+50" bar).
   await expect(visitor.getByRole("heading", { name: "Judges" })).toHaveCount(0);
-  await expect(visitor.getByText("120 / 170")).toBeVisible();
+  await expect(visitor.getByRole("img", { name: "0 of 1 seats taken" })).toBeVisible();
   await expect(visitor.getByText("GUB Auditorium")).toBeVisible();
   await expect(visitor.getByRole("link", { name: "Register your team" })).toHaveAttribute("href", "https://forms.gle/e2eWorkshopForm");
 
@@ -253,7 +257,7 @@ test("an event posted from the dashboard (banner, guests, judges, photos) shows 
   await register("First Visitor", `v1-${run}@example.com`);
   await expect(visitor.getByText("You're in")).toBeVisible();
   await register("Second Visitor", `v2-${run}@example.com`);
-  await expect(visitor.getByText(/waitlist/i)).toBeVisible();
+  await expect(visitor.getByRole("heading", { name: "You're on the waitlist" })).toBeVisible();
   await register("First Again", `v1-${run}@example.com`);
   await expect(visitor.locator("form").getByText(/already registered/i)).toBeVisible();
   await visitor.close();
@@ -262,7 +266,7 @@ test("an event posted from the dashboard (banner, guests, judges, photos) shows 
 test("a normal member can edit their profile but not reach admin tools", async ({ page }) => {
   await login(page, member.email, member.password, "/dashboard/profile");
   await expect(page.getByText("Your GUCC membership is approved").first()).toBeVisible();
-  await page.getByLabel("Batch").fill("232");
+  await page.getByRole("textbox", { name: "Batch" }).fill("232");
   await page.getByRole("button", { name: "Save profile" }).click();
   await expect(page.getByText("Profile saved.").first()).toBeVisible();
   await page.goto("/dashboard/members");

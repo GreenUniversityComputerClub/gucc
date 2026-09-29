@@ -31,6 +31,8 @@ function specMatches(spec: ApproverSpec, subject: Subject, ctx: ApprovalContext)
       return subject.userId === spec.value;
     case "assigned":
       return (ctx.assignedUserIds ?? []).includes(subject.userId);
+    case "permission":
+      return subject.grants.some((g) => g.scope === "ALL" && (g.permission.toLowerCase() === v || g.permission === "*"));
     default:
       return false;
   }
@@ -78,6 +80,13 @@ export interface ApprovalEvaluation {
   satisfiedGroups: number[];
 }
 
+/** "posts.publish" → "publish posts": approver groups described in plain words. */
+function permissionPhrase(key?: string): string {
+  const [area, action] = (key ?? "").split(".");
+  if (!area || !action) return "decide";
+  return `${action.replace(/_/g, " ")} ${area.replace(/_/g, " ")}`;
+}
+
 /** "general-secretary" → "General Secretary": position and role names written out in full. */
 const titleOf = (key?: string) => (key ?? "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -86,7 +95,8 @@ export function describePolicy(policy: ApprovalPolicy, effectiveThreshold?: numb
     a.type === "assigned" ? "an assigned approver"
       : a.type === "position" ? `the ${titleOf(a.value)}`
         : a.type === "role" ? `a ${titleOf(a.value)}`
-          : "a named person");
+          : a.type === "permission" ? `anyone who can ${permissionPhrase(a.value)}`
+            : "a named person");
   if (policy.mode === "ANY") return `one approval from ${names.join(" or ")}`;
   if (policy.mode === "ALL") return `approval from ${names.join(" and ")}`;
   const n = effectiveThreshold ?? policy.threshold ?? 1;

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { reloadWith } from "@/lib/flash";
 import type { BulkPlan } from "@/lib/server/services/executive-bulk";
 import { bulkApplyAction, bulkPreviewAction, type BulkPayload } from "../../actions";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 type Op = BulkPayload["action"]["op"];
 const control = "h-9 min-w-0 rounded-md border bg-background px-2 text-sm";
@@ -31,6 +32,7 @@ export function BulkBar({ committeeId, positions, committees, canAssign, canRemo
   const [error, setError] = useState<string | null>(null);
   const [reauth, setReauth] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [confirmBulk, confirmDialog] = useConfirm();
 
   const selected = () => Array.from(document.querySelectorAll<HTMLInputElement>("input[data-bulk-id]:checked")).map((i) => i.value);
   useEffect(() => {
@@ -63,8 +65,8 @@ export function BulkBar({ committeeId, positions, committees, canAssign, canRemo
         setError("Could not reach the server. Check your connection and try again.");
       }
     });
-  const apply = (confirmed = false) => {
-    if (!plan || (!confirmed && !window.confirm(`${plan.title}: change ${plan.changes} listing${plan.changes === 1 ? "" : "s"}? This is recorded in the audit log.`))) return;
+  const apply = async (confirmed = false) => {
+    if (!plan || (!confirmed && !(await confirmBulk({ title: `${plan.title}: change ${plan.changes} listing${plan.changes === 1 ? "" : "s"}?`, description: "This is recorded in the audit log.", confirmLabel: "Apply" })))) return;
     start(async () => {
       try {
         const r = await bulkApplyAction(payload());
@@ -89,6 +91,7 @@ export function BulkBar({ committeeId, positions, committees, canAssign, canRemo
 
   return (
     <div className="mb-4 rounded-xl border bg-card p-3 sm:p-4">
+      {confirmDialog}
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-medium">{count ? `${count} selected` : "Bulk changes"}</span>
         <Button type="button" variant="ghost" size="sm" onClick={() => toggleAll(count === 0)}>{count ? "Clear selection" : "Select all"}</Button>

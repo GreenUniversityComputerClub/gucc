@@ -115,8 +115,10 @@ describe("events created from the dashboard", () => {
     expect(pub?.gallery).toEqual([]);
   });
 
-  it("members cannot create events", async () => {
+  it("members can propose events, which wait for a reviewer", async () => {
     const member = await w.user({ email: "m@x.bd", roles: ["member"] });
-    await expect(createEvent(await ctx(member), { title: "Party", startAt: "2026-11-01T18:00" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const { id } = await createEvent(await ctx(member), { title: "Study circle", startAt: "2030-11-01T18:00" });
+    expect((await publishEvent(await ctx(member), id)).outcome).toBe("PENDING_APPROVAL");
+    expect(w.sqlite.prepare("SELECT status FROM events WHERE id = ?").get(id)).toEqual({ status: "PENDING_APPROVAL" });
   });
 });

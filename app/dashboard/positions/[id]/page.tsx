@@ -27,6 +27,7 @@ export default async function PositionPage({ params }: { params: Promise<{ id: s
   return (
     <>
       <PageHeader
+        back={{ href: "/dashboard/positions", label: "Positions" }}
         title={p.name}
         description={`${levelLabel(p.governance_level)}${p.is_protected ? " · protected" : ""}${p.aliases.length ? ` · also appears as ${p.aliases.join(", ")}` : ""}`}
         actions={<Link prefetch={false} href="/dashboard/positions" className="rounded-md border px-3 py-2 text-sm hover:bg-muted">All positions</Link>}

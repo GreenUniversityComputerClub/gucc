@@ -8,6 +8,7 @@ import { AREA_ORDER, areaOf, describeScope, SCOPE_LABELS } from "@/lib/governanc
 import type { ScopeOptions } from "@/lib/server/views/governance";
 import { cn } from "@/lib/utils";
 import { ReauthPrompt } from "./ui";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 type Perm = { key: string; description: string | null; is_sensitive: number };
 type Grant = { permission: string; scope: string; scope_value: string };
@@ -51,6 +52,7 @@ export function PermissionMatrix({
   const [adding, setAdding] = useState<string | null>(null);
   const [scope, setScope] = useState<string>("OWN");
   const [values, setValues] = useState<string[]>([]);
+  const [confirmGrant, confirmDialog] = useConfirm();
 
   const names = useMemo(() => {
     const m: Record<string, string> = {};
@@ -69,9 +71,13 @@ export function PermissionMatrix({
     return AREA_ORDER.filter((a) => byArea.has(a)).map((a) => ({ area: a, perms: byArea.get(a)! }));
   }, [permissions, local, q, onlyGranted]);
 
-  function change(grant: Grant, add: boolean, confirmed = false) {
+  async function change(grant: Grant, add: boolean, confirmed = false) {
     const perm = permissions.find((p) => p.key === grant.permission);
-    if (add && !confirmed && perm?.is_sensitive && !window.confirm(`"${perm.description ?? perm.key}" is a sensitive permission. Give it to everyone who holds ${holderName}? Unless you're a Moderator, the President or the General Secretary, one of them approves it first.`)) return;
+    if (add && !confirmed && perm?.is_sensitive && !(await confirmGrant({
+      title: `Give “${perm.description ?? perm.key}” to everyone who holds ${holderName}?`,
+      description: "It's a sensitive permission. Unless you're a Moderator, the President or the General Secretary, one of them approves it first.",
+      confirmLabel: "Give permission",
+    }))) return;
     const before = local;
     const same = (g: Grant) => g.permission === grant.permission && g.scope === grant.scope && g.scope_value === grant.scope_value;
     setLocal(add ? [...local, grant] : local.filter((g) => !same(g)));
@@ -96,6 +102,7 @@ export function PermissionMatrix({
 
   return (
     <div className="space-y-3">
+      {confirmDialog}
       <div className="flex flex-wrap items-center gap-2">
         <label className="relative min-w-0 flex-1">
           <span className="sr-only">Search permissions</span>

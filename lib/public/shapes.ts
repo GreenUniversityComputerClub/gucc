@@ -100,7 +100,9 @@ export interface MemberRow {
   p_avatar_x: number | null;
   p_avatar_y: number | null;
   p_avatar_scale: number | null;
-  /** Media for the term-specific portrait, falling back to the profile's. */
+  /** 1 when the photo shown is the profile's own (so the profile's framing fits it). */
+  avatar_is_profile?: number | null;
+  /** The photo shown: the profile's for current committees, the frozen copy for past ones. */
   avatar_storage: MediaRow["storage"] | null;
   avatar_object_key: string | null;
   avatar_legacy_path: string | null;
@@ -153,10 +155,14 @@ function toExecutive(r: MemberRow, historic = false): PublicExecutive {
       : null,
   );
   if (avatar) e.avatarUrl = avatar;
-  const x = r.cm_avatar_x ?? null;
-  const y = r.cm_avatar_y ?? null;
+  // The listing's framing (set on the year page) wins; otherwise the profile's, when the photo
+  // shown is the profile's own. A new photo clears both, so an old zoom never lands on it.
+  const own = Boolean(r.avatar_is_profile);
+  const x = r.cm_avatar_x ?? (own ? r.p_avatar_x : null) ?? null;
+  const y = r.cm_avatar_y ?? (own ? r.p_avatar_y : null) ?? null;
   if (x !== null && y !== null) e.avatarPosition = { x, y };
-  if (r.cm_avatar_scale !== null && r.cm_avatar_scale !== undefined) e.avatarScale = r.cm_avatar_scale;
+  const scale = r.cm_avatar_scale ?? (own ? r.p_avatar_scale : null) ?? null;
+  if (scale !== null) e.avatarScale = scale;
   Object.assign(e, termLinks(r, historic));
   return e;
 }
@@ -229,6 +235,12 @@ export interface PublicEvent {
   image: string;
   status: string;
   registrationOpen?: boolean;
+  /** Registration window (the page decides "open" in the visitor's browser, not when cached). */
+  registrationOpensAt?: string;
+  registrationClosesAt?: string;
+  /** Seats: the limit and how many are taken (registered or attended), when there is a limit. */
+  capacity?: number;
+  seatsTaken?: number;
   /** An external registration form (Google Forms), when the event uses one. */
   registrationForm?: { url: string; label: string | null };
 }
@@ -254,6 +266,8 @@ export interface EventRow {
   registration_enabled: number;
   registration_opens_at: string | null;
   registration_closes_at: string | null;
+  capacity?: number | null;
+  seats_taken?: number | null;
   registration_form_url?: string | null;
   registration_form_label?: string | null;
   banner_storage: MediaRow["storage"] | null;
@@ -291,6 +305,11 @@ export function buildEvent(r: EventRow, now = new Date()): PublicEvent {
   const end = dateOnly(r.end_at);
   if (end && end !== date) e.endDate = end;
   if (r.time_text) e.time = r.time_text;
+  // No time typed: the start (and end, the same day) in Dhaka time, so a moved event shows its new time.
+  else if (r.start_at && r.start_at.includes("T")) {
+    const t = (v: string) => new Date(v).toLocaleTimeString("en-US", { timeZone: "Asia/Dhaka", hour: "numeric", minute: "2-digit" });
+    e.time = r.end_at && r.end_at.includes("T") && dateOnly(r.end_at) === date ? `${t(r.start_at)} – ${t(r.end_at)}` : t(r.start_at);
+  }
   if (r.venue) e.location = r.venue;
   if (r.participants_reported !== null) e.participants = r.participants_reported;
   else if (r.participants_text) e.participants = r.participants_text;
@@ -306,6 +325,12 @@ export function buildEvent(r: EventRow, now = new Date()): PublicEvent {
     const opens = r.registration_opens_at ? new Date(r.registration_opens_at) : null;
     const closes = r.registration_closes_at ? new Date(r.registration_closes_at) : null;
     e.registrationOpen = (!opens || opens <= now) && (!closes || closes > now) && ["PUBLISHED", "ONGOING"].includes(r.status);
+    if (r.registration_opens_at) e.registrationOpensAt = r.registration_opens_at;
+    if (r.registration_closes_at) e.registrationClosesAt = r.registration_closes_at;
+    if (r.capacity) {
+      e.capacity = r.capacity;
+      e.seatsTaken = r.seats_taken ?? 0;
+    }
   }
   return e;
 }

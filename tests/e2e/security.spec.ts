@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { d1, login, MODERATOR } from "./helpers";
+import { d1, login, MODERATOR, acceptConfirms } from "./helpers";
 
 const API = process.env.E2E_API_URL ?? "http://localhost:8788";
 
@@ -84,7 +84,7 @@ test("a server action replayed from another site is refused and changes nothing"
     }
     return route.continue();
   });
-  page.once("dialog", (d) => d.accept());
+  await acceptConfirms(page);
   await page.getByRole("button", { name: "Switch uploads off" }).click();
   await expect.poll(() => captured !== null).toBe(true);
   await page.unroute("**/dashboard/health**");

@@ -136,7 +136,7 @@ describe("other account safeguards", () => {
 
     await expect(assignReviewer(await noEmail(pres), "ra1", exec)).rejects.toMatchObject({ code: "VALIDATION" });
     await assignReviewer(await noEmail(pres), "ra1", gs);
-    expect(w.sqlite.prepare("SELECT title FROM notifications WHERE user_id = ?").get(gs)).toEqual({ title: "An application to review" });
+    expect(w.sqlite.prepare("SELECT title FROM notifications WHERE user_id = ?").get(gs)).toEqual({ title: "Review Applicant's application" });
     await addApplicationNote(await noEmail(gs), "ra1", "Strong background");
     const r = await reviewApplication(await noEmail(gs), "ra1", { status: "SHORTLISTED", note: "Interview on Sunday", notify: true });
     expect(r.message).toMatch(/NOT emailed/);

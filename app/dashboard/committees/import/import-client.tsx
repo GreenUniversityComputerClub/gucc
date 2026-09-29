@@ -7,6 +7,7 @@ import { detectFormat } from "@/lib/executive-import/parse";
 import type { ImportPlan, ImportResult, PlanRow, RowAction } from "@/lib/server/services/executive-import";
 import { applyImportAction, previewImportAction, type ImportPayload } from "../../actions";
 import { ReauthPrompt } from "@/components/admin/ui";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 type Choice = { skip?: boolean; profileId?: string };
 
@@ -42,6 +43,7 @@ export function ImportClient({ committees, defaultCommitteeId }: { committees: A
   const [reauth, setReauth] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "attention" | "changes">("all");
   const [pending, start] = useTransition();
+  const [confirmImport, confirmDialog] = useConfirm();
 
   const payload = (): ImportPayload => ({ text, format, mode, defaultCommitteeId: committeeId || null, resolutions: { positions: positionMap, rows: choices } });
   const reset = () => {
@@ -82,11 +84,11 @@ export function ImportClient({ committees, defaultCommitteeId }: { committees: A
       }
     });
 
-  const doImport = (confirmed = false) => {
+  const doImport = async (confirmed = false) => {
     if (!plan) return;
     const s = plan.summary;
     const what = [s.newPeople && `${s.newPeople} new ${s.newPeople === 1 ? "person" : "people"}`, s.create + s.assign && `${s.create + s.assign} new listing${s.create + s.assign === 1 ? "" : "s"}`, s.update && `${s.update} update${s.update === 1 ? "" : "s"}`].filter(Boolean).join(", ");
-    if (!confirmed && !window.confirm(`Import ${what}? This is recorded in the audit log.`)) return;
+    if (!confirmed && !(await confirmImport({ title: `Import ${what}?`, description: "This is recorded in the audit log.", confirmLabel: "Import" }))) return;
     start(async () => {
       setError(null);
       try {
@@ -136,6 +138,7 @@ export function ImportClient({ committees, defaultCommitteeId }: { committees: A
 
   return (
     <div className="space-y-6">
+      {confirmDialog}
       <section className="rounded-xl border bg-card p-4 sm:p-5" aria-labelledby="step-file">
         <h2 id="step-file" className="font-semibold">1. Choose the file</h2>
         <div className="mt-3 grid gap-4 md:grid-cols-2">

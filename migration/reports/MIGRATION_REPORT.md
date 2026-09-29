@@ -1,9 +1,9 @@
 # Legacy data migration report
 
-Run `run_2026-09-29T00-23-22-781Z_a5bded64` · 2026-09-29T00:23:22.781Z · target **local** · mode insert-missing
+Run `run_2026-09-29T16-58-01-016Z_d4557e10` · 2026-09-29T16:58:01.016Z · target **local** · mode insert-missing
 
 Private values (phone numbers, participant emails) are masked in this report. The generated SQL and the source backup
-(`migration/backup/2026-09-29T00-23-22-781Z`) contain them and are git-ignored.
+(`migration/backup/2026-09-29T16-58-01-016Z`) contain them and are git-ignored.
 
 ## Summary
 
@@ -45,7 +45,6 @@ source = migrated + merged + skipped + failed.
 | Supabase (accounts, lost & found posts, storage)   | Out of scope by decision: only data kept in this repository is migrated.                             | Accounts are created fresh by registering on the new site; the lost & found board starts empty. |
 | Hashnode blog posts                                | Out of scope by decision (external; the old site did not show them because HASHNODE_HOST was unset). | None.                                                                                           |
 | data/contributors.ts                               | Application configuration (a fallback for the GitHub contributors API), not club data.               | Kept in code.                                                                                   |
-| app/scheduler/data/courses.ts                      | Dataset for the course-routine planner tool, not club records.                                       | Kept in code.                                                                                   |
 | Social links, site name, address (lib/seo/site.ts) | Site configuration used for SEO metadata.                                                            | Kept in code.                                                                                   |
 
 ## Source → target mapping

@@ -4,20 +4,20 @@
  * permission logic in the frontend) and each page costs one API round trip.
  * Every view authorizes through the same services and engine as the actions.
  */
+import { ensureProfileHandle } from "../services/profiles";
 import { API_VERSION } from "../../version";
 import { holdsProtectedRole } from "../../governance/engine";
 import { PERMISSIONS, PERMISSIONS_V2, PERMISSIONS_V3, PERMISSIONS_V4 } from "../../governance/catalog";
 import { mediaUrl, type MediaRow } from "../../public/shapes";
-import { authorize, can, eventResource, requireActor, requirePermission } from "../authz";
+import { listingAvatarIdSql } from "../../public/queries";
+import { authorize, can, eventResource, requireActor, requirePermission, scopesFor } from "../authz";
 import type { Ctx } from "../context";
 import { NotFoundError } from "../errors";
-import { listApprovals } from "../services/approvals";
 import { listAssignments, type CommitteeRow } from "../services/committees";
-import { dashboardStats, listContestsAdmin, myNotifications } from "../services/community";
+import { listContestsAdmin, myNotifications } from "../services/community";
 import { getEventForEdit, listRegistrations } from "../services/events";
 import { listPermissions, listPolicies, listPositions, listRules } from "../services/governance";
 import { getPostForEdit } from "../services/posts";
-import { emailEnabled } from "../email";
 import { TRIGGER_EVENTS } from "../triggers";
 
 const ALL_PERMISSION_KEYS = [...PERMISSIONS, ...PERMISSIONS_V2, ...PERMISSIONS_V3, ...PERMISSIONS_V4].map((p) => p.key).filter((k) => k !== "*");
@@ -60,8 +60,12 @@ export async function sessionMe(ctx: Ctx) {
     roles: a.subject.roles,
     positions: a.subject.positions.map((p) => ({ key: p.key, name: positionNames.find((n) => n.key === p.key)?.name ?? p.key })),
     isModerator: holdsProtectedRole(a.subject),
-    adminAccess: active && ADMIN_ENTRY.some((p) => caps[p]),
+    // Club management: a right beyond your own items. Members writing their own posts and events
+    // use those pages without it.
+    adminAccess: active && ADMIN_ENTRY.some((p) => caps[p] && scopesFor(ctx, p).some((g) => g.scope !== "OWN")),
     caps,
+    /** Permissions held club-wide (not only for your own items or a category), for navigation. */
+    wideCaps: Object.fromEntries(Object.keys(caps).filter((k) => caps[k] && scopesFor(ctx, k).some((g) => g.scope === "ALL")).map((k) => [k, true])) as Record<string, true>,
     unread,
     unreadMessages: counts?.messages ?? 0,
     openTasks: counts?.tasks ?? 0,
@@ -70,22 +74,6 @@ export async function sessionMe(ctx: Ctx) {
   };
 }
 export type SessionView = NonNullable<Awaited<ReturnType<typeof sessionMe>>>;
-
-export async function dashboardView(ctx: Ctx) {
-  const { stats, recent, myApprovals } = await dashboardStats(ctx);
-  const pending = can(ctx, "approvals.read") ? (await listApprovals(ctx, {})).filter((r) => r.canDecide).slice(0, 8).map((r) => ({ id: r.id, title: r.title ?? r.action, requester: r.requester_name })) : [];
-  const extra = await ctx.db.first<{ new_messages: number; open_applications: number }>(
-    `SELECT (SELECT COUNT(*) FROM contact_messages WHERE status = 'NEW') AS new_messages,
-            (SELECT COUNT(*) FROM recruitment_applications a JOIN recruitment_campaigns c ON c.id = a.campaign_id AND c.status = 'OPEN' WHERE a.status = 'SUBMITTED') AS open_applications`);
-  return {
-    stats: { ...stats, new_messages: can(ctx, "messages.read") ? extra?.new_messages ?? 0 : 0, open_applications: can(ctx, "recruitment.manage") ? extra?.open_applications ?? 0 : 0 },
-    recent,
-    myApprovals,
-    pending,
-    /** False in no-email mode: sign-ups go straight to approval; resets and invitations are links to share. */
-    emailEnabled: await emailEnabled(ctx),
-  };
-}
 
 export async function committeeView(ctx: Ctx, id: string) {
   requirePermission(ctx, "committees.read");
@@ -102,7 +90,8 @@ export async function committeeView(ctx: Ctx, id: string) {
      FROM profiles pr LEFT JOIN users u ON u.id = pr.user_id WHERE pr.id IN (SELECT profile_id FROM committee_members WHERE committee_id = ?1 AND deleted_at IS NULL)`, id);
   const avatars = await ctx.db.all<MediaRow & { profile_id: string }>(
     `SELECT pr.id AS profile_id, m.id, m.storage, m.object_key, m.legacy_path, m.external_url, m.variants_json
-     FROM committee_members cm JOIN profiles pr ON pr.id = cm.profile_id JOIN media m ON m.id = COALESCE(cm.avatar_media_id, pr.avatar_media_id) AND m.deleted_at IS NULL
+     FROM committee_members cm JOIN committees co ON co.id = cm.committee_id JOIN profiles pr ON pr.id = cm.profile_id
+     JOIN media m ON m.id = ${listingAvatarIdSql("cm", "pr", "co.status")} AND m.deleted_at IS NULL
      WHERE cm.committee_id = ?1 AND cm.deleted_at IS NULL`, id);
   const removed = await ctx.db.all<{ id: string; name: string; position_title: string; deleted_at: string }>(
     `SELECT cm.id, COALESCE(cm.display_name, pr.full_name) AS name, cm.position_title, cm.deleted_at FROM committee_members cm JOIN profiles pr ON pr.id = cm.profile_id
@@ -139,12 +128,21 @@ export async function committeeView(ctx: Ctx, id: string) {
   };
 }
 
+/** The latest decision to send an item back, so its author sees why (and who). */
+async function lastSentBack(ctx: Ctx, type: "post" | "event", id: string) {
+  return ctx.db.first<{ comment: string | null; by: string | null; at: string }>(
+    `SELECT COALESCE(r.resolution_note, (SELECT s.comment FROM approval_steps s WHERE s.request_id = r.id AND s.decision = 'REJECT' ORDER BY s.created_at DESC LIMIT 1)) AS comment,
+            (SELECT p.full_name FROM approval_steps s JOIN profiles p ON p.user_id = s.actor_id WHERE s.request_id = r.id AND s.decision = 'REJECT' ORDER BY s.created_at DESC LIMIT 1) AS by,
+            r.resolved_at AS at
+     FROM approval_requests r WHERE r.resource_type = ?1 AND r.resource_id = ?2 AND r.status = 'REJECTED' ORDER BY r.resolved_at DESC LIMIT 1`, type, id);
+}
+
 export async function eventView(ctx: Ctx, id: string) {
   const data = await getEventForEdit(ctx, id);
   const banner = await mediaRow(ctx, data.event.banner_media_id as string | null);
   const registrations = data.capabilities.registrations ? await listRegistrations(ctx, id) : [];
-  const gallery = await ctx.db.all<MediaRow & { alt_text: string | null; kind: string; media_type: string; original_filename: string | null }>(
-    `SELECT m.id, m.storage, m.object_key, m.legacy_path, m.external_url, m.variants_json, m.alt_text, em.kind, m.media_type, m.original_filename
+  const gallery = await ctx.db.all<MediaRow & { alt_text: string | null; kind: string; media_type: string; original_filename: string | null; uploaded_by: string | null }>(
+    `SELECT m.id, m.storage, m.object_key, m.legacy_path, m.external_url, m.variants_json, m.alt_text, em.kind, m.media_type, m.original_filename, m.uploaded_by
      FROM event_media em JOIN media m ON m.id = em.media_id AND m.deleted_at IS NULL WHERE em.event_id = ?1 AND em.kind <> 'BANNER' ORDER BY em.sort_order`, id);
   const resource = { ...(await eventResource(ctx.db, id))!, type: "event_media" };
   const people = await ctx.db.all<{ id: string; role: string; name: string; title: string | null; user_id: string | null; email: string | null }>(
@@ -154,15 +152,18 @@ export async function eventView(ctx: Ctx, id: string) {
     people,
     bannerUrl: mediaUrl(banner) ?? null,
     registrations,
-    gallery: gallery.map((g) => ({ id: g.id, url: mediaUrl(g, "md") ?? null, thumb: mediaUrl(g, "thumb") ?? null, alt: g.alt_text, kind: g.kind, type: g.media_type, name: g.original_filename })),
+    // Event editors curate the whole gallery; others may remove only what they uploaded (as removeEventMedia checks).
+    gallery: gallery.map((g) => ({ id: g.id, url: mediaUrl(g, "md") ?? null, thumb: mediaUrl(g, "thumb") ?? null, alt: g.alt_text, kind: g.kind, type: g.media_type, name: g.original_filename,
+      canRemove: Boolean(data.capabilities.edit) || (g.uploaded_by !== null && g.uploaded_by === ctx.actor?.user.id) })),
     canUploadGallery: authorize(ctx, "media.upload", resource).outcome === "ALLOW",
+    sentBack: String(data.event.status) === "REJECTED" ? await lastSentBack(ctx, "event", id) : null,
   };
 }
 
 export async function postView(ctx: Ctx, id: string) {
   const data = await getPostForEdit(ctx, id);
   const cover = await mediaRow(ctx, data.post.featured_media_id);
-  return { ...data, coverUrl: mediaUrl(cover) ?? null };
+  return { ...data, coverUrl: mediaUrl(cover) ?? null, sentBack: data.post.status === "REJECTED" ? await lastSentBack(ctx, "post", id) : null };
 }
 
 /** All contests with their teams in two queries (was one query per contest). */
@@ -208,6 +209,7 @@ export async function accountView(ctx: Ctx) {
   const actor = requireActor(ctx);
   const profile = await ctx.db.first<Record<string, string | null>>(
     `SELECT p.id, p.full_name, p.student_id, p.department, p.batch, p.bio, p.linkedin_url, p.github_url, p.facebook_url, p.website_url, p.twitter_url, p.public_email, p.skills_json, p.phone, p.avatar_media_id,
+            p.visibility, p.slug AS handle,
             m.storage, m.object_key, m.legacy_path, m.external_url, m.variants_json
      FROM profiles p LEFT JOIN media m ON m.id = p.avatar_media_id AND m.deleted_at IS NULL WHERE p.user_id = ?1 AND p.deleted_at IS NULL`, actor.user.id);
   const { rows: notifications, unread } = await myNotifications(ctx, 20);
@@ -221,6 +223,8 @@ export async function accountView(ctx: Ctx) {
     : [];
   const account = await ctx.db.first<{ status: string; correction_note: string | null; rejected_reason: string | null; suspended_reason: string | null; email_verified_at: string | null; created_at: string }>(
     "SELECT status, correction_note, rejected_reason, suspended_reason, email_verified_at, created_at FROM users WHERE id = ?1", actor.user.id);
+  // An approved member's page address, made from their name the first time it's needed.
+  if (profile && !profile.handle && account?.status === "ACTIVE") profile.handle = await ensureProfileHandle(ctx, String(profile.id), profile.full_name ?? "member");
   const avatarUrl = profile?.storage ? mediaUrl({ id: String(profile.avatar_media_id), storage: profile.storage as MediaRow["storage"], object_key: profile.object_key, legacy_path: profile.legacy_path, external_url: profile.external_url, variants_json: profile.variants_json }, "sm") ?? null : null;
   let publicProfile: Record<string, string | null> | null = null;
   if (profile) {

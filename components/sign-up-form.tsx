@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Turnstile } from '@/components/turnstile'
 import { registerAction } from '@/app/auth/actions'
+import { PasswordChecklist } from '@/components/password-checklist'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useState, useTransition } from 'react'
@@ -26,6 +27,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
   const [token, setToken] = useState<string | null>(null)
   const [pending, start] = useTransition()
   const onToken = useCallback((t: string | null) => setToken(t), [])
+  const [attempt, setAttempt] = useState(0)
   const router = useRouter()
 
   const handleSignUp = (e: React.FormEvent) => {
@@ -37,15 +39,23 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
     }
     start(async () => {
       const res = await registerAction({ email, password, fullName, studentId: studentId || undefined, department: department || undefined, batch: batch || undefined, phone: phone || undefined, turnstileToken: token ?? undefined })
-      if (res.ok) router.push(res.data?.emailSent === false ? '/auth/sign-up-success?review=1' : '/auth/sign-up-success')
-      else {
+      if (res.ok) {
+        // The next page shows the address used and offers to resend the link.
+        try { sessionStorage.setItem('gucc-signup', JSON.stringify({ email, message: res.data?.message ?? null, at: Date.now() })) } catch { /* private mode */ }
+        router.push(res.data?.emailSent === false ? '/auth/sign-up-success?review=1' : '/auth/sign-up-success')
+      } else {
         setError(res.error)
         setFields(res.fields ?? {})
+        setAttempt((n) => n + 1)
+        // Take the person to the first field that needs fixing.
+        const first = Object.keys(res.fields ?? {})[0]
+        const ids: Record<string, string> = { fullName: 'full-name', studentId: 'student-id', email: 'email', password: 'password', batch: 'batch', phone: 'phone', department: 'department' }
+        if (first && ids[first]) requestAnimationFrame(() => document.getElementById(ids[first]!)?.focus())
       }
     })
   }
 
-  const hint = (k: string) => (fields[k] ? <p className="text-sm text-red-500">{fields[k]}</p> : null)
+  const hint = (k: string) => (fields[k] ? <p id={`${k}-error`} className="text-sm text-destructive">{fields[k]}</p> : null)
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
@@ -63,14 +73,15 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
                 {hint('fullName')}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="student-id">Student ID</Label>
+                <Label htmlFor="student-id">Student ID <span className="font-normal text-muted-foreground">(optional)</span></Label>
                 <Input id="student-id" type="text" inputMode="numeric" placeholder="9 digits, e.g. 232002184" maxLength={9} value={studentId} onChange={(e) => setStudentId(e.target.value.replace(/\D/g, ''))} aria-invalid={Boolean(fields.studentId)} />
                 {hint('studentId')}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-2">
                   <Label htmlFor="department">Department</Label>
-                  <Input id="department" type="text" placeholder="CSE" autoComplete="organization-title" value={department} onChange={(e) => setDepartment(e.target.value)} />
+                  <Input id="department" type="text" placeholder="CSE" autoComplete="organization-title" value={department} onChange={(e) => setDepartment(e.target.value)} aria-invalid={Boolean(fields.department)} />
+                  {hint('department')}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="batch">Batch</Label>
@@ -92,16 +103,17 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
               <div className="grid gap-2">
                 <Label htmlFor="password">Password</Label>
                 <PasswordInput id="password" required autoComplete="new-password" minLength={10} value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={Boolean(fields.password)} aria-describedby="pw-hint" />
-                <p id="pw-hint" className="text-xs text-muted-foreground">At least 10 characters.</p>
+                <PasswordChecklist id="pw-hint" password={password} email={email} />
                 {hint('password')}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="repeat-password">Repeat Password</Label>
-                <PasswordInput id="repeat-password" required autoComplete="new-password" value={repeatPassword} onChange={(e) => setRepeatPassword(e.target.value)} />
+                <PasswordInput id="repeat-password" required autoComplete="new-password" value={repeatPassword} onChange={(e) => setRepeatPassword(e.target.value)} aria-invalid={Boolean(fields.repeatPassword)} />
+                {repeatPassword && password !== repeatPassword && !fields.repeatPassword && <p className="text-xs text-muted-foreground">Doesn&apos;t match yet.</p>}
                 {hint('repeatPassword')}
               </div>
-              <Turnstile onToken={onToken} />
-              {error && <p className="text-sm text-red-500" role="alert">{error}</p>}
+              <Turnstile onToken={onToken} resetKey={attempt} />
+              {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
               <Button type="submit" className="w-full" disabled={pending}>
                 {pending ? 'Creating an account...' : 'Sign up'}
               </Button>

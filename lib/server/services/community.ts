@@ -7,13 +7,15 @@ import { auditStmt } from "../audit";
 import { authorize, requireActor, requirePermission } from "../authz";
 import type { Ctx } from "../context";
 import { newId, nowIso } from "../db";
-import { AppError, ConflictError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
+import { AppError, AuthRequiredError, ConflictError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
+import { avatarOfUserSql, avatarUrl } from "../avatar";
 import { getOrgSetting } from "../security";
 import { notifyStmts, usersWithPermission } from "../notifications";
 import { sendToPerson } from "./messaging";
 import { toSlug, Validator } from "../validate";
 import { TAGS } from "./cache-tags";
 import { takeDownIfUnused } from "./media";
+import { safeLocalPath } from "../../safe-path";
 
 // ───────────────────────────── external forms ─────────────────────────────
 
@@ -170,7 +172,7 @@ export async function setLostFoundStatus(ctx: Ctx, id: string, status: "pending"
       type: `lostfound.${status}`,
       title: status === "active" ? `Your lost & found post is live: ${post.title}` : `Your lost & found post needs changes: ${post.title}`,
       body: note ?? undefined,
-      link: "/lost-found",
+      link: status === "active" ? "/lost-found" : "/lost-found#mine",
     }) : []),
   ]);
 }
@@ -184,7 +186,7 @@ export async function removeLostFoundImage(ctx: Ctx, id: string) {
     ctx.db.stmt("UPDATE lost_found_posts SET image_media_id = NULL, image_url = NULL, updated_at = ?2 WHERE id = ?1", id, nowIso()),
     ctx.db.stmt("DELETE FROM media_references WHERE resource_type = 'lost_found' AND resource_id = ?1", id),
     auditStmt(ctx, { action: "lostfound.image_removed", resourceType: "lost_found", resourceId: id }),
-    ...notifyStmts(ctx, [post.user_id], { type: "lostfound.image_removed", title: `A moderator removed the photo from your post: ${post.title}`, body: "Photos mustn't show ID numbers or other private details.", link: "/lost-found" }),
+    ...notifyStmts(ctx, [post.user_id], { type: "lostfound.image_removed", title: `A moderator removed the photo from your post: ${post.title}`, body: "Photos mustn't show ID numbers or other private details.", link: "/lost-found#mine" }),
   ]);
   // The photo's public URL must stop working too, not just disappear from the post.
   await takeDownIfUnused(ctx, post.image_media_id, "Removed by a lost & found moderator");
@@ -204,19 +206,24 @@ export async function reportLostFound(ctx: Ctx, id: string, reasonRaw: unknown) 
     ctx.db.stmt("INSERT INTO reports (id, resource_type, resource_id, reporter_id, reason, snapshot, created_at) VALUES (?1, 'lost_found_post', ?2, ?3, ?4, ?5, ?6) ON CONFLICT DO NOTHING",
       newId("rep"), id, actor.user.id, reason, `${post.title}\n\n${post.description}`.slice(0, 4000), nowIso()),
     auditStmt(ctx, { action: "lostfound.report", resourceType: "lost_found", resourceId: id, reason }),
-    ...notifyStmts(ctx, moderators, { type: "report.new", title: "A lost & found post was reported", body: reason.slice(0, 140), link: "/dashboard/reports" }),
+    ...notifyStmts(ctx, moderators, { type: "report.new", title: `Lost & found post reported: ${post.title}`.slice(0, 200), body: reason.slice(0, 140), link: "/dashboard/reports" }),
   ]);
 }
 
 export async function deleteLostFound(ctx: Ctx, id: string) {
   const actor = requireActor(ctx);
-  const post = await ctx.db.first<{ user_id: string }>("SELECT user_id FROM lost_found_posts WHERE id = ?1 AND deleted_at IS NULL", id);
+  const post = await ctx.db.first<{ user_id: string; title: string }>("SELECT user_id, title FROM lost_found_posts WHERE id = ?1 AND deleted_at IS NULL", id);
   if (!post) throw new NotFoundError("Post");
   if (post.user_id !== actor.user.id && authorize(ctx, "lostfound.moderate").outcome !== "ALLOW") throw new ForbiddenError("You can only remove your own posts.");
+  const now = nowIso();
   await ctx.db.batch([
-    ctx.db.stmt("UPDATE lost_found_posts SET deleted_at = ?2, updated_at = ?2 WHERE id = ?1", id, nowIso()),
+    ctx.db.stmt("UPDATE lost_found_posts SET deleted_at = ?2, updated_at = ?2 WHERE id = ?1", id, now),
     ctx.db.stmt("DELETE FROM media_references WHERE resource_type = 'lost_found' AND resource_id = ?1", id),
+    // Open reports about it are settled: the post is gone.
+    ctx.db.stmt("UPDATE reports SET status = 'ACTIONED', handled_by = ?2, handled_at = ?3, note = 'Post removed' WHERE resource_type = 'lost_found_post' AND resource_id = ?1 AND status = 'OPEN'", id, actor.user.id, now),
     auditStmt(ctx, { action: "lostfound.delete", resourceType: "lost_found", resourceId: id }),
+    // A moderator removed someone else's post: the owner is told, rather than finding it gone.
+    ...(post.user_id !== actor.user.id ? notifyStmts(ctx, [post.user_id], { type: "lostfound.removed", title: `A moderator removed your lost & found post: ${post.title}`.slice(0, 200), body: "It broke the board's rules. You can post again with the details fixed.", link: "/lost-found#mine" }) : []),
   ]);
 }
 
@@ -341,17 +348,29 @@ export async function saveContest(ctx: Ctx, id: string | null, input: Record<str
 
 // ───────────────────────────── notifications ─────────────────────────────
 
-/** Newest first. `before` is the created_at of the last row already shown (keyset paging). */
+/** Newest first, with who caused each one (name and photo; none for the club's own notices). `before` is the created_at of the last row already shown (keyset paging). */
 export async function myNotifications(ctx: Ctx, limit = 30, opts: { unreadOnly?: boolean; before?: string | null } = {}) {
   const actor = requireActor(ctx);
   const before = opts.before && /^\d{4}-\d{2}-\d{2}T/.test(opts.before) ? opts.before : null;
-  const rows = await ctx.db.all<{ id: string; type: string; title: string; body: string | null; link: string | null; read_at: string | null; created_at: string }>(
-    `SELECT id, type, title, body, link, read_at, created_at FROM notifications
-     WHERE user_id = ?1 AND (?3 = 0 OR read_at IS NULL) AND (?4 IS NULL OR created_at < ?4)
-     ORDER BY created_at DESC LIMIT ?2`, actor.user.id, limit + 1, opts.unreadOnly ? 1 : 0, before);
-  const unread = (await ctx.db.value<number>("SELECT COUNT(*) FROM notifications WHERE user_id = ?1 AND read_at IS NULL", actor.user.id)) ?? 0;
+  const rows = await ctx.db.all<{ id: string; type: string; title: string; body: string | null; link: string | null; read_at: string | null; created_at: string; actor_id: string | null; actor_name: string | null; avatar_json: string | null; unread_total: number }>(
+    `SELECT n.id, n.type, n.title, n.body, n.link, n.read_at, n.created_at, n.actor_user_id AS actor_id,
+            CASE WHEN n.actor_user_id IS NULL OR n.actor_user_id = n.user_id THEN NULL
+                 ELSE (SELECT CASE WHEN u.deleted_at IS NOT NULL THEN 'Former member' ELSE COALESCE(p.full_name, 'A member') END
+                       FROM users u LEFT JOIN profiles p ON p.user_id = u.id AND p.deleted_at IS NULL WHERE u.id = n.actor_user_id) END AS actor_name,
+            CASE WHEN n.actor_user_id IS NULL OR n.actor_user_id = n.user_id THEN NULL ELSE ${avatarOfUserSql("n.actor_user_id")} END AS avatar_json,
+            (SELECT COUNT(*) FROM notifications x WHERE x.user_id = ?1 AND x.read_at IS NULL) AS unread_total
+     FROM notifications n
+     WHERE n.user_id = ?1 AND (?3 = 0 OR n.read_at IS NULL) AND (?4 IS NULL OR n.created_at < ?4)
+     ORDER BY n.created_at DESC LIMIT ?2`, actor.user.id, limit + 1, opts.unreadOnly ? 1 : 0, before);
+  const unread = rows[0]?.unread_total ?? ((await ctx.db.value<number>("SELECT COUNT(*) FROM notifications WHERE user_id = ?1 AND read_at IS NULL", actor.user.id)) ?? 0);
   const more = rows.length > limit;
-  return { rows: rows.slice(0, limit), unread, next: more ? rows[limit - 1]!.created_at : null };
+  return {
+    rows: rows.slice(0, limit).map(({ avatar_json, actor_name, actor_id: _a, unread_total: _u, ...r }) => ({
+      ...r, link: r.link ? safeNotificationLink(r.link) : null, actor: actor_name ? { name: actor_name, avatarUrl: avatarUrl(avatar_json) } : null,
+    })),
+    unread,
+    next: more ? rows[limit - 1]!.created_at : null,
+  };
 }
 
 export async function markNotificationsRead(ctx: Ctx, ids: string[] | "all") {
@@ -361,9 +380,51 @@ export async function markNotificationsRead(ctx: Ctx, ids: string[] | "all") {
   else await ctx.db.run("UPDATE notifications SET read_at = ?3 WHERE user_id = ?2 AND read_at IS NULL AND id IN (SELECT value FROM json_each(?1))", JSON.stringify(ids.slice(0, 100)), actor.user.id, now);
 }
 
+/** Undo: back to unread (your own notifications only). */
+export async function markNotificationUnread(ctx: Ctx, id: string): Promise<void> {
+  const actor = requireActor(ctx);
+  await ctx.db.run("UPDATE notifications SET read_at = NULL WHERE id = ?1 AND user_id = ?2", id, actor.user.id);
+}
+
+/** The signed-in account from the session alone (light procedures skip loading permissions). */
+function sessionUserId(ctx: Ctx): string {
+  const id = ctx.session?.userId ?? ctx.actor?.user.id;
+  if (!id) throw new AuthRequiredError();
+  return id;
+}
+
+/**
+ * Opening a page clears the notifications that point to exactly that page (the approval, the
+ * task, the chat thread…): you've seen what they were about. One statement, only when there is
+ * something unread; answered from the session alone.
+ */
+export async function markSeenAtPath(ctx: Ctx, rawPath: unknown): Promise<{ cleared: number }> {
+  const userId = sessionUserId(ctx);
+  const path = typeof rawPath === "string" ? rawPath.split("#")[0]!.slice(0, 500) : "";
+  if (!path.startsWith("/dashboard/") || path.startsWith("/dashboard/notifications")) return { cleared: 0 };
+  // The page with or without its query ("/dashboard/members?status=…" and "/dashboard/tasks/…").
+  const bare = path.split("?")[0]!;
+  const cleared = await ctx.db.run("UPDATE notifications SET read_at = ?4 WHERE user_id = ?1 AND read_at IS NULL AND link IN (?2, ?3)", userId, path, bare, nowIso());
+  return { cleared };
+}
+
+/**
+ * The live badges (unread notifications, unread conversations, open tasks) in one statement,
+ * answered from the session alone, so pages can keep them current cheaply.
+ */
+export async function sessionCounts(ctx: Ctx): Promise<{ unread: number; unreadMessages: number; openTasks: number }> {
+  const userId = sessionUserId(ctx);
+  const r = await ctx.db.first<{ unread: number; messages: number; tasks: number }>(
+    `SELECT (SELECT COUNT(*) FROM notifications WHERE user_id = ?1 AND read_at IS NULL) AS unread,
+            (SELECT COUNT(*) FROM tasks WHERE assignee_user_id = ?1 AND deleted_at IS NULL AND status IN ('OPEN','IN_PROGRESS')) AS tasks,
+            (SELECT COUNT(*) FROM conversation_members me JOIN conversations c ON c.id = me.conversation_id
+              WHERE me.user_id = ?1 AND me.archived_at IS NULL AND me.muted = 0 AND c.last_message_at > COALESCE(me.last_read_at, '')) AS messages`, userId);
+  return { unread: r?.unread ?? 0, unreadMessages: r?.messages ?? 0, openTasks: r?.tasks ?? 0 };
+}
+
 /** Only paths on this site: a notification never sends anyone elsewhere. */
 export function safeNotificationLink(link: string | null | undefined): string {
-  return link && link.startsWith("/") && !link.startsWith("//") && !link.startsWith("/\\") && link.length <= 500 ? link : "/dashboard/notifications";
+  return safeLocalPath(link, "/dashboard/notifications");
 }
 
 /** Opening a notification marks it read and returns where it points (your own notifications only). */
@@ -375,78 +436,41 @@ export async function openNotification(ctx: Ctx, id: string, markRead = true): P
   return { link: safeNotificationLink(row?.link) };
 }
 
+/** Who an announcement goes to (never back to its sender). */
+const audienceSql = (audience: "members" | "executives") => audience === "executives"
+  ? `SELECT DISTINCT pr.user_id AS id FROM committee_members cm JOIN profiles pr ON pr.id = cm.profile_id AND pr.user_id IS NOT NULL
+     JOIN committees c ON c.id = cm.committee_id AND c.status = 'CURRENT' JOIN users u ON u.id = pr.user_id AND u.status = 'ACTIVE' WHERE cm.is_active = 1 AND cm.deleted_at IS NULL`
+  : "SELECT id FROM users WHERE status = 'ACTIVE' AND deleted_at IS NULL";
+
+/** How many people each audience reaches now (for the "send to N people" confirmation). */
+export async function broadcastAudiences(ctx: Ctx): Promise<{ members: number; executives: number }> {
+  const actor = requireActor(ctx);
+  requirePermission(ctx, "notifications.send");
+  const r = await ctx.db.first<{ members: number; executives: number }>(
+    `SELECT (SELECT COUNT(*) FROM (${audienceSql("members")}) a WHERE a.id <> ?1) AS members, (SELECT COUNT(*) FROM (${audienceSql("executives")}) a WHERE a.id <> ?1) AS executives`, actor.user.id);
+  return { members: r?.members ?? 0, executives: r?.executives ?? 0 };
+}
+
 export async function broadcast(ctx: Ctx, input: { title: string; body: string; link?: string; audience: "members" | "executives" }) {
   const decision = requirePermission(ctx, "notifications.send");
   const v = new Validator(input as unknown as Record<string, unknown>);
   const title = v.string("title", { required: true, max: 120, label: "Title" });
   const body = v.string("body", { required: true, max: 1000, label: "Message" });
+  // Notifications open pages on this site only.
+  const link = input.link?.trim() ? safeLocalPath(input.link.trim(), "") : null;
+  if (input.link?.trim() && !link) v.errors.link = "Use a page on this site, starting with / (for example /events/workshop).";
   v.done();
-  const sql = input.audience === "executives"
-    ? `SELECT DISTINCT pr.user_id AS id FROM committee_members cm JOIN profiles pr ON pr.id = cm.profile_id AND pr.user_id IS NOT NULL
-       JOIN committees c ON c.id = cm.committee_id AND c.status = 'CURRENT' JOIN users u ON u.id = pr.user_id AND u.status = 'ACTIVE' WHERE cm.is_active = 1 AND cm.deleted_at IS NULL`
-    : "SELECT id FROM users WHERE status = 'ACTIVE' AND deleted_at IS NULL";
+  const sql = `SELECT id FROM (${audienceSql(input.audience === "executives" ? "executives" : "members")}) WHERE id IS NOT ?5`;
   // One statement for every recipient: D1 counts statements per Worker invocation.
   const recipients = await ctx.db.run(
-    `INSERT INTO notifications (id, user_id, type, title, body, link, channel, created_at)
-     SELECT 'ntf_' || lower(hex(randomblob(16))), a.id, 'broadcast', ?1, ?2, ?3, 'IN_APP', ?4 FROM (${sql}) AS a`,
-    title, body, input.link ?? null, nowIso());
+    `INSERT INTO notifications (id, user_id, type, title, body, link, channel, created_at, actor_user_id)
+     SELECT 'ntf_' || lower(hex(randomblob(16))), a.id, 'broadcast', ?1, ?2, ?3, 'IN_APP', ?4, ?5 FROM (${sql}) AS a`,
+    title, body, link, nowIso(), ctx.actor?.user.id ?? null);
   await auditStmt(ctx, { action: "notification.broadcast", after: { title, audience: input.audience, recipients }, decision }).run();
   return { sent: recipients };
 }
 
-// ───────────────────────────── audit & dashboard ─────────────────────────────
-
-export async function listAudit(ctx: Ctx, opts: { actor?: string; action?: string; resource?: string; from?: string; to?: string; page?: number }) {
-  requirePermission(ctx, "audit.read");
-  const page = Math.max(1, opts.page ?? 1);
-  return ctx.db.all<{ id: string; actor_label: string | null; action: string; resource_type: string | null; resource_id: string | null; reason: string | null; request_id: string | null; created_at: string; before_json: string | null; after_json: string | null; decision_json: string | null }>(
-    `SELECT id, actor_label, action, resource_type, resource_id, reason, request_id, created_at, before_json, after_json, decision_json FROM audit_logs
-     WHERE (?1 IS NULL OR actor_label LIKE ?1) AND (?2 IS NULL OR action LIKE ?2) AND (?3 IS NULL OR resource_type = ?3 OR resource_id = ?3)
-       AND (?4 IS NULL OR created_at >= ?4) AND (?5 IS NULL OR created_at <= ?5)
-     ORDER BY created_at DESC LIMIT 50 OFFSET ?6`,
-    opts.actor ? `%${opts.actor}%` : null, opts.action ? `${opts.action}%` : null, opts.resource ?? null, opts.from ?? null, opts.to ? `${opts.to}T23:59:59Z` : null, (page - 1) * 50,
-  );
-}
-
-export async function dashboardStats(ctx: Ctx) {
-  const actor = requireActor(ctx);
-  const can = (p: string) => authorize(ctx, p).outcome !== "DENY";
-  const row = await ctx.db.first<Record<string, number | string | null>>(
-    `SELECT
-       (SELECT COUNT(*) FROM users WHERE status = 'PENDING_APPROVAL' AND deleted_at IS NULL) AS pending_members,
-       (SELECT COUNT(*) FROM users WHERE status = 'ACTIVE' AND deleted_at IS NULL) AS active_members,
-       (SELECT COUNT(*) FROM users WHERE deleted_at IS NULL AND status NOT IN ('REGISTERED','ARCHIVED')) AS total_members,
-       (SELECT COUNT(*) FROM users WHERE status = 'SUSPENDED' AND deleted_at IS NULL) AS suspended_members,
-       (SELECT COUNT(*) FROM users WHERE status = 'EMAIL_VERIFICATION_PENDING' AND deleted_at IS NULL) AS unverified_members,
-       (SELECT COUNT(DISTINCT cm.position_id) FROM committee_members cm JOIN committees c ON c.id = cm.committee_id AND c.status = 'CURRENT' WHERE cm.deleted_at IS NULL AND cm.is_active = 1) AS active_positions,
-       (SELECT COUNT(*) FROM committee_members cm JOIN committees c ON c.id = cm.committee_id AND c.status = 'CURRENT' WHERE cm.deleted_at IS NULL) AS committee_size,
-       (SELECT COUNT(*) FROM events WHERE deleted_at IS NULL AND status = 'ONGOING') AS ongoing_events,
-       (SELECT COUNT(*) FROM events WHERE deleted_at IS NULL AND status = 'COMPLETED') AS completed_events,
-       (SELECT COUNT(*) FROM event_registrations WHERE status IN ('REGISTERED','ATTENDED')) AS total_registrations,
-       (SELECT COUNT(*) FROM posts WHERE status = 'PUBLISHED' AND deleted_at IS NULL) AS published_posts,
-       (SELECT COUNT(*) FROM recruitment_campaigns WHERE status = 'OPEN') AS open_campaigns,
-       (SELECT COUNT(*) FROM recruitment_applications a JOIN recruitment_campaigns c ON c.id = a.campaign_id AND c.status = 'OPEN') AS campaign_applications,
-       (SELECT COUNT(*) FROM recruitment_applications a JOIN recruitment_campaigns c ON c.id = a.campaign_id AND c.status = 'OPEN' WHERE a.status = 'SUBMITTED') AS pending_reviews,
-       (SELECT COUNT(*) FROM approval_requests WHERE status = 'PENDING') AS pending_approvals,
-       (SELECT name FROM committees WHERE status = 'CURRENT' AND deleted_at IS NULL) AS current_committee,
-       (SELECT COUNT(*) FROM committee_members cm JOIN committees c ON c.id = cm.committee_id AND c.status = 'CURRENT' WHERE cm.deleted_at IS NULL AND cm.is_active = 1) AS active_executives,
-       (SELECT COUNT(*) FROM events WHERE deleted_at IS NULL AND status IN ('PUBLISHED','ONGOING') AND start_at >= date('now')) AS upcoming_events,
-       (SELECT COUNT(*) FROM event_registrations r JOIN events e ON e.id = r.event_id WHERE e.start_at >= date('now') AND r.status = 'REGISTERED') AS upcoming_registrations,
-       (SELECT COUNT(*) FROM posts WHERE status = 'DRAFT' AND deleted_at IS NULL) AS drafts,
-       (SELECT COUNT(*) FROM posts WHERE status = 'PENDING_APPROVAL' AND deleted_at IS NULL) AS pending_posts,
-       (SELECT COUNT(*) FROM events WHERE status = 'PENDING_APPROVAL' AND deleted_at IS NULL) AS pending_events,
-       (SELECT COUNT(*) FROM media WHERE deleted_at IS NULL) AS media_files,
-       (SELECT COALESCE(SUM(size_bytes), 0) FROM media WHERE deleted_at IS NULL AND storage = 'R2') AS r2_bytes,
-       (SELECT COUNT(*) FROM media WHERE deleted_at IS NULL AND storage = 'STATIC') AS static_media,
-       (SELECT COUNT(*) FROM rules WHERE status = 'ACTIVE' AND deleted_at IS NULL) AS active_rules`,
-  );
-  const recent = can("audit.read")
-    ? await ctx.db.all<{ action: string; actor_label: string | null; created_at: string; resource_type: string | null }>("SELECT action, actor_label, created_at, resource_type FROM audit_logs ORDER BY created_at DESC LIMIT 10")
-    : [];
-  const myApprovals = await ctx.db.all<{ id: string; title: string | null; created_at: string }>(
-    "SELECT id, title, created_at FROM approval_requests WHERE status = 'PENDING' AND requested_by = ?1 ORDER BY created_at DESC LIMIT 5", actor.user.id);
-  return { stats: row ?? {}, recent, myApprovals };
-}
+// ───────────────────────────── audit ─────────────────────────────
 
 /** Sign-in activity (successful and failed logins, lockouts, resets) for security review. */
 export async function listAuthEvents(ctx: Ctx, opts: { q?: string; event?: string; page?: number }) {

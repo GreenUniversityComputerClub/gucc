@@ -14,13 +14,15 @@ import { assertNotSelf } from "../../governance/invariants";
 import { holdsProtectedRole } from "../../governance/engine";
 import { auditStmt } from "../audit";
 import { authorize, requireActor, HAS_MODERATOR_AUTHORITY_SQL } from "../authz";
-import type { Ctx } from "../context";
+import { siteUrl, type Ctx } from "../context";
 import { randomToken, sha256Hex } from "../crypto";
 import { newId, nowIso } from "../db";
 import { AppError, ConflictError, ForbiddenError, NotFoundError } from "../errors";
 import { deliverEmail, requireRecentAuth } from "../security";
 import { STUDENT_ID_RE, Validator } from "../validate";
 import { EMAIL_SENDER } from "../../email-hint";
+import { cleanPublicEmail, keepFramingIfSame, mergedListingsStmt, photoChangedStmt, PROFILE_TAGS } from "../people-sync";
+import { avatarOfProfileSql, withAvatars } from "../avatar";
 
 const INVITE_DAYS = 14;
 
@@ -44,21 +46,22 @@ export interface PersonRow {
   email: string | null;
   account_status: string | null;
   avatar_media_id: string | null;
-  avatar_key: string | null;
-  avatar_legacy: string | null;
+  /** Small version of the profile photo (null when there is none). */
+  avatarUrl: string | null;
   roles_held: string | null;
   invite_pending: number;
 }
 
 const PERSON_SELECT = `
   SELECT pr.id, pr.full_name, pr.student_id, pr.person_type, pr.designation, pr.department, pr.user_id, u.email, u.status AS account_status,
-         pr.avatar_media_id, m.object_key AS avatar_key, m.legacy_path AS avatar_legacy,
+         pr.avatar_media_id, ${avatarOfProfileSql("pr")} AS avatar_json,
          (SELECT group_concat(DISTINCT cm.position_title) FROM committee_members cm JOIN committees c ON c.id = cm.committee_id AND c.status = 'CURRENT'
             WHERE cm.profile_id = pr.id AND cm.deleted_at IS NULL AND cm.is_active = 1) AS roles_held,
          EXISTS (SELECT 1 FROM auth_tokens t WHERE t.user_id = pr.user_id AND t.purpose = 'INVITE' AND t.used_at IS NULL AND t.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now')) AS invite_pending
   FROM profiles pr
-  LEFT JOIN users u ON u.id = pr.user_id AND u.deleted_at IS NULL
-  LEFT JOIN media m ON m.id = pr.avatar_media_id AND m.deleted_at IS NULL`;
+  LEFT JOIN users u ON u.id = pr.user_id AND u.deleted_at IS NULL`;
+
+type PersonQueryRow = Omit<PersonRow, "avatarUrl"> & { avatar_json: string | null };
 
 /** Search by name, student ID or account email. Used by every person picker in the admin. */
 export async function searchPeople(ctx: Ctx, input: { q?: string; withAccount?: boolean; limit?: number }) {
@@ -70,12 +73,12 @@ export async function searchPeople(ctx: Ctx, input: { q?: string; withAccount?: 
   const q = String(input.q ?? "").trim().replace(/[%_]/g, "").slice(0, 60);
   if (q.length < 2) return [];
   const like = `%${q}%`;
-  const rows = await ctx.db.all<PersonRow>(
+  const rows = withAvatars(await ctx.db.all<PersonQueryRow>(
     `${PERSON_SELECT}
      WHERE pr.deleted_at IS NULL AND (pr.full_name LIKE ?1 OR pr.student_id LIKE ?1 OR (?5 = 1 AND u.email LIKE ?1)) AND (?2 = 0 OR pr.user_id IS NOT NULL)
      ORDER BY (pr.user_id IS NULL), (pr.full_name LIKE ?3) DESC, pr.full_name LIMIT ?4`,
     like, input.withAccount ? 1 : 0, `${q}%`, Math.min(Math.max(Number(input.limit) || 12, 1), 30), seeEmail ? 1 : 0,
-  );
+  )) as PersonRow[];
   return seeEmail ? rows : rows.map((r) => ({ ...r, email: null }));
 }
 
@@ -84,13 +87,13 @@ export async function listPeople(ctx: Ctx, input: { q?: string; filter?: string;
   const page = Math.max(1, Number(input.page) || 1);
   const q = input.q ? `%${String(input.q).replace(/[%_]/g, "").slice(0, 60)}%` : null;
   const filter = ["executives", "faculty", "accounts", "no-account", "invited"].includes(String(input.filter)) ? String(input.filter) : "";
-  const rows = await ctx.db.all<PersonRow>(
+  const rows = withAvatars(await ctx.db.all<PersonQueryRow>(
     `SELECT * FROM (${PERSON_SELECT} WHERE pr.deleted_at IS NULL AND (?1 IS NULL OR pr.full_name LIKE ?1 OR pr.student_id LIKE ?1 OR u.email LIKE ?1)) x
      WHERE (?2 = '' OR (?2 = 'executives' AND x.roles_held IS NOT NULL) OR (?2 = 'faculty' AND x.person_type = 'FACULTY')
             OR (?2 = 'accounts' AND x.user_id IS NOT NULL) OR (?2 = 'no-account' AND x.user_id IS NULL) OR (?2 = 'invited' AND x.invite_pending = 1))
      ORDER BY (x.roles_held IS NULL), x.full_name LIMIT 40 OFFSET ?3`,
     q, filter, (page - 1) * 40,
-  );
+  )) as PersonRow[];
   return { rows, page, hasMore: rows.length === 40 };
 }
 
@@ -131,7 +134,7 @@ async function assertMayEditPerson(ctx: Ctx, profileId: string) {
 }
 
 function personInput(input: Record<string, unknown>) {
-  const v = new Validator(input);
+  const v = new Validator({ ...input, publicEmail: cleanPublicEmail(input.publicEmail) });
   const d = {
     full_name: v.string("fullName", { required: true, min: 2, max: 100, label: "Name" }),
     person_type: v.oneOf("personType", ["STUDENT", "FACULTY", "ALUMNI", "EXTERNAL"] as const, { label: "Type" }) ?? "STUDENT",
@@ -195,18 +198,20 @@ export async function updatePerson(ctx: Ctx, id: string, input: Record<string, u
   await checkStudentId(ctx, d.student_id, id);
   await checkAvatar(ctx, d.avatar_media_id);
   const fresh = await unchangedSince(ctx, "profiles", id, input.expectedUpdatedAt);
+  const now = nowIso();
   await batchTransition(ctx, [
     ...fresh,
+    photoChangedStmt(ctx, id, d.avatar_media_id, now),
     ctx.db.stmt(
-      `UPDATE profiles SET full_name = ?2, person_type = ?3, student_id = ?4, department = ?5, batch = ?6, designation = ?7, bio = ?8, public_email = ?9,
+      `UPDATE profiles SET ${keepFramingIfSame("?15")}, full_name = ?2, person_type = ?3, student_id = ?4, department = ?5, batch = ?6, designation = ?7, bio = ?8, public_email = ?9,
               linkedin_url = ?10, github_url = ?11, twitter_url = ?12, facebook_url = ?13, website_url = ?14, avatar_media_id = ?15, updated_at = ?16, updated_by = ?17
        WHERE id = ?1`,
       id, d.full_name, d.person_type, d.student_id, d.department, d.batch, d.designation, d.bio, d.public_email, d.linkedin_url, d.github_url, d.twitter_url,
-      d.facebook_url, d.website_url, d.avatar_media_id, nowIso(), actor.user.id,
+      d.facebook_url, d.website_url, d.avatar_media_id, now, actor.user.id,
     ),
     auditStmt(ctx, { action: "profile.update", resourceType: "profile", resourceId: id, before, after: d, decision }),
   ], () => staleAnswer(ctx, "profiles", id));
-  ctx.revalidate?.(["committees"]);
+  ctx.revalidate?.(PROFILE_TAGS);
 }
 
 /** Members set their own photo from /account (any image they uploaded as an avatar). */
@@ -218,11 +223,15 @@ export async function setOwnAvatar(ctx: Ctx, mediaId: string | null): Promise<vo
     if (!m || m.uploaded_by !== actor.user.id) throw new ForbiddenError("Upload the photo from this page first.");
     await checkAvatar(ctx, mediaId);
   }
+  const now = nowIso();
   await ctx.db.batch([
-    ctx.db.stmt("UPDATE profiles SET avatar_media_id = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1", actor.profile.id, mediaId, nowIso(), actor.user.id),
+    // A new photo starts unzoomed: the old framing belonged to the old picture.
+    photoChangedStmt(ctx, actor.profile.id, mediaId, now),
+    ctx.db.stmt(`UPDATE profiles SET ${keepFramingIfSame("?2")}, avatar_media_id = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1`,
+      actor.profile.id, mediaId, now, actor.user.id),
     auditStmt(ctx, { action: "profile.avatar", resourceType: "profile", resourceId: actor.profile.id, after: { mediaId } }),
   ]);
-  ctx.revalidate?.(["committees"]);
+  ctx.revalidate?.(PROFILE_TAGS);
 }
 
 /**
@@ -276,7 +285,7 @@ export async function invitePerson(ctx: Ctx, profileId: string, emailRaw: string
     auditStmt(ctx, { action: "profile.invite", resourceType: "profile", resourceId: profileId, after: { email, userId }, decision }),
   );
   await ctx.db.batch(stmts);
-  const base = (ctx.env.PUBLIC_BASE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+  const base = siteUrl(ctx);
   const inviter = actor.profile?.full_name ?? "A club administrator";
   const link = `${base}/auth/accept-invite?token=${token}`;
   const sent = await deliverEmail(ctx, {
@@ -322,6 +331,7 @@ export async function mergePeople(ctx: Ctx, keepId: string, dropId: string, reas
       `UPDATE committee_members SET deleted_at = ?3, is_active = 0, updated_at = ?3 WHERE profile_id = ?2 AND deleted_at IS NULL AND EXISTS (
          SELECT 1 FROM committee_members k WHERE k.profile_id = ?1 AND k.committee_id = committee_members.committee_id AND k.position_id = committee_members.position_id
            AND IFNULL(k.unit_key, '') = IFNULL(committee_members.unit_key, '') AND k.deleted_at IS NULL)`, keep.id, drop.id, now)] : []),
+    mergedListingsStmt(ctx, drop.id, drop.full_name, Boolean(keep.avatar_media_id), now),
     ctx.db.stmt("UPDATE committee_members SET profile_id = ?1, updated_at = ?3, updated_by = ?4 WHERE profile_id = ?2", keep.id, drop.id, now, actor.user.id),
     ctx.db.stmt("UPDATE event_people SET profile_id = ?1 WHERE profile_id = ?2", keep.id, drop.id),
     ctx.db.stmt("UPDATE posts SET author_profile_id = ?1 WHERE author_profile_id = ?2", keep.id, drop.id),
@@ -329,11 +339,19 @@ export async function mergePeople(ctx: Ctx, keepId: string, dropId: string, reas
     // The duplicate gives up its unique fields first (student ID, account), then fills the kept profile's gaps.
     ctx.db.stmt("UPDATE profiles SET student_id = NULL, user_id = NULL, merged_into_id = ?2, deleted_at = ?3, updated_at = ?3, updated_by = ?4 WHERE id = ?1", drop.id, keep.id, now, actor.user.id),
     ctx.db.stmt(
-      `UPDATE profiles SET user_id = COALESCE(user_id, ?2), student_id = COALESCE(student_id, ?3), avatar_media_id = COALESCE(avatar_media_id, ?4),
-              bio = COALESCE(bio, (SELECT bio FROM profiles WHERE id = ?5)), linkedin_url = COALESCE(linkedin_url, (SELECT linkedin_url FROM profiles WHERE id = ?5)),
-              github_url = COALESCE(github_url, (SELECT github_url FROM profiles WHERE id = ?5)), facebook_url = COALESCE(facebook_url, (SELECT facebook_url FROM profiles WHERE id = ?5)),
-              updated_at = ?6, updated_by = ?7
-       WHERE id = ?1`, keep.id, drop.user_id, drop.student_id, drop.avatar_media_id, drop.id, now, actor.user.id),
+      `UPDATE profiles SET user_id = COALESCE(profiles.user_id, ?2), student_id = COALESCE(profiles.student_id, ?3),
+              avatar_media_id = COALESCE(profiles.avatar_media_id, d.avatar_media_id),
+              avatar_position_x = CASE WHEN profiles.avatar_media_id IS NULL THEN d.avatar_position_x ELSE profiles.avatar_position_x END,
+              avatar_position_y = CASE WHEN profiles.avatar_media_id IS NULL THEN d.avatar_position_y ELSE profiles.avatar_position_y END,
+              avatar_scale = CASE WHEN profiles.avatar_media_id IS NULL THEN d.avatar_scale ELSE profiles.avatar_scale END,
+              bio = COALESCE(profiles.bio, d.bio), department = COALESCE(profiles.department, d.department), batch = COALESCE(profiles.batch, d.batch),
+              designation = COALESCE(profiles.designation, d.designation), public_email = COALESCE(profiles.public_email, d.public_email),
+              linkedin_url = COALESCE(profiles.linkedin_url, d.linkedin_url), github_url = COALESCE(profiles.github_url, d.github_url),
+              facebook_url = COALESCE(profiles.facebook_url, d.facebook_url), twitter_url = COALESCE(profiles.twitter_url, d.twitter_url),
+              website_url = COALESCE(profiles.website_url, d.website_url), skills_json = COALESCE(profiles.skills_json, d.skills_json),
+              updated_at = ?5, updated_by = ?6
+       FROM (SELECT * FROM profiles WHERE id = ?4) AS d
+       WHERE profiles.id = ?1`, keep.id, drop.user_id, drop.student_id, drop.id, now, actor.user.id),
     auditStmt(ctx, { action: "profile.merge", resourceType: "profile", resourceId: keep.id, reason,
       before: { kept: keep.full_name, merged: drop.full_name, mergedId: drop.id }, after: { listings: counts?.listings ?? 0, eventRoles: counts?.people ?? 0, posts: counts?.posts ?? 0, account: drop.user_id ? "moved" : "none" }, decision }),
   ]);

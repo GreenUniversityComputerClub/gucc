@@ -7,7 +7,7 @@ import { limit } from "../limits";
 import { holdsProtectedRole } from "../../governance/engine";
 import { auditStmt } from "../audit";
 import { requireActor } from "../authz";
-import type { Ctx } from "../context";
+import { siteUrl, type Ctx } from "../context";
 import { randomToken, sha256Hex, verifyPassword } from "../crypto";
 import { newId, nowIso } from "../db";
 import { emailEnabled } from "../email";
@@ -15,7 +15,8 @@ import { SPAM_HINT } from "../../email-hint";
 import { assertStmt, batchTransition } from "../transition";
 import { AppError, ConflictError, NotFoundError, ValidationError } from "../errors";
 import { notifyStmts } from "../notifications";
-import { deliverEmail } from "../security";
+import { deliverEmail, getSetting } from "../security";
+import { PROFILE_TAGS } from "../people-sync";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -32,9 +33,17 @@ async function checkPassword(ctx: Ctx, password: unknown) {
 export async function mySessions(ctx: Ctx, sessionToken: string | null) {
   const actor = requireActor(ctx);
   const current = sessionToken ? await sha256Hex(sessionToken) : null;
+  // Only sessions that still work: not waiting for a two-factor code, and within the idle and
+  // maximum age the club set (older ones end at their next use anyway).
+  const idleDays = await getSetting(ctx, "security.session_idle_days", 14);
+  const maxDays = await getSetting(ctx, "security.session_max_days", 30);
+  const now = Date.now();
   const rows = await ctx.db.all<{ id: string; created_at: string; last_seen_at: string | null; user_agent: string | null; expires_at: string }>(
-    "SELECT id, created_at, last_seen_at, user_agent, expires_at FROM sessions WHERE user_id = ?1 AND revoked_at IS NULL AND expires_at > ?2 ORDER BY COALESCE(last_seen_at, created_at) DESC LIMIT 20",
-    actor.user.id, nowIso());
+    `SELECT id, created_at, last_seen_at, user_agent, expires_at FROM sessions
+     WHERE user_id = ?1 AND revoked_at IS NULL AND expires_at > ?2 AND mfa_pending = 0
+       AND COALESCE(last_seen_at, created_at) > ?3 AND created_at > ?4
+     ORDER BY COALESCE(last_seen_at, created_at) DESC LIMIT 20`,
+    actor.user.id, new Date(now).toISOString(), new Date(now - idleDays * 86_400_000).toISOString(), new Date(now - maxDays * 86_400_000).toISOString());
   // The session id is a hash of the secret token; only an opaque reference leaves the API.
   return rows.map((r) => ({ ref: r.id.slice(0, 16), created_at: r.created_at, last_seen_at: r.last_seen_at, device: describeAgent(r.user_agent), current: r.id === current }));
 }
@@ -66,7 +75,6 @@ export async function revokeOtherSessions(ctx: Ctx, sessionToken: string | null)
 
 /** Hours a confirmation link for a new sign-in email stays valid. */
 const EMAIL_CHANGE_HOURS = 24;
-const siteUrl = (ctx: Ctx) => (ctx.env.PUBLIC_BASE_URL ?? "").replace(/\/+$/, "");
 
 /**
  * Change the sign-in email. With email working, the new address must be confirmed from a link
@@ -172,15 +180,26 @@ export async function deleteOwnAccount(ctx: Ctx, input: { password?: unknown; co
     ctx.db.stmt("DELETE FROM notifications WHERE user_id = ?1", id),
     ctx.db.stmt("UPDATE email_log SET recipient = 'deleted' WHERE user_id = ?1", id),
     ctx.db.stmt("UPDATE authentication_events SET email = NULL, user_agent = NULL WHERE user_id = ?1", id),
+    // Open tasks for this person are cancelled (nobody can do them now, and reminders would go nowhere).
+    ctx.db.stmt("UPDATE tasks SET status = 'CANCELLED', updated_at = ?2 WHERE assignee_user_id = ?1 AND status IN ('OPEN', 'IN_PROGRESS') AND deleted_at IS NULL", id, now),
+    // Executives stay in the club's history by name and position only: their photo, bio, links
+    // and public email go from every listing too.
+    ctx.db.stmt(
+      `UPDATE committee_members SET avatar_media_id = NULL, avatar_position_x = NULL, avatar_position_y = NULL, avatar_scale = NULL, bio = NULL,
+              legacy_json = CASE WHEN legacy_json IS NULL THEN NULL ELSE json_remove(legacy_json, '$.linkedin', '$.github', '$.twitter', '$.facebook', '$.mail') END, updated_at = ?2
+       WHERE profile_id IN (SELECT id FROM profiles WHERE user_id = ?1)`, id, now),
     // Profiles without committee history are personal only: remove them.
     ctx.db.stmt(
-      `UPDATE profiles SET deleted_at = ?2, full_name = 'Deleted member', student_id = NULL, phone = NULL, bio = NULL, public_email = NULL, skills_json = NULL,
-              linkedin_url = NULL, github_url = NULL, twitter_url = NULL, facebook_url = NULL, website_url = NULL, user_id = NULL
+      `UPDATE profiles SET deleted_at = ?2, full_name = 'Former member', student_id = NULL, phone = NULL, bio = NULL, public_email = NULL, skills_json = NULL,
+              linkedin_url = NULL, github_url = NULL, twitter_url = NULL, facebook_url = NULL, website_url = NULL, avatar_media_id = NULL, user_id = NULL
        WHERE user_id = ?1 AND NOT EXISTS (SELECT 1 FROM committee_members cm WHERE cm.profile_id = profiles.id AND cm.deleted_at IS NULL)`, id, now),
-    // Executives stay in the club's history; only the private details and the link go.
-    ctx.db.stmt("UPDATE profiles SET user_id = NULL, phone = NULL, updated_at = ?2 WHERE user_id = ?1", id, now),
+    ctx.db.stmt(
+      `UPDATE profiles SET user_id = NULL, phone = NULL, bio = NULL, public_email = NULL, skills_json = NULL, linkedin_url = NULL, github_url = NULL, twitter_url = NULL,
+              facebook_url = NULL, website_url = NULL, avatar_media_id = NULL, avatar_position_x = NULL, avatar_position_y = NULL, avatar_scale = NULL, updated_at = ?2
+       WHERE user_id = ?1`, id, now),
     ctx.db.stmt(
       `UPDATE users SET email = 'deleted+' || id || '@invalid', password_hash = NULL, status = 'ARCHIVED', deleted_at = ?2, updated_at = ?2,
               correction_note = NULL, review_note = NULL, rejected_reason = NULL, suspended_reason = NULL WHERE id = ?1`, id, now),
   ]);
+  ctx.revalidate?.(PROFILE_TAGS);
 }

@@ -11,7 +11,8 @@
  *
  * Club-wide announcements are in-app only: they would use a whole day's allowance at once.
  */
-import type { Ctx } from "./context";
+import { escapeHtml } from "../html";
+import { siteUrl, type Ctx } from "./context";
 import { emailAllowanceLeft, emailState, logEmails, MAX_SENDS_PER_RUN, reserveEmail, type EmailLogRow, type EmailMessage, type EmailProvider, type SendResult } from "./email";
 import { release } from "./usage";
 import { EMAIL_SENDER } from "../email-hint";
@@ -56,11 +57,10 @@ interface Row {
   prefs: string | null;
 }
 
-const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 /** The message for one notification. Only same-site paths become links. */
 export function notificationEmail(ctx: Ctx, r: Pick<Row, "email" | "title" | "body" | "link">, category: EmailCategory | "security"): EmailMessage {
-  const base = (ctx.env.PUBLIC_BASE_URL ?? "").replace(/\/+$/, "");
+  const base = siteUrl(ctx);
   const path = r.link && r.link.startsWith("/") && !r.link.startsWith("//") ? r.link : "/dashboard/notifications";
   const url = `${base}${path}`;
   const why = category === "security"

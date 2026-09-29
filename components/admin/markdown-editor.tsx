@@ -5,6 +5,7 @@ import { Bold, Code, Heading2, ImagePlus, Italic, Link2, List, ListOrdered, Quot
 import { renderMarkdown } from "@/lib/markdown";
 import { uploadImage } from "@/lib/media/client";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 /**
  * A Markdown field with a small toolbar, image upload and a preview rendered by the same code
@@ -18,6 +19,7 @@ export function MarkdownEditor({ name, label, defaultValue, rows = 16, hint }: {
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [uploading, setUploading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [, altDialog, ask] = useConfirm();
 
   /** Wrap the selection (or a placeholder) and keep it selected. */
   const wrap = (before: string, after = before, placeholder = "text") => {
@@ -45,26 +47,41 @@ export function MarkdownEditor({ name, label, defaultValue, rows = 16, hint }: {
   };
   const insertAtCursor = (text: string) => {
     const t = ref.current;
-    const at = t ? t.selectionEnd : value.length;
-    const pad = at > 0 && value[at - 1] !== "\n" ? "\n\n" : "";
-    setValue(value.slice(0, at) + pad + text + "\n" + value.slice(at));
+    setValue((v) => {
+      const at = Math.min(t ? t.selectionEnd : v.length, v.length);
+      const pad = at > 0 && v[at - 1] !== "\n" ? "\n\n" : "";
+      return v.slice(0, at) + pad + text + "\n" + v.slice(at);
+    });
   };
 
+  /**
+   * Upload an image and put it where the cursor was. A placeholder marks the spot at once, so
+   * typing during the upload is kept, and the finished image replaces only the placeholder.
+   */
   const onImage = async (file: File | undefined) => {
     if (!file) return;
     setError(null);
-    const alt = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").slice(0, 80);
+    const guess = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/[[\]]/g, "").slice(0, 80);
+    const marker = `![Uploading ${guess}…](#uploading-${Date.now().toString(36)})`;
+    insertAtCursor(marker);
     setUploading(file.name);
-    const r = await uploadImage(file, { alt });
+    const r = await uploadImage(file, { alt: guess });
     setUploading(null);
-    if (!r.ok) return setError(r.error);
-    if (!r.url) return setError("The image was saved as private, so it can't be shown in a post.");
-    insertAtCursor(`![${alt}](${r.url})`);
+    const replace = (text: string) => setValue((v) => (v.includes(marker) ? v.replace(marker, text) : text ? `${v}\n\n${text}\n` : v));
+    if (!r.ok) { replace(""); return setError(r.error); }
+    if (!r.url) { replace(""); return setError("The image was saved as private, so it can't be shown in a post."); }
+    // Alt text is what screen readers say and what shows if the image can't load.
+    const alt = (await ask({
+      title: "Describe this image", confirmLabel: "Insert image", cancelLabel: "Use the file name",
+      input: { label: "Alt text", defaultValue: guess, hint: "One short sentence about what it shows, for readers who can't see it." },
+    })) || guess;
+    replace(`![${alt.replace(/[[\]]/g, "")}](${r.url})`);
   };
 
-  const button = "inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
+  const button = "inline-flex h-10 w-10 md:h-9 md:w-9 items-center justify-center rounded-md hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
   return (
     <div className="grid gap-1.5">
+      {altDialog}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <label htmlFor={id} className="text-sm font-medium">{label}</label>
         <div role="tablist" aria-label="Editor view" className="flex gap-1 text-sm">

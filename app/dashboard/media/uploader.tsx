@@ -10,9 +10,12 @@ export function Uploader() {
   const upload = useCallback((file: File, h: UploadHandlers) => file.type === "application/pdf"
     ? uploadDocument(file, { visibility: visibility === "PUBLIC" ? "PRIVATE" : visibility, onProgress: h.onProgress, signal: h.signal })
     : uploadImage(file, { visibility, onProgress: h.onProgress, onPrepared: h.onPrepared, signal: h.signal }), [visibility]);
-  // Give people a moment to read the per-file results, then show the updated library.
-  const onFinished = useCallback((ok: number) => {
-    if (ok > 0) setTimeout(() => reloadWith(`Uploaded ${ok} file${ok === 1 ? "" : "s"}.`), 1500);
+  const [note, setNote] = useState<string | null>(null);
+  // Give people a moment to read the per-file results, then show the updated library. When some
+  // failed, stay: a reload would drop them from the list before they could be retried.
+  const onFinished = useCallback((ok: number, failed: number) => {
+    if (ok > 0 && failed === 0) setTimeout(() => reloadWith(`Uploaded ${ok} file${ok === 1 ? "" : "s"}.`), 1500);
+    else if (ok > 0) setNote(`${ok} uploaded. ${failed} didn't: retry them below, or reload to see the library.`);
   }, []);
   return (
     <div className="space-y-2">
@@ -22,6 +25,7 @@ export function Uploader() {
           <option value="PUBLIC">Public</option><option value="PRIVATE">Private</option><option value="RESTRICTED">Restricted</option>
         </select>
       </div>
+      {note && <p role="status" className="text-sm text-amber-700 dark:text-amber-300">{note} <button type="button" className="underline" onClick={() => reloadWith()}>Reload now</button></p>}
       <UploadQueue accept="image/*,application/pdf" max={20} label="choose files" upload={upload} onFinished={onFinished}
         hint="Up to 20 at a time, two uploading at once. Photos up to 40 MB are resized in your browser (no visible loss, location data removed); PDFs up to 10 MB are stored privately unless you choose otherwise." />
     </div>

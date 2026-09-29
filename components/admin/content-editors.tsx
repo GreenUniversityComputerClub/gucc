@@ -8,10 +8,10 @@
 import { useState } from "react";
 import { Rows } from "./structured-editors";
 import { uploadImage } from "@/lib/media/client";
+import { initials } from "@/lib/initials";
 
 const input = "h-10 w-full rounded-md border border-input bg-background px-3 text-base md:h-9 md:text-sm";
 const area = "min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
-const initialsOf = (name: string) => name.split(/\s+/).filter((w) => /^[A-Za-z]/.test(w) && !/^(Mr|Mrs|Ms|Md|Dr)\.?$/i.test(w)).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
 
 /** Pick a photo: uploads to the media library and keeps its /media/… address (served through the site). */
 function PhotoInput({ value, onChange, label }: { value: string; onChange: (url: string) => void; label: string }) {
@@ -51,7 +51,7 @@ function PersonFields({ p, update }: { p: Person; update: (patch: Partial<Person
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       <div className="sm:col-span-2"><PhotoInput value={p.photo} onChange={(photo) => update({ photo })} label="Photo" /></div>
-      <label className="grid gap-1 text-xs font-medium">Name<input className={input} value={p.name} onChange={(e) => update({ name: e.target.value, initials: initialsOf(e.target.value) })} /></label>
+      <label className="grid gap-1 text-xs font-medium">Name<input className={input} value={p.name} onChange={(e) => update({ name: e.target.value, initials: initials(e.target.value) })} /></label>
       <label className="grid gap-1 text-xs font-medium">Title<input className={input} value={p.title} onChange={(e) => update({ title: e.target.value })} /></label>
       <label className="grid gap-1 text-xs font-medium sm:col-span-2">Message<textarea className={area} rows={4} value={p.message} onChange={(e) => update({ message: e.target.value })} /></label>
     </div>

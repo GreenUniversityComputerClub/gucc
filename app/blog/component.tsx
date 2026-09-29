@@ -5,6 +5,7 @@ import Link from "next/link";
 import ReadingProgress from "@/components/reading-progress";
 import CodeBlockEnhancer from "@/components/blog/code-block-enhancer";
 import { Post, PostEdge } from "./types";
+import { initials } from "@/lib/initials";
 
 /** Plain wrapper: React view transitions need React's experimental build, which Next only ships behind a flag. */
 function ViewTransition({ children }: { name?: string; children: React.ReactNode }) {
@@ -72,7 +73,7 @@ function ShareButton({ title }: { title: string }) {
 
 export default function PostContent({ post, mdx }: PostContentProps) {
   const publishedDate = post.publishedAt
-    ? new Date(post.publishedAt).toLocaleDateString("en-US", {
+    ? new Date(post.publishedAt).toLocaleDateString("en-US", { timeZone: "Asia/Dhaka",
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -81,17 +82,8 @@ export default function PostContent({ post, mdx }: PostContentProps) {
 
   const category = post.category || "Research & Open Source";
 
-  // Generate author initials if no avatar image
-  const authorInitials = post.author?.name
-    ? post.author.name
-        .replace(/[^a-zA-Z\s]/g, "")
-        .split(/\s+/)
-        .filter(Boolean)
-        .map((n) => n[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
-    : "GU";
+  // Initials when the author has no photo.
+  const authorInitials = post.author?.name ? initials(post.author.name) : "GU";
 
   return (
     <div className="w-full min-h-screen bg-white dark:bg-[#0a0f18] text-slate-900 dark:text-slate-100 transition-colors duration-300">
@@ -242,7 +234,7 @@ export function BlogPostMeta({ post }: { post: PostEdge }) {
             dateTime={post.node.publishedAt}
             className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-mono"
           >
-            {new Date(post.node.publishedAt).toLocaleDateString("en-US", {
+            {new Date(post.node.publishedAt).toLocaleDateString("en-US", { timeZone: "Asia/Dhaka",
               year: "numeric",
               month: "long",
               day: "numeric",

@@ -11,28 +11,51 @@ import { PersonPicker } from "./person-picker";
 
 const input = "h-10 w-full rounded-md border border-input bg-background px-3 text-base md:h-9 md:text-sm";
 
+let rowSeq = 0;
+const rowKey = () => `row-${++rowSeq}`;
+
+/**
+ * An editable list. Each row keeps a stable key through moves and removals, so an input (or a
+ * person picker) always stays with its own row: removing the first coordinator can never make the
+ * form show one person while saving another.
+ */
 export function Rows<T>({ rows, setRows, render, empty, addLabel, blank, max = 50 }: { rows: T[]; setRows: (r: T[]) => void; render: (row: T, update: (patch: Partial<T>) => void, i: number) => React.ReactNode; empty: string; addLabel: string; blank: T; max?: number }) {
+  const [keys, setKeys] = useState<string[]>(() => rows.map(rowKey));
+  // Rows replaced from outside (rare): keep the keys in step.
+  const aligned = keys.length === rows.length ? keys : rows.map((_, i) => keys[i] ?? rowKey());
+  if (aligned !== keys) setKeys(aligned);
   const move = (i: number, d: number) => {
     const j = i + d;
     if (j < 0 || j >= rows.length) return;
     const copy = [...rows];
-    [copy[i], copy[j]] = [copy[j], copy[i]];
+    [copy[i], copy[j]] = [copy[j]!, copy[i]!];
+    const k = [...aligned];
+    [k[i], k[j]] = [k[j]!, k[i]!];
+    setKeys(k);
     setRows(copy);
+  };
+  const remove = (i: number) => {
+    setKeys(aligned.filter((_, k) => k !== i));
+    setRows(rows.filter((_, k) => k !== i));
+  };
+  const add = () => {
+    setKeys([...aligned, rowKey()]);
+    setRows([...rows, { ...blank }]);
   };
   return (
     <div className="space-y-2">
       {rows.length === 0 && <p className="text-sm text-muted-foreground">{empty}</p>}
       {rows.map((row, i) => (
-        <div key={i} className="rounded-lg border bg-background p-3">
+        <div key={aligned[i]} className="rounded-lg border bg-background p-3">
           {render(row, (patch) => setRows(rows.map((r, k) => (k === i ? { ...r, ...patch } : r))), i)}
           <div className="mt-2 flex justify-end gap-1">
-            <Button type="button" size="sm" variant="ghost" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">↑</Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => move(i, 1)} disabled={i === rows.length - 1} aria-label="Move down">↓</Button>
-            <Button type="button" size="sm" variant="ghost" className="text-destructive" onClick={() => setRows(rows.filter((_, k) => k !== i))}>Remove</Button>
+            <Button type="button" size="sm" variant="ghost" className="min-h-10 min-w-10" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">↑</Button>
+            <Button type="button" size="sm" variant="ghost" className="min-h-10 min-w-10" onClick={() => move(i, 1)} disabled={i === rows.length - 1} aria-label="Move down">↓</Button>
+            <Button type="button" size="sm" variant="ghost" className="min-h-10 text-destructive" onClick={() => remove(i)}>Remove</Button>
           </div>
         </div>
       ))}
-      {rows.length < max && <Button type="button" variant="outline" size="sm" onClick={() => setRows([...rows, { ...blank }])}>{addLabel}</Button>}
+      {rows.length < max && <Button type="button" variant="outline" size="sm" className="min-h-10" onClick={add}>{addLabel}</Button>}
     </div>
   );
 }
@@ -62,6 +85,8 @@ export function EventPeopleEditor({ name, initial }: { name: string; initial: Ev
             {["COORDINATOR", "PHOTOGRAPHER"].includes(r.role) && (
               <div className="sm:col-span-3">
                 <PersonPicker
+                  // A different person chosen elsewhere (or undone) starts the picker afresh.
+                  key={r.userId ?? "none"}
                   label="Member account (gives them access to this event)"
                   valueKind="user"
                   initial={r.userId ? { id: r.userId, full_name: r.name || "Selected member", student_id: null, user_id: r.userId, email: r.email ?? null, person_type: "STUDENT", roles_held: null } : null}
@@ -148,7 +173,15 @@ export function TeamsEditor({ name, initial }: { name: string; initial: TeamRow[
 }
 
 // ── approval policy approvers ──
-export interface ApproverRow { type: "position" | "role" | "user" | "assigned"; value?: string }
+export interface ApproverRow { type: "position" | "role" | "user" | "assigned" | "permission"; value?: string }
+
+/** Permissions that make sense as "anyone who can …" approver groups. */
+const REVIEW_PERMISSIONS = [
+  { key: "posts.publish", name: "Publish posts (e.g. the Publication Secretary)" },
+  { key: "events.publish", name: "Publish events" },
+  { key: "members.approve", name: "Approve members" },
+  { key: "recruitment.manage", name: "Manage recruitment" },
+];
 
 export function ApproversEditor({ name, initial, positions, roles }: { name: string; initial: ApproverRow[]; positions: Array<{ key: string; name: string }>; roles: Array<{ key: string; name: string }> }) {
   const [rows, setRows] = useState<ApproverRow[]>(initial);
@@ -167,11 +200,18 @@ export function ApproversEditor({ name, initial, positions, roles }: { name: str
             <select aria-label="Approver type" value={r.type} onChange={(e) => update({ type: e.target.value as ApproverRow["type"], value: "" })} className={input}>
               <option value="position">Position</option>
               <option value="role">Role</option>
+              <option value="permission">Anyone who can…</option>
             </select>
             {r.type === "position" && (
               <select aria-label="Position" value={r.value ?? ""} onChange={(e) => update({ value: e.target.value })} className={input}>
                 <option value="">Choose…</option>
                 {positions.map((p) => <option key={p.key} value={p.key}>{p.name}</option>)}
+              </select>
+            )}
+            {r.type === "permission" && (
+              <select aria-label="Permission" value={r.value ?? ""} onChange={(e) => update({ value: e.target.value })} className={input}>
+                <option value="">Choose…</option>
+                {REVIEW_PERMISSIONS.map((p) => <option key={p.key} value={p.key}>{p.name}</option>)}
               </select>
             )}
             {r.type === "role" && (

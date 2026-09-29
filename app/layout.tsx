@@ -97,11 +97,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // The navbar's Executives link opens the current committee, as it always has.
+  // The navbar's Executives link opens the current committee, as it always has. If the API is
+  // briefly unreachable while a cached page is being refreshed, the error propagates so the last
+  // good page keeps being served, instead of caching a navbar without its menu for hours. Only
+  // the build itself falls back (a page must exist to deploy).
+  const degrade = <T,>(p: Promise<T>) => (process.env.NEXT_PHASE === "phase-production-build" || process.env.NODE_ENV !== "production" ? p.catch(() => null) : p);
   const [executivesYear, services] = await Promise.all([
-    getLatestExecutiveYear().catch(() => null),
-    // The Services menu (lost & found, scheduler, …) is edited by leaders in the dashboard.
-    getPublicSetting<{ items?: Array<{ label: string; href: string; description?: string; visible?: boolean }> }>("nav.services").catch(() => null),
+    degrade(getLatestExecutiveYear()),
+    // The Services menu (lost & found, …) is edited by leaders in the dashboard.
+    degrade(getPublicSetting<{ items?: Array<{ label: string; href: string; description?: string; visible?: boolean }> }>("nav.services")),
   ]);
   return (
     <html lang="en" suppressHydrationWarning className="dark">

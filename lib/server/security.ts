@@ -83,25 +83,6 @@ export async function verifyTurnstile(ctx: Ctx, token: string | null | undefined
   if (!data.success) throw new ValidationError("Verification failed. Please try again.");
 }
 
-/**
- * CSRF defence for route handlers: a state-changing request must come from
- * our own origin. (Server Actions get the same check from Next.js itself.)
- */
-export function assertSameOrigin(request: Request, allowedOrigin?: string): void {
-  if (["GET", "HEAD", "OPTIONS"].includes(request.method)) return;
-  const origin = request.headers.get("origin");
-  const host = request.headers.get("host");
-  if (!origin) throw new AppError(403, "CSRF", "Missing origin.");
-  let originHost: string;
-  try {
-    originHost = new URL(origin).host;
-  } catch {
-    throw new AppError(403, "CSRF", "Bad origin.");
-  }
-  const allowed = new Set([host, allowedOrigin ? new URL(allowedOrigin).host : null].filter(Boolean));
-  if (!allowed.has(originHost)) throw new AppError(403, "CSRF", "Cross-site request rejected.");
-}
-
 /** Several system settings in one query, each with its fallback. */
 export async function getSettings<T extends Record<string, unknown>>(ctx: Ctx, defaults: T): Promise<T> {
   const rows = await ctx.db.all<{ key: string; value_json: string }>(

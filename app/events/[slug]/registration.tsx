@@ -2,7 +2,8 @@
 
 import { useSession } from "@/lib/api/use-session";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
+import type { ClubEvent } from "@/lib/events";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,14 +14,51 @@ import { registerAction } from "./actions";
 
 type Field = { key: string; label: string; type: string; required?: boolean; options?: string[] };
 
+const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+
+/**
+ * Whether registration is open is decided here, in the visitor's browser, from the event's window
+ * and seats (the page itself may be cached for a while): not open yet, closed, full (waitlist) or open.
+ */
+export function RegistrationGate({ event, fields }: { event: ClubEvent; fields: Field[] }) {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  if (now === null) return event.registrationOpen ? <EventRegistration slug={event.slug} fields={fields} /> : null;
+  const live = ["PUBLISHED", "ONGOING"].includes(event.status);
+  const opens = event.registrationOpensAt ? new Date(event.registrationOpensAt).getTime() : null;
+  const closes = event.registrationClosesAt ? new Date(event.registrationClosesAt).getTime() : null;
+  const box = (title: string, text: string) => (
+    <div className="w-full max-w-xl rounded-xl border bg-card p-6 text-center shadow-sm" role="status">
+      <h3 className="text-xl font-bold">{title}</h3>
+      <p className="mt-2 text-muted-foreground">{text}</p>
+    </div>
+  );
+  if (!live) return box("Registration closed", "This event isn't taking registrations.");
+  if (opens && opens > now) return box("Registration opens soon", `Registration opens ${when(event.registrationOpensAt!)}. Come back then.`);
+  if (closes && closes <= now) return box("Registration closed", `Registration closed ${when(event.registrationClosesAt!)}.`);
+  const full = Boolean(event.capacity && (event.seatsTaken ?? 0) >= event.capacity);
+  return (
+    <div className="w-full max-w-xl space-y-3">
+      {full && <p className="rounded-lg border border-amber-400/60 bg-amber-500/10 p-3 text-sm" role="status">All {event.capacity} seats are taken. Register to join the waitlist: you move up if someone cancels.</p>}
+      {!full && event.capacity ? <p className="text-center text-sm text-muted-foreground">{event.capacity - (event.seatsTaken ?? 0)} of {event.capacity} seats left{closes ? ` · closes ${when(event.registrationClosesAt!)}` : ""}</p> : closes ? <p className="text-center text-sm text-muted-foreground">Closes {when(event.registrationClosesAt!)}</p> : null}
+      <EventRegistration slug={event.slug} fields={fields} />
+    </div>
+  );
+}
+
 export function EventRegistration({ slug, fields }: { slug: string; fields: Field[] }) {
   const session = useSession();
   const signedIn = Boolean(session?.signedIn);
   const [pending, start] = useTransition();
-  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [result, setResult] = useState<{ ok: boolean; message: string; waitlisted?: boolean } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [token, setToken] = useState<string | null>(null);
   const onToken = useCallback((t: string | null) => setToken(t), []);
+  const [attempt, setAttempt] = useState(0);
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -32,10 +70,11 @@ export function EventRegistration({ slug, fields }: { slug: string; fields: Fiel
       const res = await registerAction(slug, data);
       if (res.ok) {
         setErrors({});
-        setResult({ ok: true, message: res.data?.message ?? "Registered." });
+        setResult({ ok: true, message: res.data?.message ?? "Registered.", waitlisted: res.data?.status === "WAITLISTED" });
       } else {
         setErrors(res.fields ?? {});
         setResult({ ok: false, message: res.error });
+        setAttempt((n) => n + 1);
       }
     });
   }
@@ -43,8 +82,9 @@ export function EventRegistration({ slug, fields }: { slug: string; fields: Fiel
   if (result?.ok) {
     return (
       <div className="bg-card border p-6 rounded-xl shadow-sm" role="status">
-        <h3 className="text-xl font-bold mb-2">You&apos;re in</h3>
+        <h3 className="text-xl font-bold mb-2">{result.waitlisted ? "You're on the waitlist" : "You're in"}</h3>
         <p className="text-muted-foreground">{result.message}</p>
+        {result.waitlisted && <p className="mt-2 text-sm text-muted-foreground">If a seat opens up, you move up automatically{signedIn ? " and get a notification" : ""}.</p>}
       </div>
     );
   }
@@ -107,7 +147,7 @@ export function EventRegistration({ slug, fields }: { slug: string; fields: Fiel
           {err(`field_${f.key}`)}
         </div>
       ))}
-      {!signedIn && <Turnstile onToken={onToken} />}
+      {!signedIn && <Turnstile onToken={onToken} resetKey={attempt} />}
       {result && !result.ok && <p className="text-sm text-destructive" role="alert">{result.message}</p>}
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Registering…" : "Register now"}

@@ -18,7 +18,7 @@ export function toLegacyPost(p: PublicPost): Post & { body: string | null } {
     views: p.views,
     url: p.url ?? "",
     coverImage: p.coverImage ? { url: p.coverImage } : null,
-    author: { name: p.author.name, github: p.author.url ?? undefined },
+    author: { name: p.author.name, github: p.author.url ?? undefined, avatarUrl: p.author.avatarUrl ?? undefined },
     body: p.body,
   };
 }

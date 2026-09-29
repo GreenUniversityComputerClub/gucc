@@ -10,7 +10,7 @@ export default async function RuleDetail({ params }: { params: Promise<{ id: str
 
   return (
     <>
-      <PageHeader title={r.name} description={`Version ${r.version} · last changed ${r.updated_at.slice(0, 16).replace("T", " ")}`} actions={<StatusBadge status={r.status} />} />
+      <PageHeader back={{ href: "/dashboard/rules", label: "Rules" }} title={r.name} description={`Version ${r.version} · last changed ${r.updated_at.slice(0, 16).replace("T", " ")}`} actions={<StatusBadge status={r.status} />} />
       {(r as { trigger?: string }).trigger && (r as { trigger?: string }).trigger !== "AUTHORIZE" ? (
         <p className="text-sm text-muted-foreground">This is a notification rule. To change it, create a new one on the Rules page and archive this one.</p>
       ) : editable ? (

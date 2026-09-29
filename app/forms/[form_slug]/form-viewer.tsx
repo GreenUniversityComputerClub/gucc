@@ -3,13 +3,8 @@
 import { useState, useEffect } from "react";
 
 export function FormViewer({ form }: { form: { slug: string; title: string; url: string } }) {
-  const [isLoading, setIsLoading] = useState(true);
+  // The form's own "Loading form…" shows until the embedded form has loaded (no fake splash screen).
   const [isFormLoaded, setIsFormLoaded] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (form) {
@@ -26,23 +21,7 @@ export function FormViewer({ form }: { form: { slug: string; title: string; url:
 
   return (
     <div>
-      {/* Loading Screen */}
-      {isLoading && (
-        <div className="fixed inset-0 z-50 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 flex items-center justify-center">
-          <div className="text-center">
-            <div className="relative">
-              <div className="w-20 h-20 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-6"></div>
-              <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-blue-200 rounded-full animate-spin mx-auto mt-2 ml-2" style={{animationDirection: 'reverse', animationDuration: '0.8s'}}></div>
-            </div>            <h2 className="text-xl font-bold text-white mb-2">Loading GUCC Form</h2>
-            <p className="text-blue-100">Preparing your form...</p>
-            <div className="flex justify-center mt-4 space-x-1">
-              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
-              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
-              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
-            </div>
-          </div>
-        </div>
-      )}      <main className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100">
         {/* Simplified Background */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
           <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-400/20 rounded-full blur-2xl"></div>
@@ -152,7 +131,7 @@ export function FormViewer({ form }: { form: { slug: string; title: string; url:
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

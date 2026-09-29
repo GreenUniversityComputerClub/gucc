@@ -9,7 +9,7 @@ import { decideApproval } from "@/lib/server/services/approvals";
 import { accessMatrix, personAccess, publishersSummary } from "@/lib/server/services/access";
 import { createEvent, publishEvent } from "@/lib/server/services/events";
 import {
-  archivePosition, archiveRole, copyGrants, createRole, grantDirectPermission, grantRoleBulk, movePosition, revokeDirectPermission, setRoleGrant,
+  archivePosition, archiveRole, copyGrants, createRole, grantDirectPermission, grantRoleBulk, revokeDirectPermission, setRoleGrant,
   savePosition, setRuleStatus, trustAuthor, updateRole,
 } from "@/lib/server/services/governance";
 import { createPost, publishPost } from "@/lib/server/services/posts";
@@ -167,15 +167,6 @@ describe("roles and positions", () => {
     await archivePosition(await w.ctx(p.gs), id);
     expect(w.sqlite.prepare("SELECT deleted_at IS NOT NULL AS gone FROM positions WHERE id = ?").get(id)).toEqual({ gone: 1 });
   });
-
-  it("moving a position swaps its place with its neighbour", async () => {
-    const p = await leaders();
-    const a = await savePosition(await w.ctx(p.gs), null, { name: "Alpha Secretary", category: "SECRETARIAT", rank: 500 });
-    const b = await savePosition(await w.ctx(p.gs), null, { name: "Beta Secretary", category: "SECRETARIAT", rank: 501 });
-    await movePosition(await w.ctx(p.gs), b.id, "up");
-    const ranks = w.sqlite.prepare("SELECT id, rank FROM positions WHERE id IN (?, ?) ORDER BY rank").all(a.id, b.id) as Array<{ id: string }>;
-    expect(ranks.map((r) => r.id)).toEqual([b.id, a.id]);
-  });
 });
 
 describe("access read models", () => {
@@ -186,7 +177,8 @@ describe("access read models", () => {
     const before = ctx.db.queries;
     const person = await personAccess(ctx, p.member);
     expect(person.direct).toHaveLength(1);
-    expect(person.effective.find((g) => g.permission === "events.read")?.sources[0].source).toBe("direct");
+    // The member role reads their own events; the direct grant adds the rest.
+    expect(person.effective.find((g) => g.permission === "events.read")?.sources.some((x) => x.source === "direct")).toBe(true);
     const matrix = await accessMatrix(ctx);
     expect(ctx.db.queries - before).toBeLessThanOrEqual(45);
     const gsRow = matrix.people.find((x) => x.id === p.gs)!;

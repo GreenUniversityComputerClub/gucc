@@ -104,6 +104,9 @@ const nextConfig: NextConfig = {
       { source: "/admin", destination: "/dashboard", permanent: true },
       { source: "/admin/:path*", destination: "/dashboard/:path*", permanent: true },
       { source: "/account", destination: "/dashboard/profile", permanent: true },
+      // The course-routine maker was retired; old links land on the home page.
+      { source: "/scheduler", destination: "/", permanent: true },
+      { source: "/scheduler/:path*", destination: "/", permanent: true },
     ];
   },
   async headers() {

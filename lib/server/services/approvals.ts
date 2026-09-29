@@ -8,14 +8,15 @@
  * request's requirements.
  */
 import { assertStmt, assertTransition, batchTransition, newTransition } from "../transition";
-import { eligibleGroups, evaluateApproval } from "../../governance/approval";
+import { describePolicy, eligibleGroups, evaluateApproval } from "../../governance/approval";
 import type { ApprovalPolicy, ApprovalStep, ApproverSpec } from "../../governance/types";
 import { auditStmt } from "../audit";
-import { can, requireActor, requirePermission } from "../authz";
+import { can, requireActor, requirePermission, scopesFor } from "../authz";
 import type { Ctx } from "../context";
 import { newId, nowIso, type D1StatementLike } from "../db";
 import { AppError, ForbiddenError, NotFoundError } from "../errors";
-import { notifyStmts, usersWith } from "../notifications";
+import { notifyStmts, usersWith, usersWithPermission } from "../notifications";
+import { avatarOfUserSql, avatarUrl, withAvatars } from "../avatar";
 
 export interface ApprovalRequestRow {
   id: string;
@@ -65,7 +66,8 @@ export async function eligibleApprovers(ctx: Ctx, policy: ApprovalPolicy, reques
   const roles = policy.approvers.filter((a) => a.type === "role").map((a) => a.value!);
   const positions = policy.approvers.filter((a) => a.type === "position").map((a) => a.value!);
   const users = policy.approvers.filter((a) => a.type === "user").map((a) => a.value!);
-  const ids = new Set([...(await usersWith(ctx, { roles, positions })), ...users, ...(policy.approvers.some((a) => a.type === "assigned") ? assigned : [])]);
+  const byPermission = (await Promise.all(policy.approvers.filter((a) => a.type === "permission" && a.value).map((a) => usersWithPermission(ctx, a.value!)))).flat();
+  const ids = new Set([...(await usersWith(ctx, { roles, positions })), ...users, ...byPermission, ...(policy.approvers.some((a) => a.type === "assigned") ? assigned : [])]);
   if (!policy.allowSelfApproval) ids.delete(requestedBy);
   return [...ids];
 }
@@ -76,7 +78,8 @@ async function groupCandidates(ctx: Ctx, policy: ApprovalPolicy, requestedBy: st
   for (const a of policy.approvers) {
     const ids = a.type === "role" ? await usersWith(ctx, { roles: [a.value!] })
       : a.type === "position" ? await usersWith(ctx, { positions: [a.value!] })
-        : a.type === "user" && a.value ? [a.value] : [];
+        : a.type === "permission" && a.value ? await usersWithPermission(ctx, a.value)
+          : a.type === "user" && a.value ? [a.value] : [];
     out.push(policy.allowSelfApproval ? ids : ids.filter((id) => id !== requestedBy));
   }
   return out;
@@ -157,7 +160,11 @@ export async function startApproval(ctx: Ctx, input: StartApprovalInput): Promis
       input.payload === undefined ? null : JSON.stringify(input.payload), actor.user.id, now,
     ),
     auditStmt(ctx, { action: "approval.requested", resourceType: input.resourceType, resourceId: input.resourceId, after: { requestId, policy: policy.key, action: input.action } }),
-    ...notifyStmts(ctx, approvers, { type: "approval.requested", title: `Approval needed: ${input.title}`, body: `Policy: ${policy.name}.`, link: `/dashboard/approvals/${requestId}`, resourceType: "approval_request", resourceId: requestId }),
+    ...notifyStmts(ctx, approvers, {
+      type: "approval.requested", title: `Approval needed: ${input.title}`.slice(0, 200),
+      body: `${actor.profile?.full_name ?? "A member"} asked. Needs ${describePolicy(policy)}.`,
+      link: `/dashboard/approvals/${requestId}`, resourceType: "approval_request", resourceId: requestId,
+    }),
   ]);
   return { requestId, created: true };
 }
@@ -176,15 +183,25 @@ async function loadSteps(ctx: Ctx, requestId: string): Promise<ApprovalStep[]> {
   return rows.map((r) => ({ actorId: r.actor_id, decision: r.decision, matchedGroups: r.matched_group ? (JSON.parse(r.matched_group) as number[]) : [] }));
 }
 
+/**
+ * An approver group "anyone who can <permission>" is itself the authority to review (leaders put
+ * e.g. the Publication Secretary there on purpose); every other group also needs approvals.decide.
+ */
+const viaPermissionGroup = (policy: ApprovalPolicy, groups: number[]) => groups.some((g) => policy.approvers[g]?.type === "permission");
+
+function mayDecide(ctx: Ctx, policy: ApprovalPolicy, groups: number[], requestId: string): boolean {
+  return groups.length > 0 && (viaPermissionGroup(policy, groups) || can(ctx, "approvals.decide", { type: "approval_request", id: requestId }));
+}
+
 export async function decideApproval(ctx: Ctx, requestId: string, decision: "APPROVE" | "REJECT", comment?: string | null, opts: { bulk?: boolean } = {}): Promise<{ status: string }> {
   const actor = requireActor(ctx);
-  requirePermission(ctx, "approvals.decide", { type: "approval_request", id: requestId });
   const req = await loadRequest(ctx, requestId);
+  const policy = JSON.parse(req.policy_snapshot) as ApprovalPolicy;
+  const groups = eligibleGroups(policy, actor.subject, { requestedBy: req.requested_by });
+  if (!viaPermissionGroup(policy, groups)) requirePermission(ctx, "approvals.decide", { type: "approval_request", id: requestId });
   if (req.status !== "PENDING") throw new AppError(409, "RESOLVED", `This request is already ${req.status.toLowerCase()}.`);
   // Changes to who may do what are read and decided one at a time, never ticked in a list.
   if (opts.bulk && req.resource_type === "governance") throw new AppError(409, "ONE_AT_A_TIME", `"${req.title ?? req.action}" changes access: open it and decide it on its own.`);
-  const policy = JSON.parse(req.policy_snapshot) as ApprovalPolicy;
-  const groups = eligibleGroups(policy, actor.subject, { requestedBy: req.requested_by });
   if (groups.length === 0) {
     const reason = actor.user.id === req.requested_by && !policy.allowSelfApproval ? "You cannot approve your own request." : `You are not an approver under "${policy.name}".`;
     throw new ForbiddenError(reason);
@@ -235,6 +252,33 @@ export async function decideApproval(ctx: Ctx, requestId: string, decision: "APP
   return { status: result.status };
 }
 
+/** How long a request waits before its reviewers get one reminder. */
+export const REMIND_AFTER_MS = 48 * 3600_000;
+
+/**
+ * The hourly job: one reminder to the people who can decide a request that has waited two days.
+ * At most three requests a run (each needs its approvers looked up), so the job stays well inside
+ * the free plan's statements per run; the rest are reminded in the following hours.
+ */
+export async function remindStaleApprovals(ctx: Ctx, now = new Date()): Promise<number> {
+  const cutoff = new Date(now.getTime() - REMIND_AFTER_MS).toISOString();
+  const stale = await ctx.db.all<ApprovalRequestRow>(
+    "SELECT * FROM approval_requests WHERE status = 'PENDING' AND reminded_at IS NULL AND created_at < ?1 ORDER BY created_at LIMIT 3", cutoff);
+  if (stale.length === 0) return 0;
+  const stmts: D1StatementLike[] = [];
+  for (const r of stale) {
+    const policy = JSON.parse(r.policy_snapshot) as ApprovalPolicy;
+    const people = await eligibleApprovers(ctx, policy, r.requested_by);
+    stmts.push(...notifyStmts(ctx, people, {
+      type: "approval.reminder", title: `Still waiting for a decision: ${r.title ?? r.action}`.slice(0, 200),
+      body: "It has waited two days. Open it to approve or ask for changes.", link: `/dashboard/approvals/${r.id}`, resourceType: "approval_request", resourceId: r.id,
+    }));
+  }
+  stmts.push(ctx.db.stmt("UPDATE approval_requests SET reminded_at = ?2 WHERE id IN (SELECT value FROM json_each(?1))", JSON.stringify(stale.map((r) => r.id)), now.toISOString()));
+  await ctx.db.batch(stmts);
+  return stale.length;
+}
+
 export async function cancelApproval(ctx: Ctx, requestId: string): Promise<void> {
   const actor = requireActor(ctx);
   const req = await loadRequest(ctx, requestId);
@@ -250,12 +294,22 @@ export async function cancelApproval(ctx: Ctx, requestId: string): Promise<void>
   ], () => new AppError(409, "RESOLVED", "This request was decided a moment ago, so it can't be withdrawn. Reload to see it."));
 }
 
+/** What a reviewer reads without leaving the page: the post or event as it will appear. */
+export type ApprovalPreview =
+  | { kind: "post"; type: string; title: string; subtitle: string | null; excerpt: string | null; body: string | null; category: string | null; coverUrl: string | null; status: string; publishedBefore: boolean }
+  | { kind: "event"; title: string; description: string | null; startAt: string | null; endAt: string | null; venue: string | null; mode: string | null; organizer: string | null;
+      category: string | null; bannerUrl: string | null; capacity: number | null; registrationEnabled: boolean; status: string; publishedBefore: boolean };
+
 export interface ApprovalView extends ApprovalRequestRow {
   requester_name: string | null;
+  requester_avatar: string | null;
+  /** The requester's earlier submissions: published and sent back. */
+  requester_history: { published: number; changesRequested: number };
   policy: ApprovalPolicy;
-  steps: Array<{ actor_id: string; actor_name: string | null; decision: string; comment: string | null; created_at: string }>;
+  steps: Array<{ actor_id: string; actor_name: string | null; decision: string; comment: string | null; created_at: string; avatarUrl: string | null }>;
   canDecide: boolean;
   whyNot: string | null;
+  preview: ApprovalPreview | null;
 }
 
 /**
@@ -266,6 +320,9 @@ export interface ApprovalView extends ApprovalRequestRow {
 function maySee(ctx: Ctx, req: ApprovalRequestRow, policy: ApprovalPolicy): boolean {
   const actor = requireActor(ctx);
   if (req.requested_by === actor.user.id) return true;
+  // Reviewers the policy names (for example anyone who publishes posts club-wide) see what they
+  // may decide, even without the general approvals.read.
+  if (req.resource_type !== "governance" && eligibleGroups(policy, actor.subject, { requestedBy: req.requested_by }).length > 0) return true;
   if (!can(ctx, "approvals.read")) return false;
   if (req.resource_type !== "governance") return true;
   return can(ctx, "approvals.policies") || eligibleGroups(policy, actor.subject, { requestedBy: req.requested_by }).length > 0;
@@ -276,36 +333,84 @@ export async function getApproval(ctx: Ctx, id: string): Promise<ApprovalView> {
   const req = await loadRequest(ctx, id);
   const policy = JSON.parse(req.policy_snapshot) as ApprovalPolicy;
   if (!maySee(ctx, req, policy)) requirePermission(ctx, req.resource_type === "governance" ? "approvals.policies" : "approvals.read");
-  const steps = await ctx.db.all<ApprovalView["steps"][number]>(
-    `SELECT s.actor_id, COALESCE(p.full_name, u.email) AS actor_name, s.decision, s.comment, s.created_at
-     FROM approval_steps s JOIN users u ON u.id = s.actor_id LEFT JOIN profiles p ON p.user_id = u.id WHERE s.request_id = ?1 ORDER BY s.created_at`,
-    id,
-  );
-  const requester = await ctx.db.first<{ name: string }>("SELECT COALESCE(p.full_name, u.email) AS name FROM users u LEFT JOIN profiles p ON p.user_id = u.id WHERE u.id = ?1", req.requested_by);
+  const [steps, requester, preview] = await Promise.all([
+    ctx.db.all<Omit<ApprovalView["steps"][number], "avatarUrl"> & { avatar_json: string | null }>(
+      `SELECT s.actor_id, COALESCE(p.full_name, 'Member') AS actor_name, s.decision, s.comment, s.created_at, ${avatarOfUserSql("s.actor_id")} AS avatar_json
+       FROM approval_steps s JOIN users u ON u.id = s.actor_id LEFT JOIN profiles p ON p.user_id = u.id WHERE s.request_id = ?1 ORDER BY s.created_at`,
+      id,
+    ),
+    ctx.db.first<{ name: string; avatar_json: string | null; published: number; returned: number }>(
+      `SELECT COALESCE(p.full_name, 'Member') AS name, ${avatarOfUserSql("u.id")} AS avatar_json,
+              (SELECT COUNT(*) FROM approval_requests x WHERE x.requested_by = u.id AND x.status = 'APPROVED' AND x.resource_type IN ('post', 'event')) AS published,
+              (SELECT COUNT(*) FROM approval_requests x WHERE x.requested_by = u.id AND x.status = 'REJECTED' AND x.resource_type IN ('post', 'event')) AS returned
+       FROM users u LEFT JOIN profiles p ON p.user_id = u.id WHERE u.id = ?1`, req.requested_by),
+    previewOf(ctx, req),
+  ]);
   const groups = eligibleGroups(policy, actor.subject, { requestedBy: req.requested_by });
   const whyNot = req.status !== "PENDING" ? "Already resolved."
     : groups.length === 0 ? (actor.user.id === req.requested_by ? "You requested this; someone else must decide." : `Only ${policy.name} can decide.`)
-      : !can(ctx, "approvals.decide", { type: "approval_request", id }) ? "Your access doesn't include deciding approvals." : null;
-  return { ...req, requester_name: requester?.name ?? null, policy, steps, canDecide: !whyNot, whyNot };
+      : !mayDecide(ctx, policy, groups, id) ? "Your access doesn't include deciding approvals." : null;
+  return {
+    ...req, requester_name: requester?.name ?? null, requester_avatar: avatarUrl(requester?.avatar_json),
+    requester_history: { published: requester?.published ?? 0, changesRequested: requester?.returned ?? 0 },
+    policy, steps: withAvatars(steps), canDecide: !whyNot, whyNot, preview,
+  };
 }
 
-export async function listApprovals(ctx: Ctx, opts: { status?: string; mine?: boolean; page?: number }) {
+/** The post or event behind a request, as the public page will show it. */
+async function previewOf(ctx: Ctx, req: ApprovalRequestRow): Promise<ApprovalPreview | null> {
+  if (req.resource_type === "post") {
+    const p = await ctx.db.first<{ type: string; title: string; subtitle: string | null; excerpt: string | null; body_markdown: string | null; category: string | null; status: string; published_at: string | null; cover: string | null }>(
+      `SELECT p.type, p.title, p.subtitle, p.excerpt, p.body_markdown, c.name AS category, p.status, p.published_at,
+              (SELECT json_object('storage', m.storage, 'object_key', m.object_key, 'legacy_path', m.legacy_path, 'external_url', m.external_url, 'variants_json', m.variants_json)
+                 FROM media m WHERE m.id = p.featured_media_id AND m.deleted_at IS NULL) AS cover
+       FROM posts p LEFT JOIN categories c ON c.id = p.category_id WHERE p.id = ?1`, req.resource_id);
+    if (!p) return null;
+    return { kind: "post", type: p.type, title: p.title, subtitle: p.subtitle, excerpt: p.excerpt, body: p.body_markdown, category: p.category,
+      coverUrl: avatarUrl(p.cover, "lg"), status: p.status, publishedBefore: Boolean(p.published_at) };
+  }
+  if (req.resource_type === "event") {
+    const e = await ctx.db.first<{ title: string; description: string | null; start_at: string | null; end_at: string | null; venue: string | null; mode: string | null; organizer: string | null;
+      category: string | null; capacity: number | null; registration_enabled: number; status: string; published_at: string | null; banner: string | null }>(
+      `SELECT e.title, e.description, e.start_at, e.end_at, e.venue, e.mode, e.organizer, c.name AS category, e.capacity, e.registration_enabled, e.status,
+              (SELECT MIN(created_at) FROM audit_logs a WHERE a.resource_type = 'event' AND a.resource_id = e.id AND a.action = 'event.publish') AS published_at,
+              (SELECT json_object('storage', m.storage, 'object_key', m.object_key, 'legacy_path', m.legacy_path, 'external_url', m.external_url, 'variants_json', m.variants_json)
+                 FROM media m WHERE m.id = e.banner_media_id AND m.deleted_at IS NULL) AS banner
+       FROM events e LEFT JOIN categories c ON c.id = e.category_id WHERE e.id = ?1`, req.resource_id);
+    if (!e) return null;
+    return { kind: "event", title: e.title, description: e.description, startAt: e.start_at, endAt: e.end_at, venue: e.venue, mode: e.mode, organizer: e.organizer,
+      category: e.category, bannerUrl: avatarUrl(e.banner, "lg"), capacity: e.capacity, registrationEnabled: Boolean(e.registration_enabled), status: e.status, publishedBefore: Boolean(e.published_at) };
+  }
+  return null;
+}
+
+/**
+ * Requests you may see. Pending ones are listed oldest first (a queue); `forMe` keeps only the
+ * ones you can decide now. Each row carries the requester's photo and plain-words policy.
+ */
+/** Publishes posts or events club-wide: such people review members' submissions. */
+export const isContentReviewer = (ctx: Ctx) =>
+  ["posts.publish", "events.publish"].some((p) => can(ctx, p) && scopesFor(ctx, p).some((g) => g.scope === "ALL"));
+
+export async function listApprovals(ctx: Ctx, opts: { status?: string; mine?: boolean; page?: number; forMe?: boolean }) {
   const actor = requireActor(ctx);
-  // Without approvals.read, people see (and can withdraw) their own requests.
-  if (!can(ctx, "approvals.read")) opts = { ...opts, mine: true };
+  // Without approvals.read, people see (and can withdraw) their own requests, plus, for anyone who
+  // publishes club-wide, what they may review ("permission" approvers of member submissions).
+  if (!can(ctx, "approvals.read") && !isContentReviewer(ctx)) opts = { ...opts, mine: true, forMe: false };
   const status = opts.status ?? "PENDING";
   const page = Math.max(1, opts.page ?? 1);
-  const rows = await ctx.db.all<ApprovalRequestRow & { requester_name: string | null }>(
-    `SELECT r.*, COALESCE(p.full_name, u.email) AS requester_name FROM approval_requests r
+  const rows = await ctx.db.all<ApprovalRequestRow & { requester_name: string | null; avatar_json: string | null }>(
+    `SELECT r.*, COALESCE(p.full_name, 'Member') AS requester_name, ${avatarOfUserSql("r.requested_by")} AS avatar_json FROM approval_requests r
      JOIN users u ON u.id = r.requested_by LEFT JOIN profiles p ON p.user_id = u.id
      WHERE (?1 = 'ALL' OR r.status = ?1) AND (?2 = 0 OR r.requested_by = ?3)
-     ORDER BY r.created_at DESC LIMIT 50 OFFSET ?4`,
+     ORDER BY CASE WHEN ?1 = 'PENDING' THEN r.created_at END ASC, r.created_at DESC LIMIT 50 OFFSET ?4`,
     status, opts.mine ? 1 : 0, actor.user.id, (page - 1) * 50,
   );
-  const decides = can(ctx, "approvals.decide");
-  return rows.flatMap((r) => {
+  return rows.flatMap(({ avatar_json, ...r }) => {
     const policy = JSON.parse(r.policy_snapshot) as ApprovalPolicy;
     if (!maySee(ctx, r, policy)) return [];
-    return [{ ...r, policy, canDecide: r.status === "PENDING" && decides && eligibleGroups(policy, actor.subject, { requestedBy: r.requested_by }).length > 0 }];
+    const canDecide = r.status === "PENDING" && mayDecide(ctx, policy, eligibleGroups(policy, actor.subject, { requestedBy: r.requested_by }), r.id);
+    if (opts.forMe && !canDecide) return [];
+    return [{ ...r, requester_avatar: avatarUrl(avatar_json), policy, policyText: describePolicy(policy), canDecide }];
   });
 }

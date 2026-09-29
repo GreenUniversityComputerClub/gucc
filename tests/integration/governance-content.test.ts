@@ -56,15 +56,17 @@ describe("publication approval workflow", () => {
     expect(w.sqlite.prepare("SELECT COUNT(*) n FROM post_revisions WHERE post_id = ?").get(id)).toEqual({ n: 2 });
   });
 
-  it("executives without publish rights submit to club leadership; members cannot create at all", async () => {
+  it("executives and members without publish rights submit to the content reviewers; members write blog posts only", async () => {
     const exec = await w.user({ email: "e@x.bd", positions: ["executive-member"] });
     const member = await w.user({ email: "m@x.bd", roles: ["member"] });
     const { id } = await createPost(await w.ctx(exec), { type: "BLOG", title: "My first post", body: "Hello" });
     const res = await publishPost(await w.ctx(exec), id);
     expect(res.outcome).toBe("PENDING_APPROVAL");
     const policy = w.sqlite.prepare("SELECT policy_snapshot FROM approval_requests WHERE resource_id = ?").get(id) as { policy_snapshot: string };
-    expect(JSON.parse(policy.policy_snapshot).key).toBe("leadership-any");
-    await expect(createPost(await w.ctx(member), { type: "BLOG", title: "Nope", body: "x" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(JSON.parse(policy.policy_snapshot).key).toBe("content-reviewers");
+    await expect(createPost(await w.ctx(member), { type: "NEWS", title: "Club news", body: "x" })).rejects.toMatchObject({ code: "VALIDATION" });
+    const mine = await createPost(await w.ctx(member), { type: "BLOG", title: "A member's post", body: "x" });
+    expect((await publishPost(await w.ctx(member), mine.id)).outcome).toBe("PENDING_APPROVAL");
   });
 
   it("an executive cannot edit someone else's post (OWN scope) and gets an explanation", async () => {

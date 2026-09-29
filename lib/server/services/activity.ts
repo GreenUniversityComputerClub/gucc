@@ -5,6 +5,7 @@
  * every page one small query however long the history grows.
  */
 import { requireActor, requirePermission } from "../authz";
+import { avatarOfUserSql, avatarUrl } from "../avatar";
 import type { Ctx } from "../context";
 
 import { ACTIVITY_AREAS, type ActivityArea } from "../../governance/activity-areas";
@@ -38,6 +39,7 @@ export function areaOfAction(action: string): ActivityArea {
 type Row = {
   id: string; actor_user_id: string | null; actor_label: string | null; action: string; resource_type: string | null; resource_id: string | null;
   reason: string | null; request_id: string | null; created_at: string; before_json: string | null; after_json: string | null; decision_json: string | null;
+  actor_avatar_json?: string | null;
 };
 
 /** What a resource is called, for sentences and links. */
@@ -141,7 +143,7 @@ export interface ActivityEntry {
   at: string;
   area: ActivityArea;
   action: string;
-  actor: { id: string | null; name: string };
+  actor: { id: string | null; name: string; avatarUrl: string | null };
   /** "approved the membership of" — the actor comes before, the target (if shown) after. */
   verb: string;
   showTarget: boolean;
@@ -178,7 +180,8 @@ export async function activityFeed(ctx: Ctx, f: ActivityFilter = {}): Promise<{ 
   const q = f.q?.trim() ? `%${f.q.trim().replace(/[%_]/g, "")}%` : null;
   const size = Math.min(Math.max(Math.floor(Number(f.limit) || 40), 1), 40);
   const rows = await ctx.db.all<Row>(
-    `SELECT id, actor_user_id, actor_label, action, resource_type, resource_id, reason, request_id, created_at, before_json, after_json, decision_json
+    `SELECT id, actor_user_id, actor_label, action, resource_type, resource_id, reason, request_id, created_at, before_json, after_json, decision_json,
+            ${avatarOfUserSql("audit_logs.actor_user_id")} AS actor_avatar_json
      FROM audit_logs
      WHERE (?1 IS NULL OR actor_user_id = ?1 OR resource_id = ?1 OR resource_id IN (SELECT id FROM profiles WHERE user_id = ?1))
        AND (?2 = '[]' OR EXISTS (SELECT 1 FROM json_each(?2) p WHERE audit_logs.action LIKE p.value || '%'))
@@ -207,7 +210,7 @@ export async function activityFeed(ctx: Ctx, f: ActivityFilter = {}): Promise<{ 
       decision = null;
     }
     return {
-      id: r.id, at: r.created_at, area: areaOfAction(r.action), action: r.action, actor: { id: r.actor_user_id, name: who },
+      id: r.id, at: r.created_at, area: areaOfAction(r.action), action: r.action, actor: { id: r.actor_user_id, name: who, avatarUrl: avatarUrl(r.actor_avatar_json) },
       verb, showTarget, sentence, target, reason: r.reason, requestId: r.request_id, changes: diffSnapshots(r.before_json, r.after_json), decision,
     };
   });
@@ -215,9 +218,3 @@ export async function activityFeed(ctx: Ctx, f: ActivityFilter = {}): Promise<{ 
   return { entries, next: rows.length > size && last ? `${last.created_at}|${last.id}` : null };
 }
 
-/** Entries recorded in the same request as this one (e.g. a bulk change). */
-export async function activityRelated(ctx: Ctx, requestId: string) {
-  requirePermission(ctx, "audit.read");
-  return ctx.db.all<{ id: string; action: string; actor_label: string | null; created_at: string }>(
-    "SELECT id, action, actor_label, created_at FROM audit_logs WHERE request_id = ?1 ORDER BY created_at LIMIT 50", requestId);
-}

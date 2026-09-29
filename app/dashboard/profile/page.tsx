@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { KeyRound, ShieldCheck } from "lucide-react";
+import { KeyRound, ShieldCheck, UserRound } from "lucide-react";
 import { requireSignedIn, rpc, view } from "@/lib/api/session";
 import type { accountView } from "@/lib/server/views/admin";
 import type { emailPreferences } from "@/lib/server/services/system-controls";
@@ -78,6 +78,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <div className="flex gap-2 sm:flex-col">
           <Link prefetch={false} href="/dashboard/security" className="inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm hover:bg-muted"><KeyRound className="h-4 w-4" aria-hidden />Security</Link>
           <Link prefetch={false} href={`/dashboard/access/${encodeURIComponent(session.user.id)}`} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm hover:bg-muted"><ShieldCheck className="h-4 w-4" aria-hidden />Your access</Link>
+          {typeof profile.handle === "string" && status === "ACTIVE" && (
+            <Link prefetch={false} href={`/members/${profile.handle}`} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm hover:bg-muted"><UserRound className="h-4 w-4" aria-hidden />Your page</Link>
+          )}
         </div>
       </section>
 

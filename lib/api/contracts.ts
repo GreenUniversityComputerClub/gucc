@@ -36,6 +36,8 @@ export function normalizeSession(raw: unknown): SessionView | null {
     isModerator: bool(raw.isModerator),
     adminAccess: bool(raw.adminAccess),
     caps: isObj(raw.caps) ? (raw.caps as Record<string, boolean>) : {},
+    // Older APIs don't send it: fall back to caps (the old behaviour).
+    wideCaps: isObj(raw.wideCaps) ? (raw.wideCaps as Record<string, true>) : (isObj(raw.caps) ? (raw.caps as Record<string, true>) : {}),
     unread: num(raw.unread),
     unreadMessages: num(raw.unreadMessages),
     openTasks: num(raw.openTasks),

@@ -36,6 +36,7 @@ import type {
   LostFoundType,
 } from "@/lib/lost-found/types";
 import { CalendarDays, Filter, Inbox, MapPin, Search, ShieldCheck } from "lucide-react";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 
 
@@ -91,15 +92,45 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
   const lostFoundLocations = config.locations;
   const userEmail = viewer?.email ?? null;
   const userId = viewer?.userId ?? null;
+  // The board's tab, also opened by the buttons at the top and by #browse / #report / #inbox links.
+  const [tab, setTab] = useState("browse");
+  const [confirm, confirmDialog, ask] = useConfirm();
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    const fromHash = () => {
+      const h = window.location.hash.slice(1);
+      if (["browse", "report", "inbox", "mine"].includes(h)) setTab(h);
+    };
+    fromHash();
+    window.addEventListener("hashchange", fromHash);
+    return () => window.removeEventListener("hashchange", fromHash);
+  }, []);
+  const openTab = (t: string) => {
+    setTab(t);
+    document.getElementById("board")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const [posts, setPosts] = useState<LostFoundPost[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [filters, setFilters] = useState(initialFilters);
+  // What's typed in the text filters; applied after a short pause, not on every key.
+  const [typed, setTyped] = useState({ q: "", location: "" });
+  useEffect(() => {
+    const t = setTimeout(() => setFilters((prev) => (prev.q === typed.q && prev.location === typed.location ? prev : { ...prev, ...typed })), 350);
+    return () => clearTimeout(t);
+  }, [typed]);
+  const resetFilters = () => {
+    setTyped({ q: "", location: "" });
+    setFilters(initialFilters);
+  };
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [inboxMessages, setInboxMessages] = useState<LostFoundMessage[]>([]);
   const [isLoadingInbox, setIsLoadingInbox] = useState(false);
+  const [myPosts, setMyPosts] = useState<LostFoundPost[] | null>(null);
+  // A post sent back for changes is fixed by posting it again: the old one goes once the new one is in.
+  const [replacing, setReplacing] = useState<string | null>(null);
 
   const [formValues, setFormValues] = useState({
     type: "lost" as LostFoundType,
@@ -159,6 +190,27 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
     loadPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reload on filter or viewer changes only
   }, [filters, userId, session === undefined]);
+
+  const loadMine = async () => {
+    if (!userId) return;
+    const res = await fetch("/api/lost-found?mine=1", { cache: "no-store" }).catch(() => null);
+    if (res?.ok) setMyPosts(await res.json());
+  };
+  useEffect(() => {
+    if (tab === "mine" && userId) loadMine();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load when the tab opens
+  }, [tab, userId]);
+
+  const fixAndRepost = (post: LostFoundPost) => {
+    setFormValues({
+      type: post.type, title: post.title, category: post.category, description: post.description, location: post.location,
+      occurred_at: (post.occurred_at ?? "").slice(0, 10), contact_method: post.contact_method, contact_value: post.contact_value ?? "",
+    });
+    setReplacing(post.id);
+    setFormSuccess(null);
+    setFormError(null);
+    openTab("report");
+  };
 
   useEffect(() => {
     if (userEmail) {
@@ -229,9 +281,14 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
         return;
       }
 
-      setFormSuccess("Post submitted. It will appear after admin approval.");
+      if (replacing) {
+        await fetch(`/api/lost-found/${replacing}`, { method: "DELETE" }).catch(() => null);
+        setReplacing(null);
+      }
+      setFormSuccess("Post submitted. It will appear after a moderator approves it. You can follow it under My posts.");
       resetForm();
       loadPosts();
+      setMyPosts(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -249,7 +306,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
   const handleAdminUpdate = async (postId: string, status: LostFoundStatus) => {
     let reason: string | null = null;
     if (status === "rejected") {
-      reason = window.prompt("Why is it rejected? The author sees this so they can fix it.");
+      reason = await ask({ title: "Ask the author to fix this post?", input: { label: "What needs fixing? (the author sees this)", minLength: 3 }, confirmLabel: "Send back" });
       if (!reason) return;
     }
     await fetch("/api/lost-found/admin", {
@@ -261,7 +318,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
   };
 
   const handleRemoveImage = async (postId: string) => {
-    if (!window.confirm("Remove this photo? The author is told why.")) return;
+    if (!(await confirm({ title: "Remove this photo?", description: "The author is told why.", confirmLabel: "Remove photo", destructive: true }))) return;
     await fetch("/api/lost-found/admin", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -271,14 +328,14 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
   };
 
   const handleReport = async (postId: string) => {
-    const reason = window.prompt("What's wrong with this post? Moderators will review it.");
+    const reason = await ask({ title: "Report this post", description: "Moderators will review it.", input: { label: "What's wrong with it?", minLength: 3 }, confirmLabel: "Send report", destructive: true });
     if (!reason) return;
     const res = await fetch(`/api/lost-found/${postId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ report: reason }),
     });
-    window.alert(res.ok ? "Thanks, the moderators will take a look." : "Couldn't send the report. Try again.");
+    setNotice(res.ok ? "Thanks, the moderators will take a look." : "Couldn't send the report. Try again.");
   };
 
   const handleMessageSend = async (postId: string, message: string): Promise<{ ok: boolean; conversationId?: string; error?: string }> => {
@@ -299,6 +356,8 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-950 via-slate-950 to-slate-950 text-foreground">
+      {confirmDialog}
+      {notice && <p role="status" className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-lg border bg-background p-3 text-center text-sm shadow-lg" onClick={() => setNotice(null)}>{notice}</p>}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 opacity-60 bg-[linear-gradient(120deg,rgba(16,185,129,0.2),rgba(14,116,144,0.15),rgba(15,23,42,0.8))]" />
         <div className="container relative z-10 py-16 md:py-24">
@@ -317,15 +376,15 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
               <div className="flex flex-wrap gap-3">
                 {!userEmail ? (
                   <Button asChild className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">
-                    <Link href="/auth/login">Login to post</Link>
+                    <Link href="/auth/login?next=%2Flost-found%23report">Sign in to post</Link>
                   </Button>
                 ) : (
-                  <Button asChild className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">
-                    <Link href="/lost-found#report">Create a report</Link>
+                  <Button type="button" className="bg-emerald-500 text-slate-950 hover:bg-emerald-400" onClick={() => openTab("report")}>
+                    Create a report
                   </Button>
                 )}
-                <Button asChild variant="outline" className="border-emerald-400/40 text-emerald-100">
-                  <Link href="/lost-found#browse">Browse active posts</Link>
+                <Button type="button" variant="outline" className="border-emerald-400/40 bg-transparent text-emerald-100 hover:bg-emerald-500/10 hover:text-emerald-50" onClick={() => openTab("browse")}>
+                  Browse active posts
                 </Button>
               </div>
               <div className="flex flex-wrap gap-4 text-sm text-slate-200/70">
@@ -362,7 +421,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
         </div>
       </section>
 
-      <section className="container -mt-8 pb-16">
+      <section id="board" className="container -mt-8 scroll-mt-20 pb-16">
         <Card className="border border-slate-800 bg-slate-950/80 shadow-2xl">
           <CardHeader>
             <CardTitle className="text-2xl">Lost & Found Board</CardTitle>
@@ -371,11 +430,12 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="browse" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 md:grid-cols-4 bg-slate-900/60">
-                <TabsTrigger value="browse">Browse</TabsTrigger>
-                <TabsTrigger value="report">Report</TabsTrigger>
-                <TabsTrigger value="inbox">Inbox</TabsTrigger>
+            <Tabs value={tab} onValueChange={setTab} className="w-full">
+              <TabsList className={`grid h-auto w-full bg-slate-900/60 ${isAdmin ? "grid-cols-3 md:grid-cols-5" : "grid-cols-2 sm:grid-cols-4"}`}>
+                <TabsTrigger value="browse" className="min-h-10">Browse</TabsTrigger>
+                <TabsTrigger value="report" className="min-h-10">Report</TabsTrigger>
+                <TabsTrigger value="mine" className="min-h-10">My posts</TabsTrigger>
+                <TabsTrigger value="inbox" className="min-h-10">Inbox</TabsTrigger>
                 {isAdmin && <TabsTrigger value="admin">Admin</TabsTrigger>}
               </TabsList>
 
@@ -391,7 +451,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                     <Button
                       variant="outline"
                       className="border-slate-700 text-slate-200"
-                      onClick={() => setFilters(initialFilters)}
+                      onClick={resetFilters}
                     >
                       Reset filters
                     </Button>
@@ -403,8 +463,9 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                         <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                         <Input
                           id="search"
-                          value={filters.q}
-                          onChange={(e) => setFilters((prev) => ({ ...prev, q: e.target.value }))}
+                          type="search"
+                          value={typed.q}
+                          onChange={(e) => setTyped((prev) => ({ ...prev, q: e.target.value }))}
                           placeholder="Wallet, phone, ID"
                           className="pl-9"
                         />
@@ -473,8 +534,8 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                         <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                         <Input
                           id="location"
-                          value={filters.location}
-                          onChange={(e) => setFilters((prev) => ({ ...prev, location: e.target.value }))}
+                          value={typed.location}
+                          onChange={(e) => setTyped((prev) => ({ ...prev, location: e.target.value }))}
                           placeholder="CSE Building, Library"
                           className="pl-9"
                         />
@@ -503,7 +564,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm text-slate-300">
                     <Filter className="h-4 w-4" />
-                    {isLoadingPosts ? "Loading posts..." : `${posts.length} posts`}
+                    <span role="status">{isLoadingPosts ? "Loading posts…" : `${posts.length} ${posts.length === 1 ? "post" : "posts"}`}</span>
                   </div>
                   <Button
                     variant="outline"
@@ -514,6 +575,15 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                   </Button>
                 </div>
 
+                {!isLoadingPosts && posts.length === 0 && (
+                  <div className="rounded-lg border border-dashed border-slate-700 bg-slate-900/40 p-8 text-center text-sm text-slate-300">
+                    <p>No posts match these filters.</p>
+                    <div className="mt-3 flex flex-wrap justify-center gap-2">
+                      <Button type="button" variant="outline" className="border-slate-700 text-slate-200" onClick={resetFilters}>Reset filters</Button>
+                      <Button type="button" className="bg-emerald-500 text-slate-950 hover:bg-emerald-400" onClick={() => openTab("report")}>Report an item</Button>
+                    </div>
+                  </div>
+                )}
                 <div className="grid gap-6 lg:grid-cols-2">
                   {posts.map((post) => (
                     <Card key={post.id} className="border border-slate-800 bg-slate-950/60">
@@ -536,7 +606,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-400">
                           <CalendarDays className="h-4 w-4" />
-                          {new Date(post.occurred_at).toLocaleString()}
+                          {new Date(post.occurred_at).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", dateStyle: "medium", timeStyle: "short" })}
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
@@ -599,6 +669,12 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    {replacing && (
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-sky-500/40 bg-sky-500/10 p-3 text-sm text-sky-100" role="status">
+                        <span>Fix what the moderator asked for, then submit. Your earlier post is replaced.</span>
+                        <button type="button" className="underline" onClick={() => { setReplacing(null); resetForm(); }}>Start a new post instead</button>
+                      </div>
+                    )}
                     {!userEmail ? (
                       <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200">
                         Please log in with your university email to create a post.
@@ -785,6 +861,65 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                 </Card>
               </TabsContent>
 
+              <TabsContent value="mine" className="pt-6">
+                <Card className="border border-slate-800 bg-slate-950/60">
+                  <CardHeader>
+                    <CardTitle className="text-lg">My posts</CardTitle>
+                    <CardDescription className="text-slate-400">
+                      Where each of your posts stands. Posts go live after a moderator checks them.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {!userId ? (
+                      <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-300">
+                        <a href="/auth/login?next=/lost-found%23mine" className="underline">Sign in</a> to see your posts.
+                      </div>
+                    ) : myPosts === null ? (
+                      <p className="text-sm text-slate-400" role="status">Loading your posts…</p>
+                    ) : myPosts.length === 0 ? (
+                      <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-300">
+                        You haven&apos;t posted anything yet.{" "}
+                        <button type="button" className="underline" onClick={() => openTab("report")}>Report a lost or found item</button>
+                      </div>
+                    ) : (
+                      <ul className="space-y-3">
+                        {myPosts.map((post) => (
+                          <li key={post.id} className="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="outline" className={typeStyles[post.type]}>{typeLabels[post.type]}</Badge>
+                              <Badge variant="outline" className={statusStyles[post.status]}>{post.status === "rejected" ? "Needs changes" : post.status === "pending" ? "Waiting for review" : statusLabels[post.status]}</Badge>
+                              <span className="text-xs text-slate-400">{new Date(post.created_at).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", dateStyle: "medium" })}</span>
+                            </div>
+                            <p className="mt-2 font-medium text-slate-100">{post.title}</p>
+                            {post.status === "rejected" && (
+                              <div className="mt-2 rounded-md border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-100">
+                                <p className="font-medium">What the moderator asked for</p>
+                                <p className="mt-1 whitespace-pre-wrap">{post.reject_reason || "No reason was given."}</p>
+                              </div>
+                            )}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {post.status === "rejected" && (
+                                <Button type="button" size="sm" className="min-h-10" onClick={() => fixAndRepost(post)}>Fix and post again</Button>
+                              )}
+                              {post.status === "active" && (
+                                <Button type="button" size="sm" variant="outline" className="min-h-10 border-slate-700 text-slate-200" onClick={async () => { await handleResolve(post.id); loadMine(); }}>Mark resolved</Button>
+                              )}
+                              <Button type="button" size="sm" variant="ghost" className="min-h-10 text-rose-300 hover:text-rose-200" onClick={async () => {
+                                if (!(await confirm({ title: "Delete this post?", description: "It disappears from the board. This can't be undone.", confirmLabel: "Delete post", destructive: true }))) return;
+                                const res = await fetch(`/api/lost-found/${post.id}`, { method: "DELETE" }).catch(() => null);
+                                setNotice(res?.ok ? "Post deleted." : "Couldn't delete it. Try again.");
+                                loadMine();
+                                loadPosts();
+                              }}>Delete</Button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
               <TabsContent value="inbox" className="pt-6">
                 <Card className="border border-slate-800 bg-slate-950/60">
                   <CardHeader>
@@ -820,7 +955,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                                     {message.post?.title || "Lost & Found"}
                                   </CardTitle>
                                   <CardDescription className="text-slate-400">
-                                    From {message.sender_email} · {new Date(message.created_at).toLocaleString()}
+                                    From {message.sender_email} · {new Date(message.created_at).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", dateStyle: "medium", timeStyle: "short" })}
                                   </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-3">

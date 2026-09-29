@@ -8,9 +8,10 @@
  * result says whether it did; nothing here claims a message was sent when it wasn't.
  */
 import { limit } from "../limits";
+import { avatarOfProfileSql, avatarUrl, withAvatars } from "../avatar";
 import { auditStmt } from "../audit";
 import { can, requireActor, requirePermission } from "../authz";
-import type { Ctx } from "../context";
+import { siteUrl, type Ctx } from "../context";
 import { newId, nowIso, type D1StatementLike } from "../db";
 import { emailEnabled } from "../email";
 import { AppError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
@@ -23,7 +24,6 @@ const PRIORITIES = ["LOW", "NORMAL", "HIGH"] as const;
 const RESPONSES = ["YES", "NO", "MAYBE"] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
-const siteUrl = (ctx: Ctx, path: string) => `${(ctx.env.PUBLIC_BASE_URL ?? "").replace(/\/+$/, "")}${path}`;
 const dhaka = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const actorName = (ctx: Ctx) => ctx.actor?.profile?.full_name ?? ctx.actor?.user.email ?? "Someone";
 
@@ -47,13 +47,22 @@ export interface TaskRow {
   updated_at: string;
   completed_at: string | null;
   comments: number;
+  assignee_avatar_json?: string | null;
+  creator_avatar_json?: string | null;
+  assignee_avatar?: string | null;
+  creator_avatar?: string | null;
 }
+
+/** Photo URLs in place of the raw media JSON. */
+const taskFaces = <T extends TaskRow>({ assignee_avatar_json, creator_avatar_json, ...t }: T) =>
+  ({ ...t, assignee_avatar: avatarUrl(assignee_avatar_json), creator_avatar: avatarUrl(creator_avatar_json) }) as T;
 
 const TASK_SELECT = `
   SELECT t.id, t.title, t.details, t.status, t.priority, t.due_at, t.assignee_user_id, t.assignee_email,
          COALESCE(ap.full_name, t.assignee_name, t.assignee_email) AS assignee_name, t.event_id, e.title AS event_title,
          t.created_by, COALESCE(cp.full_name, cu.email) AS creator_name, t.created_at, t.updated_at, t.completed_at,
-         (SELECT COUNT(*) FROM task_comments c WHERE c.task_id = t.id AND c.deleted_at IS NULL) AS comments
+         (SELECT COUNT(*) FROM task_comments c WHERE c.task_id = t.id AND c.deleted_at IS NULL) AS comments,
+         ${avatarOfProfileSql("ap")} AS assignee_avatar_json, ${avatarOfProfileSql("cp")} AS creator_avatar_json
   FROM tasks t
   LEFT JOIN profiles ap ON ap.user_id = t.assignee_user_id AND ap.deleted_at IS NULL
   LEFT JOIN users cu ON cu.id = t.created_by
@@ -181,20 +190,28 @@ export async function updateTask(ctx: Ctx, id: string, input: Record<string, unk
     const word = { OPEN: "reopened", IN_PROGRESS: "started", DONE: "finished", CANCELLED: "cancelled" }[status];
     stmts.push(...notifyStmts(ctx, [t.created_by], { type: "task.status", title: `${actorName(ctx)} ${word} “${next.title}”`, link, resourceType: "task", resourceId: id }));
   }
+  // The assignee hears when someone else reopens or finishes their task (cancelling has its own notice below).
+  const statusToAssignee = Boolean(status && status !== t.status && status !== "CANCELLED" && !assigneeChanged && next.assignee_user_id && next.assignee_user_id !== actor.user.id && next.assignee_user_id !== t.created_by);
+  if (statusToAssignee) {
+    const word = { OPEN: "reopened", IN_PROGRESS: "started", DONE: "finished" }[status as "OPEN" | "IN_PROGRESS" | "DONE"];
+    stmts.push(...notifyStmts(ctx, [next.assignee_user_id!], { type: "task.status", title: `${actorName(ctx)} ${word} “${next.title}”`, link, resourceType: "task", resourceId: id }));
+  }
   if (status === "CANCELLED" && t.status !== "CANCELLED" && next.assignee_user_id && next.assignee_user_id !== actor.user.id) {
     stmts.push(...notifyStmts(ctx, [next.assignee_user_id], { type: "task.cancelled", title: `Task cancelled: ${next.title}`, link, resourceType: "task", resourceId: id }));
   }
-  if (assigneeChanged && next.assignee_user_id && next.assignee_user_id !== actor.user.id) {
+  if (assigneeChanged && next.status !== "CANCELLED" && next.assignee_user_id && next.assignee_user_id !== actor.user.id) {
     stmts.push(...notifyStmts(ctx, [next.assignee_user_id], { type: "task.assigned", title: `New task: ${next.title}`, body: `${actorName(ctx)} gave you a task.`, link, resourceType: "task", resourceId: id }));
   }
   // The person it was taken from, and the assignee when what's asked or when it's due changes.
   if (assigneeChanged && t.assignee_user_id && t.assignee_user_id !== actor.user.id) {
-    stmts.push(...notifyStmts(ctx, [t.assignee_user_id], { type: "task.reassigned", title: `Task moved to someone else: ${next.title}`, body: `${actorName(ctx)} gave it to ${reassign!.name ?? reassign!.email ?? "someone else"}.`, link, resourceType: "task", resourceId: id }));
+    // They can't open the task any more: the notice points to their task list.
+    stmts.push(...notifyStmts(ctx, [t.assignee_user_id], { type: "task.reassigned", title: `Task moved to someone else: ${next.title}`, body: `${actorName(ctx)} gave it to ${reassign!.name ?? reassign!.email ?? "someone else"}.`, link: "/dashboard/tasks", resourceType: "task", resourceId: id }));
   }
   const detailsChanged = next.title !== t.title || (next.details ?? null) !== (t.details ?? null) || (next.due_at ?? null) !== (t.due_at ?? null) || next.priority !== t.priority;
-  if (!assigneeChanged && detailsChanged && next.assignee_user_id && next.assignee_user_id !== actor.user.id && next.status !== "CANCELLED") {
+  if (!assigneeChanged && !statusToAssignee && detailsChanged && next.assignee_user_id && next.assignee_user_id !== actor.user.id && next.status !== "CANCELLED") {
     const due = next.due_at !== t.due_at ? (next.due_at ? ` Due ${new Date(next.due_at).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", dateStyle: "medium", timeStyle: "short" })}.` : " No due date now.") : "";
-    stmts.push(...notifyStmts(ctx, [next.assignee_user_id], { type: "task.updated", title: `Task changed: ${next.title}`, body: `${actorName(ctx)} updated it.${due}`, link, resourceType: "task", resourceId: id }));
+    const what = [next.title !== t.title && "title", (next.details ?? null) !== (t.details ?? null) && "details", (next.due_at ?? null) !== (t.due_at ?? null) && "due date", next.priority !== t.priority && `priority (now ${next.priority.toLowerCase()})`].filter(Boolean).join(", ");
+    stmts.push(...notifyStmts(ctx, [next.assignee_user_id], { type: "task.updated", title: `Task changed: ${next.title}`, body: `${actorName(ctx)} changed the ${what}.${due}`, link, resourceType: "task", resourceId: id }));
   }
   await ctx.db.batch(stmts);
   if (assigneeChanged) {
@@ -229,7 +246,7 @@ export async function listTasks(ctx: Ctx, input: { view?: string; status?: strin
   // Managers may look at one person's tasks (the Tasks tab of a profile).
   if (input.assignee && manager) {
     const rows = await ctx.db.all<TaskRow>(`${TASK_SELECT} WHERE t.deleted_at IS NULL AND t.assignee_user_id = ?1 ORDER BY CASE WHEN t.status IN ('OPEN','IN_PROGRESS') THEN 0 ELSE 1 END, t.due_at IS NULL, t.due_at, t.created_at DESC LIMIT 100`, input.assignee);
-    return { rows, view: "person", status: "all", canAssign: can(ctx, "tasks.assign"), canManage: manager, emailEnabled: await emailEnabled(ctx) };
+    return { rows: rows.map(taskFaces), view: "person", status: "all", canAssign: can(ctx, "tasks.assign"), canManage: manager, emailEnabled: await emailEnabled(ctx) };
   }
   const view = input.view === "all" && manager ? "all" : input.view === "created" ? "created" : "mine";
   const status = input.status === "done" ? "done" : input.status === "all" ? "all" : "open";
@@ -241,18 +258,18 @@ export async function listTasks(ctx: Ctx, input: { view?: string; status?: strin
      ORDER BY CASE WHEN t.status IN ('OPEN','IN_PROGRESS') THEN 0 ELSE 1 END, t.due_at IS NULL, t.due_at, t.created_at DESC
      LIMIT 200`,
     view, actor.user.id, status);
-  return { rows, view, status, canAssign: can(ctx, "tasks.assign"), canManage: manager, emailEnabled: await emailEnabled(ctx) };
+  return { rows: rows.map(taskFaces), view, status, canAssign: can(ctx, "tasks.assign"), canManage: manager, emailEnabled: await emailEnabled(ctx) };
 }
 
 export async function taskDetail(ctx: Ctx, id: string) {
   const t = await loadTask(ctx, id);
   const role = taskRole(ctx, t);
   if (!role.canEdit && !role.assignee) throw new NotFoundError("Task");
-  const comments = await ctx.db.all<{ id: string; body: string; created_at: string; author_user_id: string; author: string | null }>(
-    `SELECT c.id, c.body, c.created_at, c.author_user_id, COALESCE(p.full_name, u.email) AS author FROM task_comments c
+  const comments = await ctx.db.all<{ id: string; body: string; created_at: string; author_user_id: string; author: string | null; avatar_json: string | null }>(
+    `SELECT c.id, c.body, c.created_at, c.author_user_id, COALESCE(p.full_name, u.email) AS author, ${avatarOfProfileSql("p")} AS avatar_json FROM task_comments c
      JOIN users u ON u.id = c.author_user_id LEFT JOIN profiles p ON p.user_id = c.author_user_id AND p.deleted_at IS NULL
      WHERE c.task_id = ?1 AND c.deleted_at IS NULL ORDER BY c.created_at LIMIT 300`, id);
-  return { task: t, comments, role, emailEnabled: await emailEnabled(ctx) };
+  return { task: taskFaces(t), comments: withAvatars(comments), role, emailEnabled: await emailEnabled(ctx) };
 }
 
 // ── Meetings ─────────────────────────────────────────────────────────────────
@@ -393,7 +410,9 @@ export async function updateMeeting(ctx: Ctx, id: string, input: Record<string, 
     }),
     // One notice per person: newcomers get the invitation, everyone else only hears about a new time, place or link.
     ...notifyStmts(ctx, added.filter((u) => u !== actor.user.id), { type: "meeting.invited", title: `Meeting: ${f.title}`, body: `${actorName(ctx)} invited you. ${whenText(f)}`, link, resourceType: "meeting", resourceId: id }),
-    ...(moved ? notifyStmts(ctx, stay, { type: "meeting.changed", title: `Meeting changed: ${f.title}`, body: `Now ${whenText(f)}`, link, resourceType: "meeting", resourceId: id }) : []),
+    ...(moved ? notifyStmts(ctx, stay, { type: "meeting.changed", title: `Meeting changed: ${f.title}`, body: `Now ${whenText(f)}. Was ${whenText({ startsAt: m.starts_at, location: m.location, meetUrl: m.meet_url })}.`, link, resourceType: "meeting", resourceId: id }) : []),
+    // Removed people can't open the meeting any more: tell them, and link to their meetings list.
+    ...notifyStmts(ctx, removed.filter((u) => u !== actor.user.id), { type: "meeting.removed", title: `You're no longer in: ${f.title}`, body: `${actorName(ctx)} removed you from this meeting.`, link: "/dashboard/meetings", resourceType: "meeting", resourceId: id }),
   ]);
   return { message: moved || added.length ? "Saved. Participants were notified in the dashboard." : "Saved." };
 }
@@ -454,22 +473,9 @@ export async function meetingDetail(ctx: Ctx, id: string) {
   const m = await loadMeeting(ctx, id);
   const role = meetingRole(ctx, m);
   if (!role.canEdit && !role.participant) throw new NotFoundError("Meeting");
-  const participants = await ctx.db.all<{ user_id: string; name: string | null; response: string }>(
-    `SELECT mp.user_id, COALESCE(p.full_name, u.email) AS name, mp.response FROM meeting_participants mp JOIN users u ON u.id = mp.user_id
+  const participants = await ctx.db.all<{ user_id: string; name: string | null; response: string; avatar_json: string | null }>(
+    `SELECT mp.user_id, COALESCE(p.full_name, u.email) AS name, mp.response, ${avatarOfProfileSql("p")} AS avatar_json FROM meeting_participants mp JOIN users u ON u.id = mp.user_id
      LEFT JOIN profiles p ON p.user_id = mp.user_id AND p.deleted_at IS NULL WHERE mp.meeting_id = ?1 ORDER BY (mp.user_id = ?2) DESC, name`, id, m.created_by);
-  return { meeting: m, participants, role };
+  return { meeting: m, participants: withAvatars(participants), role };
 }
 
-/** For the dashboard home: my open tasks (overdue first) and my next meetings. */
-export async function myWorkSummary(ctx: Ctx) {
-  const me = requireActor(ctx).user.id;
-  const [tasks, meetings] = await Promise.all([
-    ctx.db.all<{ id: string; title: string; due_at: string | null; status: string; priority: string }>(
-      `SELECT id, title, due_at, status, priority FROM tasks WHERE assignee_user_id = ?1 AND deleted_at IS NULL AND status IN ('OPEN','IN_PROGRESS')
-       ORDER BY due_at IS NULL, due_at, created_at DESC LIMIT 6`, me),
-    ctx.db.all<{ id: string; title: string; starts_at: string; meet_url: string | null; location: string | null }>(
-      `SELECT m.id, m.title, m.starts_at, m.meet_url, m.location FROM meetings m JOIN meeting_participants mp ON mp.meeting_id = m.id AND mp.user_id = ?1
-       WHERE m.deleted_at IS NULL AND m.status = 'SCHEDULED' AND COALESCE(m.ends_at, m.starts_at) >= ?2 ORDER BY m.starts_at LIMIT 4`, me, nowIso()),
-  ]);
-  return { tasks, meetings };
-}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireSignedIn, view } from "@/lib/api/session";
 import type { listTasks } from "@/lib/server/services/work";
 import { EmptyState, PageHeader, Section, StatusBadge } from "@/components/admin/ui";
+import { PersonAvatar } from "@/components/person-avatar";
 import { cn } from "@/lib/utils";
 import { NewTaskForm } from "./new-task-form";
 
@@ -40,6 +41,9 @@ export default async function TasksPage({ searchParams }: { searchParams: SP }) 
               const late = t.due_at && t.due_at < now && (t.status === "OPEN" || t.status === "IN_PROGRESS");
               return (
                 <li key={t.id} className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 py-3">
+                  {data.view === "mine"
+                    ? <PersonAvatar name={t.creator_name} url={t.creator_avatar} className="mt-0.5" />
+                    : <PersonAvatar name={t.assignee_name} url={t.assignee_avatar} className="mt-0.5" />}
                   <div className="min-w-0 flex-1">
                     <Link href={`/dashboard/tasks/${t.id}`} className="font-medium hover:underline">{t.title}</Link>
                     <p className="text-xs text-muted-foreground">

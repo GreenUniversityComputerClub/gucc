@@ -6,11 +6,12 @@
 import { limit } from "../limits";
 import { auditStmt } from "../audit";
 import { requireActor, requirePermission } from "../authz";
-import type { Ctx } from "../context";
+import { siteUrl, type Ctx } from "../context";
 import { newId, nowIso } from "../db";
 import { NotFoundError, ValidationError } from "../errors";
 import { deliverEmail, verifyTurnstile } from "../security";
 import { Validator } from "../validate";
+import { notifyStmts, usersWithPermission } from "../notifications";
 import { triggerStmts } from "../triggers";
 
 export async function submitContact(ctx: Ctx, input: Record<string, unknown>): Promise<{ message: string }> {
@@ -26,9 +27,16 @@ export async function submitContact(ctx: Ctx, input: Record<string, unknown>): P
   if (typeof input.website === "string" && input.website.trim()) return { message: "Thanks! We'll get back to you soon." };
   await verifyTurnstile(ctx, input.turnstileToken as string | undefined);
   const id = newId("msg");
+  const rules = await triggerStmts(ctx, "message.received", { type: "contact_message", id }, { title: d.name!, link: "/dashboard/messages" });
+  // Without a rule of their own, the people who handle the inbox get one in-app notice (never emailed:
+  // the inbox address below already gets the message).
+  const inbox = rules.length ? [] : notifyStmts(ctx, await usersWithPermission(ctx, "messages.read"), {
+    type: "contact.new", title: `Contact message from ${d.name}`.slice(0, 200), body: d.message!.slice(0, 160), link: "/dashboard/messages", resourceType: "contact_message", resourceId: id,
+  });
   await ctx.db.batch([
     ctx.db.stmt("INSERT INTO contact_messages (id, name, email, message, ip_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)", id, d.name, d.email, d.message, ctx.meta.ipHash, nowIso()),
-    ...(await triggerStmts(ctx, "message.received", { type: "contact_message", id }, { title: d.name!, link: "/dashboard/messages" })),
+    ...rules,
+    ...inbox,
   ]);
   const to = ctx.env.CONTACT_EMAIL ?? ctx.env.EMAIL_FROM;
   if (to) {
@@ -36,7 +44,7 @@ export async function submitContact(ctx: Ctx, input: Record<string, unknown>): P
       to,
       replyTo: d.email!,
       subject: `New contact message from ${d.name}`,
-      text: `From: ${d.name} <${d.email}>\n\n${d.message}\n\n— Open the inbox: ${(ctx.env.PUBLIC_BASE_URL ?? "").replace(/\/+$/, "")}/dashboard/messages`,
+      text: `From: ${d.name} <${d.email}>\n\n${d.message}\n\n— Open the inbox: ${siteUrl(ctx, "/dashboard/messages")}`,
     }, { type: "contact" });
   }
   return { message: "Thanks! We'll get back to you soon." };

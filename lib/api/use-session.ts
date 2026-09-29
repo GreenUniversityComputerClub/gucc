@@ -12,6 +12,8 @@ export interface ClientSession {
   avatarUrl?: string | null;
   adminAccess?: boolean;
   unread?: number;
+  unreadMessages?: number;
+  openTasks?: number;
   caps?: Record<string, true>;
 }
 

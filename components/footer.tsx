@@ -30,6 +30,25 @@ export function Footer() {
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+            <ul className="mb-3 grid grid-cols-2 gap-x-4 gap-y-2">
+              {[
+                ["/events", "Events"],
+                ["/blog", "Blog"],
+                ["/news", "News"],
+                ["/executives", "Executives"],
+                ["/contests", "Contests"],
+                ["/join", "Join GUCC"],
+                ["/sponsors", "Sponsors"],
+                ["/contact", "Contact"],
+              ].map(([href, label]) => (
+                <li key={href}>
+                  <Link href={href!} className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center">
+                    <ChevronRight className="h-4 w-4 mr-1" aria-hidden />
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
             <ul className="space-y-2">
               <li>
                 <Link
@@ -94,7 +113,7 @@ export function Footer() {
                   <Mail size={20} aria-hidden />
                 </Link>
                 <Link
-                  href="https://www.instagram.com/gucc__official/"
+                  href="https://www.instagram.com/GreenUniversityComputerClub/"
                   aria-label="GUCC on Instagram"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >

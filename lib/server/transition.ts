@@ -56,7 +56,7 @@ const KEY_COLUMN: Partial<Record<StampedTable, string>> = { system_settings: "ke
 
 function staleError(row: { updated_at: string; name: string | null }): AppError {
   const when = new Date(row.updated_at).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", dateStyle: "medium", timeStyle: "short" });
-  return new AppError(409, "STALE", `This was changed at ${when}${row.name ? ` (last saved by ${row.name})` : ""} after you opened it. Reload the page to see the change, then make yours again.`);
+  return new AppError(409, "STALE", `This was changed at ${when}${row.name ? ` (last saved by ${row.name})` : " (automatically, e.g. an event that started)"} after you opened it. Reload the page to see the change, then make yours again.`);
 }
 
 /**

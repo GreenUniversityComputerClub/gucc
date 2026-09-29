@@ -14,8 +14,9 @@ import { newId, nowIso } from "../db";
 import { AppError, ConflictError, NotFoundError, ValidationError } from "../errors";
 import { notifyStmts } from "../notifications";
 import { assertStmt, batchTransition, staleAnswer, unchangedSince } from "../transition";
-import { STUDENT_ID_RE, toSlug, Validator } from "../validate";
+import { STUDENT_ID_RE, Validator } from "../validate";
 import { requireRecentAuthForPositions } from "../security";
+import { freezeCurrentListingsStmt, keepFramingIfSame, photoChangedStmt, PROFILE_TAGS } from "../people-sync";
 
 export interface CommitteeRow {
   id: string;
@@ -70,6 +71,8 @@ export async function createCommittee(ctx: Ctx, input: Record<string, unknown>):
   const stmts = [];
   if (d.status === "CURRENT") {
     requirePermission(ctx, "committees.update");
+    // The outgoing committee keeps what it shows today, whatever its people change later.
+    stmts.push(freezeCurrentListingsStmt(ctx, null, now));
     stmts.push(ctx.db.stmt("UPDATE committee_members SET is_active = 0, updated_at = ?1 WHERE committee_id IN (SELECT id FROM committees WHERE status = 'CURRENT')", now));
     stmts.push(ctx.db.stmt("UPDATE committees SET status = 'ARCHIVED', updated_at = ?1, updated_by = ?2 WHERE status = 'CURRENT' AND deleted_at IS NULL", now, actor.user.id));
   }
@@ -102,6 +105,8 @@ export async function updateCommittee(ctx: Ctx, id: string, input: Record<string
   const now = nowIso();
   const stmts = [...(await unchangedSince(ctx, "committees", id, input.expectedUpdatedAt))];
   if (d.status === "CURRENT" && before.status !== "CURRENT") {
+    // The outgoing committee keeps what it shows today, whatever its people change later.
+    stmts.push(freezeCurrentListingsStmt(ctx, id, now));
     stmts.push(ctx.db.stmt("UPDATE committee_members SET is_active = 0, updated_at = ?2 WHERE committee_id IN (SELECT id FROM committees WHERE status = 'CURRENT' AND id <> ?1)", id, now));
     stmts.push(ctx.db.stmt("UPDATE committees SET status = 'ARCHIVED', updated_at = ?2, updated_by = ?3 WHERE status = 'CURRENT' AND id <> ?1 AND deleted_at IS NULL", id, now, actor.user.id));
     stmts.push(ctx.db.stmt("UPDATE committee_members SET is_active = 1, updated_at = ?2 WHERE committee_id = ?1 AND deleted_at IS NULL AND end_date IS NULL", id, now));
@@ -249,7 +254,10 @@ export async function assignExecutive(ctx: Ctx, committeeId: string, input: Reco
       ? [assertStmt(ctx, "(SELECT COUNT(*) FROM committee_members WHERE committee_id = ?1 AND position_id = ?2 AND IFNULL(unit_key,'') = ?4 AND deleted_at IS NULL AND end_date IS NULL) < ?3", committeeId, position.id, position.max_holders, d.unitKey ?? "")]
       : []),
     ...person.stmts,
-    ...(d.avatarMediaId ? [ctx.db.stmt("UPDATE profiles SET avatar_media_id = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1", person.id, d.avatarMediaId, now, actor.user.id)] : []),
+    ...(d.avatarMediaId ? [
+      photoChangedStmt(ctx, person.id, d.avatarMediaId, now),
+      ctx.db.stmt(`UPDATE profiles SET ${keepFramingIfSame("?2")}, avatar_media_id = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1`, person.id, d.avatarMediaId, now, actor.user.id),
+    ] : []),
     ...(layoutChanged ? [ctx.db.stmt("UPDATE committees SET layout_json = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1", committeeId, JSON.stringify(layout), now, actor.user.id)] : []),
     ctx.db.stmt(
       `INSERT INTO committee_members (id, committee_id, profile_id, position_id, position_title, section, unit_key, unit_type, campus_label, designation, display_order, start_date, is_active, bio, created_at, created_by, updated_at, updated_by)
@@ -258,9 +266,9 @@ export async function assignExecutive(ctx: Ctx, committeeId: string, input: Reco
       committee.status === "CURRENT" ? 1 : 0, d.bio, now, actor.user.id,
     ),
     auditStmt(ctx, { action: "executive.assign", resourceType: "committee_member", resourceId: id, after: { committee: committee.name, position: position.key, profileId: person.id, title: d.title || position.name }, decision }),
-    ...(person.userId ? notifyStmts(ctx, [person.userId], { type: "executive.assigned", title: `You were assigned as ${d.title || position.name}`, body: committee.name, link: "/dashboard" }) : []),
+    ...(person.userId ? notifyStmts(ctx, [person.userId], { type: "executive.assigned", title: `You were assigned as ${d.title || position.name}`, body: `${committee.name}. Your page shows what this position lets you do.`, link: `/dashboard/access/${person.userId}` }) : []),
   ], () => new ConflictError(`${position.name} was just filled by someone else (it allows ${position.max_holders} holder${position.max_holders === 1 ? "" : "s"}). Reload to see who.`));
-  ctx.revalidate?.(["committees"]);
+  ctx.revalidate?.(d.avatarMediaId ? PROFILE_TAGS : ["committees"]);
   return { id, profileId: person.id, hasAccount: Boolean(person.userId) };
 }
 
@@ -324,16 +332,6 @@ export async function endAssignment(ctx: Ctx, id: string, mode: "end" | "remove"
   ctx.revalidate?.(["committees"]);
 }
 
-export async function searchProfiles(ctx: Ctx, q: string) {
-  requirePermission(ctx, "executives.read");
-  const like = `%${q.replace(/[%_]/g, "").slice(0, 50)}%`;
-  return ctx.db.all<{ id: string; full_name: string; student_id: string | null; person_type: string; user_id: string | null }>(
-    "SELECT id, full_name, student_id, person_type, user_id FROM profiles WHERE deleted_at IS NULL AND (full_name LIKE ?1 OR student_id LIKE ?1) ORDER BY full_name LIMIT 20",
-    like,
-  );
-}
-
-export const slugForCommittee = (term: string) => toSlug(term);
 
 /**
  * Move a listing one place up or down within its section and unit. Orders are

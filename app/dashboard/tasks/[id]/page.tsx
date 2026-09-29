@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { requireSignedIn, view } from "@/lib/api/session";
 import type { taskDetail } from "@/lib/server/services/work";
 import { ActionForm, Field, PageHeader, Section, StatusBadge } from "@/components/admin/ui";
 import { PersonPicker } from "@/components/admin/person-picker";
+import { PersonAvatar } from "@/components/person-avatar";
 import { commentTaskAction, editTaskAction, taskStatusAction } from "../actions";
 
 const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -18,13 +18,13 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
   );
   return (
     <>
-      <PageHeader title={t.title} description={`${t.assignee_user_id ? "For" : "For (no account yet)"} ${t.assignee_name ?? "—"} · given by ${t.creator_name ?? "someone"} on ${when(t.created_at)}`}
-        actions={<Link href="/dashboard/tasks" className="text-sm underline">All tasks</Link>} />
+      <PageHeader back={{ href: "/dashboard/tasks", label: "Tasks" }} title={t.title} description={`${t.assignee_user_id ? "For" : "For (no account yet)"} ${t.assignee_name ?? "—"} · given by ${t.creator_name ?? "someone"} on ${when(t.created_at)}`} />
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-6">
           <Section title="Details">
             <div className="flex flex-wrap items-center gap-3 text-sm">
               <StatusBadge status={t.status} />
+              <span className="inline-flex items-center gap-1.5"><PersonAvatar name={t.assignee_name} url={t.assignee_avatar} size="xs" />{t.assignee_name ?? "—"}</span>
               {t.due_at && <span>Due {when(t.due_at)}</span>}
               <span className="text-muted-foreground">Priority: {t.priority.toLowerCase()}</span>
               {t.event_title && <span className="text-muted-foreground">Event: {t.event_title}</span>}
@@ -45,9 +45,12 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
             {comments.length === 0 ? <p className="text-sm text-muted-foreground">No comments yet.</p> : (
               <ul className="space-y-3">
                 {comments.map((c) => (
-                  <li key={c.id} className="rounded-lg border p-3 text-sm">
-                    <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">{c.author}</span> · {when(c.created_at)}</p>
-                    <p className="mt-1 whitespace-pre-wrap">{c.body}</p>
+                  <li key={c.id} className="flex gap-3 rounded-lg border p-3 text-sm">
+                    <PersonAvatar name={c.author} url={c.avatarUrl} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">{c.author}</span> · {when(c.created_at)}</p>
+                      <p className="mt-1 whitespace-pre-wrap break-words">{c.body}</p>
+                    </div>
                   </li>
                 ))}
               </ul>

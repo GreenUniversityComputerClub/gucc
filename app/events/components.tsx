@@ -15,10 +15,13 @@ import Link from "next/link";
 
 export function EventCard({
   event,
-  index,
+  index: _index,
+  priority = false,
 }: {
   event: ClubEvent;
   index: number;
+  /** Load the image first: only for cards visible without scrolling (the events page's first row). */
+  priority?: boolean;
 }) {
   const slug = event.slug;
 
@@ -39,7 +42,7 @@ export function EventCard({
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
-            priority={index < 6}
+            priority={priority}
           />
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -53,6 +56,11 @@ export function EventCard({
             }`}>
               {isUpcoming ? 'Upcoming' : 'Past'}
             </span>
+            {event.registrationOpen && (
+              <span className="ml-1.5 inline-flex items-center rounded-full bg-emerald-600 px-2 py-1 text-xs font-medium text-white">
+                Registration open
+              </span>
+            )}
           </div>
         </Link>
       </div>
@@ -67,7 +75,7 @@ export function EventCard({
         <div className="flex items-center text-sm text-muted-foreground">
           <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
           <CardDescription className="text-sm">
-            {new Date(event.date).toLocaleDateString("en-US", {
+            {new Date(event.date).toLocaleDateString("en-US", { timeZone: "Asia/Dhaka",
               year: "numeric",
               month: "short",
               day: "numeric",

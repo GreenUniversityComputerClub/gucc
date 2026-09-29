@@ -24,8 +24,10 @@ export default async function DashboardHome() {
   const first = session.profile?.name?.split(" ")[0];
   const status = h.account?.status ?? session.user.status;
   const quick = [
-    can("events.create") && { href: "/dashboard/events/new", label: "Create an event", icon: CalendarDays },
-    can("posts.create") && { href: "/dashboard/posts/new?type=BLOG", label: "Write a post", icon: FileText },
+    // Members propose and write for review; the committee creates directly.
+    can("events.create") && { href: "/dashboard/events/new", label: session.adminAccess ? "Create an event" : "Propose an event", icon: CalendarDays },
+    can("posts.create") && { href: "/dashboard/posts/new?type=BLOG", label: "Write a blog post", icon: FileText },
+    !session.adminAccess && (can("posts.create") || can("events.create")) && { href: "/dashboard/approvals?mine=1&status=ALL", label: "My submissions", icon: ClipboardList },
     can("members.approve") && { href: "/dashboard/members?status=PENDING_APPROVAL", label: "Review members", icon: UserCheck },
     can("notifications.send") && { href: "/dashboard/notifications", label: "Send an announcement", icon: Megaphone },
     can("tasks.assign") && { href: "/dashboard/tasks#give", label: "Give a task", icon: ListTodo },

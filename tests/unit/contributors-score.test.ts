@@ -1,18 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { isAuthoredPath, isBot, scoreContributors } from "@/lib/contributors/score";
+import { isAuthoredPath, isBot, isRealCommit, scoreContributors } from "@/lib/contributors/score";
 
-describe("fair contributor score", () => {
-  it("counts both commits and lines, with diminishing returns", () => {
+describe("fair contributor score (75% lines, 25% real commits)", () => {
+  it("80 tiny commits rank below 10 real commits with more code", () => {
     const ranked = scoreContributors([
-      { login: "many-small", commits: 80, additions: 800, deletions: 200 },
-      { login: "few-large", commits: 20, additions: 30000, deletions: 5000 },
-      { login: "balanced", commits: 50, additions: 15000, deletions: 3000 },
-      { login: "newcomer", commits: 1, additions: 10, deletions: 0 },
+      { login: "tiny-commits", commits: 80, realCommits: 5, additions: 300, deletions: 100 },
+      { login: "real-work", commits: 10, realCommits: 10, additions: 4000, deletions: 800 },
     ]);
-    // 40 × √(20/80) + 60 × √(32500/32500) = 80; 40 × √(50/80) + 60 × √(16500/32500) ≈ 74.4; 40 + 60 × √(900/32500) ≈ 50.
-    expect(ranked.map((r) => [r.login, r.score])).toEqual([["few-large", 80], ["balanced", 74.4], ["many-small", 50], ["newcomer", 5.5]]);
-    expect(ranked[0].score).toBeLessThanOrEqual(100);
-    expect(ranked.at(-1)!.score).toBeGreaterThan(0);
+    expect(ranked.map((r) => r.login)).toEqual(["real-work", "tiny-commits"]);
+    // 25 × √(10/10) + 75 × √(4400/4400) = 100 for the top contributor.
+    expect(ranked[0]!.score).toBe(100);
+  });
+
+  it("lines weigh three times as much as commits, with diminishing returns", () => {
+    const ranked = scoreContributors([
+      { login: "many-small", commits: 80, realCommits: 80, additions: 800, deletions: 200 },
+      { login: "few-large", commits: 20, realCommits: 20, additions: 30000, deletions: 5000 },
+      { login: "newcomer", commits: 1, realCommits: 1, additions: 10, deletions: 0 },
+    ]);
+    // few-large: 25 × √(20/80) + 75 = 87.5; many-small: 25 + 75 × √(900/32500) ≈ 37.5.
+    expect(ranked.map((r) => [r.login, r.score])).toEqual([["few-large", 87.5], ["many-small", 37.5], ["newcomer", 4.1]]);
+  });
+
+  it("a commit is real from 10 authored lines", () => {
+    expect(isRealCommit({ additions: 9, deletions: 0 })).toBe(false);
+    expect(isRealCommit({ additions: 8, deletions: 4 })).toBe(true);
   });
 
   it("ignores lockfiles, data dumps, images and seeds, and drops bots", () => {

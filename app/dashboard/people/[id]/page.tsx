@@ -44,6 +44,7 @@ export default async function PersonPage({ params, searchParams }: { params: Pro
   return (
     <>
       <PageHeader
+        back={{ href: "/dashboard/people", label: "People" }}
         title={String(p.full_name)}
         description={[current.map((h) => h.position_title).join(", ") || null, studentId, v("email")].filter(Boolean).join(" · ") || "No student ID or account yet"}
         actions={

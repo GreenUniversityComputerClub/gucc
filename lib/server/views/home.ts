@@ -8,7 +8,7 @@ import type { Ctx } from "../context";
 import { nowIso } from "../db";
 import { emailEnabled } from "../email";
 import { activityFeed } from "../services/activity";
-import { listApprovals } from "../services/approvals";
+import { isContentReviewer, listApprovals } from "../services/approvals";
 
 type Row = Record<string, unknown>;
 
@@ -47,20 +47,21 @@ export async function homeView(ctx: Ctx) {
        FROM events e WHERE e.deleted_at IS NULL AND e.status IN ('PUBLISHED','ONGOING') AND (e.end_at IS NULL OR e.end_at > ?2) AND e.start_at IS NOT NULL
        ORDER BY e.start_at LIMIT 5`, uid, now),
     ctx.db.stmt(
-      `SELECT r.id, r.status, e.title, e.slug, e.start_at FROM event_registrations r JOIN events e ON e.id = r.event_id AND e.deleted_at IS NULL
+      `SELECT r.id, r.status, e.title, e.slug, e.start_at FROM event_registrations r
+       JOIN events e ON e.id = r.event_id AND e.deleted_at IS NULL AND e.status IN ('PUBLISHED','ONGOING')
        WHERE r.user_id = ?1 AND r.status IN ('REGISTERED','WAITLISTED') AND (e.start_at IS NULL OR e.start_at > ?2) ORDER BY e.start_at LIMIT 5`, uid, now),
     ctx.db.stmt(
       // Only the figures this person's sections show are counted (a CASE branch not taken isn't
       // run), so the page stays cheap on the free plan's daily row reads for ordinary members.
       `SELECT CASE WHEN ?2 THEN (SELECT COUNT(*) FROM users WHERE status = 'PENDING_APPROVAL' AND deleted_at IS NULL) END AS pending_members,
               CASE WHEN ?3 THEN (SELECT COUNT(*) FROM contact_messages WHERE status = 'NEW') END AS new_messages,
-              CASE WHEN ?4 THEN (SELECT COUNT(*) FROM recruitment_applications a JOIN recruitment_campaigns rc ON rc.id = a.campaign_id AND rc.status = 'OPEN' WHERE a.status = 'SUBMITTED') END AS new_applications,
+              CASE WHEN ?4 THEN (SELECT COUNT(*) FROM recruitment_applications a JOIN recruitment_campaigns rc ON rc.id = a.campaign_id AND rc.status <> 'ARCHIVED' WHERE a.status = 'SUBMITTED') END AS new_applications,
               CASE WHEN ?5 THEN (SELECT COUNT(*) FROM lost_found_posts WHERE status = 'pending' AND deleted_at IS NULL) END AS pending_lostfound,
               CASE WHEN ?6 THEN (SELECT COUNT(*) FROM reports WHERE status = 'OPEN') END AS open_reports,
               CASE WHEN ?7 THEN (SELECT COUNT(*) FROM users WHERE status = 'ACTIVE' AND deleted_at IS NULL) END AS active_members,
               CASE WHEN ?7 THEN (SELECT COUNT(*) FROM users WHERE deleted_at IS NULL AND created_at >= ?1) END AS new_accounts,
-              CASE WHEN ?7 THEN (SELECT COUNT(*) FROM events WHERE deleted_at IS NULL AND status IN ('PUBLISHED','ONGOING','COMPLETED') AND start_at >= ?1) END AS events_30d,
-              CASE WHEN ?7 THEN (SELECT COUNT(*) FROM posts WHERE deleted_at IS NULL AND status = 'PUBLISHED' AND published_at >= ?1) END AS posts_30d,
+              CASE WHEN ?7 THEN (SELECT COUNT(*) FROM events WHERE deleted_at IS NULL AND status IN ('PUBLISHED','ONGOING','COMPLETED') AND start_at >= ?1 AND start_at <= ?9) END AS events_30d,
+              CASE WHEN ?7 THEN (SELECT COUNT(*) FROM posts WHERE deleted_at IS NULL AND status = 'PUBLISHED' AND published_at >= ?1 AND published_at <= ?9) END AS posts_30d,
               CASE WHEN ?7 THEN (SELECT count FROM usage_counters WHERE day = 'total' AND key = 'r2.stored_bytes') END AS storage_bytes,
               (SELECT COUNT(*) FROM notifications WHERE user_id = ?8 AND read_at IS NULL) AS unread,
               (SELECT COUNT(*) FROM tasks WHERE assignee_user_id = ?8 AND deleted_at IS NULL AND status IN ('OPEN','IN_PROGRESS') AND due_at IS NOT NULL AND due_at < ?9) AS overdue`,
@@ -76,10 +77,11 @@ export async function homeView(ctx: Ctx) {
   ])) as Array<{ results?: Row[] }>;
 
   const n = (counts.results?.[0] ?? {}) as Record<string, number>;
-  const decidable = can(ctx, "approvals.read") ? (await listApprovals(ctx, {})).filter((r) => r.canDecide) : [];
+  const decidable = can(ctx, "approvals.read") || isContentReviewer(ctx) ? (await listApprovals(ctx, {})).filter((r) => r.canDecide) : [];
+  const waitedDays = (rows: Array<{ created_at: string }>) => Math.floor((Date.now() - Math.min(...rows.map((r) => Date.parse(r.created_at)))) / 86_400_000);
   const approvals = decidable.slice(0, 5).map((r) => ({ id: r.id, title: r.title ?? r.action, requester: r.requester_name }));
   const attention = [
-    ...(decidable.length ? [{ key: "approvals", label: `${decidable.length >= 50 ? "50+" : decidable.length} waiting for your decision`, href: "/dashboard/approvals" }] : []),
+    ...(decidable.length ? [{ key: "approvals", label: `${decidable.length >= 50 ? "50+" : decidable.length} waiting for your decision${waitedDays(decidable) >= 1 ? ` (oldest ${waitedDays(decidable)} day${waitedDays(decidable) === 1 ? "" : "s"})` : ""}`, href: "/dashboard/approvals" }] : []),
     ...(c.members && n.pending_members ? [{ key: "members", label: `${n.pending_members} membership application${n.pending_members === 1 ? "" : "s"}`, href: "/dashboard/members?status=PENDING_APPROVAL" }] : []),
     ...(c.messages && n.new_messages ? [{ key: "messages", label: `${n.new_messages} new contact message${n.new_messages === 1 ? "" : "s"}`, href: "/dashboard/messages" }] : []),
     ...(c.recruitment && n.new_applications ? [{ key: "recruitment", label: `${n.new_applications} new recruitment application${n.new_applications === 1 ? "" : "s"}`, href: "/dashboard/recruitment" }] : []),

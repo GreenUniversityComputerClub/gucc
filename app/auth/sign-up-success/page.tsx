@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { SPAM_HINT } from '@/lib/email-hint'
+import { SignUpDone } from './done'
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ review?: string }> }) {
   // ?review=1: email is off, so the application went straight to the club for approval.
@@ -17,23 +17,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ r
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">Thank you for signing up!</CardTitle>
-              <CardDescription>{review ? 'Your application is with GUCC' : 'Check your email to confirm'}</CardDescription>
+              <CardDescription>{review ? 'Your application is with GUCC' : 'One more step: confirm your email'}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {review ? (
-                <p className="text-sm text-muted-foreground">
-                  Your account has been created and is waiting for approval by club leadership.
-                  You can sign in to see its status.
-                </p>
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    You&apos;ve successfully signed up. Please check your email to confirm your account
-                    before signing in.
-                  </p>
-                  <p className="text-sm text-muted-foreground">{SPAM_HINT}</p>
-                </>
-              )}
+            <CardContent>
+              <SignUpDone review={review} />
             </CardContent>
           </Card>
         </div>

@@ -26,12 +26,13 @@ import { loadActor, requireActor, requirePermission } from "../authz";
 import type { Ctx } from "../context";
 import { newId, nowIso, type D1StatementLike } from "../db";
 import { AppError, ConflictError, NotFoundError, ValidationError } from "../errors";
-import { notifyStmts } from "../notifications";
+import { notifyEachStmts, notifyStmts } from "../notifications";
 import { getSetting, requireRecentAuth } from "../security";
 import { emailProvider, forgetEmailSettings, lastSuccessfulTest, TEST_VALID_DAYS } from "../email";
 import { TRIGGER_EVENTS, type NotifyTarget } from "../triggers";
 import { toSlug, Validator } from "../validate";
 import { eligibleApprovers, loadPolicy, registerApprovalHandler, startApproval } from "./approvals";
+import { positionRenamedStmt } from "../people-sync";
 
 // ───────────────────────────── protected change routing ─────────────────────────────
 
@@ -215,7 +216,7 @@ async function roleGrantStatements(ctx: Ctx, userId: string, roleKey: string, re
     expireRolesStmt(ctx, [userId], role.id),
     ctx.db.stmt("INSERT INTO user_roles (id, user_id, role_id, granted_by, granted_at, reason, expires_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)", newId("ur"), userId, role.id, actor.user.id, nowIso(), reason, expiresAt),
     auditStmt(ctx, { action: "role.grant", resourceType: "user", resourceId: userId, reason: viaRequest ? `${reason ?? ""} (approved request ${viaRequest})`.trim() : reason, after: { role: roleKey } }),
-    ...notifyStmts(ctx, [userId], { type: "role.granted", title: `You were given the ${rc.roleKey.replace(/-/g, " ")} role`, body: reason ?? undefined, link: "/dashboard" }),
+    ...notifyStmts(ctx, [userId], { type: "role.granted", title: `You were given the ${rc.roleKey.replace(/-/g, " ")} role`, body: reason ?? undefined, link: `/dashboard/access/${userId}` }),
   ];
 }
 
@@ -296,7 +297,7 @@ export async function grantRoleBulk(ctx: Ctx, input: { userIds?: unknown; roleKe
       JSON.stringify(ok.map((i) => i.id)), role.id, actor.user.id, now, reason, expiresAt),
     auditStmt(ctx, { action: "role.grant_bulk", resourceType: "role", resourceId: role.id, reason, after: { role: role.key, people: ok.length, expiresAt }, decision }),
     ...auditManyStmt(ctx, ok.map((i) => ({ action: "role.grant", resourceType: "user", resourceId: i.id, reason, after: { role: role.key }, decision }))),
-    ...notifyStmts(ctx, ok.map((i) => i.id), { type: "role.granted", title: `You were given the ${role.key.replace(/-/g, " ")} role`, body: reason ?? undefined, link: "/dashboard" }),
+    ...notifyEachStmts(ctx, ok.map((i) => ({ userId: i.id, type: "role.granted", title: `You were given the ${role.key.replace(/-/g, " ")} role`, body: reason ?? undefined, link: `/dashboard/access/${i.id}` }))),
   ]);
   return { plan, message: `Gave the ${role.key.replace(/-/g, " ")} role to ${ok.length} member${ok.length === 1 ? "" : "s"}${plan.blocked ? `; ${plan.blocked} left as they were` : ""}.` };
 }
@@ -436,7 +437,7 @@ async function directGrantStatements(ctx: Ctx, userId: string, grant: GrantInput
       newId("upm"), userId, perm.id, grant.scope, grant.scopeValue.trim(), reason, expiresAt, actor.user.id, nowIso(), viaRequest ?? null,
     ),
     auditStmt(ctx, { action: "permission.grant_direct", resourceType: "user", resourceId: userId, after: { ...grant, expiresAt }, reason: viaRequest ? `${reason ?? ""} (approved request ${viaRequest})`.trim() : reason, decision }),
-    ...notifyStmts(ctx, [userId], { type: "permission.granted", title: `New permission: ${perm.description ?? grant.permission}${until}`, body: reason ?? undefined, link: "/dashboard" }),
+    ...notifyStmts(ctx, [userId], { type: "permission.granted", title: `New permission: ${perm.description ?? grant.permission}${until}`, body: reason ?? undefined, link: `/dashboard/access/${userId}` }),
   ];
 }
 
@@ -467,7 +468,7 @@ export async function revokeDirectPermission(ctx: Ctx, grantId: string, reason: 
   await ctx.db.batch([
     ctx.db.stmt("UPDATE user_permissions SET revoked_at = ?2, revoked_by = ?3 WHERE id = ?1 AND revoked_at IS NULL", grantId, nowIso(), actor.user.id),
     auditStmt(ctx, { action: "permission.revoke_direct", resourceType: "user", resourceId: row.user_id, before: { permission: row.key, scope: row.scope, scopeValue: row.scope_value }, reason, decision }),
-    ...notifyStmts(ctx, [row.user_id], { type: "permission.revoked", title: `A permission was removed: ${row.key}`, body: reason ?? undefined, link: "/dashboard" }),
+    ...notifyStmts(ctx, [row.user_id], { type: "permission.revoked", title: `A permission was removed: ${row.key}`, body: reason ?? undefined, link: `/dashboard/access/${row.user_id}` }),
   ]);
 }
 
@@ -573,9 +574,12 @@ export async function savePosition(ctx: Ctx, id: string | null, input: Record<st
          governance_level = COALESCE(?12, governance_level)
        WHERE id = ?1`,
       id, d.name, d.description, d.category, d.rank, d.parentId, d.isActive ? 1 : 0, d.maxHolders, now, actor.user.id, d.aliases == null ? null : JSON.stringify(aliases), d.governanceLevel ?? null),
+    // Live listings still showing the old name follow the rename; chosen titles and past committees stay.
+    ...(d.name && d.name !== before.name ? [positionRenamedStmt(ctx, id, before.name, d.name, now)] : []),
     auditStmt(ctx, { action: "position.update", resourceType: "position", resourceId: id, before, after: d, decision }),
   ], () => staleAnswer(ctx, "positions", id));
-  ctx.revalidate?.(["committees"]);
+  // The recruitment form lists positions by name.
+  ctx.revalidate?.(["committees", "recruitment"]);
   return { id };
 }
 
@@ -668,31 +672,6 @@ export async function copyGrants(ctx: Ctx, target: GrantHolder, source: GrantHol
   return { copied: copy.length, skipped, message };
 }
 
-/** Move a position one place up or down among its siblings (same parent), by rank. */
-export async function movePosition(ctx: Ctx, positionId: string, direction: "up" | "down"): Promise<void> {
-  const actor = requireActor(ctx);
-  const decision = requirePermission(ctx, "positions.update", { type: "position", id: positionId });
-  const pos = await ctx.db.first<{ name: string; rank: number; parent_id: string | null; is_protected: number }>(
-    "SELECT name, rank, parent_id, is_protected FROM positions WHERE id = ?1 AND deleted_at IS NULL", positionId);
-  if (!pos) throw new NotFoundError("Position");
-  assertCanEditProtected(actor.subject, `The ${pos.name} position`, Boolean(pos.is_protected));
-  const other = await ctx.db.first<{ id: string; rank: number; is_protected: number; name: string }>(
-    `SELECT id, rank, is_protected, name FROM positions WHERE deleted_at IS NULL AND id <> ?1 AND COALESCE(parent_id, '') = COALESCE(?2, '')
-       AND ${direction === "up" ? "rank <= ?3 ORDER BY rank DESC, name DESC" : "rank >= ?3 ORDER BY rank, name"} LIMIT 1`,
-    positionId, pos.parent_id, pos.rank);
-  if (!other) return;
-  assertCanEditProtected(actor.subject, `The ${other.name} position`, Boolean(other.is_protected));
-  // Equal ranks get pulled apart so the order is explicit from now on.
-  const [mine, theirs] = other.rank === pos.rank ? (direction === "up" ? [pos.rank - 1, pos.rank] : [pos.rank + 1, pos.rank]) : [other.rank, pos.rank];
-  const now = nowIso();
-  await ctx.db.batch([
-    ctx.db.stmt("UPDATE positions SET rank = ?2, display_order = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1", positionId, mine, now, actor.user.id),
-    ctx.db.stmt("UPDATE positions SET rank = ?2, display_order = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1", other.id, theirs, now, actor.user.id),
-    auditStmt(ctx, { action: "position.move", resourceType: "position", resourceId: positionId, before: { rank: pos.rank }, after: { rank: mine, direction }, decision }),
-  ]);
-  ctx.revalidate?.(["committees"]);
-}
-
 /** Archive a position no one holds in the current committee. History keeps its listings. */
 export async function archivePosition(ctx: Ctx, positionId: string): Promise<void> {
   const actor = requireActor(ctx);
@@ -708,11 +687,15 @@ export async function archivePosition(ctx: Ctx, positionId: string): Promise<voi
   if (held > 0) throw new ConflictError(`${held} ${held === 1 ? "person holds" : "people hold"} ${pos.name} in the current or upcoming committee. Move or end their listings first.`);
   const children = (await ctx.db.value<number>("SELECT COUNT(*) FROM positions WHERE parent_id = ?1 AND deleted_at IS NULL", positionId)) ?? 0;
   if (children > 0) throw new ConflictError(`${pos.name} has ${children} position${children === 1 ? "" : "s"} under it. Move them to another parent first.`);
+  // A recruitment call still offering it would silently lose it from its public form.
+  const campaign = await ctx.db.first<{ title: string }>(
+    "SELECT title FROM recruitment_campaigns WHERE status IN ('DRAFT','OPEN') AND EXISTS (SELECT 1 FROM json_each(positions_json) j WHERE j.value = ?1) LIMIT 1", positionId);
+  if (campaign) throw new ConflictError(`The recruitment call “${campaign.title}” offers ${pos.name}. Remove it from the call (or close the call) first.`);
   await ctx.db.batch([
     ctx.db.stmt("UPDATE positions SET deleted_at = ?2, is_active = 0, updated_at = ?2, updated_by = ?3 WHERE id = ?1", positionId, nowIso(), actor.user.id),
     auditStmt(ctx, { action: "position.archive", resourceType: "position", resourceId: positionId, before: { name: pos.name }, decision }),
   ]);
-  ctx.revalidate?.(["committees"]);
+  ctx.revalidate?.(["committees", "recruitment"]);
 }
 
 // ───────────────────────────── rules ─────────────────────────────
@@ -941,7 +924,7 @@ export async function savePolicy(ctx: Ctx, id: string | null, input: Record<stri
   } catch {
     v.errors.approvers = "Approvers are malformed.";
   }
-  v.check(Array.isArray(approvers) && approvers.length > 0 && approvers.every((a) => ["position", "role", "user"].includes(a.type) && Boolean(a.value)), "approvers", "Add at least one approver group, each with a position, role or person.");
+  v.check(Array.isArray(approvers) && approvers.length > 0 && approvers.every((a) => ["position", "role", "user", "permission"].includes(a.type) && Boolean(a.value)), "approvers", "Add at least one approver group, each with a position, role, permission or person.");
   if (d.mode === "THRESHOLD") v.check(Boolean(d.threshold), "threshold", "A threshold policy needs a number.");
   v.done();
   const now = nowIso();
@@ -1021,6 +1004,10 @@ export async function updateSystemSetting(ctx: Ctx, key: string, rawValue: strin
   if (typeof value !== typeof JSON.parse(row.value_json)) throw new ValidationError(`This setting expects a ${typeof JSON.parse(row.value_json)}.`);
   if (key === "governance.max_moderators" && (typeof value !== "number" || value < 1 || value > 7)) throw new ValidationError("Between 1 and 7 Moderators.");
   checkSettingRange(key, value);
+  // A policy name must exist now, not fail later when someone submits a post.
+  if (key.endsWith("_policy") && !(await ctx.db.first("SELECT 1 FROM approval_policies WHERE key = ?1 AND deleted_at IS NULL", String(value)))) {
+    throw new ValidationError(`There is no approval policy called "${String(value)}". Use one listed under Rules → Approval policies (for example "content-reviewers").`);
+  }
   await requireRecentAuth(ctx);
   // Refused if someone changed this setting after the page was loaded (checked again in the batch).
   const fresh = await unchangedSince(ctx, "system_settings", key, expectedUpdatedAt);

@@ -15,7 +15,12 @@ export interface BuiltCtx {
   tags: Set<string>;
 }
 
-export async function buildCtx(env: Env, req: Request, opts: { trusted: boolean; sessionToken?: string | null; userId?: string | null }): Promise<BuiltCtx> {
+/**
+ * `light`: resolve the session only, without loading the account's roles, positions and rules.
+ * For cheap, frequent checks that need nothing but "who is this" (badges, "anything new?"):
+ * about two D1 statements instead of eight. Such procedures never authorize anything.
+ */
+export async function buildCtx(env: Env, req: Request, opts: { trusted: boolean; sessionToken?: string | null; userId?: string | null; light?: boolean }): Promise<BuiltCtx> {
   const h = req.headers;
   const tags = new Set<string>();
   const ip = opts.trusted ? h.get("x-client-ip") || h.get("cf-connecting-ip") : h.get("cf-connecting-ip");
@@ -53,6 +58,7 @@ export async function buildCtx(env: Env, req: Request, opts: { trusted: boolean;
   const session = !opts.userId && opts.sessionToken ? await resolveSessionInfo(ctx, opts.sessionToken) : null;
   if (session) ctx.session = session;
   const userId = opts.userId ?? session?.userId ?? null;
+  if (opts.light) return { ctx, tags };
   if (userId) ctx.actor = await loadActor(db, userId);
   // Accounts with sensitive permissions are signed out sooner when idle.
   if (session && ctx.actor?.security?.holdsSensitive) {

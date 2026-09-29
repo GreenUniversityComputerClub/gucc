@@ -17,6 +17,8 @@ export async function GET() {
         avatarUrl: s.profile?.avatarUrl ?? null,
         adminAccess: s.adminAccess,
         unread: s.unread,
+        unreadMessages: s.unreadMessages ?? 0,
+        openTasks: s.openTasks ?? 0,
         caps: Object.fromEntries(Object.entries(s.caps).filter(([, v]) => v)),
       }
     : { signedIn: false };

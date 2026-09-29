@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { X } from "lucide-react";
+import Link from "next/link";
+import { useRef, useState, useTransition } from "react";
+import { Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,57 +11,86 @@ import { AvatarCropper } from "@/components/profile/avatar-cropper";
 import { uploadImage } from "@/lib/media/client";
 import { reloadWith } from "@/lib/flash";
 import { ActionForm } from "@/components/admin/ui";
-import { markNotificationsReadAction, saveEmailPreferencesAction, setAvatarAction, updateProfileAction } from "./actions";
+import { saveEmailPreferencesAction, setAvatarAction, updateProfileAction } from "./actions";
+import { initials } from "@/lib/initials";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { refreshSession } from "@/lib/api/use-session";
 
-/** Profile photo: framed in the browser, uploaded to R2 through the API, then set on the profile. */
+/**
+ * Profile photo: framed in the browser, uploaded to R2 through the API, then set on the profile.
+ * It shows everywhere at once (executives page, messages, notifications, member lists), and the
+ * navbar picture updates without a reload. Visible buttons, so it works the same on touch screens.
+ */
 export function AvatarUploader({ url, name, canUpload }: { url: string | null; name: string; canUpload: boolean }) {
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"upload" | "remove" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<File | null>(null);
-  const initials = name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
+  const [confirm, confirmDialog] = useConfirm();
+  const input = useRef<HTMLInputElement>(null);
+  const letters = initials(name);
 
   async function upload(file: File) {
     setPicked(null);
-    setBusy(true);
+    setBusy("upload");
     setError(null);
     const up = await uploadImage(file, { purpose: "avatar" });
     const res = up.ok ? await setAvatarAction(up.id) : null;
-    setBusy(false);
+    setBusy(null);
     if (!up.ok) setError(up.error);
     else if (res && !res.ok) setError(res.error);
-    else reloadWith("Photo updated.");
+    else {
+      void refreshSession();
+      reloadWith("Photo updated. It now shows everywhere on the site.");
+    }
+  }
+
+  async function remove() {
+    if (!(await confirm({ title: "Remove your photo?", description: "Your initials show instead, everywhere on the site.", confirmLabel: "Remove", destructive: true }))) return;
+    setBusy("remove");
+    setError(null);
+    const res = await setAvatarAction(null);
+    setBusy(null);
+    if (!res.ok) setError(res.error);
+    else {
+      void refreshSession();
+      reloadWith("Photo removed.");
+    }
   }
 
   return (
-    <div className="shrink-0">
-      <label className={`group relative block h-20 w-20 overflow-hidden rounded-full border sm:h-24 sm:w-24 ${canUpload ? "cursor-pointer" : ""}`} aria-label={canUpload ? "Change profile photo" : undefined}>
+    <div className="flex shrink-0 flex-col items-center gap-2">
+      {confirmDialog}
+      <div className="relative h-20 w-20 overflow-hidden rounded-full border sm:h-24 sm:w-24">
         {url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={url} alt="" className="h-full w-full object-cover" />
         ) : (
-          <span className="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground">{initials}</span>
+          <span className="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground">{letters}</span>
         )}
-        {canUpload && <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs text-white opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">{busy ? "Uploading…" : "Change"}</span>}
-        {canUpload && (
-          <input type="file" accept="image/*" className="sr-only" disabled={busy} onChange={(e) => {
+        {busy && <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs text-white" role="status">{busy === "upload" ? "Uploading…" : "Removing…"}</span>}
+      </div>
+      {canUpload && (
+        <div className="flex gap-1">
+          <button type="button" onClick={() => input.current?.click()} disabled={Boolean(busy)}
+            className="inline-flex min-h-9 items-center gap-1 rounded-md border px-2.5 text-xs font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <Camera className="h-3.5 w-3.5" aria-hidden />{url ? "Change photo" : "Add photo"}
+          </button>
+          {url && (
+            <button type="button" onClick={remove} disabled={Boolean(busy)}
+              className="inline-flex min-h-9 items-center rounded-md px-2 text-xs text-muted-foreground hover:bg-muted hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Remove
+            </button>
+          )}
+          <input ref={input} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-hidden disabled={Boolean(busy)} onChange={(e) => {
             const f = e.target.files?.[0];
             e.target.value = "";
             if (f) setPicked(f);
           }} />
-        )}
-      </label>
+        </div>
+      )}
       {picked && <AvatarCropper file={picked} onCancel={() => setPicked(null)} onCropped={upload} />}
-      {error && <p role="alert" className="mt-1 max-w-40 text-xs text-destructive">{error}</p>}
+      {error && <p role="alert" className="max-w-40 text-center text-xs text-destructive">{error}</p>}
     </div>
-  );
-}
-
-export function MarkReadButton() {
-  const [pending, start] = useTransition();
-  return (
-    <Button variant="outline" size="sm" disabled={pending} onClick={() => start(async () => { await markNotificationsReadAction(); reloadWith(); })}>
-      Mark all read
-    </Button>
   );
 }
 
@@ -133,19 +163,38 @@ export function ProfileEditor({ profile, locked }: { profile: Profile; locked: b
         <legend className="px-1 text-base font-semibold">Basic details</legend>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">{field("fullName", "Full name", { defaultValue: v("full_name"), required: true, autoComplete: "name" })}</div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="p-student">Student ID</Label>
-            <Input id="p-student" value={v("student_id") || "Not set"} readOnly disabled />
-            <p className="text-xs text-muted-foreground">{locked ? "Fixed after approval. Ask the General Secretary if it's wrong." : "Set when you signed up."}</p>
-          </div>
+          {locked ? (
+            <div className="grid gap-1.5">
+              <Label htmlFor="p-student">Student ID</Label>
+              <Input id="p-student" value={v("student_id") || "Not set"} readOnly disabled />
+              <p className="text-xs text-muted-foreground">Fixed after approval. Ask the General Secretary if it&apos;s wrong.</p>
+            </div>
+          ) : field("studentId", "Student ID", { defaultValue: v("student_id"), inputMode: "numeric", maxLength: 9, placeholder: "9 digits" }, "You can correct it until your application is approved.")}
           {field("department", "Department", { defaultValue: v("department"), placeholder: "e.g. CSE" })}
           {field("batch", "Batch", { defaultValue: v("batch"), placeholder: "e.g. 232" })}
         </div>
       </fieldset>
 
       <fieldset className="min-w-0 space-y-4 rounded-xl border bg-card p-4 sm:p-6">
-        <legend className="px-1 text-base font-semibold">Public profile</legend>
-        <p className="-mt-2 text-sm text-muted-foreground">Shown on the executives page while you serve on the committee.</p>
+        <legend className="px-1 text-base font-semibold">Your profile page</legend>
+        <p className="-mt-2 text-sm text-muted-foreground">
+          Other members can visit your profile page{v("handle") ? <> (<Link prefetch={false} href={`/members/${v("handle")}`} className="underline">see how it looks</Link>)</> : null}. Your phone, student ID and sign-in email are never shown there.
+        </p>
+        <fieldset className="grid gap-2">
+          <legend className="mb-1 text-sm font-medium">Who can see it</legend>
+          {[
+            ["MEMBERS", "Signed-in members", "Approved GUCC members can see your bio, skills, links and batch."],
+            ["PUBLIC", "Everyone", "Anyone on the internet, and search engines."],
+            ["PRIVATE", "Only me", "Hidden from the members directory. If you serve on a committee, your name, photo, position and links stay on the executives page."],
+          ].map(([value, label, hint]) => (
+            <label key={value} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+              {/* The option's name is its title; the explanation is read as its description. */}
+              <input type="radio" name="visibility" value={value} defaultChecked={(v("visibility") || "MEMBERS") === value} className="mt-1 h-4 w-4"
+                aria-labelledby={`vis-${value}`} aria-describedby={`vis-${value}-hint`} />
+              <span className="text-sm"><span id={`vis-${value}`} className="font-medium">{label}</span><span id={`vis-${value}-hint`} className="block text-muted-foreground">{hint}</span></span>
+            </label>
+          ))}
+        </fieldset>
         <div className="grid gap-1.5">
           <Label htmlFor="p-bio">About you</Label>
           <Textarea id="p-bio" name="bio" value={bio} onChange={(e) => setBio(e.target.value)} maxLength={1000} rows={4} />

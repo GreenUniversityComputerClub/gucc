@@ -82,3 +82,21 @@ export async function ensureMember(email: string, name: string, password: string
   return id;
 }
 
+
+/**
+ * Answer "yes" to the site's confirmation dialogs (and any browser pop-up) on this page, like a
+ * person who reads and confirms. The site asks in its own dialog, never window.confirm.
+ */
+export async function acceptConfirms(page: Page) {
+  page.on("dialog", (d) => d.accept().catch(() => undefined));
+  const watch = () => {
+    const w = window as unknown as { __acceptConfirms?: boolean };
+    if (w.__acceptConfirms) return;
+    w.__acceptConfirms = true;
+    const click = () => document.querySelector<HTMLButtonElement>("[data-confirm-accept]")?.click();
+    new MutationObserver(click).observe(document, { childList: true, subtree: true });
+  };
+  await page.addInitScript(watch);
+  // Also on the page already open.
+  await page.evaluate(watch).catch(() => undefined);
+}

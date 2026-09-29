@@ -24,6 +24,7 @@ export default async function RolePage({ params }: { params: Promise<{ id: strin
   return (
     <>
       <PageHeader
+        back={{ href: "/dashboard/roles", label: "Roles" }}
         title={role.name}
         description={role.description ?? undefined}
         actions={<Link prefetch={false} href="/dashboard/roles" className="rounded-md border px-3 py-2 text-sm hover:bg-muted">All roles</Link>}

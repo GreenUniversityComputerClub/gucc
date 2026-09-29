@@ -85,7 +85,7 @@ export interface PublicPost {
   views: number;
   url: string | null;
   coverImage: string | null;
-  author: { name: string; url: string | null };
+  author: { name: string; url: string | null; avatarUrl?: string | null };
   seoTitle: string | null;
   seoDescription: string | null;
 }
@@ -94,11 +94,13 @@ const POST_SQL = `
 SELECT p.id, p.type, p.slug, p.title, p.subtitle, p.excerpt, p.body_markdown, c.name AS category, p.published_at, p.updated_at, p.read_time_minutes, p.views,
        p.canonical_url, p.seo_title, p.seo_description, COALESCE(pr.full_name, p.author_name, 'Green University Computer Club') AS author_name,
        COALESCE(p.author_url, pr.github_url) AS author_url,
+       am.storage AS author_storage, am.object_key AS author_object_key, am.legacy_path AS author_legacy_path, am.external_url AS author_external_url, am.variants_json AS author_variants_json,
        m.storage, m.object_key, m.legacy_path, m.external_url, m.variants_json,
        (SELECT group_concat(t.name, '|') FROM post_tags pt JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = p.id) AS tags
 FROM posts p
 LEFT JOIN categories c ON c.id = p.category_id
-LEFT JOIN profiles pr ON pr.id = p.author_profile_id
+LEFT JOIN profiles pr ON pr.id = p.author_profile_id AND pr.deleted_at IS NULL
+LEFT JOIN media am ON am.id = pr.avatar_media_id AND am.deleted_at IS NULL AND am.visibility = 'PUBLIC' AND am.status = 'READY'
 LEFT JOIN media m ON m.id = p.featured_media_id AND m.deleted_at IS NULL AND m.visibility = 'PUBLIC'
 WHERE p.deleted_at IS NULL AND p.status = 'PUBLISHED' AND p.published_at <= strftime('%Y-%m-%dT%H:%M:%fZ','now')`;
 
@@ -109,7 +111,12 @@ function toPost(r: Record<string, unknown>, withBody: boolean): PublicPost {
     body: withBody ? ((r.body_markdown as string) ?? null) : null, category: (r.category as string) ?? null, tags: r.tags ? String(r.tags).split("|") : [],
     publishedAt: (r.published_at as string) ?? null, updatedAt: (r.updated_at as string) ?? null, readTimeInMinutes: (r.read_time_minutes as number) ?? null,
     views: Number(r.views ?? 0), url: (r.canonical_url as string) ?? null, coverImage: cover ?? null,
-    author: { name: String(r.author_name), url: (r.author_url as string) ?? null }, seoTitle: (r.seo_title as string) ?? null, seoDescription: (r.seo_description as string) ?? null,
+    author: {
+      name: String(r.author_name), url: (r.author_url as string) ?? null,
+      avatarUrl: mediaUrl(r.author_storage ? { id: "", storage: r.author_storage as "R2", object_key: r.author_object_key as string | null, legacy_path: r.author_legacy_path as string | null,
+        external_url: r.author_external_url as string | null, variants_json: r.author_variants_json as string | null } : null, "thumb") ?? null,
+    },
+    seoTitle: (r.seo_title as string) ?? null, seoDescription: (r.seo_description as string) ?? null,
   };
 }
 
@@ -158,11 +165,12 @@ export async function readSitemap(db: Db) {
   const [events, posts, committees, contests] = await Promise.all([
     db.all<{ slug: string; updated_at: string; start_at: string | null }>("SELECT slug, updated_at, start_at FROM events WHERE deleted_at IS NULL AND status IN ('PUBLISHED','ONGOING','COMPLETED')"),
     db.all<{ type: string; slug: string; updated_at: string; published_at: string | null }>("SELECT type, slug, updated_at, published_at FROM posts WHERE deleted_at IS NULL AND status = 'PUBLISHED' AND published_at <= strftime('%Y-%m-%dT%H:%M:%fZ','now')"),
-    db.all<{ slug: string; updated_at: string; status: string }>("SELECT slug, updated_at, status FROM committees WHERE deleted_at IS NULL"),
+    db.all<{ slug: string; updated_at: string; status: string }>("SELECT slug, updated_at, status FROM committees WHERE deleted_at IS NULL AND status <> 'UPCOMING'"),
     db.all<{ legacy_id: number; updated_at: string }>("SELECT legacy_id, updated_at FROM contests WHERE deleted_at IS NULL AND status = 'PUBLISHED'"),
   ]);
   const people = await db.all<{ student_id: string; updated_at: string }>(
     `SELECT DISTINCT p.student_id, MAX(p.updated_at, cm.updated_at) AS updated_at FROM committee_members cm JOIN profiles p ON p.id = cm.profile_id AND p.deleted_at IS NULL
+     JOIN committees c ON c.id = cm.committee_id AND c.status <> 'UPCOMING' AND c.deleted_at IS NULL
      WHERE cm.deleted_at IS NULL AND p.student_id IS NOT NULL AND length(p.student_id) = 9`);
   return { events, posts, committees, contests, people };
 }

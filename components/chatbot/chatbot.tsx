@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import type { KeyboardEvent } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Send, AlertCircle, Loader2, RotateCcw, X } from "lucide-react"
+import { Send, AlertCircle, Loader2, Maximize2, RotateCcw, X } from "lucide-react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { MessageModal } from "./message-modal"
@@ -345,35 +346,26 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                 </div>
               </div>
             ) : (
-              <div className="space-y-4 w-full max-w-3xl mx-auto">
+              <div className="space-y-4 w-full max-w-3xl mx-auto" role="log" aria-live="polite" aria-label="Conversation">
                 {messages.map((msg, index) => (
                   <div
                     key={index}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`${msg.role === "user" ? "Your message" : "Assistant's answer"}: open in full`}
-                    onClick={() => handleMessageClick(msg)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault()
-                        handleMessageClick(msg)
-                      }
-                    }}
                     className={cn(
-                      "flex flex-col rounded-2xl cursor-pointer transition-all duration-155 p-3 sm:p-4 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
+                      "flex flex-col rounded-2xl transition-all duration-155 p-3 sm:p-4 shadow-sm",
                       msg.role === "user"
-                        ? "ml-auto bg-emerald-600 hover:bg-emerald-500 text-white rounded-tr-none"
+                        ? "ml-auto bg-emerald-600 text-white rounded-tr-none"
                         : cn("mr-auto rounded-tl-none border",
                             isChatbotDark
-                              ? "bg-[#0d261a] text-emerald-100 border-emerald-900/30 hover:bg-[#113222]"
-                              : "bg-white text-zinc-800 border-zinc-200 hover:bg-zinc-50"),
+                              ? "bg-[#0d261a] text-emerald-100 border-emerald-900/30"
+                              : "bg-white text-zinc-800 border-zinc-200"),
                       "max-w-[85%] sm:max-w-[80%]",
                     )}
                   >
-                    <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
-                      {msg.text}
+                    <span className="sr-only">{msg.role === "user" ? "You said:" : "Assistant:"}</span>
+                    <div className="whitespace-pre-wrap break-words text-xs sm:text-sm leading-relaxed">
+                      {msg.role === "user" ? msg.text : <AnswerText text={msg.text} dark={isChatbotDark} />}
                     </div>
-                    <div className="flex items-center justify-end mt-1.5">
+                    <div className="flex items-center justify-end gap-2 mt-1.5">
                       <span
                         className={cn(
                           "text-[9px] sm:text-[10px]",
@@ -382,6 +374,14 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                       >
                         {format(msg.timestamp, "h:mm a")}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => handleMessageClick(msg)}
+                        aria-label={`Open ${msg.role === "user" ? "your message" : "this answer"} in full`}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md opacity-70 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                      >
+                        <Maximize2 className="h-3.5 w-3.5" aria-hidden />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -491,3 +491,23 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
   )
 }
 
+
+/** Web addresses and site paths ("/events/…") in an answer become links; everything else stays text. */
+const LINK_RE = /(https?:\/\/[^\s<>"')\]]+[^\s<>"'.,;:!?)\]]|(?<![\w/])\/(?:events|blog|news|announcements|executives|recruitment|join|contact|sponsors|contests|lost-found|members|collaborations|socials|forms|certificates|dashboard)(?:\/[\w\-./?=&%#]*[\w\-/=&%#])?)/g
+
+function AnswerText({ text, dark }: { text: string; dark: boolean }) {
+  const parts: React.ReactNode[] = []
+  let last = 0
+  for (const m of text.matchAll(LINK_RE)) {
+    const at = m.index ?? 0
+    if (at > last) parts.push(text.slice(last, at))
+    const href = m[0]
+    const cls = cn("underline underline-offset-2 break-all", dark ? "text-emerald-300" : "text-emerald-700")
+    parts.push(href.startsWith("/")
+      ? <Link key={at} href={href} className={cls}>{href}</Link>
+      : <a key={at} href={href} target="_blank" rel="noopener noreferrer nofollow" className={cls}>{href}</a>)
+    last = at + href.length
+  }
+  if (last < text.length) parts.push(text.slice(last))
+  return <>{parts}</>
+}

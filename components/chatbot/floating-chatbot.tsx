@@ -6,12 +6,19 @@ import { MessageCircle, Computer } from "lucide-react"
 import { cn } from "@/lib/utils"
 import dynamic from "next/dynamic"
 import { useTheme } from "next-themes"
+import { usePathname } from "next/navigation"
+import { useExclusiveOverlay } from "@/lib/overlay"
 
 // Dynamically import the Chatbot component with no SSR to avoid hydration issues
 const Chatbot = dynamic(() => import("./chatbot"), { ssr: false })
 
 function FloatingChatbot() {
-  const [isOpen, setIsOpen] = useState(false)
+  // One surface at a time: opening the assistant closes the site and dashboard menus, and back.
+  const [isOpen, setIsOpen] = useExclusiveOverlay("chatbot")
+  const pathname = usePathname()
+  // Members' own conversations (and the dashboard's sticky bars on phones) need that corner.
+  const hidden = pathname.startsWith("/dashboard/chat") || pathname.startsWith("/dashboard/notifications")
+  const dashboard = pathname.startsWith("/dashboard")
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const openButtonRef = useRef<HTMLButtonElement>(null)
@@ -25,12 +32,20 @@ function FloatingChatbot() {
   const isChatbotDark = mounted ? resolvedTheme === "light" : false
 
   // Memoize the open/close handlers to prevent unnecessary re-renders
-  const handleOpen = useCallback(() => setIsOpen(true), [])
+  const handleOpen = useCallback(() => setIsOpen(true), [setIsOpen])
   const handleClose = useCallback(() => {
     setIsOpen(false)
     // Back to the button that opened it, for keyboard users.
     requestAnimationFrame(() => openButtonRef.current?.focus())
-  }, [])
+  }, [setIsOpen])
+
+  // Following a link (from an answer or the page) closes the chat.
+  const firstPath = useRef(pathname)
+  useEffect(() => {
+    if (firstPath.current === pathname) return
+    firstPath.current = pathname
+    setIsOpen(false)
+  }, [pathname, setIsOpen])
 
   // Escape closes the chat (unless a message is open in full; that closes first).
   useEffect(() => {
@@ -44,6 +59,8 @@ function FloatingChatbot() {
 
   // Sizes follow the screen with CSS breakpoints (phone < 640px, tablet < 1024px, desktop), so the
   // first paint is already right on every device.
+  if (hidden) return null
+
   return (
     <>
       {/* Floating chat button */}
@@ -55,6 +72,8 @@ function FloatingChatbot() {
           "flex items-center justify-center",
           "bg-emerald-600 text-white hover:bg-emerald-500 transition-all duration-300",
           "bottom-4 right-4 w-12 h-12 gap-1 sm:bottom-6 sm:right-6 sm:w-14 sm:h-14 sm:gap-1.5 lg:bottom-8 lg:right-8 lg:w-16 lg:h-16 lg:gap-2",
+          // On the dashboard the assistant waits for larger screens, where it doesn't cover forms.
+          dashboard && "hidden lg:flex",
           isOpen ? "scale-0 opacity-0 pointer-events-none" : "scale-100 opacity-100",
         )}
         aria-label="Open chat"
