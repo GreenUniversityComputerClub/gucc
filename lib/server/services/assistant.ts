@@ -50,38 +50,81 @@ export async function assistantChat(ctx: Ctx, input: { message?: unknown; histor
     .slice(-10)
     .map((t) => ({ role: t.role, parts: [{ text: t.text.slice(0, 2000) }] }));
   const system = `You are the GUCC Assistant for the Green University Computer Club (Green University of Bangladesh).
-Answer professionally in at most three short sentences. Use only this public information; if you don't know, say so and suggest contacting gucc@green.edu.bd. Never share phone numbers, emails or social media IDs of individuals.
+Answer professionally and briefly (at most three short sentences, or a short list when listing things), in plain text: no headings or tables. Give site links as paths such as /events or /join. Use only this public information; if you don't know, say so and suggest contacting gucc@green.edu.bd. Never share phone numbers, emails or social media IDs of individuals.
 Knowledge: ${JSON.stringify(data.predefined)}
 Recent events: ${JSON.stringify(data.events)}
 Executive committees: ${JSON.stringify(data.executives)}`;
-  const model = ctx.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-    method: "POST",
-    // A slow model must not hold the chat (or the Worker) for long; the data-only answer takes over.
-    signal: AbortSignal.timeout(20_000),
-    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: system }] },
-      contents: [...history, { role: "user", parts: [{ text: message }] }],
-      generationConfig: { temperature: 0.6, maxOutputTokens: 512 },
-      safetySettings: ["HARM_CATEGORY_HARASSMENT", "HARM_CATEGORY_HATE_SPEECH", "HARM_CATEGORY_SEXUALLY_EXPLICIT", "HARM_CATEGORY_DANGEROUS_CONTENT"].map((category) => ({ category, threshold: "BLOCK_MEDIUM_AND_ABOVE" })),
-    }),
-  }).catch((e: unknown) => {
-    console.error(`[${ctx.meta.requestId}] assistant upstream unreachable`, e instanceof Error ? e.name : e);
-    return null;
-  });
-  if (!res || !res.ok) {
-    if (res) console.error(`[${ctx.meta.requestId}] assistant upstream status ${res.status}`);
-    // The model didn't answer, so this question doesn't use the day's AI allowance.
-    await release(ctx, "ai.answers", 1).catch(() => undefined);
-    const fallback = await answerFromData(ctx, message, data).catch(() => null);
-    if (fallback) return { response: fallback };
-    throw new AppError(502, "ASSISTANT_UNAVAILABLE", res?.status === 429 ? "The assistant is busy. Try again in a minute." : "The assistant is unavailable right now. Please try again later.");
+  const answer = await askGemini(ctx, key, system, [...history, { role: "user", parts: [{ text: message }] }]);
+  if (answer.text) return { response: answer.text };
+  // No model answered: this question doesn't use the day's AI allowance.
+  await release(ctx, "ai.answers", 1).catch(() => undefined);
+  const fallback = await answerFromData(ctx, message, data).catch(() => null);
+  if (fallback) return { response: fallback };
+  throw new AppError(502, "ASSISTANT_UNAVAILABLE", answer.busy ? "The assistant is busy. Try again in a minute." : "The assistant is unavailable right now. Please try again later.");
+}
+
+/**
+ * The models tried, in order: a GEMINI_MODEL set on the Worker, then the newest stable Flash, then
+ * the one before it (so a retired or overloaded model never silences the assistant).
+ */
+export const GEMINI_MODELS = ["gemini-3.8-flash", "gemini-3.7-flash"] as const;
+export function modelChain(configured?: string | null): string[] {
+  return [...new Set([configured?.trim(), ...GEMINI_MODELS].filter((m): m is string => Boolean(m && /^[a-z0-9.-]{3,64}$/i.test(m))))];
+}
+
+/** Whether a model uses Gemini 3's thinking levels (older ones take a token budget instead). */
+const thinksInLevels = (model: string) => /^gemini-([3-9]|\d{2,})/.test(model);
+
+type Content = { role: string; parts: Array<{ text: string }> };
+
+/**
+ * One question to Gemini, trying each model in `modelChain` until one answers with text. A model
+ * that's missing, not allowed, rate-limited, failing or slow hands over to the next; a request the
+ * model refuses for its content (blocked by the safety filters) doesn't.
+ */
+export async function askGemini(ctx: Ctx, key: string, system: string, contents: Content[]): Promise<{ text: string | null; model: string | null; busy: boolean }> {
+  const deadline = Date.now() + 25_000;
+  let busy = false;
+  for (const model of modelChain(ctx.env.GEMINI_MODEL)) {
+    const left = deadline - Date.now();
+    if (left < 3_000) break;
+    const generationConfig = thinksInLevels(model)
+      // Thinking tokens count against maxOutputTokens: keep thinking low and leave room for the reply.
+      ? { maxOutputTokens: 2048, thinkingConfig: { thinkingLevel: "low" } }
+      : { temperature: 0.6, maxOutputTokens: 512 };
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method: "POST",
+      // A slow model must not hold the chat (or the Worker) for long.
+      signal: AbortSignal.timeout(Math.min(15_000, left)),
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents,
+        generationConfig,
+        safetySettings: ["HARM_CATEGORY_HARASSMENT", "HARM_CATEGORY_HATE_SPEECH", "HARM_CATEGORY_SEXUALLY_EXPLICIT", "HARM_CATEGORY_DANGEROUS_CONTENT"].map((category) => ({ category, threshold: "BLOCK_MEDIUM_AND_ABOVE" })),
+      }),
+    }).catch((e: unknown) => {
+      console.error(`[${ctx.meta.requestId}] assistant ${model} unreachable`, e instanceof Error ? e.name : e);
+      return null;
+    });
+    if (!res || !res.ok) {
+      if (res) console.error(`[${ctx.meta.requestId}] assistant ${model} status ${res.status}`);
+      if (res?.status === 429) busy = true;
+      continue;
+    }
+    const out = (await res.json().catch(() => null)) as {
+      candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string; thought?: boolean }> } }>;
+      promptFeedback?: { blockReason?: string };
+    } | null;
+    const candidate = out?.candidates?.[0];
+    // The reply only: never the model's own thinking.
+    const text = candidate?.content?.parts?.filter((p) => !p.thought).map((p) => p.text ?? "").join("").trim();
+    if (text) return { text, model, busy };
+    // Refused for its content: another model would refuse too.
+    if (out?.promptFeedback?.blockReason || candidate?.finishReason === "SAFETY") return { text: null, model, busy };
+    console.error(`[${ctx.meta.requestId}] assistant ${model} gave no text (${candidate?.finishReason ?? "no candidate"})`);
   }
-  const out = (await res.json().catch(() => null)) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> } | null;
-  const text = out?.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("").trim();
-  // Nothing usable (e.g. blocked by the safety filters): answer from the club's own data instead.
-  return { response: text || (await answerFromData(ctx, message, data)) };
+  return { text: null, model: null, busy };
 }
 
 type Knowledge = {

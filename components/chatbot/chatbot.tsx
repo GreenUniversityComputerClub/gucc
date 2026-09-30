@@ -38,6 +38,12 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const scrollerRef = useRef<HTMLDivElement>(null)
+  /** Show the newest message: scrolls the conversation only (scrollIntoView could move the page behind on phones). */
+  const toBottom = useCallback(() => {
+    const el = scrollerRef.current
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
+  }, [])
   const inputRef = useRef<HTMLInputElement>(null)
   // The request in flight: aborted on timeout, on "New chat" and when the chat closes.
   const requestRef = useRef<AbortController | null>(null)
@@ -107,8 +113,8 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    toBottom()
+  }, [messages, isLoading, toBottom])
 
   const handleSendMessage = useCallback(
     async (input?: string) => {
@@ -174,14 +180,12 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
           setTimeout(() => {
             focusInput()
             // Scroll to the bottom after a short delay to ensure the DOM has updated
-            setTimeout(() => {
-              messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-            }, 100)
+            setTimeout(toBottom, 100)
           }, 100)
         }
       }
     },
-    [sessionId, userInput, messages, isLoading, focusInput],
+    [sessionId, userInput, messages, isLoading, focusInput, toBottom],
   )
 
   /** Start over: forget this conversation (it only lives in this tab). */
@@ -313,7 +317,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
           </Alert>
         )}
 
-        <div className="h-full overflow-y-auto overscroll-contain pb-4" aria-live="polite" aria-busy={isLoading}>
+        <div ref={scrollerRef} className="h-full overflow-y-auto overscroll-contain pb-4" aria-busy={isLoading}>
           <div className="p-4 sm:p-5">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center h-full mt-6">
@@ -362,7 +366,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                     )}
                   >
                     <span className="sr-only">{msg.role === "user" ? "You said:" : "Assistant:"}</span>
-                    <div className="whitespace-pre-wrap break-words text-xs sm:text-sm leading-relaxed">
+                    <div className={cn("break-words text-xs sm:text-sm leading-relaxed", msg.role === "user" && "whitespace-pre-wrap")}>
                       {msg.role === "user" ? msg.text : <AnswerText text={msg.text} dark={isChatbotDark} />}
                     </div>
                     <div className="flex items-center justify-end gap-2 mt-1.5">
@@ -495,7 +499,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
 /** Web addresses and site paths ("/events/…") in an answer become links; everything else stays text. */
 const LINK_RE = /(https?:\/\/[^\s<>"')\]]+[^\s<>"'.,;:!?)\]]|(?<![\w/])\/(?:events|blog|news|announcements|executives|recruitment|join|contact|sponsors|contests|lost-found|members|collaborations|socials|forms|certificates|dashboard)(?:\/[\w\-./?=&%#]*[\w\-/=&%#])?)/g
 
-function AnswerText({ text, dark }: { text: string; dark: boolean }) {
+function Linked({ text, dark }: { text: string; dark: boolean }) {
   const parts: React.ReactNode[] = []
   let last = 0
   for (const m of text.matchAll(LINK_RE)) {
@@ -510,4 +514,49 @@ function AnswerText({ text, dark }: { text: string; dark: boolean }) {
   }
   if (last < text.length) parts.push(text.slice(last))
   return <>{parts}</>
+}
+
+/** **bold** and *italic* inside a line (models sometimes answer in Markdown); never HTML. */
+function Inline({ text, dark }: { text: string; dark: boolean }) {
+  const out: React.ReactNode[] = []
+  let last = 0
+  for (const m of text.matchAll(/\*\*([^*\n]+)\*\*|(?<![\w*])\*([^*\n]+)\*(?![\w*])/g)) {
+    const at = m.index ?? 0
+    if (at > last) out.push(<Linked key={`t${at}`} text={text.slice(last, at)} dark={dark} />)
+    out.push(m[1] !== undefined ? <strong key={at} className="font-semibold"><Linked text={m[1]} dark={dark} /></strong> : <em key={at}><Linked text={m[2]!} dark={dark} /></em>)
+    last = at + m[0].length
+  }
+  if (last < text.length) out.push(<Linked key="end" text={text.slice(last)} dark={dark} />)
+  return <>{out}</>
+}
+
+/** An answer: paragraphs, bullet and numbered lists, bold and links; headings ("## …") read as bold lines. */
+function AnswerText({ text, dark }: { text: string; dark: boolean }) {
+  const lines = text.replace(/\r/g, "").split("\n")
+  const blocks: React.ReactNode[] = []
+  let list: { ordered: boolean; items: string[] } | null = null
+  const flush = () => {
+    if (!list) return
+    const Tag = list.ordered ? "ol" : "ul"
+    blocks.push(<Tag key={`l${blocks.length}`} className={cn("my-1 space-y-0.5 pl-5", list.ordered ? "list-decimal" : "list-disc")}>{list.items.map((it, i) => <li key={i}><Inline text={it} dark={dark} /></li>)}</Tag>)
+    list = null
+  }
+  for (const raw of lines) {
+    const line = raw.trim()
+    const bullet = line.match(/^[-*•]\s+(.*)$/)
+    const numbered = line.match(/^\d+[.)]\s+(.*)$/)
+    if (bullet || numbered) {
+      const ordered = Boolean(numbered)
+      if (list && list.ordered !== ordered) flush()
+      list ??= { ordered, items: [] }
+      list.items.push((bullet ?? numbered)![1]!)
+      continue
+    }
+    flush()
+    if (!line) continue
+    const heading = line.match(/^#{1,6}\s+(.*)$/)
+    blocks.push(<p key={`p${blocks.length}`} className={cn(blocks.length && "mt-2", heading && "font-semibold")}><Inline text={heading ? heading[1]! : line} dark={dark} /></p>)
+  }
+  flush()
+  return <>{blocks}</>
 }

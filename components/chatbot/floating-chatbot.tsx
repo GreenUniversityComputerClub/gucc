@@ -66,12 +66,13 @@ function FloatingChatbot() {
       {/* Floating chat button */}
       <Button
         ref={openButtonRef}
+        data-chat-fab
         onClick={handleOpen}
         className={cn(
           "fixed rounded-full shadow-2xl z-50",
           "flex items-center justify-center",
           "bg-emerald-600 text-white hover:bg-emerald-500 transition-all duration-300",
-          "bottom-4 right-4 w-12 h-12 gap-1 sm:bottom-6 sm:right-6 sm:w-14 sm:h-14 sm:gap-1.5 lg:bottom-8 lg:right-8 lg:w-16 lg:h-16 lg:gap-2",
+          "bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 w-12 h-12 gap-1 sm:bottom-6 sm:right-6 sm:w-14 sm:h-14 sm:gap-1.5 lg:bottom-8 lg:right-8 lg:w-16 lg:h-16 lg:gap-2",
           // On the dashboard the assistant waits for larger screens, where it doesn't cover forms.
           dashboard && "hidden lg:flex",
           isOpen ? "scale-0 opacity-0 pointer-events-none" : "scale-100 opacity-100",
@@ -96,7 +97,7 @@ function FloatingChatbot() {
               ? "border border-emerald-950/40 bg-[#07140e] text-zinc-100"
               : "border border-emerald-100 bg-[#f4faf7] text-zinc-900",
             // dvh: the on-screen keyboard shrinks the chat instead of covering its input.
-            "bottom-4 right-4 left-4 h-[500px] max-h-[80dvh] rounded-2xl",
+            "bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 left-4 h-[500px] max-h-[80dvh] rounded-2xl",
             "sm:left-auto sm:bottom-6 sm:right-6 sm:w-[340px] sm:h-[520px] sm:max-h-[85dvh]",
             "lg:bottom-8 lg:right-8 lg:w-[380px] lg:h-[480px]",
           )}
