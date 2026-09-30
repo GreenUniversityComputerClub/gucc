@@ -85,13 +85,13 @@ export function Footer() {
               <p className="text-sm text-muted-foreground">
                 Email: gucc@green.edu.bd
               </p>
-              <div className="flex space-x-4 mt-4">
+              <div className="-ml-2.5 mt-3 flex flex-wrap">
                 <Link
                   href="https://www.facebook.com/GreenUniversityComputerClub/"
                   aria-label="GUCC on Facebook"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
                 >
                   <Facebook size={20} aria-hidden />
                 </Link>
@@ -101,28 +101,32 @@ export function Footer() {
                   aria-label="GUCC on LinkedIn"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
                 >
                   <Linkedin size={20} aria-hidden />
                 </Link>
                 <Link
                   href="mailto:gucc@green.edu.bd"
                   aria-label="Email GUCC"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
                 >
                   <Mail size={20} aria-hidden />
                 </Link>
                 <Link
                   href="https://www.instagram.com/GreenUniversityComputerClub/"
                   aria-label="GUCC on Instagram"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
                 >
                   <Instagram size={20} aria-hidden />
                 </Link>
                 <Link
                   href="https://www.youtube.com/@GreenUniversityComputerClub"
                   aria-label="GUCC on YouTube"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
                 >
                   <Youtube size={20} aria-hidden />
                 </Link>
@@ -131,7 +135,7 @@ export function Footer() {
                   aria-label="GUCC on GitHub"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
                 >
                   <Github size={20} aria-hidden />
                 </Link>

@@ -261,3 +261,11 @@ body {
     transform: none !important;
   }
 }
+
+/* A page with a bar fixed to the bottom on phones (an event's Register bar) lifts the assistant's
+   button above it, so neither covers the other. */
+@media (max-width: 767.98px) {
+  body:has([data-bottom-bar]) [data-chat-fab] {
+    bottom: calc(5.25rem + env(safe-area-inset-bottom));
+  }
+}

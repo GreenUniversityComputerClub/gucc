@@ -2,7 +2,7 @@
 
 import { rpc } from "@/lib/api/session";
 
-type ContactFormInput = { name: string; email: string; message: string; website?: string; turnstileToken?: string | null };
+type ContactFormInput = { name: string; email: string; message: string; topic?: string; website?: string; turnstileToken?: string | null };
 type ContactFormResult = { success: true; message: string } | { success: false; error: string; fields?: Record<string, string> };
 
 /** Stored in the club's inbox (and emailed when configured). Provider errors never reach the visitor. */

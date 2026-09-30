@@ -3,6 +3,7 @@ import { view } from "@/lib/api/session";
 import type { listMessages } from "@/lib/server/services/contact";
 import { ActionForm, EmptyState, PageHeader, Pager, StatusBadge } from "@/components/admin/ui";
 import { messageStatusAction } from "../actions";
+import { CONTACT_TOPICS } from "@/lib/contact/topics";
 
 export default async function MessagesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
@@ -25,7 +26,8 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
             <li key={m.id} className={`rounded-xl border bg-card p-4 ${m.status === "NEW" ? "border-primary/40" : ""}`}>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="font-medium">{m.name} <StatusBadge status={m.status === "NEW" ? "NEW" : m.status === "READ" ? "HANDLED" : m.status} /></p>
+                  <p className="font-medium">{m.name} <StatusBadge status={m.status === "NEW" ? "NEW" : m.status === "READ" ? "HANDLED" : m.status} />
+                    {m.topic && CONTACT_TOPICS[m.topic] && <span className="ml-1 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{CONTACT_TOPICS[m.topic]}</span>}</p>
                   <a href={`mailto:${m.email}?subject=${encodeURIComponent("Re: your message to GUCC")}`} className="text-sm underline">{m.email}</a>
                 </div>
                 <time className="text-xs text-muted-foreground">{new Date(m.created_at).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", dateStyle: "medium", timeStyle: "short" })}</time>

@@ -234,7 +234,7 @@ test("an event posted from the dashboard (banner, guests, judges, photos) shows 
   // (they replaced the old invented "N / N+50" bar).
   await expect(visitor.getByRole("heading", { name: "Judges" })).toHaveCount(0);
   await expect(visitor.getByRole("img", { name: "0 of 1 seats taken" })).toBeVisible();
-  await expect(visitor.getByText("GUB Auditorium")).toBeVisible();
+  await expect(visitor.getByText("GUB Auditorium", { exact: true }).first()).toBeVisible();
   await expect(visitor.getByRole("link", { name: "Register your team" })).toHaveAttribute("href", "https://forms.gle/e2eWorkshopForm");
 
   // Gallery photos uploaded from the event page appear publicly without waiting for the cache.

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { submitContactForm } from "@/lib/contact/actions";
 import { Turnstile } from "@/components/turnstile";
+import { CONTACT_TOPICS, topicOf, type ContactTopic } from "@/lib/contact/topics";
 
 type FormState = {
   name: string;
@@ -25,9 +26,16 @@ const initialFormState: FormState = {
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_MESSAGE = 5000;
 
+/** A link such as /contact?topic=partnership preselects the Topic list (read in the browser, so the page stays static). */
 export function ContactForm() {
   const [form, setForm] = useState<FormState>(initialFormState);
+  const [topic, setTopic] = useState<ContactTopic>("general");
+  useEffect(() => {
+    const t = topicOf(new URLSearchParams(window.location.search).get("topic"));
+    if (t) setTopic(t);
+  }, []);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -73,7 +81,7 @@ export function ContactForm() {
 
     let result: Awaited<ReturnType<typeof submitContactForm>>;
     try {
-      result = await submitContactForm({ name: form.name, email: form.email, message: form.message, website, turnstileToken: token });
+      result = await submitContactForm({ name: form.name, email: form.email, message: form.message, topic, website, turnstileToken: token });
     } catch {
       result = { success: false, error: "Couldn't reach the server. Check your connection and try again." };
     }
@@ -98,7 +106,7 @@ export function ContactForm() {
         ref={successRef}
         tabIndex={-1}
         role="status"
-        className="flex flex-col items-center rounded-lg border border-emerald-500/40 bg-card p-8 text-center shadow-sm outline-none sm:p-10"
+        className="flex flex-col items-center rounded-2xl border border-emerald-500/40 bg-card p-8 text-center shadow-sm outline-none sm:p-10"
       >
         <span className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15">
           <CheckCircle2 className="h-9 w-9 text-emerald-600 dark:text-emerald-400" aria-hidden />
@@ -126,7 +134,9 @@ export function ContactForm() {
     fieldErrors[k] ? <p id={`contact-${k}-error`} className="text-sm text-destructive">{fieldErrors[k]}</p> : null;
 
   return (
-    <form onSubmit={handleSubmit} className="relative rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8" noValidate>
+    <form onSubmit={handleSubmit} className="relative rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-8" noValidate>
+      <h2 id="contact-form-title" className="mb-1 text-xl font-semibold">Send us a message</h2>
+      <p className="mb-6 text-sm text-muted-foreground">All fields are required. We reply by email.</p>
       <div className="space-y-5">
         <div className="space-y-2">
           <Label htmlFor="contact-name">Name</Label>
@@ -137,6 +147,7 @@ export function ContactForm() {
             onChange={(event) => updateField("name", event.target.value)}
             placeholder="Your name"
             autoComplete="name"
+            className="h-11"
             aria-invalid={Boolean(fieldErrors.name) || (submitState === "error" && form.name.trim().length < 2)}
             aria-describedby={fieldErrors.name ? "contact-name-error" : undefined}
             maxLength={100}
@@ -156,6 +167,7 @@ export function ContactForm() {
             onChange={(event) => updateField("email", event.target.value)}
             placeholder="you@example.com"
             autoComplete="email"
+            className="h-11"
             inputMode="email"
             aria-invalid={Boolean(fieldErrors.email) || (submitState === "error" && !EMAIL_RE.test(form.email.trim()))}
             aria-describedby={fieldErrors.email ? "contact-email-error" : undefined}
@@ -167,18 +179,31 @@ export function ContactForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="contact-message">Message</Label>
+          <Label htmlFor="contact-topic">Topic</Label>
+          <select id="contact-topic" name="topic" value={topic} onChange={(e) => setTopic(topicOf(e.target.value) ?? "general")} disabled={isSubmitting}
+            className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-base shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 md:text-sm">
+            {Object.entries(CONTACT_TOPICS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-2">
+            <Label htmlFor="contact-message">Message</Label>
+            <span className={`text-xs tabular-nums ${form.message.length > MAX_MESSAGE - 200 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`} aria-live="polite">
+              {form.message.length > 0 ? `${form.message.length.toLocaleString("en-US")} / ${MAX_MESSAGE.toLocaleString("en-US")}` : ""}
+            </span>
+          </div>
           <Textarea
             id="contact-message"
             name="message"
             value={form.message}
             onChange={(event) => updateField("message", event.target.value)}
             placeholder="Tell us what is on your mind"
-            className="min-h-36 resize-none"
+            className="min-h-40 resize-y"
             aria-invalid={Boolean(fieldErrors.message) || (submitState === "error" && form.message.trim().length < 10)}
             aria-describedby={fieldErrors.message ? "contact-message-error" : undefined}
             disabled={isSubmitting}
-            maxLength={5000}
+            maxLength={MAX_MESSAGE}
             required
           />
           {fieldError("message")}
@@ -193,7 +218,7 @@ export function ContactForm() {
           <label>Website<input tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} /></label>
         </div>
         <Turnstile onToken={onToken} resetKey={attempt} />
-        <Button type="submit" className="w-full gap-2" disabled={isSubmitting}>
+        <Button type="submit" size="lg" className="h-12 w-full gap-2 rounded-xl text-base" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />

@@ -48,8 +48,11 @@ const MAX_DESCRIPTION = 300;
 export function brandTitle(title: string): string {
   const short = ` | ${SITE.shortName}`;
   const full = ` | ${SITE.name} (${SITE.shortName})`;
-  const suffix =
-    /GUCC|Green University/i.test(title) || title.length + full.length > MAX_TITLE
+  // A title that already says "GUCC" gets the club's full name (never "GUCC | GUCC"), when it fits.
+  const name = ` | ${SITE.name}`;
+  const suffix = /\bGUCC\b/.test(title)
+    ? title.length + name.length <= MAX_TITLE ? name : ""
+    : /Green University/i.test(title) || title.length + full.length > MAX_TITLE
       ? short
       : full;
   return `${truncate(title, MAX_TITLE - suffix.length)}${suffix}`;

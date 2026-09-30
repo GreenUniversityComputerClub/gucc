@@ -13,6 +13,7 @@ import { deliverEmail, verifyTurnstile } from "../security";
 import { Validator } from "../validate";
 import { notifyStmts, usersWithPermission } from "../notifications";
 import { triggerStmts } from "../triggers";
+import { CONTACT_TOPICS, topicOf, type ContactTopic } from "../../contact/topics";
 
 export async function submitContact(ctx: Ctx, input: Record<string, unknown>): Promise<{ message: string }> {
   await limit(ctx, "contact.submit", ctx.meta.ipHash ?? "unknown");
@@ -23,6 +24,8 @@ export async function submitContact(ctx: Ctx, input: Record<string, unknown>): P
     message: v.string("message", { required: true, min: 10, max: 5000, label: "Message" }),
   };
   v.done();
+  const topic = topicOf(input.topic);
+  const about = topic && topic !== "general" ? ` (${CONTACT_TOPICS[topic]})` : "";
   // Honeypot: a hidden field only bots fill in. Pretend success.
   if (typeof input.website === "string" && input.website.trim()) return { message: "Thanks! We'll get back to you soon." };
   await verifyTurnstile(ctx, input.turnstileToken as string | undefined);
@@ -31,10 +34,10 @@ export async function submitContact(ctx: Ctx, input: Record<string, unknown>): P
   // Without a rule of their own, the people who handle the inbox get one in-app notice (never emailed:
   // the inbox address below already gets the message).
   const inbox = rules.length ? [] : notifyStmts(ctx, await usersWithPermission(ctx, "messages.read"), {
-    type: "contact.new", title: `Contact message from ${d.name}`.slice(0, 200), body: d.message!.slice(0, 160), link: "/dashboard/messages", resourceType: "contact_message", resourceId: id,
+    type: "contact.new", title: `Contact message from ${d.name}${about}`.slice(0, 200), body: d.message!.slice(0, 160), link: "/dashboard/messages", resourceType: "contact_message", resourceId: id,
   });
   await ctx.db.batch([
-    ctx.db.stmt("INSERT INTO contact_messages (id, name, email, message, ip_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)", id, d.name, d.email, d.message, ctx.meta.ipHash, nowIso()),
+    ctx.db.stmt("INSERT INTO contact_messages (id, name, email, message, ip_hash, created_at, topic) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)", id, d.name, d.email, d.message, ctx.meta.ipHash, nowIso(), topic),
     ...rules,
     ...inbox,
   ]);
@@ -43,8 +46,8 @@ export async function submitContact(ctx: Ctx, input: Record<string, unknown>): P
     await deliverEmail(ctx, {
       to,
       replyTo: d.email!,
-      subject: `New contact message from ${d.name}`,
-      text: `From: ${d.name} <${d.email}>\n\n${d.message}\n\n— Open the inbox: ${siteUrl(ctx, "/dashboard/messages")}`,
+      subject: `New contact message from ${d.name}${about}`,
+      text: `From: ${d.name} <${d.email}>${topic ? `\nTopic: ${CONTACT_TOPICS[topic]}` : ""}\n\n${d.message}\n\n— Open the inbox: ${siteUrl(ctx, "/dashboard/messages")}`,
     }, { type: "contact" });
   }
   return { message: "Thanks! We'll get back to you soon." };
@@ -54,8 +57,8 @@ export async function listMessages(ctx: Ctx, input: { status?: string; page?: nu
   requirePermission(ctx, "messages.read");
   const status = ["NEW", "READ", "ARCHIVED"].includes(String(input.status)) ? String(input.status) : null;
   const page = Math.max(1, Number(input.page) || 1);
-  const rows = await ctx.db.all<{ id: string; name: string; email: string; message: string; status: string; created_at: string; handled_by_name: string | null; handled_at: string | null }>(
-    `SELECT m.id, m.name, m.email, m.message, m.status, m.created_at, m.handled_at, COALESCE(p.full_name, u.email) AS handled_by_name
+  const rows = await ctx.db.all<{ id: string; name: string; email: string; message: string; topic: ContactTopic | null; status: string; created_at: string; handled_by_name: string | null; handled_at: string | null }>(
+    `SELECT m.id, m.name, m.email, m.message, m.topic, m.status, m.created_at, m.handled_at, COALESCE(p.full_name, u.email) AS handled_by_name
      FROM contact_messages m LEFT JOIN users u ON u.id = m.handled_by LEFT JOIN profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
      WHERE (?1 IS NULL AND m.status <> 'ARCHIVED') OR m.status = ?1 ORDER BY m.created_at DESC LIMIT 30 OFFSET ?2`,
     status, (page - 1) * 30);
