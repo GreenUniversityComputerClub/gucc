@@ -23,7 +23,7 @@ automatic Worker rollback safe: the previous Worker still runs on the migrated d
 
 **People and sign-in**
 
-- `users`: sign-in accounts (email, password hash, status, message privacy, read receipts).
+- `users`: sign-in accounts (email, password hash, status, message privacy, read receipts, whether they share their active status, `last_active_at`).
 - `profiles`: the person behind listings, members and authors. It may have no account (older
   executives). `merged_into_id` points to the kept profile after a duplicate is merged.
 - `sessions`: signed-in devices. Only a SHA-256 of the cookie is stored. `mfa_pending` marks a
@@ -47,21 +47,25 @@ automatic Worker rollback safe: the previous Worker still runs on the migrated d
   (`governance.governing_units`) carry position authority; affiliated committees such as CSS don't.
 
 **Content, events and media**: `posts` (+ `post_revisions`, `post_tags`, `post_media`),
-`categories`, `tags`, `events` (+ `event_sessions`, `event_people`, `event_registrations`,
-`event_media`), `contests` (+ teams and media), `media` (+ `media_references`), `external_forms`,
+`categories`, `tags`, `events` (+ `event_agenda_items`, `event_people`, `event_registrations` with
+check-in time, `event_media`), `post_reactions`, `posts.pending_revision_id` (an edit of a live post
+waiting for approval), `contests` (+ teams and media), `media` (+ `media_references`), `external_forms`,
 `certificate_programs`, `certificate_recipients`.
 
 **Members' tools**
 
-- `conversations` (one per pair of people, `pair_key` unique), `conversation_members`,
-  `messages`, `user_blocks`, `reports` (reported messages and lost & found posts).
-- `tasks` (for an account, or for an email address until that person has an approved account)
-  and `task_comments`.
-- `meetings` (Google Meet link typed in by the organiser, checked to be `meet.google.com`) and
-  `meeting_participants`.
+- `conversations` (one per pair of people, `pair_key` unique; a group is a conversation with a
+  `chat_groups` row and `pair_key = 'group:<id>'`), `conversation_members` (role OWNER/MEMBER,
+  joined and left times), `messages` (TEXT or SYSTEM lines, replies), `message_reactions` (one per
+  person per message), `user_blocks`, `reports` (reported messages and lost & found posts).
+- `tasks` (for an account, or for an email address until that person has an approved account; labels,
+  board order, comment count, the meeting that created it), `task_items` (checklist),
+  `task_comments`, `task_templates`.
+- `meetings` (a Google Meet link in `meet_url` or any https link in `join_url`; decisions; weekly
+  series), `meeting_participants` (reply, attendance) and `meeting_agenda_items`.
 - `lost_found_posts` (+ legacy `lost_found_messages`, moved into conversations by 0007).
-- `recruitment_campaigns`, `recruitment_applications`, `recruitment_notes`, `contact_messages`.
-- `notifications`: in-app notices.
+- `recruitment_campaigns`, `recruitment_applications`, `recruitment_notes`, `contact_messages` (`topic`, from 0012: general, membership, events, partnership or website; null for older messages).
+- `notifications`: in-app notices; `email_state` DUE / SENT / SKIPPED drives the hourly email digest.
 
 **Records and settings**
 
@@ -194,3 +198,9 @@ description or page content) is never marked, archived or deleted.
 3. For production, prefer Time Travel. If you must load the file, create a new D1 database, load
    the file into it, check it with the dashboard's System health, then point the Worker's
    `database_id` at it and release.
+
+### Round 8 additions (0012, 0013)
+
+- `contact_messages.topic`: what a contact message is about (general, membership, events, partnership, website).
+- `profiles.cutout_media_id`: the member's profile photo with its background removed (transparent), shown on the executives list; cleared when the photo changes without one.
+- Partial indexes on every column that points at a file (`profiles.avatar_media_id`, `committee_members.avatar_media_id`, `events.banner_media_id`, `event_media.media_id`, `posts.featured_media_id`, `contest_media.media_id`, `lost_found_posts.image_media_id`, `chat_groups.photo_media_id`, the three recruitment files), so "is this file used?" is a search per place.

@@ -83,6 +83,17 @@ GUCC's own counts.
 permanently; deleting is free), check the usage table, then a Moderator switches uploads back on
 in System health.
 
+### Live updates (the live hub)
+
+- The hub is one Durable Object (`LiveHub`) on Workers Free. Its limit is 100,000 requests a day
+  (WebSocket messages count 1 in 20); it stops itself at 80,000 and pages switch to checking every
+  minute or so until 00:00 UTC. Nothing is billed: on Workers Free, over-limit requests fail instead.
+- System health → "Live updates" shows open connections and today's count.
+- To switch live updates off (for example while investigating), set `live.enabled` to `false` in
+  Settings; tabs fall back to timers within half an hour (at their next ticket).
+- Email digests: non-urgent notices go out hourly, one email per person, only if unread after 15
+  minutes. Security notices and decisions waiting for someone are sent at once.
+
 ## Under attack
 
 Signs: System health shows many failed sign-ins or rate-limited addresses, API requests near
@@ -212,3 +223,19 @@ From then on: account emails (verification, password reset, invitations, members
 and email copies of notifications, by each person's choices (My profile → _Email
 notifications_; security notices always). Every message and SMTP2GO's answer are listed in System
 health. Club-wide announcements stay in the dashboard (they would use a whole day's allowance).
+
+## Site assistant (Gemini)
+
+The Worker's `GOOGLE_API_KEY` secret enables AI answers. Models are tried in order: `GEMINI_MODEL`
+(a plain variable, optional), `gemini-3.8-flash`, `gemini-3.7-flash`; System health lists them.
+When Google retires a model, set `GEMINI_MODEL` to its successor (no code change) and redeploy the
+API. At most `assistant.daily_limit` AI answers a day (Settings); beyond that, and whenever no
+model answers, the assistant replies from the club's own data.
+
+## Photo background remover
+
+`scripts/copy-mediapipe.mjs` copies MediaPipe's WebAssembly runtime from `node_modules` into
+`public/mediapipe` (after install and before every build, so Vercel does it too; the folder isn't
+committed). The model is `public/models/selfie_segmenter.tflite`. The Content Security Policy
+allows `'wasm-unsafe-eval'` for it. If the files are missing, the profile photo editor says the
+background remover couldn't start and keeps the original background.

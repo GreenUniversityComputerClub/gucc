@@ -1,11 +1,143 @@
 # GUCC platform — implementation report
 
-Date: 2026-09-29 · Branch: `database` (round 7 uncommitted)
+Date: 2026-09-30 · Branch: `database` (round 8 uncommitted)
 
 The website is a Next.js frontend on Vercel's free plan, backed by one Cloudflare Worker (free plan)
 with D1 and R2. **The production backend is live** at `https://gucc-api.gucc.workers.dev`, with all club
 data imported and verified and migrations `0001`–`0009` applied (0009 on 2026-09-29). Once set up, a push to `main` deploys
 the database migrations, the API and the website in order (see "Workers"). No DNS change is needed.
+
+## Round 8 (2026-09-30): live everything, groups and reactions, lean database, blog/events/tasks/meetings
+
+Everything below is in the working tree and **not released**. Schema changes are in
+`migrations/0011_platform_v7.sql`, `0012_contact_topic.sql` and `0013_profile_cutout_media_indexes.sql` (additive: the round-7 Worker keeps working on a migrated
+database). The Worker also gains one Durable Object class, `LiveHub` (`wrangler.jsonc` → `exports`
+and `durable_objects` in every environment); releasing the API creates it.
+
+**Live updates.** One hibernating, SQLite-backed Durable Object (`workers/api/src/live-hub.ts`,
+available on Workers Free) holds a WebSocket per open dashboard tab. Services describe what changed
+(`emit`, `lib/server/live.ts`); after a request succeeds the Worker hands the events to the hub,
+which pushes them to the people concerned. Messages, edits, deletions, reactions, read receipts,
+"typing…", active status, notifications, task and meeting changes all arrive without a reload.
+Browsers connect with a two-minute signed ticket (`/api/live/ticket`, renewed every 30 minutes so a
+sign-out takes effect); typing and active status use signed "room" and "watch" passes, so the hub
+never reads D1 for them. The hub counts its requests and rests at 80% of the free 100,000 a day
+(pages then check on a timer); System health shows connections and today's count. Without the hub
+(older API, blocked network) everything falls back to polling that is slower than before.
+
+**Database load.** A quiet open conversation used 2 statements every 5–30 seconds; with a live
+connection it uses none. Receiving a message costs the receiver no reads; sending costs about 6
+statements (inbox via `conversations.last_message_id`). The new-message picker loads the member
+directory once and filters in the browser instead of a `LIKE` scan per keystroke. Hourly
+housekeeping moved its slow parts (session and token purge, lost & found, orphan uploads, old
+notifications) to the daily job, which keeps each run well under 45 statements. Tasks: indexed
+query per view, a stored comment count, partial indexes for due and open tasks.
+
+**Email.** Only security notices and decisions waiting for someone are emailed at once (and a
+decision waits for the digest when the person has the dashboard open). Everything else is marked
+`email_state = 'DUE'` and goes out as one email per person from the hourly job, only if it is still
+unread after 15 minutes. Reading it in the dashboard first means no email.
+
+**Messages.** Group conversations (any member, three a day, up to `chat.max_group_members` = 50):
+name, description and photo, changed by the owner and by holders of the new `chat.groups.manage`
+(granted to the President, both Vice-Presidents, the General Secretary and both Joint General
+Secretaries; Moderators hold everything). Add, remove, leave (ownership passes on), delete (messages
+purged after 30 days). Reactions (👍 ❤️ 😂 😮 😢 😡 🙏: hover, long-press, double-tap or R), replies,
+edit with ↑, emoji inserter, delivered/seen ticks, "Seen by" in groups, typing indicators, active
+status (shared both ways; a new setting hides it). People carry a truthful club badge (their
+current position, "Moderator", "Faculty", "Alumni" or "Member") instead of everyone being "Member".
+
+**Profile and group photos.** The browser refuses blank, placeholder, mostly transparent or tiny
+pictures before uploading (`lib/media/photo-quality.ts`), warns about blurry ones or (where the
+browser can tell) no face, and checks the framed square again. The Worker refuses WebP profile
+pictures too small to be a photo (under 0.003 bytes per pixel), for uploads that skipped the check.
+
+**Tasks.** Smart views (My tasks, Overdue, Due today, This week, Given by me, Everyone), list and
+board (drag, a "Move to" menu, or [ and ]), search and sort in the browser, bulk status, due date and
+delete (one statement), checklists with progress, labels, templates, comments with @mentions and
+edit/delete, a history from the activity log, stale edit forms refused. Fixed: done → reopen → done
+within seconds replayed the first answer (toggles are never replayed now); editing an email-only task
+wrote the address into its name; a cancelled task offered its assignee a "Reopen" the server
+refused. A morning notice lists each person's overdue tasks.
+
+**Meetings.** Upcoming, Today, Past and a month calendar; any https join link; agenda items with
+leads and notes; repeat weekly (up to 12, one statement); a warning when invitees are busy then;
+replies with a live tally; attendance; action items that become tasks; minutes and decisions;
+Google Calendar and `.ics`; meetings end by themselves (the hourly job marks them done) and can no
+longer be moved into the past or replied to afterwards.
+
+**Blog (public page redesigned, as agreed).** The newest article up front, search, category and tag
+filters, tag pages (`/blog/tag/…`), an RSS feed (`/blog/feed.xml`), and on each article a table of
+contents, tags, reactions for signed-in members, an author box, related articles and newer/older
+links. SEO title and description are used; posts without a cover get the site's generated card.
+The editor has a side-by-side preview, shortcuts, paste/drop images, a word count and an unsaved copy
+kept in the browser. A member editing their live post no longer changes it straight away: the edit
+waits for the same approval as publishing (`posts.pending_revision_id`). Re-publishing keeps the date.
+
+**Events (public page redesigned, as agreed).** Status from real start and end times (a multi-day
+event isn't "past" on its second day), category filter, the next event up front, cards with date,
+seats and registration. Event pages: facts panel, programme (new `event_agenda_items`, edited in the
+dashboard), speakers, guests, a photo lightbox, add to calendar, share, related events, a register
+bar on phones, a "cancelled" page instead of a 404, structured data with real times and status.
+QR check-in: members see a code on their dashboard; organisers scan it (or type it) on the event's
+page; admitting the last seat is race-free. Duplicate an event; reminders a day before.
+
+**Also.** Approvals are filtered before paging (page 2 and "approve next" no longer skip requests);
+the blog stylesheet loads only where articles are shown; SEO and layout audit scripts
+(`scripts/qa/seo-audit.mjs`, `scripts/qa/responsive-audit.mjs`).
+
+**Public redesign, part 2 (contact, navbar; agreed 2026-09-30).**
+
+- _Navbar._ Every link fits from 1024 px (the club's name gives way at 1024–1279 px); it used to
+  overlap at 768 px and wrap at 1024 px. Pill links with a clear current page, a shadow once the
+  page scrolls. Phones and tablets get a menu panel: large targets with icons, Services always
+  open, sign in / join (or dashboard / messages), email and social links; the page behind doesn't
+  scroll and Escape closes it. The day/night switch follows the device's setting correctly.
+- _Site search._ The search button, Ctrl/⌘ K or "/" opens a search over pages, every event, every
+  article and the current committee (`/search-index.json`, built hourly from the same cached reads;
+  fetched only when opened). Arrows move, Enter opens.
+- _Home._ Unchanged: kept exactly as it was (a redesign was tried and reverted at the club's request).
+- _Contact._ Email (with copy), address with Maps and directions, all social profiles, shortcuts
+  (join, events, sponsors, lost & found), and a form with a Topic (`contact_messages.topic`,
+  migration `0012_contact_topic.sql`; `/contact?topic=partnership` preselects it). The topic shows
+  in the inbox, the notice and the email subject. Phones see the form before the extras.
+- _Event pages._ The banner is shown whole beside the title (posters were cropped and written
+  over); no "Open in Maps" for online events. Imported articles now get reactions, related posts
+  and newer/older links like the others.
+- _SEO._ Shorter descriptions (under 160 characters) on the home, events, blog and contact pages;
+  titles never read "GUCC | GUCC". Fixed a page nested in a second `<main>` (contact, event pages).
+
+**Production check (2026-09-30, part 3).**
+
+- _Assistant (Gemini)._ Asks `gemini-3.8-flash`, then `gemini-3.7-flash` if the newest is missing,
+  busy or failing (a `GEMINI_MODEL` set on the Worker goes first). Gemini 3 requests use a low
+  thinking level and room for the reply (thinking counts against the limit); the model's thinking
+  is never shown; a question refused by the safety filters isn't retried; with no model answering,
+  the club's own data answers and the day's AI allowance is given back. System health lists the
+  model order. The chat panel: answers show lists and bold text, only the conversation scrolls
+  (never the page behind), the button sits above an event's Register bar on phones and respects
+  the iPhone safe area.
+- _Profile photo._ After framing, the background can be removed on the member's own device
+  (MediaPipe selfie segmenter, Apache-2.0, served by this site from `/mediapipe` and `/models`;
+  nothing is sent to anyone): white, soft grey, GUCC green, formal blue, a blur of the original, or
+  unchanged. Only for a member's own profile photo; leaders' photo fields (executives, people)
+  frame and check the picture without it. With the background removed, a transparent cut-out is
+  saved too (`profiles.cutout_media_id`, migration 0013) and the executives list shows it floating
+  on the card like the club's own portraits; the round photo shows everywhere else. A new photo
+  without one, a leader's new photo, removing the photo or deleting the account drops it. The
+  editor also rotates, and moves and zooms from the keyboard. The profile page shows the photo in
+  a green ring; the photo itself is the button to change it.
+- _Other uploads._ The admin image field takes drag and drop and paste, shows progress, and
+  frames portraits as squares with the blank-photo check.
+- _Email._ One branded, mobile-friendly template (tables and inline styles, for Gmail, Outlook and
+  Apple Mail) for account emails, notices and digests: inbox preview line, a button for the main
+  link with the full address under it, and why it was sent.
+- _Fixed._ The site's `Permissions-Policy` blocked the camera everywhere, so QR check-in could
+  never scan (now `camera=(self)`); the meetings tabs overflowed a 320 px screen.
+- _Database._ "Is this file used anywhere?" (media library, daily clean-up of unused uploads)
+  read every profile, listing, event and link table for each file; partial indexes in 0013 make
+  each look a single search. `tests/integration/query-plans.test.ts` checks the hot queries use
+  indexes.
 
 ## Round 7 (2026-09-29): one source for people, messages that work, member submissions, profiles
 

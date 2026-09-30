@@ -13,7 +13,8 @@ API Worker (Cloudflare, free) ─── workers/api ─────────�
   │  /v1/rpc/:name  every other operation, via an allowlist of procedures
   │  /v1/upload     browser uploads with a 15-minute signed token
   │  /media/*       R2 objects: public cached for a year; private only with a signed, expiring link
-  │  cron           hourly housekeeping + free-tier guard; daily data retention + media lifecycle
+  │  /v1/live       browser WebSocket to the live hub (Durable Object), with a 2-minute signed ticket
+  │  cron           hourly housekeeping, reminders, email digest + free-tier guard; daily retention + clean-up
   │
   ├─ lib/server/services/*   business logic, authorization, validation, audit
   │     └─ lib/governance/*  pure permission / rule / approval engine
@@ -55,6 +56,14 @@ at most do what that user may do.
    in-batch assertions for race-free transitions and optimistic locking (`lib/server/transition.ts`);
 6. afterwards: email copies of the notifications that were really written (`email-outbox.ts`),
    unexpected errors to `error_events`, cache tags back to the website.
+
+**Live updates.** Services record what changed with `emit()` (`lib/server/live.ts`); after the request
+succeeds, `handleRpc` sends the list to the `LiveHub` Durable Object (`workers/api/src/live-hub.ts`), which
+pushes each event to the WebSockets of the people it names. Tabs connect with a signed ticket from
+`/api/live/ticket`; typing and active status use signed passes checked by the hub without D1. Pages keep
+a slower timer as a fallback (`lib/api/live-client.ts`, `live-counts.ts`). The hub keeps each person's
+last 20 seconds of events in memory: a page's first connection sends its age and gets what happened
+while it was opening; later reconnects send "resync" so components fetch what they missed.
 
 ## Code layout
 
