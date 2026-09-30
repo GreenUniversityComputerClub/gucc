@@ -17,7 +17,7 @@
  * caps first and is written to email_log with the provider's answer. Nothing here throws into
  * the caller.
  */
-import { escapeHtml } from "../html";
+import { renderEmail } from "./email-template";
 import type { Ctx } from "./context";
 import { nowIso } from "./db";
 import { release, utcDay } from "./usage";
@@ -114,11 +114,26 @@ export function accountMessage(ctx: Ctx, msg: EmailMessage, type: string): Email
   const site = (ctx.env.PUBLIC_BASE_URL ?? "").replace(/^https?:\/\//, "").replace(/\/+$/, "") || "the GUCC website";
   const footer = `Green University Computer Club (${site})\nAdd ${EMAIL_SENDER} to your contacts so our emails don't land in spam.`;
   const text = `${msg.text}\n\n—\n${footer}`;
-  const linked = (s: string) => escapeHtml(s).replace(/https?:\/\/[^\s<]+/g, (url) => `<a href="${url}">${url}</a>`);
-  const html = msg.html ?? `<div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111">
-<p style="margin:0 0 20px;white-space:pre-line">${linked(msg.text)}</p>
-<p style="margin:0;color:#666;font-size:12px;white-space:pre-line">${escapeHtml(footer)}</p></div>`;
+  // The first link is the thing to do (verify, set a password, accept an invitation…): a button.
+  const url = msg.text.match(/https?:\/\/[^\s<>"]+/)?.[0];
+  const html = msg.html ?? renderEmail({
+    site: ctx.env.PUBLIC_BASE_URL ?? "",
+    preheader: msg.text.split("\n").find((l) => l.trim() && !/https?:\/\//.test(l))?.slice(0, 140),
+    heading: msg.subject,
+    paragraphs: msg.text.split(/\n{2,}/).map((p) => (url ? p.replace(url, "").trim().replace(/:$/, ".") : p.trim())).filter((p) => p && !/^[:.\s]*$/.test(p)),
+    action: url ? { label: actionLabel(type, msg.subject), url } : undefined,
+    footer: [`Green University Computer Club (${site})`, `Add ${EMAIL_SENDER} to your contacts so our emails don't land in spam.`],
+  });
   return { ...msg, text, html, replyTo: msg.replyTo ?? ctx.env.CONTACT_EMAIL };
+}
+
+/** What the button in an account email says. */
+function actionLabel(type: string, subject: string): string {
+  if (type === "account.verify" || /verify/i.test(subject)) return "Verify my email";
+  if (type === "account.reset" || /password/i.test(subject)) return "Set a new password";
+  if (type === "invite" || /invit/i.test(subject)) return "Accept the invitation";
+  if (/email/i.test(type)) return "Confirm the change";
+  return "Open GUCC";
 }
 
 /** The configured provider, whatever the switch says (the test email uses it before email is on). */

@@ -66,7 +66,9 @@ describe("account emails", () => {
     const c = await w.ctx(null);
     const m = accountMessage({ ...c, env: { ...c.env, CONTACT_EMAIL: "gucc@green.edu.bd" } }, { to: "a@x.bd", subject: "Verify", text: "Open https://example.test/a?b=1 now" }, "account.verify");
     expect(m.text).toMatch(/contacts so our emails don't land in spam/);
-    expect(m.html).toContain('<a href="https://example.test/a?b=1">');
+    // The link is the email's button (and is also printed in full under it).
+    expect(m.html).toMatch(/<a href="https:\/\/example\.test\/a\?b=1"[^>]*>Verify my email<\/a>/);
+    expect(m.html).toContain(">https://example.test/a?b=1</a>");
     expect(m.replyTo).toBe("gucc@green.edu.bd");
     // Messages to the club itself stay as they are.
     expect(accountMessage(c, { to: "club@x.bd", subject: "S", text: "T", replyTo: "sender@x.bd" }, "contact.message")).toEqual({ to: "club@x.bd", subject: "S", text: "T", replyTo: "sender@x.bd" });

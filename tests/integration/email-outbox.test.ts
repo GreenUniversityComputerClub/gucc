@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Ctx } from "@/lib/server/context";
 import { emailEnabled, forgetEmailSettings, MAX_SENDS_PER_RUN, sendEmail } from "@/lib/server/email";
-import { emailCategory, flushOutbox } from "@/lib/server/email-outbox";
+import { emailCategory, flushOutbox, sendDigests } from "@/lib/server/email-outbox";
 import { notifyStmts } from "@/lib/server/notifications";
 import { register } from "@/lib/server/services/auth";
 import { emailPreferences, saveEmailPreferences, sendTestEmail, setSwitch } from "@/lib/server/services/system-controls";
@@ -58,14 +58,20 @@ describe("notification emails", () => {
       // In-app only: club-wide or already emailed elsewhere.
       ...notifyStmts(ctx, [a], { type: "member.approved", title: "Your GUCC account has been approved" }),
     ]);
-    expect(await flushOutbox(ctx)).toEqual({ sent: 2, failed: 0, skipped: 1 });
+    // Security notices go at once; a task waits for the digest (b doesn't want task emails).
+    expect(await flushOutbox(ctx)).toEqual({ sent: 1, failed: 0, skipped: 1 });
+    expect(w.emails.map((e) => [e.to, e.subject])).toEqual([["b@x.bd", "New sign-in on Chrome on Android"]]);
+    // Not yet: the digest waits 15 minutes so reading it in the dashboard first means no email.
+    expect(await sendDigests(ctx)).toEqual({ sent: 0, failed: 0, skipped: 0 });
+    expect(await sendDigests(ctx, new Date(Date.now() + 20 * 60_000))).toEqual({ sent: 1, failed: 0, skipped: 0 });
     expect(w.emails.map((e) => [e.to, e.subject]).sort()).toEqual([["a@x.bd", "New task: Posters"], ["b@x.bd", "New sign-in on Chrome on Android"]]);
     expect(w.emails.find((e) => e.to === "a@x.bd")!.text).toContain("http://test.local/dashboard/tasks/t1");
     expect(log().map((r) => [r.recipient, r.type, r.status]).sort()).toEqual([
       ["a@x.bd", "task.assigned", "sent"], ["b@x.bd", "security.new_sign_in", "sent"], ["b@x.bd", "task.assigned", "skipped_pref"],
     ]);
-    // The outbox is emptied: a second flush sends nothing again.
+    // The outbox is emptied, and a digest goes once: nothing is sent again.
     expect(await flushOutbox(ctx)).toBeNull();
+    expect(await sendDigests(ctx, new Date(Date.now() + 40 * 60_000))).toEqual({ sent: 0, failed: 0, skipped: 0 });
   });
 
   it("never email a notification that wasn't written, or an unconfirmed or inactive address", async () => {
@@ -88,7 +94,7 @@ describe("notification emails", () => {
     setting(ctx, "email.enabled", true);
     setting(ctx, "email.daily_limit", 2);
     await ctx.db.batch([
-      ...notifyStmts(ctx, [ids[0]!, ids[1]!], { type: "event.registered", title: "You're registered" }),
+      ...notifyStmts(ctx, [ids[0]!, ids[1]!], { type: "approval.requested", title: "A request waits for you" }),
       ...notifyStmts(ctx, [ids[2]!], { type: "security.password_changed", title: "Your password was changed" }),
     ]);
     expect(await flushOutbox(ctx)).toEqual({ sent: 2, failed: 0, skipped: 1 });
@@ -107,7 +113,7 @@ describe("notification emails", () => {
     }));
     const ctx = await smtpCtx();
     setting(ctx, "email.enabled", true);
-    await ctx.db.batch(notifyStmts(ctx, [a], { type: "meeting.invited", title: "Meeting: Planning" }));
+    await ctx.db.batch(notifyStmts(ctx, [a], { type: "approval.requested", title: "Meeting: Planning" }));
     expect(await flushOutbox(ctx)).toEqual({ sent: 1, failed: 0, skipped: 0 });
     expect(calls[0]!.url).toBe("https://api.smtp2go.com/v3/email/send");
     expect(calls[0]!.headers["X-Smtp2go-Api-Key"]).toBe("api-test-key");
@@ -119,13 +125,13 @@ describe("notification emails", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ data: { succeeded: 0, failed: 1, failures: ["a@x.bd: sender not verified"] } }), { status: 200 })));
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     const again = await smtpCtx();
-    await again.db.batch(notifyStmts(again, [a], { type: "meeting.changed", title: "Meeting moved" }));
+    await again.db.batch(notifyStmts(again, [a], { type: "approval.requested", title: "Meeting moved" }));
     expect(await flushOutbox(again)).toEqual({ sent: 0, failed: 1, skipped: 0 });
     expect(log()[1]).toMatchObject({ status: "failed", error: "SMTP2GO answered 200: a@x.bd: sender not verified" });
 
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ data: { error_code: "E_ApiResponseCodes.API_EXCEPTION", error: "Invalid API key" } }), { status: 401 })));
     const third = await smtpCtx();
-    await third.db.batch(notifyStmts(third, [a], { type: "meeting.changed", title: "Meeting moved again" }));
+    await third.db.batch(notifyStmts(third, [a], { type: "approval.requested", title: "Meeting moved again" }));
     expect(await flushOutbox(third)).toEqual({ sent: 0, failed: 1, skipped: 0 });
     expect(log()[2]).toMatchObject({ status: "failed", error: "SMTP2GO answered 401: Invalid API key" });
     const used = w.sqlite.prepare("SELECT count FROM usage_counters WHERE key = 'email.sent'").get() as { count: number };
@@ -167,9 +173,29 @@ describe("notification emails", () => {
     const ctx = await smtpCtx();
     setting(ctx, "email.enabled", true);
     setting(ctx, "email.daily_limit", 200);
-    await ctx.db.batch(notifyStmts(ctx, people, { type: "task.assigned", title: "New task" }));
+    await ctx.db.batch(notifyStmts(ctx, people, { type: "approval.requested", title: "New request" }));
     expect(await flushOutbox(ctx)).toEqual({ sent: MAX_SENDS_PER_RUN, failed: 0, skipped: 2 });
     expect(vi.mocked(fetch)).toHaveBeenCalledTimes(MAX_SENDS_PER_RUN);
+  });
+
+  it("put non-urgent notices in one digest per person, skip what was read, and send each once", async () => {
+    const a = await w.user({ email: "a@x.bd", roles: ["member"] });
+    const b = await w.user({ email: "b@x.bd", roles: ["member"] });
+    const ctx = await withOutbox();
+    setting(ctx, "email.enabled", true);
+    await ctx.db.batch([
+      ...notifyStmts(ctx, [a, b], { type: "task.assigned", title: "New task: Posters", link: "/dashboard/tasks/t1" }),
+      ...notifyStmts(ctx, [a], { type: "meeting.invited", title: "Meeting: Planning", link: "/dashboard/meetings/m1" }),
+    ]);
+    expect(await flushOutbox(ctx)).toEqual({ sent: 0, failed: 0, skipped: 0 });
+    // b saw theirs in the dashboard in time: no email.
+    w.sqlite.prepare("UPDATE notifications SET read_at = '2026-01-01' WHERE user_id = ?").run(b);
+    expect(await sendDigests(ctx, new Date(Date.now() + 20 * 60_000))).toEqual({ sent: 1, failed: 0, skipped: 0 });
+    expect(w.emails).toHaveLength(1);
+    expect(w.emails[0]).toMatchObject({ to: "a@x.bd", subject: "2 updates waiting for you at GUCC" });
+    expect(w.emails[0]!.text).toContain("http://test.local/dashboard/meetings/m1");
+    expect(w.sqlite.prepare("SELECT email_state, COUNT(*) n FROM notifications GROUP BY email_state ORDER BY email_state").all())
+      .toEqual([{ email_state: "SENT", n: 2 }, { email_state: "SKIPPED", n: 1 }]);
   });
 
   it("map notification types to choices", () => {
