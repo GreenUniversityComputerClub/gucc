@@ -30,6 +30,11 @@ export default async function PostDetail({ params }: { params: Promise<{ id: str
           ? <><StatusBadge status="SCHEDULED" /><span className="text-sm text-muted-foreground">goes live {dhakaDateTime(scheduledFor)} (Dhaka time)</span></>
           : <><StatusBadge status={p.status} content />{p.status === "PUBLISHED" && <Link prefetch={false} href={`${PUBLIC_PATH[p.type]}/${p.slug}`} className="text-sm underline">View</Link>}</>}
       />
+      {p.pending_revision_id && (
+        <p role="status" className="mb-4 rounded-xl border border-sky-400/60 bg-sky-500/10 p-4 text-sm">
+          <strong>An edit is waiting for approval.</strong> The live post shows the previous version until a reviewer approves it{pendingApprovalId ? <> (<a className="underline" href={`/dashboard/approvals/${pendingApprovalId}`}>see the request</a>)</> : null}. You can withdraw it there to make a new edit.
+        </p>
+      )}
       {sentBack && (
         <p role="status" className="mb-4 rounded-xl border border-amber-400/60 bg-amber-500/10 p-4 text-sm">
           <strong>Changes requested{sentBack.by ? ` by ${sentBack.by}` : ""}:</strong> {sentBack.comment ?? "No note was left."} Edit the post below, then send it for approval again.

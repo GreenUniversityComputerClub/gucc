@@ -366,6 +366,16 @@ async function previewOf(ctx: Ctx, req: ApprovalRequestRow): Promise<ApprovalPre
                  FROM media m WHERE m.id = p.featured_media_id AND m.deleted_at IS NULL) AS cover
        FROM posts p LEFT JOIN categories c ON c.id = p.category_id WHERE p.id = ?1`, req.resource_id);
     if (!p) return null;
+    // An edit of a live post: show the edit, not what's live now.
+    if (req.action === "posts.update_live") {
+      const { revisionId } = JSON.parse(req.payload_json ?? "{}") as { revisionId?: string };
+      const snap = revisionId ? await ctx.db.value<string>("SELECT snapshot_json FROM post_revisions WHERE id = ?1", revisionId) : null;
+      if (snap) {
+        const d = JSON.parse(snap) as { title: string; subtitle: string | null; excerpt: string | null; body: string | null; category: string | null };
+        return { kind: "post", type: p.type, title: d.title, subtitle: d.subtitle, excerpt: d.excerpt, body: d.body, category: d.category,
+          coverUrl: avatarUrl(p.cover, "lg"), status: p.status, publishedBefore: true };
+      }
+    }
     return { kind: "post", type: p.type, title: p.title, subtitle: p.subtitle, excerpt: p.excerpt, body: p.body_markdown, category: p.category,
       coverUrl: avatarUrl(p.cover, "lg"), status: p.status, publishedBefore: Boolean(p.published_at) };
   }
@@ -403,14 +413,17 @@ export async function listApprovals(ctx: Ctx, opts: { status?: string; mine?: bo
     `SELECT r.*, COALESCE(p.full_name, 'Member') AS requester_name, ${avatarOfUserSql("r.requested_by")} AS avatar_json FROM approval_requests r
      JOIN users u ON u.id = r.requested_by LEFT JOIN profiles p ON p.user_id = u.id
      WHERE (?1 = 'ALL' OR r.status = ?1) AND (?2 = 0 OR r.requested_by = ?3)
-     ORDER BY CASE WHEN ?1 = 'PENDING' THEN r.created_at END ASC, r.created_at DESC LIMIT 50 OFFSET ?4`,
-    status, opts.mine ? 1 : 0, actor.user.id, (page - 1) * 50,
+     ORDER BY CASE WHEN ?1 = 'PENDING' THEN r.created_at END ASC, r.created_at DESC LIMIT ?4`,
+    status, opts.mine ? 1 : 0, actor.user.id, Math.min(page * 50 + 1, 1000) * 4,
   );
-  return rows.flatMap(({ avatar_json, ...r }) => {
+  // Who may see or decide each request is known only after reading its policy, so the page is cut
+  // after filtering: page 2 and "approve next" never skip or repeat requests.
+  const visible = rows.flatMap(({ avatar_json, ...r }) => {
     const policy = JSON.parse(r.policy_snapshot) as ApprovalPolicy;
     if (!maySee(ctx, r, policy)) return [];
     const canDecide = r.status === "PENDING" && mayDecide(ctx, policy, eligibleGroups(policy, actor.subject, { requestedBy: r.requested_by }), r.id);
     if (opts.forMe && !canDecide) return [];
     return [{ ...r, requester_avatar: avatarUrl(avatar_json), policy, policyText: describePolicy(policy), canDecide }];
   });
+  return visible.slice((page - 1) * 50, page * 50);
 }

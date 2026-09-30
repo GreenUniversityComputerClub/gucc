@@ -3,7 +3,7 @@ import { getPublishedPost, getPublishedPosts, type PublicPost } from "@/lib/publ
 import type { Post } from "./types";
 
 /** Map a D1 post onto the shape the blog components were written for. */
-export function toLegacyPost(p: PublicPost): Post & { body: string | null } {
+export function toLegacyPost(p: PublicPost): Post & { body: string | null; seoTitle: string | null; seoDescription: string | null; reactions: Record<string, number> } {
   return {
     id: p.id,
     slug: p.slug,
@@ -20,11 +20,14 @@ export function toLegacyPost(p: PublicPost): Post & { body: string | null } {
     coverImage: p.coverImage ? { url: p.coverImage } : null,
     author: { name: p.author.name, github: p.author.url ?? undefined, avatarUrl: p.author.avatarUrl ?? undefined },
     body: p.body,
+    seoTitle: p.seoTitle ?? null,
+    seoDescription: p.seoDescription ?? null,
+    reactions: p.reactions ?? {},
   };
 }
 
 export async function listBlogPosts(type = "BLOG") {
-  return (await getPublishedPosts(type)).map(toLegacyPost);
+  return (await getPublishedPosts(type, 200)).map(toLegacyPost);
 }
 
 export async function findBlogPost(slug: string, type = "BLOG") {

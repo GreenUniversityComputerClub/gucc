@@ -1,3 +1,5 @@
+// Article typography (headings, lists, quotes, code) shared with the blog.
+import "@/app/blog/[slug]/blog.css";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";

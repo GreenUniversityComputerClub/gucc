@@ -22,12 +22,16 @@ import { registerApprovalHandler, startApproval, WITHDRAWN } from "./approvals";
 import { tagsForPost } from "./cache-tags";
 import { triggerStmts } from "../triggers";
 import { checkMemberCreate, checkMemberSubmit } from "./member-content";
+import { isReaction, type ReactionKey } from "../../chat/reactions";
+import { limit } from "../limits";
 
 export const POST_TYPES = ["BLOG", "NEWS", "ANNOUNCEMENT"] as const;
 export type PostType = (typeof POST_TYPES)[number];
 
 export interface PostRow {
   id: string;
+  /** An edit of the live post waiting for approval (post_revisions id). */
+  pending_revision_id?: string | null;
   type: PostType;
   slug: string;
   title: string;
@@ -194,6 +198,28 @@ export async function updatePost(ctx: Ctx, id: string, input: Record<string, unk
   }
   const version = before!.current_version + 1;
   const now = nowIso();
+  // Someone who can't publish editing a live post: the post stays as it is and the edit waits
+  // for the same approval publishing would need (it goes live once approved).
+  if (before!.status === "PUBLISHED" && authorize(ctx, "posts.publish", resource).outcome !== "ALLOW") {
+    if ((before as PostRow & { pending_revision_id?: string | null }).pending_revision_id) {
+      throw new AppError(409, "EDIT_PENDING", "Your earlier edit of this post is still waiting for approval. Withdraw it under Approvals to make a new one, or wait for the decision.");
+    }
+    const route = await approvalRoute(ctx, resource);
+    const revisionId = newId("rev");
+    const fresh = await unchangedSince(ctx, "posts", id, input.expectedUpdatedAt);
+    await startApproval(ctx, {
+      policyKey: route.policyKey, ruleId: route.ruleId, resourceType: "post", resourceId: id, action: "posts.update_live", title: `Edit of a live ${before!.type.toLowerCase()}: ${d.title}`,
+      payload: { revisionId },
+      alongside: [
+        ...fresh,
+        ctx.db.stmt("INSERT INTO post_revisions (id, post_id, version, title, excerpt, body_markdown, snapshot_json, changed_by, change_reason, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+          revisionId, id, version, d.title, d.excerpt, d.body, JSON.stringify({ ...d, slug }), actor.user.id, d.changeReason, now),
+        ctx.db.stmt("UPDATE posts SET pending_revision_id = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1", id, revisionId, now, actor.user.id),
+        auditStmt(ctx, { action: "post.edit_submitted", resourceType: "post", resourceId: id, reason: d.changeReason, after: { title: d.title, version }, decision }),
+      ],
+    });
+    return;
+  }
   // Editing published content keeps it live; editing something awaiting
   // approval withdraws the request so approvers never approve stale text.
   const wasPending = before!.status === "PENDING_APPROVAL";
@@ -237,8 +263,9 @@ export async function publishPost(ctx: Ctx, id: string): Promise<PublishResult> 
     const scheduled = post!.scheduled_at && post!.scheduled_at > now;
     const token = newTransition();
     await batchTransition(ctx, [
-      ctx.db.stmt("UPDATE posts SET status = 'PUBLISHED', published_at = ?2, updated_at = ?3, updated_by = ?4, last_transition = ?5 WHERE id = ?1 AND status <> 'PUBLISHED' AND deleted_at IS NULL",
-        id, scheduled ? post!.scheduled_at : now, now, actor.user.id, token),
+      // Publishing again (after unpublishing) keeps the original date, as events do.
+      ctx.db.stmt("UPDATE posts SET status = 'PUBLISHED', published_at = CASE WHEN ?6 = 1 THEN ?2 ELSE COALESCE(published_at, ?2) END, updated_at = ?3, updated_by = ?4, last_transition = ?5 WHERE id = ?1 AND status <> 'PUBLISHED' AND deleted_at IS NULL",
+        id, scheduled ? post!.scheduled_at : now, now, actor.user.id, token, scheduled ? 1 : 0),
       assertTransition(ctx, "posts", id, token),
       auditStmt(ctx, { action: "post.publish", resourceType: "post", resourceId: id, decision, after: { publishedAt: scheduled ? post!.scheduled_at : now } }),
       ...(await triggerStmts(ctx, "post.published", resource, { title: post!.title, link: `/dashboard/posts/${id}` })),
@@ -249,6 +276,22 @@ export async function publishPost(ctx: Ctx, id: string): Promise<PublishResult> 
       : { outcome: "PUBLISHED", message: "Published." };
   }
 
+  const { policyKey, ruleId } = await approvalRoute(ctx, resource);
+  const { requestId, created } = await startApproval(ctx, {
+    policyKey, ruleId, resourceType: "post", resourceId: id, action: "posts.publish", title: `Publish ${post!.type.toLowerCase()}: ${post!.title}`,
+    payload: { version: post!.current_version },
+    alongside: [
+      ctx.db.stmt("UPDATE posts SET status = 'PENDING_APPROVAL', updated_at = ?2 WHERE id = ?1", id, nowIso()),
+      ...(await triggerStmts(ctx, "post.submitted", resource, { title: post!.title, link: `/dashboard/posts/${id}` })),
+    ],
+  });
+  return { outcome: "PENDING_APPROVAL", requestId, message: created ? `Sent for approval. ${decision.outcome === "REQUIRE_APPROVAL" ? decision.summary : ""}`.trim() : "Already waiting for approval." };
+}
+
+/** Which approval policy publishing (or changing live) content goes through for this person. */
+async function approvalRoute(ctx: Ctx, resource: NonNullable<Awaited<ReturnType<typeof postResource>>>): Promise<{ policyKey: string; ruleId: string | null }> {
+  const actor = requireActor(ctx);
+  const decision = authorize(ctx, "posts.publish", resource);
   let policyKey: string | undefined;
   let ruleId: string | null = null;
   if (decision.outcome === "REQUIRE_APPROVAL") {
@@ -264,16 +307,34 @@ export async function publishPost(ctx: Ctx, id: string): Promise<PublishResult> 
     throw new ForbiddenError(decision.summary, decision);
   }
   if (!policyKey) throw new AppError(500, "POLICY_MISSING", "The approval rule names no policy.");
-  const { requestId, created } = await startApproval(ctx, {
-    policyKey, ruleId, resourceType: "post", resourceId: id, action: "posts.publish", title: `Publish ${post!.type.toLowerCase()}: ${post!.title}`,
-    payload: { version: post!.current_version },
-    alongside: [
-      ctx.db.stmt("UPDATE posts SET status = 'PENDING_APPROVAL', updated_at = ?2 WHERE id = ?1", id, nowIso()),
-      ...(await triggerStmts(ctx, "post.submitted", resource, { title: post!.title, link: `/dashboard/posts/${id}` })),
-    ],
-  });
-  return { outcome: "PENDING_APPROVAL", requestId, message: created ? `Sent for approval. ${decision.outcome === "REQUIRE_APPROVAL" ? decision.summary : ""}`.trim() : "Already waiting for approval." };
+  return { policyKey, ruleId };
 }
+
+/** An approved edit of a live post replaces what the post shows (the edit as submitted). */
+registerApprovalHandler("posts.update_live", {
+  async onApproved(ctx, req) {
+    const { revisionId } = JSON.parse(req.payload_json ?? "{}") as { revisionId?: string };
+    const rev = revisionId ? await ctx.db.first<{ version: number; snapshot_json: string }>("SELECT version, snapshot_json FROM post_revisions WHERE id = ?1", revisionId) : null;
+    if (!rev) return [];
+    const d = JSON.parse(rev.snapshot_json) as ReturnType<typeof parseInput> & { slug: string };
+    const categoryId = await ensureCategory(ctx, d.category);
+    const now = nowIso();
+    return [
+      ctx.db.stmt(
+        `UPDATE posts SET slug = ?2, title = ?3, subtitle = ?4, excerpt = ?5, body_markdown = ?6, category_id = ?7, featured_media_id = ?8, canonical_url = ?9,
+                seo_title = ?10, seo_description = ?11, read_time_minutes = ?12, current_version = ?13, updated_at = ?14, pending_revision_id = NULL
+         WHERE id = ?1 AND pending_revision_id = ?15`,
+        req.resource_id, d.slug, d.title, d.subtitle, d.excerpt, d.body, categoryId, d.featuredMediaId, d.canonicalUrl, d.seoTitle, d.seoDescription, readTime(d.body), rev.version, now, revisionId,
+      ),
+      ...(await syncTags(ctx, req.resource_id, d.tags ?? [])),
+      auditStmt(ctx, { action: "post.edit_approved", resourceType: "post", resourceId: req.resource_id, reason: `Approved (request ${req.id})` }),
+    ];
+  },
+  async onRejected(ctx, req) {
+    return [ctx.db.stmt("UPDATE posts SET pending_revision_id = NULL, updated_at = ?2 WHERE id = ?1", req.resource_id, nowIso())];
+  },
+  tags: () => ["posts"],
+});
 
 async function publishedTrigger(ctx: Ctx, id: string) {
   const resource = await postResource(ctx.db, id);
@@ -387,4 +448,34 @@ export async function listPostsAdmin(ctx: Ctx, opts: { type?: string; status?: s
     opts.type ?? null, opts.status ?? null, q, opts.category ?? null, all ? 1 : 0, actor.user.id, cats.join(","), (page - 1) * 30,
   );
   return rows;
+}
+
+/** Reactions on a published post: counts for everyone, and mine when signed in. One statement. */
+export async function postReactions(ctx: Ctx, postId: string): Promise<{ counts: Partial<Record<ReactionKey, number>>; mine: ReactionKey | null; total: number }> {
+  const me = ctx.session?.userId ?? ctx.actor?.user.id ?? null;
+  const rows = await ctx.db.all<{ emoji: ReactionKey; n: number; mine: number }>(
+    `SELECT r.emoji, COUNT(*) AS n, MAX(r.user_id = ?2) AS mine FROM post_reactions r
+     JOIN posts p ON p.id = r.post_id AND p.status = 'PUBLISHED' AND p.deleted_at IS NULL WHERE r.post_id = ?1 GROUP BY r.emoji`, postId, me ?? "");
+  return {
+    counts: Object.fromEntries(rows.filter((r) => isReaction(r.emoji)).map((r) => [r.emoji, r.n])),
+    mine: rows.find((r) => r.mine)?.emoji ?? null,
+    total: rows.reduce((a, r) => a + r.n, 0),
+  };
+}
+
+/** React to a published post (approved members; one reaction each, change or remove it any time). */
+export async function reactToPost(ctx: Ctx, postId: string, rawEmoji: unknown) {
+  const actor = requireActor(ctx);
+  if (actor.user.status !== "ACTIVE") throw new ForbiddenError("Reactions open once your membership is approved.");
+  const emoji = rawEmoji === null || rawEmoji === "" ? null : isReaction(rawEmoji) ? rawEmoji : undefined;
+  if (emoji === undefined) throw new ValidationError("Choose a reaction.");
+  if (!(await ctx.db.first("SELECT 1 FROM posts WHERE id = ?1 AND status = 'PUBLISHED' AND deleted_at IS NULL", postId))) throw new NotFoundError("Post");
+  await limit(ctx, "chat.react", actor.user.id);
+  if (emoji) {
+    await ctx.db.run(`INSERT INTO post_reactions (post_id, user_id, emoji, created_at) VALUES (?1, ?2, ?3, ?4)
+                      ON CONFLICT(post_id, user_id) DO UPDATE SET emoji = excluded.emoji, created_at = excluded.created_at`, postId, actor.user.id, emoji, nowIso());
+  } else {
+    await ctx.db.run("DELETE FROM post_reactions WHERE post_id = ?1 AND user_id = ?2", postId, actor.user.id);
+  }
+  return postReactions(ctx, postId);
 }

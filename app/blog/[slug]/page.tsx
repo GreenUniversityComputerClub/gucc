@@ -5,7 +5,7 @@ import { Post } from "../types";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/seo/json-ld";
-import { brandTitle } from "@/lib/seo/metadata";
+import { brandTitle, ogImageUrl, truncate } from "@/lib/seo/metadata";
 import { articleSchema, breadcrumbSchema, graph } from "@/lib/seo/schema";
 import { findBlogPost } from "../data";
 
@@ -24,13 +24,17 @@ const siteBaseUrl = (
   "https://gucc.green.edu.bd"
 ).replace(/\/+$/, "");
 
-function buildPostMetadata(post: Post): Metadata {
+function buildPostMetadata(post: Post & { seoTitle?: string | null; seoDescription?: string | null }): Metadata {
+  // The author's SEO title and description win; then the excerpt, then the subtitle.
   const description =
+    post.seoDescription?.trim() ||
     post.brief?.trim() ||
     post.subtitle?.trim() ||
     "Official article from Green University Computer Club (GUCC)";
+  const title = post.seoTitle?.trim() || post.title;
 
-  const rawImageUrl = post.coverImage?.url || "/blog/neurogebra-cover.jpg";
+  // Without a cover, the site's own generated card (never another article's picture).
+  const rawImageUrl = post.coverImage?.url || ogImageUrl({ eyebrow: "GUCC Blog", title: post.title, subtitle: truncate(description, 120) });
   const imageUrl =
     rawImageUrl.startsWith("http://") || rawImageUrl.startsWith("https://")
       ? rawImageUrl
@@ -40,14 +44,14 @@ function buildPostMetadata(post: Post): Metadata {
   const authorName = post.author?.name || "Green University Computer Club";
 
   return {
-    title: { absolute: brandTitle(post.title) },
+    title: { absolute: brandTitle(title) },
     description,
     metadataBase: new URL(siteBaseUrl),
     alternates: {
       canonical: postUrl,
     },
     openGraph: {
-      title: post.title,
+      title,
       description,
       url: postUrl,
       siteName: "Green University Computer Club",
@@ -67,7 +71,7 @@ function buildPostMetadata(post: Post): Metadata {
     },
     twitter: {
       card: "summary_large_image",
-      title: post.title,
+      title,
       description,
       images: [imageUrl],
     },
@@ -141,20 +145,34 @@ export default async function BlogPost({
   const slug = (await params).slug;
   const customPost = await findBlogPost(slug);
 
-  if (customPost && customPost.body) {
+  // An unknown address is a real 404 (search engines drop it; the site's not-found page shows).
+  if (!customPost) notFound();
+
+  // Reactions, related posts and previous/next, for articles written here and imported ones alike.
+  const all = await listBlogPosts();
+  const i = all.findIndex((p) => p.slug === customPost.slug);
+  const card = (p: (typeof all)[number] | undefined) => (p ? { slug: p.slug, title: p.title, cover: p.coverImage?.url ?? null, publishedAt: p.publishedAt ?? null } : null);
+  const shared = (p: (typeof all)[number]) => (p.tags ?? []).filter((t) => (customPost.tags ?? []).includes(t)).length + (p.category && p.category === customPost.category ? 1 : 0);
+  const related = all.filter((p) => p.slug !== customPost.slug).map((p) => ({ p, score: shared(p) })).filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score).slice(0, 3).map((x) => card(x.p)!);
+  const extras = { url: `${siteBaseUrl}/blog/${customPost.slug}`, reactions: customPost.reactions, related, prev: i > 0 ? card(all[i - 1]) : null, next: i >= 0 ? card(all[i + 1]) : null };
+
+  if (customPost.body) {
     const mdx = await markdownToReact(customPost.body);
+    // The client gets the rendered article only, not the markdown a second time.
+    const { body: _body, ...post } = customPost;
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
         <div className="container mx-auto px-4 py-12 max-w-4xl">
           <JsonLd id={`post-${customPost.slug}-schema`} data={postSchema(customPost)} />
-          <PostContent post={customPost} mdx={mdx} />
+          <PostContent post={post} mdx={mdx} extras={extras} />
         </div>
       </div>
     );
   }
 
   // Articles whose home is elsewhere (e.g. Substack) are fetched from their canonical URL, as before.
-  if (customPost) {
+  {
     let articleHtml: string | null = null;
 
     try {
@@ -189,13 +207,10 @@ export default async function BlogPost({
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
         <div className="container mx-auto px-4 py-12 max-w-4xl">
           <JsonLd id={`post-${customPost.slug}-schema`} data={postSchema(customPost)} />
-          <PostContent post={customPost} mdx={mdx} />
+          <PostContent post={{ ...customPost, body: null } as Post} mdx={mdx} extras={extras} />
         </div>
       </div>
     );
   }
-
-  // An unknown address is a real 404 (search engines drop it; the site's not-found page shows).
-  notFound();
 
 }

@@ -1,3 +1,5 @@
+// Article typography (headings, lists, quotes, code) shared with the blog.
+import "@/app/blog/[slug]/blog.css";
 import { view } from "@/lib/api/session";
 import type { getRevision } from "@/lib/server/services/posts";
 import { ActionForm, PageHeader, Section } from "@/components/admin/ui";

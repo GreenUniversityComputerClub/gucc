@@ -6,15 +6,25 @@ import ReadingProgress from "@/components/reading-progress";
 import CodeBlockEnhancer from "@/components/blog/code-block-enhancer";
 import { Post, PostEdge } from "./types";
 import { initials } from "@/lib/initials";
+import { PostReactions, ShareMenu, TableOfContents } from "./article-extras";
 
 /** Plain wrapper: React view transitions need React's experimental build, which Next only ships behind a flag. */
 function ViewTransition({ children }: { name?: string; children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+interface RelatedPost {
+  slug: string;
+  title: string;
+  cover: string | null;
+  publishedAt: string | null;
+}
+
 interface PostContentProps {
   post: Post;
   mdx: React.ReactNode;
+  /** Local posts: reactions, related articles and the neighbours in time. */
+  extras?: { url: string; reactions: Record<string, number>; related: RelatedPost[]; prev: RelatedPost | null; next: RelatedPost | null };
 }
 
 function ShareButton({ title }: { title: string }) {
@@ -71,7 +81,7 @@ function ShareButton({ title }: { title: string }) {
   );
 }
 
-export default function PostContent({ post, mdx }: PostContentProps) {
+export default function PostContent({ post, mdx, extras }: PostContentProps) {
   const publishedDate = post.publishedAt
     ? new Date(post.publishedAt).toLocaleDateString("en-US", { timeZone: "Asia/Dhaka",
         year: "numeric",
@@ -80,7 +90,7 @@ export default function PostContent({ post, mdx }: PostContentProps) {
       })
     : null;
 
-  const category = post.category || "Research & Open Source";
+  const category = post.category || null;
 
   // Initials when the author has no photo.
   const authorInitials = post.author?.name ? initials(post.author.name) : "GU";
@@ -111,11 +121,13 @@ export default function PostContent({ post, mdx }: PostContentProps) {
         {/* Article Header */}
         <header className="mb-10 sm:mb-14">
           {/* Category Kicker */}
-          <div className="mb-4">
-            <span className="inline-block text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-mono">
-              {category}
-            </span>
-          </div>
+          {category && (
+            <div className="mb-4">
+              <span className="inline-block text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-mono">
+                {category}
+              </span>
+            </div>
+          )}
 
           {/* Prominent Article Title */}
           <ViewTransition name={`post-title-${post.id}`}>
@@ -180,7 +192,7 @@ export default function PostContent({ post, mdx }: PostContentProps) {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
-              <ShareButton title={post.title} />
+              {extras ? <ShareMenu title={post.title} url={extras.url} /> : <ShareButton title={post.title} />}
             </div>
           </div>
 
@@ -196,6 +208,8 @@ export default function PostContent({ post, mdx }: PostContentProps) {
           )}
         </header>
 
+        {extras && <TableOfContents />}
+
         {/* Article Body with CodeBlockEnhancer */}
         <main className="article-reading-container">
           <ViewTransition name={`post-content-${post.id}`}>
@@ -204,6 +218,63 @@ export default function PostContent({ post, mdx }: PostContentProps) {
             </CodeBlockEnhancer>
           </ViewTransition>
         </main>
+
+        {post.tags && post.tags.length > 0 && (
+          <div className="mt-10 flex flex-wrap gap-2" aria-label="Topics">
+            {post.tags.map((t) => (
+              <Link key={t} href={`/blog/tag/${encodeURIComponent(t)}`} className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/40">#{t}</Link>
+            ))}
+          </div>
+        )}
+
+        {extras && <PostReactions postId={post.id} initial={extras.reactions} next={`/blog/${post.slug}`} />}
+
+        {/* About the author */}
+        <section className="mt-10 flex items-center gap-4 rounded-2xl bg-slate-50 p-5 dark:bg-slate-900/50" aria-label="About the author">
+          {post.author?.avatarUrl
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={post.author.avatarUrl} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
+            : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 font-semibold text-white">{authorInitials}</div>}
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-wider text-slate-500">Written by</p>
+            <p className="font-semibold text-slate-900 dark:text-white">{post.author?.name || "GUCC Contributor"}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Member of the Green University Computer Club</p>
+          </div>
+        </section>
+
+        {extras && (extras.prev || extras.next) && (
+          <nav className="mt-10 grid gap-3 sm:grid-cols-2" aria-label="More articles">
+            {extras.prev ? (
+              <Link href={`/blog/${extras.prev.slug}`} className="group rounded-xl border border-slate-200/80 p-4 hover:border-emerald-400 dark:border-slate-800">
+                <span className="text-xs text-slate-500">← Newer</span>
+                <span className="mt-1 line-clamp-2 block font-semibold group-hover:text-emerald-600">{extras.prev.title}</span>
+              </Link>
+            ) : <span />}
+            {extras.next && (
+              <Link href={`/blog/${extras.next.slug}`} className="group rounded-xl border border-slate-200/80 p-4 text-right hover:border-emerald-400 dark:border-slate-800">
+                <span className="text-xs text-slate-500">Older →</span>
+                <span className="mt-1 line-clamp-2 block font-semibold group-hover:text-emerald-600">{extras.next.title}</span>
+              </Link>
+            )}
+          </nav>
+        )}
+
+        {extras && extras.related.length > 0 && (
+          <section className="mt-12" aria-labelledby="related-h">
+            <h2 id="related-h" className="mb-4 text-xl font-bold text-slate-900 dark:text-white">You might also like</h2>
+            <ul className="grid gap-4 sm:grid-cols-3">
+              {extras.related.map((r) => (
+                <li key={r.slug}>
+                  <Link href={`/blog/${r.slug}`} className="group block overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {r.cover ? <img src={r.cover} alt="" loading="lazy" className="aspect-video w-full object-cover transition-transform group-hover:scale-105" /> : <div className="aspect-video bg-gradient-to-br from-emerald-600 to-teal-700" aria-hidden />}
+                    <span className="line-clamp-2 block p-3 text-sm font-semibold group-hover:text-emerald-600">{r.title}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* Article Footer & Next Steps */}
         <footer className="mt-16 pt-8 border-t border-slate-200/80 dark:border-slate-800 text-center">
