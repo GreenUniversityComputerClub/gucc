@@ -31,7 +31,7 @@ describe("tasks", () => {
     const m = await w.user({ email: "m@x.bd", roles: ["member"], name: "Rafi" });
     const { id, message } = await createTask(await w.ctx(gs), { title: "Book the seminar hall", details: "Room 402 for Friday", dueAt: "2030-01-10T15:00", assigneeUserId: m });
     // Members with an account get the notification; its email copy follows their own email choices.
-    expect(message).toBe("Task assigned. They were notified (by email too, if their email settings allow it).");
+    expect(message).toBe("Task assigned. They were notified.");
     expect(count("SELECT COUNT(*) n FROM notifications WHERE user_id = ? AND type = 'task.assigned'", m)).toBe(1);
     expect(w.emails).toHaveLength(0);
     // Zone-less times are Dhaka time.
@@ -149,7 +149,10 @@ describe("meetings", () => {
     await expect(scheduleMeeting(await w.ctx(m), { title: "x", startsAt: future(1), participants: exec })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(scheduleMeeting(await w.ctx(exec), { title: "x", startsAt: future(1), participants: "" })).rejects.toMatchObject({ code: "VALIDATION" });
     await expect(scheduleMeeting(await w.ctx(exec), { title: "x", startsAt: "2020-01-01T10:00", participants: m })).rejects.toMatchObject({ code: "VALIDATION" });
-    await expect(scheduleMeeting(await w.ctx(exec), { title: "x", startsAt: future(1), meetUrl: "https://example.com", participants: m })).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(scheduleMeeting(await w.ctx(exec), { title: "x", startsAt: future(1), meetUrl: "http://example.com", participants: m })).rejects.toMatchObject({ code: "VALIDATION" });
+    // Any https link works (Zoom, Teams, Jitsi…); Google Meet codes are stored as the canonical link.
+    const zoom = await scheduleMeeting(await w.ctx(exec), { title: "Online sync", startsAt: future(2), meetUrl: "https://zoom.us/j/123456", participants: m });
+    expect((await meetingDetail(await w.ctx(exec), zoom.id)).meeting.join_url).toBe("https://zoom.us/j/123456");
     const other = await w.user({ email: "e2@x.bd", roles: ["member"], positions: ["executive-member"] });
     const ok = await scheduleMeeting(await w.ctx(exec), { title: "Committee sync", startsAt: future(1), participants: "", allExecutives: true, location: "Room 402" });
     expect((await meetingDetail(await w.ctx(other), ok.id)).participants.map((p) => p.user_id).sort()).toEqual([exec, other].sort());

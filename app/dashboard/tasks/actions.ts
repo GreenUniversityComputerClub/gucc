@@ -18,6 +18,9 @@ export async function createTaskAction(fd: Fd) {
     assigneeUserId: toEmail ? undefined : s(fd, "assigneeUserId"),
     assigneeEmail: toEmail ? s(fd, "assigneeEmail") : undefined,
     assigneeName: toEmail ? s(fd, "assigneeName") : undefined,
+    labels: s(fd, "labels"),
+    checklist: s(fd, "checklist"),
+    templateId: s(fd, "templateId") || undefined,
   });
 }
 
@@ -29,12 +32,14 @@ export async function editTaskAction(id: string, fd: Fd) {
     details: s(fd, "details") ?? "",
     dueAt: s(fd, "dueAt") ?? "",
     priority: s(fd, "priority"),
+    labels: s(fd, "labels") ?? "",
+    expectedUpdatedAt: s(fd, "expectedUpdatedAt"),
     ...(reassign ? { assigneeUserId: reassign } : {}),
   });
 }
 
 export async function taskStatusAction(id: string, status: string, _fd: Fd) {
-  return runAction("tasks.update", { id, status });
+  return runAction("tasks.setStatus", { id, status });
 }
 
 export async function commentTaskAction(id: string, fd: Fd) {

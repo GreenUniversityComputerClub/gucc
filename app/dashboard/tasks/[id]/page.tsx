@@ -1,76 +1,45 @@
 import { requireSignedIn, view } from "@/lib/api/session";
-import type { taskDetail } from "@/lib/server/services/work";
-import { ActionForm, Field, PageHeader, Section, StatusBadge } from "@/components/admin/ui";
+import { ActionForm, Field, PageHeader, Section } from "@/components/admin/ui";
 import { PersonPicker } from "@/components/admin/person-picker";
 import { PersonAvatar } from "@/components/person-avatar";
-import { commentTaskAction, editTaskAction, taskStatusAction } from "../actions";
+import { dhakaDateTime } from "@/lib/time";
+import { editTaskAction } from "../actions";
+import type { TaskDetail } from "../live-actions";
+import { TaskDetailView } from "./task-detail";
 
-const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+/** datetime-local value in Dhaka time. */
 const local = (iso: string | null) => (iso ? new Date(new Date(iso).getTime() + 6 * 3600_000).toISOString().slice(0, 16) : "");
 
 export default async function TaskPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireSignedIn(`/dashboard/tasks/${id}`);
-  const { task: t, comments, role } = await view<Awaited<ReturnType<typeof taskDetail>>>("tasks.get", { id }, `/dashboard/tasks/${id}`);
-  const open = t.status === "OPEN" || t.status === "IN_PROGRESS";
-  const statusButton = (status: string, label: string, variant: "default" | "outline" = "outline") => (
-    <ActionForm key={status} action={taskStatusAction.bind(null, t.id, status)} submitLabel={label} successMessage="Updated." variant={variant} inline />
-  );
+  const session = await requireSignedIn(`/dashboard/tasks/${id}`);
+  const data = await view<TaskDetail>("tasks.get", { id }, `/dashboard/tasks/${id}`);
+  const t = data.task;
   return (
     <>
-      <PageHeader back={{ href: "/dashboard/tasks", label: "Tasks" }} title={t.title} description={`${t.assignee_user_id ? "For" : "For (no account yet)"} ${t.assignee_name ?? "—"} · given by ${t.creator_name ?? "someone"} on ${when(t.created_at)}`} />
-      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
-        <div className="space-y-6">
-          <Section title="Details">
-            <div className="flex flex-wrap items-center gap-3 text-sm">
-              <StatusBadge status={t.status} />
-              <span className="inline-flex items-center gap-1.5"><PersonAvatar name={t.assignee_name} url={t.assignee_avatar} size="xs" />{t.assignee_name ?? "—"}</span>
-              {t.due_at && <span>Due {when(t.due_at)}</span>}
-              <span className="text-muted-foreground">Priority: {t.priority.toLowerCase()}</span>
-              {t.event_title && <span className="text-muted-foreground">Event: {t.event_title}</span>}
-            </div>
-            <p className="mt-3 whitespace-pre-wrap text-sm">{t.details || <span className="text-muted-foreground">No details.</span>}</p>
-            {(role.assignee || role.canEdit) && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {t.status === "OPEN" && statusButton("IN_PROGRESS", "Start")}
-                {open && statusButton("DONE", "Mark done", "default")}
-                {!open && statusButton("OPEN", "Reopen")}
-                {role.canEdit && open && (
-                  <ActionForm action={taskStatusAction.bind(null, t.id, "CANCELLED")} submitLabel="Cancel task" successMessage="Cancelled." variant="ghost" confirm="Cancel this task? The assignee is told." inline />
-                )}
-              </div>
-            )}
-          </Section>
-          <Section title={`Comments (${comments.length})`}>
-            {comments.length === 0 ? <p className="text-sm text-muted-foreground">No comments yet.</p> : (
-              <ul className="space-y-3">
-                {comments.map((c) => (
-                  <li key={c.id} className="flex gap-3 rounded-lg border p-3 text-sm">
-                    <PersonAvatar name={c.author} url={c.avatarUrl} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">{c.author}</span> · {when(c.created_at)}</p>
-                      <p className="mt-1 whitespace-pre-wrap break-words">{c.body}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <ActionForm action={commentTaskAction.bind(null, t.id)} submitLabel="Comment" resetOnSuccess className="mt-4 space-y-3">
-              <Field name="body" label="Add a comment" type="textarea" rows={2} required />
-            </ActionForm>
-          </Section>
-        </div>
-        {role.canEdit && (
-          <Section title="Edit">
-            <ActionForm action={editTaskAction.bind(null, t.id)}>
-              <Field name="title" label="Task" defaultValue={t.title} required />
-              <Field name="details" label="Details" type="textarea" rows={4} defaultValue={t.details} />
-              <Field name="dueAt" label="Due (Dhaka time)" type="datetime-local" defaultValue={local(t.due_at)} />
-              <Field name="priority" label="Priority" type="select" defaultValue={t.priority} options={[{ value: "LOW", label: "Low" }, { value: "NORMAL", label: "Normal" }, { value: "HIGH", label: "High" }]} />
-              <PersonPicker name="assigneeUserId" label="Give to someone else (optional)" valueKind="user" withAccount />
-            </ActionForm>
-          </Section>
+      <PageHeader back={{ href: "/dashboard/tasks", label: "Tasks" }} title={t.title} />
+      <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+        <span className="inline-flex items-center gap-2"><PersonAvatar name={t.assignee_name} url={t.assignee_avatar} size="sm" />For <span className="font-medium text-foreground">{t.assignee_name ?? "—"}</span>{t.assignee_user_id ? "" : " (no account yet)"}</span>
+        <span className="inline-flex items-center gap-2"><PersonAvatar name={t.creator_name} url={t.creator_avatar} size="sm" />Given by <span className="font-medium text-foreground">{t.creator_name ?? "someone"}</span> · {dhakaDateTime(t.created_at)}</span>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        {/* On phones the edit form comes first, above the long comment thread. */}
+        {data.role.canEdit && (
+          <div className="order-first lg:order-last">
+            <Section title="Edit">
+              <ActionForm action={editTaskAction.bind(null, t.id)}>
+                <input type="hidden" name="expectedUpdatedAt" value={t.updated_at} />
+                <Field name="title" label="Task" defaultValue={t.title} required />
+                <Field name="details" label="Details" type="textarea" rows={4} defaultValue={t.details} />
+                <Field name="dueAt" label="Due (Dhaka time)" type="datetime-local" defaultValue={local(t.due_at)} />
+                <Field name="priority" label="Priority" type="select" defaultValue={t.priority} options={[{ value: "LOW", label: "Low" }, { value: "NORMAL", label: "Normal" }, { value: "HIGH", label: "High" }]} />
+                <Field name="labels" label="Labels" defaultValue={t.labels.join(", ")} hint="Separate with commas; up to 6." />
+                <PersonPicker name="assigneeUserId" label="Give to someone else (optional)" valueKind="user" withAccount />
+              </ActionForm>
+            </Section>
+          </div>
         )}
+        <TaskDetailView initial={data} meId={session.user.id} />
       </div>
     </>
   );

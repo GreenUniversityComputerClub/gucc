@@ -43,7 +43,7 @@ test("a leader gives a task and schedules a meeting; the member sees both and re
   await sched.getByLabel("Title").fill(`Planning meeting ${run}`);
   const start = new Date(Date.now() + 2 * 86400_000 + 6 * 3600_000).toISOString().slice(0, 16);
   await sched.getByLabel("Starts (Dhaka time)").fill(start);
-  await sched.getByLabel("Google Meet link (optional)").fill("meet.google.com/abc-defg-hij");
+  await sched.getByLabel("Meeting link (optional)").fill("meet.google.com/abc-defg-hij");
   const who = sched.getByLabel("Participants");
   await who.fill("Mina");
   await sched.getByRole("button", { name: new RegExp(MEMBER.name) }).click();
@@ -62,8 +62,8 @@ test("a leader gives a task and schedules a meeting; the member sees both and re
   await expect(page.locator("#admin-main").getByText("done", { exact: true }).first()).toBeVisible();
   await page.goto("/dashboard/meetings");
   await page.getByRole("link", { name: `Planning meeting ${run}`, exact: true }).click();
-  await page.getByRole("button", { name: "Going", exact: true }).click();
-  await expect(page.locator("#admin-main").getByText("Your reply: Going", { exact: true }).first()).toBeVisible();
+  await page.getByRole("group", { name: "Your reply" }).getByRole("button", { name: "Going", exact: true }).click();
+  await expect(page.getByRole("group", { name: "Your reply" }).getByRole("button", { name: "Going", exact: true })).toHaveAttribute("aria-pressed", "true");
   // Members can't see the leaders' tools.
   await page.goto("/dashboard/health");
   await expect(page).toHaveURL(/\/dashboard\/denied/);

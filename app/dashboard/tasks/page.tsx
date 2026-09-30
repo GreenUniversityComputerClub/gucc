@@ -1,70 +1,53 @@
 import Link from "next/link";
+import { AlertTriangle, CalendarDays, CalendarRange, Inbox, Send, Users } from "lucide-react";
 import { requireSignedIn, view } from "@/lib/api/session";
-import type { listTasks } from "@/lib/server/services/work";
-import { EmptyState, PageHeader, Section, StatusBadge } from "@/components/admin/ui";
-import { PersonAvatar } from "@/components/person-avatar";
+import { PageHeader, Section } from "@/components/admin/ui";
 import { cn } from "@/lib/utils";
 import { NewTaskForm } from "./new-task-form";
+import { TasksView } from "./tasks-view";
+import type { TaskList } from "./live-actions";
 
-type SP = Promise<{ view?: string; status?: string }>;
-const due = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+type SP = Promise<{ view?: string; status?: string; page?: string }>;
+
+const VIEWS = [
+  { key: "mine", label: "My tasks", icon: Inbox },
+  { key: "overdue", label: "Overdue", icon: AlertTriangle },
+  { key: "today", label: "Due today", icon: CalendarDays },
+  { key: "week", label: "This week", icon: CalendarRange },
+  { key: "created", label: "Given by me", icon: Send, need: "assign" },
+  { key: "all", label: "Everyone", icon: Users, need: "manage" },
+] as const;
 
 export default async function TasksPage({ searchParams }: { searchParams: SP }) {
-  await requireSignedIn("/dashboard/tasks");
+  const session = await requireSignedIn("/dashboard/tasks");
   const sp = await searchParams;
-  const data = await view<Awaited<ReturnType<typeof listTasks>>>("tasks.list", { view: sp.view, status: sp.status }, "/dashboard/tasks");
+  const data = await view<TaskList>("tasks.list", { view: sp.view, status: sp.status, page: Number(sp.page) || 1 }, "/dashboard/tasks");
+  const smart = data.view === "overdue" || data.view === "today" || data.view === "week";
   const q = (patch: Record<string, string>) => `/dashboard/tasks?${new URLSearchParams({ view: data.view, status: data.status, ...patch })}`;
-  const tab = (href: string, on: boolean, label: string) => (
-    <Link href={href} aria-current={on ? "page" : undefined} className={cn("rounded-md px-3 py-1.5 text-sm", on ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted/60")}>{label}</Link>
-  );
-  const now = new Date().toISOString();
   return (
     <>
-      <PageHeader title="Tasks" description="Work given to you, and work you've given others." />
-      <Section title="List" actions={
-        <div className="flex flex-wrap gap-3">
-          <nav className="flex gap-1" aria-label="Whose tasks">
-            {tab(q({ view: "mine" }), data.view === "mine", "For me")}
-            {data.canAssign && tab(q({ view: "created" }), data.view === "created", "Given by me")}
-            {data.canManage && tab(q({ view: "all" }), data.view === "all", "Everyone")}
-          </nav>
-          <nav className="flex gap-1" aria-label="Status">
-            {tab(q({ status: "open" }), data.status === "open", "Open")}
-            {tab(q({ status: "done" }), data.status === "done", "Finished")}
-            {tab(q({ status: "all" }), data.status === "all", "All")}
-          </nav>
-        </div>
-      }>
-        {data.rows.length === 0 ? <EmptyState>{data.view === "mine" ? "No tasks for you right now." : "No tasks here."}</EmptyState> : (
-          <ul className="divide-y">
-            {data.rows.map((t) => {
-              const late = t.due_at && t.due_at < now && (t.status === "OPEN" || t.status === "IN_PROGRESS");
-              return (
-                <li key={t.id} className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 py-3">
-                  {data.view === "mine"
-                    ? <PersonAvatar name={t.creator_name} url={t.creator_avatar} className="mt-0.5" />
-                    : <PersonAvatar name={t.assignee_name} url={t.assignee_avatar} className="mt-0.5" />}
-                  <div className="min-w-0 flex-1">
-                    <Link href={`/dashboard/tasks/${t.id}`} className="font-medium hover:underline">{t.title}</Link>
-                    <p className="text-xs text-muted-foreground">
-                      {data.view === "mine" ? `From ${t.creator_name ?? "someone"}` : `For ${t.assignee_name ?? "—"}${t.assignee_user_id ? "" : " (no account yet)"}`}
-                      {t.comments > 0 && ` · ${t.comments} comment${t.comments === 1 ? "" : "s"}`}
-                      {t.priority === "HIGH" && " · High priority"}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2 text-xs">
-                    {t.due_at && <span className={late ? "font-medium text-destructive" : "text-muted-foreground"}>{late ? "Overdue · " : "Due "}{due(t.due_at)}</span>}
-                    <StatusBadge status={t.status} />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+      <PageHeader title="Tasks" description="Work given to you, and work you've given others. Move cards on the board, tick off checklists, and changes show up for everyone at once." />
+      <nav className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0" aria-label="Which tasks">
+        {VIEWS.filter((v) => !("need" in v) || (v.need === "assign" ? data.canAssign : data.canManage)).map((v) => (
+          <Link key={v.key} prefetch={false} href={q({ view: v.key, status: "open" })} aria-current={data.view === v.key ? "page" : undefined}
+            className={cn("inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm transition-colors", data.view === v.key ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted")}>
+            <v.icon className="h-4 w-4" aria-hidden />{v.label}
+          </Link>
+        ))}
+      </nav>
+      <Section title={VIEWS.find((v) => v.key === data.view)?.label ?? "Tasks"} actions={smart ? null : (
+        <nav className="flex gap-1" aria-label="Status">
+          {([["open", "Open"], ["done", "Finished"], ["all", "All"]] as const).map(([k, label]) => (
+            <Link key={k} prefetch={false} href={q({ status: k })} aria-current={data.status === k ? "page" : undefined}
+              className={cn("inline-flex min-h-9 items-center rounded-md px-3 text-sm", data.status === k ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted/60")}>{label}</Link>
+          ))}
+        </nav>
+      )}>
+        <TasksView initial={data} meId={session.user.id} />
       </Section>
       {data.canAssign && (
-        <Section title="Give a task" className="mt-6 scroll-mt-20" id="give">
-          <NewTaskForm emailEnabled={data.emailEnabled} />
+        <Section title="Give a task" className="mt-6 scroll-mt-20" id="give" description="For a member, or for someone without an account yet (by email). Add a checklist to break it into steps.">
+          <NewTaskForm emailEnabled={data.emailEnabled} templates={data.templates} />
         </Section>
       )}
     </>

@@ -1,51 +1,50 @@
+import { CalendarDays, Link2, MapPin } from "lucide-react";
 import { requireSignedIn, view } from "@/lib/api/session";
-import type { meetingDetail } from "@/lib/server/services/work";
-import { ActionForm, Field, PageHeader, Section, StatusBadge } from "@/components/admin/ui";
+import { ActionForm, Field, PageHeader, Section } from "@/components/admin/ui";
 import { PersonAvatar } from "@/components/person-avatar";
 import { MeetingFields } from "../meeting-fields";
-import { cancelMeetingAction, meetingNotesAction, respondMeetingAction, updateMeetingAction } from "../actions";
+import { cancelMeetingAction, meetingNotesAction, updateMeetingAction, type MeetingDetail } from "../actions";
+import { MeetingLive } from "./meeting-live";
 
 const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const time = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { timeZone: "Asia/Dhaka", hour: "2-digit", minute: "2-digit" });
 const RESPONSE: Record<string, string> = { YES: "Going", NO: "Not going", MAYBE: "Maybe", INVITED: "Not replied" };
 
 export default async function MeetingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await requireSignedIn(`/dashboard/meetings/${id}`);
-  const { meeting: m, participants, role } = await view<Awaited<ReturnType<typeof meetingDetail>>>("meetings.get", { id }, `/dashboard/meetings/${id}`);
-  const scheduled = m.status === "SCHEDULED";
-  const upcoming = scheduled && (m.ends_at ?? m.starts_at) > new Date().toISOString();
+  const data = await view<MeetingDetail>("meetings.get", { id }, `/dashboard/meetings/${id}`);
+  const { meeting: m, participants, role } = data;
+  const editable = m.status === "SCHEDULED" && !m.over;
   const others = participants.filter((p) => p.user_id !== m.created_by);
+  const link = m.meet_url ?? m.join_url;
   return (
     <>
-      <PageHeader back={{ href: "/dashboard/meetings", label: "Meetings" }} title={m.title} description={`Organised by ${m.organizer}`} />
-      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+      <PageHeader back={{ href: "/dashboard/meetings", label: "Meetings" }} title={m.title} description={`Organised by ${m.organizer}${m.series_id ? " · part of a weekly series" : ""}`} />
+      <div className="mb-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        <span className="inline-flex items-center gap-2"><CalendarDays className="h-4 w-4 text-muted-foreground" aria-hidden />{when(m.starts_at)}{m.ends_at ? ` – ${time(m.ends_at)}` : ""}</span>
+        {m.location && <span className="inline-flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" aria-hidden />{m.location}</span>}
+        {link && <a href={link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 underline"><Link2 className="h-4 w-4 text-muted-foreground" aria-hidden />{link.replace(/^https:\/\//, "").slice(0, 60)}</a>}
+      </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-6">
-          <Section title="When and where">
-            <div className="space-y-2 text-sm">
-              <p className="flex flex-wrap items-center gap-2"><StatusBadge status={m.status} /> {when(m.starts_at)}{m.ends_at ? ` – ${new Date(m.ends_at).toLocaleTimeString("en-GB", { timeZone: "Asia/Dhaka", hour: "2-digit", minute: "2-digit" })}` : ""}</p>
-              {m.location && <p>Place: {m.location}</p>}
-              {m.meet_url && <p>Google Meet: <a href={m.meet_url} target="_blank" rel="noopener noreferrer" className="underline">{m.meet_url.replace("https://", "")}</a></p>}
-            </div>
-            {upcoming && role.participant && m.created_by !== session.user.id && (
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-                <span className="text-muted-foreground">Your reply: {RESPONSE[m.my_response ?? "INVITED"]}</span>
-                {(["YES", "MAYBE", "NO"] as const).filter((r) => r !== m.my_response).map((r) => (
-                  <ActionForm key={r} action={respondMeetingAction.bind(null, m.id, r)} submitLabel={RESPONSE[r]} successMessage="Reply saved." variant="outline" inline />
-                ))}
+          <MeetingLive initial={data} meId={session.user.id} />
+          <Section title="Minutes and decisions">
+            {role.canEdit ? (
+              <ActionForm action={meetingNotesAction.bind(null, m.id)} submitLabel="Save">
+                <Field name="notes" label="Minutes" type="textarea" rows={8} defaultValue={m.notes} />
+                <Field name="decisions" label="Decisions (one per line)" type="textarea" rows={3} defaultValue={m.decisions.join("\n")} />
+              </ActionForm>
+            ) : (
+              <div className="space-y-3 text-sm">
+                <p className="whitespace-pre-wrap">{m.notes || <span className="text-muted-foreground">No minutes yet.</span>}</p>
+                {m.decisions.length > 0 && (
+                  <div><h3 className="mb-1 font-medium">Decisions</h3><ul className="list-disc space-y-1 pl-5">{m.decisions.map((x, i) => <li key={i}>{x}</li>)}</ul></div>
+                )}
               </div>
             )}
           </Section>
-          <Section title="Agenda">
-            <p className="whitespace-pre-wrap text-sm">{m.agenda || <span className="text-muted-foreground">No agenda yet.</span>}</p>
-          </Section>
-          <Section title="Notes">
-            {role.canEdit ? (
-              <ActionForm action={meetingNotesAction.bind(null, m.id)} submitLabel="Save notes">
-                <Field name="notes" label="Notes and decisions" type="textarea" rows={8} defaultValue={m.notes} />
-              </ActionForm>
-            ) : <p className="whitespace-pre-wrap text-sm">{m.notes || <span className="text-muted-foreground">No notes yet.</span>}</p>}
-          </Section>
-          {role.canEdit && scheduled && (
+          {role.canEdit && editable && (
             <Section title="Change the meeting" description="Participants are told about a new time, place or link, and newly invited people get an invitation.">
               <ActionForm action={updateMeetingAction.bind(null, m.id)}>
                 <MeetingFields m={m} participants={others.map((p) => ({ userId: p.user_id, name: p.name ?? "Member" }))} />
@@ -60,12 +59,12 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
                 <li key={p.user_id} className="flex items-center justify-between gap-2">
                   <PersonAvatar name={p.name} url={p.avatarUrl} size="xs" />
                   <span className="min-w-0 flex-1 truncate">{p.name}{p.user_id === m.created_by ? " (organiser)" : ""}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">{p.user_id === m.created_by ? "" : RESPONSE[p.response]}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{p.attended ? "Came" : p.user_id === m.created_by ? "" : RESPONSE[p.response]}</span>
                 </li>
               ))}
             </ul>
           </Section>
-          {role.canEdit && scheduled && (
+          {role.canEdit && editable && (
             <Section title="Cancel">
               <ActionForm action={cancelMeetingAction.bind(null, m.id)} submitLabel="Cancel meeting" variant="destructive" confirm="Cancel this meeting? Participants are told.">
                 <Field name="reason" label="Reason (optional)" />
