@@ -9,6 +9,7 @@ import { assertNotSelf } from "../../governance/invariants";
 import { auditStmt } from "../audit";
 import { authorize, requireActor, requirePermission, userResource } from "../authz";
 import { siteUrl, type Ctx } from "../context";
+import { emit } from "../live";
 import { newId, nowIso } from "../db";
 import { AppError, NotFoundError } from "../errors";
 import { notifyStmts, usersWithPermission } from "../notifications";
@@ -176,6 +177,8 @@ export async function suspendUser(ctx: Ctx, userId: string, reason: string): Pro
     ctx.db.stmt("UPDATE sessions SET revoked_at = ?2 WHERE user_id = ?1 AND revoked_at IS NULL", userId, now),
     auditStmt(ctx, { action: "user.suspend", resourceType: "user", resourceId: userId, reason, before: { status: target.status }, after: { status: "SUSPENDED" }, decision }),
   ], () => alreadyDone(ctx, "users", userId, "This account"));
+  // Their open tabs close now instead of at the next half-hourly renewal.
+  emit(ctx, [userId], { t: "bye" });
 }
 
 export async function reactivateUser(ctx: Ctx, userId: string): Promise<void> {

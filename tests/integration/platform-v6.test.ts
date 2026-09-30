@@ -205,7 +205,7 @@ describe("messages show photos and stay correct", () => {
   it("message settings come back as saved", async () => {
     const { a } = await chatPair();
     await setMessagePrivacy(await w.ctx(a), { privacy: "EXECUTIVES", readReceipts: false });
-    expect((await chatHome(await w.ctx(a))).settings).toEqual({ privacy: "EXECUTIVES", readReceipts: false });
+    expect((await chatHome(await w.ctx(a))).settings).toEqual({ privacy: "EXECUTIVES", readReceipts: false, showActive: true });
   });
 });
 

@@ -2,11 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { rpc, runAction } from "@/lib/api/session";
-import type { chatHome, myConversations, thread } from "@/lib/server/services/messaging";
+import type { chatDirectory, chatHome, myConversations, thread } from "@/lib/server/services/messaging";
+import type { ReactionKey } from "@/lib/chat/reactions";
 
 export type Thread = Awaited<ReturnType<typeof thread>>;
 export type Conversations = Awaited<ReturnType<typeof myConversations>>;
 export type ChatHome = Awaited<ReturnType<typeof chatHome>>;
+export type Directory = Awaited<ReturnType<typeof chatDirectory>>;
 
 type Plain<T = undefined> = { ok: true; data: T; message?: string } | { ok: false; error: string; code?: string };
 
@@ -39,8 +41,56 @@ export async function loadConversationsAction(archived = false): Promise<Plain<C
 }
 
 /** Send; `clientId` makes a double send or a retry store the message once. */
-export async function sendChatAction(conversationId: string, body: string, clientId: string) {
-  return runAction<{ id: string; at: string }>("chat.send", { conversationId, body, clientId });
+export async function sendChatAction(conversationId: string, body: string, clientId: string, replyTo?: string | null) {
+  return runAction<{ id: string; at: string }>("chat.send", { conversationId, body, clientId, replyTo: replyTo ?? undefined });
+}
+
+/** Read up to the newest message (after messages arrived live while the conversation was open). */
+export async function markReadAction(conversationId: string): Promise<boolean> {
+  const r = await rpc("chat.read", { conversationId });
+  return r.ok;
+}
+
+/** Everyone I can start a conversation with (with their club badge), for the picker. */
+export async function directoryAction(): Promise<Plain<Directory>> {
+  const r = await rpc<Directory>("chat.directory", {});
+  return r.ok ? { ok: true, data: r.data } : { ok: false, error: r.error, code: r.code };
+}
+
+/** Set, change or (null) remove my reaction. */
+export async function reactAction(id: string, emoji: ReactionKey | null) {
+  return runAction<{ emoji: ReactionKey | null }>("chat.react", { id, emoji });
+}
+
+export async function startDirectAction(userId: string, body: string, context?: { type: string; id: string } | null): Promise<Plain<{ conversationId: string }>> {
+  const r = await runAction<{ conversationId: string }>("chat.start", { userId, body, contextType: context?.type, contextId: context?.id });
+  return r.ok ? { ok: true, data: r.data! } : { ok: false, error: r.error, code: r.code };
+}
+
+export async function createGroupAction(input: { name: string; description?: string; memberIds: string[]; photoMediaId?: string | null }): Promise<Plain<{ conversationId: string }>> {
+  const r = await runAction<{ conversationId: string }>("chat.groupCreate", input);
+  return r.ok ? { ok: true, data: r.data! } : { ok: false, error: r.error, code: r.code };
+}
+
+export async function updateGroupAction(conversationId: string, input: { name?: string; description?: string; photoMediaId?: string | null }) {
+  return runAction("chat.groupUpdate", { conversationId, ...input }, { message: "Group updated." });
+}
+
+export async function addGroupMembersAction(conversationId: string, memberIds: string[]) {
+  const r = await runAction<{ added: number }>("chat.groupAdd", { conversationId, memberIds });
+  return r.ok ? { ...r, message: `Added ${r.data?.added ?? 0} ${r.data?.added === 1 ? "person" : "people"}.` } : r;
+}
+
+export async function removeGroupMemberAction(conversationId: string, userId: string) {
+  return runAction("chat.groupRemove", { conversationId, userId }, { message: "Removed from the group." });
+}
+
+export async function leaveGroupAction(conversationId: string) {
+  return runAction("chat.groupLeave", { conversationId }, { message: "You left the group." });
+}
+
+export async function deleteGroupAction(conversationId: string) {
+  return runAction("chat.groupDelete", { conversationId }, { message: "Group deleted." });
 }
 
 export async function editChatAction(id: string, body: string) {
@@ -83,7 +133,7 @@ export async function blockAction(userId: string, block: boolean) {
 }
 
 export async function chatPrivacyAction(fd: FormData) {
-  return runAction("chat.privacy", { privacy: String(fd.get("privacy") ?? ""), readReceipts: fd.get("readReceipts") === "on" }, { message: "Message settings saved." });
+  return runAction("chat.privacy", { privacy: String(fd.get("privacy") ?? ""), readReceipts: fd.get("readReceipts") === "on", showActive: fd.get("showActive") === "on" }, { message: "Message settings saved." });
 }
 
 export async function resolveReportAction(id: string, outcome: "DISMISSED" | "ACTIONED", remove: boolean, fd: FormData) {

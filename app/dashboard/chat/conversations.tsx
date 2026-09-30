@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { BellOff, Ban, Search } from "lucide-react";
+import { BellOff, Ban, Search, Users } from "lucide-react";
 import { PersonAvatar } from "@/components/person-avatar";
+import { BadgePill } from "@/components/chat/badge-pill";
+import { useLive } from "@/lib/api/live-client";
 import { useLiveCounts } from "@/lib/api/live-counts";
+import { usePresence, useWatch } from "@/lib/api/presence";
 import { dhakaDay, dhakaTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { loadConversationsAction, type Conversations } from "./actions";
@@ -17,89 +20,161 @@ const short = (iso: string | null) => {
   return new Date(iso).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short" });
 };
 
+const TYPING_MS = 6000;
+type Filter = "all" | "unread" | "groups";
+
 /**
- * The conversation list (left pane on large screens, the whole page on phones): photo, name,
- * last message and time, unread and muted state. Search and an "Unread" filter work instantly;
- * the list refreshes by itself when a new message arrives in another conversation.
+ * The conversation list (left pane on large screens, the whole page on phones): photo (with a
+ * green dot for people active now), name and club badge, the last message ("typing…" while
+ * someone writes), time, unread and muted state. New messages move a conversation to the top the
+ * moment they arrive; search and the filters work instantly, without asking the server.
  */
-export function ConversationList({ items: initial, selected, meId, archived }: { items: Conversations; selected?: string; meId: string; archived?: boolean }) {
+export function ConversationList({ items: initial, selected, meId, archived, watch, header }: {
+  items: Conversations;
+  selected?: string;
+  meId: string;
+  archived?: boolean;
+  watch?: string | null;
+  header?: React.ReactNode;
+}) {
   const [items, setItems] = useState(initial);
   const [q, setQ] = useState("");
-  const [onlyUnread, setOnlyUnread] = useState(false);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [typing, setTyping] = useState<Record<string, number>>({});
+  const online = usePresence();
+  useWatch(watch);
   useEffect(() => setItems(initial), [initial]);
 
-  // A change in the unread-conversations badge means a message arrived somewhere: reload the list.
+  // Changes we can't apply in place (a new conversation, a rename, a read elsewhere): reload the list, once.
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const reload = useCallback(() => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      loadConversationsAction(Boolean(archived)).then((r) => r.ok && setItems(r.data), () => undefined);
+    }, 600);
+  }, [archived]);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  useLive("msg", (ev) => {
+    const m = ev.m as { id: string; sender: string; senderName: string; body: string; at: string; kind: string };
+    setItems((list) => {
+      const i = list.findIndex((c) => c.id === ev.c);
+      if (i < 0 || archived) {
+        reload();
+        return list;
+      }
+      const c = list[i]!;
+      // An older event arriving late (a replay) never replaces a newer preview.
+      if (c.last_message_at && m.at < c.last_message_at) return list;
+      const next = {
+        ...c, last_message_at: m.at, last_body: m.body, last_sender: m.sender, last_sender_name: m.senderName, last_kind: m.kind, last_deleted: null,
+        unread: m.sender !== meId && ev.c !== selected ? 1 : c.unread,
+      };
+      return [next, ...list.slice(0, i), ...list.slice(i + 1)];
+    });
+    setTyping((t) => (t[ev.c] ? { ...t, [ev.c]: 0 } : t));
+  });
+  useLive("typing", (ev) => {
+    if (ev.u === meId) return;
+    setTyping((t) => ({ ...t, [ev.c]: Date.now() + TYPING_MS }));
+    window.setTimeout(() => setTyping((t) => (t[ev.c] && t[ev.c]! <= Date.now() ? { ...t, [ev.c]: 0 } : t)), TYPING_MS + 50);
+  });
+  useLive("conv", reload);
+  useLive("sync", reload);
+  useLive("resync", reload);
+  useLive("del", reload);
+  // Without a live connection: a change in the unread badge means a message arrived somewhere.
   const counts = useLiveCounts();
   const lastUnread = useRef<number | null>(null);
   useEffect(() => {
     if (!counts) return;
-    if (lastUnread.current !== null && lastUnread.current !== counts.unreadMessages) {
-      loadConversationsAction(Boolean(archived)).then((r) => r.ok && setItems(r.data), () => undefined);
-    }
+    if (lastUnread.current !== null && lastUnread.current !== counts.unreadMessages) reload();
     lastUnread.current = counts.unreadMessages;
-  }, [counts, archived]);
+  }, [counts, reload]);
+
+  // The open conversation is read.
+  useEffect(() => {
+    if (selected) setItems((list) => list.map((c) => (c.id === selected && c.unread ? { ...c, unread: 0 } : c)));
+  }, [selected]);
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return items.filter((c) => (!onlyUnread || c.unread) && (!needle || c.other_name.toLowerCase().includes(needle) || (c.last_body ?? "").toLowerCase().includes(needle)));
-  }, [items, q, onlyUnread]);
+    return items.filter((c) => (filter !== "unread" || c.unread) && (filter !== "groups" || c.isGroup)
+      && (!needle || c.other_name.toLowerCase().includes(needle) || (c.last_body ?? "").toLowerCase().includes(needle) || (c.badge?.label ?? "").toLowerCase().includes(needle)));
+  }, [items, q, filter]);
   const unreadCount = items.filter((c) => c.unread).length;
+  const groups = items.filter((c) => c.isGroup).length;
 
   return (
-    <nav aria-label="Conversations" className="flex min-h-0 flex-col rounded-xl border bg-card">
+    <nav aria-label="Conversations" className="flex h-full min-h-0 flex-col rounded-xl border bg-card">
       <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
-        <h2 className="text-sm font-semibold">{archived ? "Archived" : "Messages"}</h2>
-        <Link prefetch={false} href={archived ? "/dashboard/chat" : "/dashboard/chat?archived=1"} className="inline-flex min-h-10 items-center rounded-md px-2 text-xs text-muted-foreground underline-offset-2 hover:underline">
-          {archived ? "Back to inbox" : "Archived"}
-        </Link>
+        <h2 className="text-sm font-semibold">{archived ? "Archived" : "Chats"}</h2>
+        <div className="flex items-center gap-1">
+          {header}
+          <Link prefetch={false} href={archived ? "/dashboard/chat" : "/dashboard/chat?archived=1"} className="inline-flex min-h-10 items-center rounded-md px-2 text-xs text-muted-foreground underline-offset-2 hover:underline">
+            {archived ? "Back to inbox" : "Archived"}
+          </Link>
+        </div>
       </div>
       {items.length > 0 && (
         <div className="space-y-2 border-b px-3 py-2">
           <label className="relative block">
             <span className="sr-only">Search conversations</span>
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people or messages" className="h-10 w-full rounded-md border bg-background pl-8 pr-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people, groups or messages" type="search" enterKeyHint="search"
+              className="h-10 w-full rounded-full border bg-background pl-8 pr-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm" />
           </label>
           {!archived && (
             <div className="flex gap-1.5" role="group" aria-label="Show">
-              {[[false, "All"], [true, `Unread${unreadCount ? ` (${unreadCount})` : ""}`]].map(([v, label]) => (
-                <button key={String(v)} type="button" aria-pressed={onlyUnread === v} onClick={() => setOnlyUnread(v as boolean)}
-                  className={cn("min-h-9 rounded-full border px-3 text-xs", onlyUnread === v ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted")}>{label as string}</button>
+              {([["all", "All"], ["unread", `Unread${unreadCount ? ` (${unreadCount})` : ""}`], ...(groups ? [["groups", `Groups (${groups})`]] : [])] as Array<[Filter, string]>).map(([v, label]) => (
+                <button key={v} type="button" aria-pressed={filter === v} onClick={() => setFilter(v)}
+                  className={cn("min-h-9 rounded-full border px-3 text-xs transition-colors", filter === v ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted")}>{label}</button>
               ))}
             </div>
           )}
         </div>
       )}
       {items.length === 0 ? (
-        <p className="p-4 text-sm text-muted-foreground">{archived ? "Nothing archived." : "No conversations yet. Start one with “New message”."}</p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground">
+          <Users className="h-8 w-8 opacity-40" aria-hidden />
+          <p>{archived ? "Nothing archived." : "No conversations yet. Start one with “New”."}</p>
+        </div>
       ) : shown.length === 0 ? (
         <p className="p-4 text-sm text-muted-foreground">No conversation matches.</p>
       ) : (
-        <ul className="divide-y overflow-y-auto overscroll-contain">
-          {shown.map((c) => (
-            <li key={c.id}>
-              <Link prefetch={false} href={`/dashboard/chat/${c.id}`} aria-current={selected === c.id ? "page" : undefined}
-                className={cn("flex items-center gap-3 px-3 py-3 hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none", selected === c.id && "bg-primary/10")}>
-                <PersonAvatar name={c.other_name} url={c.avatarUrl} size="md" />
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-baseline justify-between gap-2">
-                    <span className={cn("flex min-w-0 items-center gap-1 truncate text-sm", c.unread ? "font-semibold" : "font-medium")}>
-                      <span className="truncate">{c.other_name}</span>
-                      {c.muted ? <BellOff className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="muted" /> : null}
-                      {c.blocked ? <Ban className="h-3.5 w-3.5 shrink-0 text-destructive" aria-label="blocked" /> : null}
+        <ul className="flex-1 divide-y overflow-y-auto overscroll-contain">
+          {shown.map((c) => {
+            const isTyping = (typing[c.id] ?? 0) > Date.now();
+            const preview = isTyping ? "typing…"
+              : c.last_kind === "SYSTEM" ? c.last_body ?? ""
+                : `${c.last_sender === meId ? "You: " : c.isGroup && c.last_sender_name ? `${c.last_sender_name.split(" ")[0]}: ` : ""}${c.last_deleted ? "Message deleted" : c.last_body ?? ""}`;
+            return (
+              <li key={c.id}>
+                <Link prefetch={false} href={`/dashboard/chat/${c.id}`} aria-current={selected === c.id ? "page" : undefined}
+                  className={cn("flex items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none", selected === c.id && "bg-primary/10")}>
+                  <PersonAvatar name={c.other_name} url={c.avatarUrl} size="md" group={c.isGroup} online={c.isGroup ? undefined : online(c.other_id)} />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className={cn("flex min-w-0 items-center gap-1.5 text-sm", c.unread ? "font-semibold" : "font-medium")}>
+                        <span className="truncate">{c.other_name}</span>
+                        {!c.isGroup && c.badge && c.badge.tier !== "member" && <BadgePill badge={c.badge} className="hidden sm:inline-flex" />}
+                        {c.isGroup && <span className="shrink-0 text-[11px] font-normal text-muted-foreground">· {c.memberCount}</span>}
+                        {c.muted ? <BellOff className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="muted" /> : null}
+                        {c.blocked ? <Ban className="h-3.5 w-3.5 shrink-0 text-destructive" aria-label="blocked" /> : null}
+                      </span>
+                      <time dateTime={c.last_message_at ?? undefined} className={cn("shrink-0 text-[11px]", c.unread ? "font-semibold text-primary" : "text-muted-foreground")}>{short(c.last_message_at)}</time>
                     </span>
-                    <time dateTime={c.last_message_at ?? undefined} className="shrink-0 text-[11px] text-muted-foreground">{short(c.last_message_at)}</time>
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className={cn("block min-w-0 flex-1 truncate text-xs", c.unread ? "text-foreground" : "text-muted-foreground")}>
-                      {c.last_sender === meId ? "You: " : ""}{c.last_deleted ? "Message deleted" : c.last_body ?? ""}
+                    <span className="flex items-center gap-2">
+                      <span className={cn("block min-w-0 flex-1 truncate text-xs", isTyping ? "italic text-primary" : c.unread ? "text-foreground" : "text-muted-foreground", c.last_kind === "SYSTEM" && !isTyping && "italic")}>
+                        {preview}
+                      </span>
+                      {c.unread ? <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary" role="img" aria-label="unread" /> : null}
                     </span>
-                    {c.unread ? <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary" role="img" aria-label="unread" /> : null}
                   </span>
-                </span>
-              </Link>
-            </li>
-          ))}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </nav>

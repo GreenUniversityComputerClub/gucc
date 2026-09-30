@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
+import { MessagesSquare } from "lucide-react";
 import { requireSignedIn, view } from "@/lib/api/session";
 import { ActionForm, Field, Section } from "@/components/admin/ui";
-import { PersonPicker } from "@/components/admin/person-picker";
-import { PersonAvatar } from "@/components/person-avatar";
 import { dhakaDateTime } from "@/lib/time";
-import { ConversationList } from "./conversations";
 import { BlockedList } from "./blocked-list";
-import { chatPrivacyAction, startChatAction, type ChatHome } from "./actions";
+import { ChatShell, StartButtons } from "./chat-shell";
+import { chatPrivacyAction, type ChatHome } from "./actions";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Messages", robots: { index: false, follow: false } };
@@ -17,41 +16,35 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
   const archived = sp.archived === "1";
   const home = await view<ChatHome>("chat.home", { archived, to: sp.to }, "/dashboard/chat");
   const canSend = Boolean(session.caps["chat.send"]) && session.user.status === "ACTIVE" && !home.restrictedUntil;
+  const context = sp.contextType === "lost_found_post" && sp.contextId ? { type: sp.contextType, id: sp.contextId } : null;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
-      <ConversationList items={home.conversations} meId={session.user.id} archived={archived} />
+    <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="min-h-[60dvh] lg:h-[calc(100dvh-8rem)]">
+        <ChatShell home={home} meId={session.user.id} archived={archived} startOpen={canSend && Boolean(home.to)} context={context} />
+      </div>
       <div className="space-y-4">
         {home.restrictedUntil && (
           <p role="status" className="rounded-xl border border-amber-400/60 bg-amber-500/5 p-3 text-sm">
             A moderator paused your messaging until {dhakaDateTime(home.restrictedUntil)} after a report. You can still read your messages.
           </p>
         )}
-        {canSend ? (
-          <Section title="New message" description="Write to any approved member who accepts messages. Be kind: messages can be reported to the moderators.">
-            <ActionForm action={startChatAction} submitLabel="Send">
-              {sp.to && <input type="hidden" name="userId" value={sp.to} />}
-              {sp.contextType && <input type="hidden" name="contextType" value={sp.contextType} />}
-              {sp.contextId && <input type="hidden" name="contextId" value={sp.contextId} />}
-              {!sp.to && <PersonPicker name="userId" label="To" valueKind="user" withAccount required source="recipients" placeholder="Search members by name" />}
-              {sp.to && (
-                <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-3 text-sm">
-                  <PersonAvatar name={home.to?.name ?? "Member"} url={home.to?.avatarUrl} size="md" />
-                  <p className="min-w-0"><span className="text-muted-foreground">To </span><span className="font-medium">{home.to?.name ?? "the member you chose"}</span>
-                    {sp.contextType === "lost_found_post" && <span className="block text-xs text-muted-foreground">About their lost & found post</span>}</p>
-                </div>
-              )}
-              <Field name="body" label="Message" type="textarea" rows={3} required />
-            </ActionForm>
-          </Section>
-        ) : !home.restrictedUntil ? (
-          <Section title="Messages"><p className="text-sm text-muted-foreground">Messaging opens once your membership is approved.</p></Section>
-        ) : null}
-        <Section title="Message settings" description="Who can start a conversation with you, and whether you share read receipts.">
+        <section className="hidden flex-col items-center justify-center gap-4 rounded-xl border bg-card px-6 py-12 text-center lg:flex">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary"><MessagesSquare className="h-8 w-8" aria-hidden /></span>
+          <div>
+            <h2 className="text-lg font-semibold">Your messages</h2>
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+              {canSend ? "Choose a conversation, or start one with any approved member. Groups keep a team in one place." : "Messaging opens once your membership is approved."}
+            </p>
+          </div>
+          {canSend && <StartButtons canCreateGroups={home.canCreateGroups} />}
+        </section>
+        <Section title="Message settings" description="Who can start a conversation with you, and what you share with the people you talk to.">
           <ActionForm action={chatPrivacyAction} submitLabel="Save settings" successMessage="Message settings saved.">
             <Field name="privacy" label="Who can message me" type="select" defaultValue={home.settings.privacy}
               options={[{ value: "EVERYONE", label: "Any approved member" }, { value: "EXECUTIVES", label: "Club executives only" }, { value: "NOBODY", label: "No one (existing conversations stay)" }]} />
             <Field name="readReceipts" label="Show when I've read messages (and see when others have)" type="checkbox" defaultValue={home.settings.readReceipts} />
+            <Field name="showActive" label="Show when I'm active (and see when others are)" type="checkbox" defaultValue={home.settings.showActive} />
           </ActionForm>
         </Section>
         <Section title="Blocked people" description="Blocked people can't message you or find you, and they aren't told.">
