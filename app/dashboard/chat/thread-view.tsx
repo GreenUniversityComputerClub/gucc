@@ -9,6 +9,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { PersonAvatar } from "@/components/person-avatar";
 import { BadgePill } from "@/components/chat/badge-pill";
+import { useSession } from "@/lib/api/use-session";
+import { ReactionsDialog } from "./reactions-dialog";
 import { sendLive, setLiveRoom, useLive, useLiveStatus } from "@/lib/api/live-client";
 import { activeLabel, usePresence, useWatch } from "@/lib/api/presence";
 import type { ReactionKey } from "@/lib/chat/reactions";
@@ -238,6 +240,17 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
 
   const messages = useMemo(() => merge(older, t.messages), [older, t.messages]);
 
+  // Who reacted to a message (the panel reads the message from the conversation, so it stays live).
+  const [reactionsOf, setReactionsOf] = useState<string | null>(null);
+  const showReactions = useCallback((m: Message) => setReactionsOf(m.id), []);
+  const session = useSession();
+  const reactionPerson = useCallback((id: string) => {
+    const g = group?.members.find((x) => x.id === id);
+    if (g) return { name: g.name, avatarUrl: g.avatarUrl, badge: g.badge };
+    if (other && id === other.id) return { name: other.name, avatarUrl: other.avatarUrl, badge: other.badge };
+    if (id === me) return { name: "You", avatarUrl: session?.avatarUrl ?? null, badge: null };
+    return { name: "Former member", avatarUrl: null, badge: null };
+  }, [group, other, me, session?.avatarUrl]);
   // Each group member's badge and role, looked up once (stable, so message rows don't re-render).
   const memberInfo = useMemo(() => new Map((group?.members ?? []).map((x) => [x.id, { badge: x.badge, role: x.role }] as const)), [group]);
   const names = useCallback((id: string) => group?.members.find((x) => x.id === id)?.name ?? (id === other?.id ? other.name : "Someone"), [group, other]);
@@ -415,6 +428,9 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
   return (
     <div className="relative flex h-[calc(100dvh-9.5rem)] min-h-88 flex-col overflow-hidden rounded-xl border bg-card lg:h-[calc(100dvh-8rem)]">
       {confirmDialog}
+      <ReactionsDialog reactions={reactionsOf ? messages.find((m) => m.id === reactionsOf)?.reactions ?? null : null} me={me} person={reactionPerson}
+        onClose={() => setReactionsOf(null)}
+        onRemoveMine={() => { const m = messages.find((x) => x.id === reactionsOf); if (m) void react(m, null); }} />
       <ReportDialog messageId={reporting} personName={messages.find((m) => m.id === reporting)?.sender?.name ?? other?.name ?? "This person"} open={Boolean(reporting)} onOpenChange={(o) => !o && setReporting(null)}
         onDone={({ message }) => { say(message); void refresh().catch(() => undefined); }} />
       {group && <GroupSettings conversationId={conversationId} group={group} me={me} open={settings} onOpenChange={setSettings} onChanged={() => void refresh().catch(() => undefined)} say={say} />}
@@ -524,7 +540,7 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
                 canAct={Boolean(composerOpen)} reacting={reacting === m.id} editing={editing?.id ?? null} highlight={highlight === m.id}
                 onReacting={setReacting} onReact={react} onReply={startReply} onEdit={(x) => setEditing({ id: x.id, body: x.body ?? "" })}
                 onEditChange={(v) => setEditing((e) => (e ? { ...e, body: v } : e))} onEditSave={saveEdit} onEditCancel={() => setEditing(null)}
-                onDelete={removeMessage} onReport={(x) => setReporting(x.id)} onCopy={copy} onJump={jump} />
+                onDelete={removeMessage} onReport={(x) => setReporting(x.id)} onCopy={copy} onJump={jump} onShowReactions={showReactions} />
             </Fragment>
           );
         })}

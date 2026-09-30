@@ -30,7 +30,7 @@ const MEMBER_COLUMNS = `
   p.linkedin_url, p.github_url, p.twitter_url, p.facebook_url,
   p.avatar_position_x AS p_avatar_x, p.avatar_position_y AS p_avatar_y, p.avatar_scale AS p_avatar_scale,
   (m.id IS NOT NULL AND m.id IS p.avatar_media_id) AS avatar_is_profile,
-  CASE WHEN p.visibility = 'PUBLIC' THEN p.slug END AS public_handle,
+  CASE WHEN p.visibility = 'PUBLIC' THEN p.slug END AS public_handle, (p.user_id IS NOT NULL) AS has_account,
   m.storage AS avatar_storage, m.object_key AS avatar_object_key, m.legacy_path AS avatar_legacy_path, m.external_url AS avatar_external_url,
   cut.storage AS cutout_storage, cut.object_key AS cutout_object_key`;
 

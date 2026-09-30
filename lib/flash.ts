@@ -23,6 +23,15 @@ export function takeFlash(): string | null {
   }
 }
 
+/** Show a message now, without a reload (the page's FlashMessage listens). */
+export function showFlash(message: string) {
+  try {
+    window.dispatchEvent(new CustomEvent("gucc:flash", { detail: message }));
+  } catch {
+    /* no window: nothing to show */
+  }
+}
+
 /** Reload the current page (fresh server render) and show a message afterwards. */
 export function reloadWith(message?: string, url?: string) {
   if (message) setFlash(message);

@@ -231,11 +231,17 @@ code:not(pre code) {
   width: 100%;
 }
 
+/* Pictures in an article fit the column (never wider), keep their shape, aren't blown up when
+   small, and a very tall one stops at the screen's height. */
 .prose img,
 .substack-article img {
   display: block;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   height: auto;
+  max-height: min(85vh, 60rem);
+  object-fit: contain;
+  margin-inline: auto;
   border-radius: 0.75rem;
   border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);

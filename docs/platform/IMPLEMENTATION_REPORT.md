@@ -153,6 +153,36 @@ the blog stylesheet loads only where articles are shown; SEO and layout audit sc
 - _Fixed._ Group members' photos never showed in the member list (a photo nested in the member
   list's JSON was dropped); the group's message box no longer wraps its placeholder on phones.
 
+**Messages, events and blog, part 5 (2026-09-30).**
+
+- _Group admins, properly._ Production had migration 0011 applied with the role CHECK
+  (OWNER, MEMBER), so "Make admin" was refused there. 0011 is back exactly as applied; admins are
+  a flag in the new `0014_group_admins.sql` (`conversation_members.is_admin`); the owner stays
+  role OWNER. Release the API (0014 plus the Worker) for group admins to work in production.
+- _Who reacted._ Under a message: one pill with the top reactions and the count; tapping it lists
+  who reacted (tabs per reaction, photos and badges) and removes your own.
+- _Notifications follow reading._ Reading a conversation (opening it, or a message arriving while
+  it's open) marks its notices read in the same batch, so the bell's count drops at once.
+- _Phone menu._ Reopening the dashboard menu shows the list where you left it, with the current
+  page in view.
+- _No reload after saving._ Forms show the message at once and update the page in place
+  (`lib/soft-refresh.ts`); a full reload happens only if the in-place update hasn't finished in 8 s.
+- _Profile links everywhere._ A member's own links (GitHub, X, LinkedIn…) show on the current
+  committee, their executive page and, when they have an account, on past years too.
+- _Former executives follow their profile._ When a past executive changes their name, links or
+  public email (or an administrator corrects them, faculty designation included), every year
+  they're listed in follows in the same save (`profileEditedStmt` in `lib/server/people-sync.ts`);
+  a removed link disappears from past years too. The post held that year never changes; a save
+  that changes nothing leaves the listings alone, so a name chosen for one listing in the admin
+  stays until the person's name itself changes. The photo already followed the profile.
+- _Events and blog writing._ The event form is in steps (Basics, Date and place, Banner, About,
+  Guests, Registration, More); the description has the Markdown editor with a preview and keeps
+  line breaks; the blog form has the writing on the left and its settings beside it. Both keep
+  their Save button in view. Event pages render the formatted description (safely).
+- _Pictures that fit._ Covers and banners of any size are shown whole in a fixed frame (a blur of
+  the picture fills the rest); images inside articles fit the column and stop at the screen's
+  height.
+
 ## Round 7 (2026-09-29): one source for people, messages that work, member submissions, profiles
 
 Everything below is in the working tree and **not released**. Schema and data changes are in

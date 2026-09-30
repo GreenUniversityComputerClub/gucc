@@ -112,6 +112,8 @@ export interface MemberRow {
   avatar_legacy_path: string | null;
   avatar_external_url: string | null;
   cutout_storage?: string | null;
+  /** The person has an account (and so keeps their own links). */
+  has_account?: number | null;
   cutout_object_key?: string | null;
   /** The member page address, only when its owner made it public. */
   public_handle?: string | null;
@@ -125,9 +127,11 @@ export interface CommitteeLayout {
 const LINK_FIELDS = ["linkedin", "github", "twitter", "facebook", "mail"] as const;
 
 /**
- * Links and email as that term listed them. Past committees keep what their imported
- * listing recorded (the original page showed each year's own links); the current
- * committee, and listings created in the admin, follow the live profile.
+ * Links and email as that term listed them. Past committees keep what their imported listing
+ * recorded (the original page showed each year's own links), except that a member with an
+ * account shows the links they keep on their profile now (their link wins, field by field), so an
+ * update reaches every year they served. The current committee, and listings created in the
+ * admin, follow the live profile.
  */
 function termLinks(r: MemberRow, historic: boolean): Partial<Record<(typeof LINK_FIELDS)[number], string>> {
   if (historic && r.cm_legacy_json) {
@@ -136,11 +140,15 @@ function termLinks(r: MemberRow, historic: boolean): Partial<Record<(typeof LINK
       const legacy = JSON.parse(r.cm_legacy_json) as Record<string, unknown>;
       const out: Partial<Record<(typeof LINK_FIELDS)[number], string>> = {};
       for (const k of LINK_FIELDS) if (typeof legacy[k] === "string" && legacy[k]) out[k] = legacy[k] as string;
-      return out;
+      return r.has_account ? { ...out, ...profileLinks(r) } : out;
     } catch {
       /* fall through to the profile */
     }
   }
+  return profileLinks(r);
+}
+
+function profileLinks(r: MemberRow): Partial<Record<(typeof LINK_FIELDS)[number], string>> {
   const out: Partial<Record<(typeof LINK_FIELDS)[number], string>> = {};
   if (r.linkedin_url) out.linkedin = r.linkedin_url;
   if (r.github_url) out.github = r.github_url;

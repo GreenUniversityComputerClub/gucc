@@ -64,13 +64,14 @@ export default async function EventDetail({ params }: { params: Promise<{ id: st
       </Section>
 
       {cap.edit ? (
-        <Section title="Details" className="mt-6">
-          <ActionForm action={updateEventAction.bind(null, id)} submitLabel={saveLabel} confirm={saveWarning}>
+        <section className="mt-8" aria-labelledby="details-h">
+          <h2 id="details-h" className="mb-3 text-lg font-semibold">Details</h2>
+          <ActionForm action={updateEventAction.bind(null, id)} submitLabel={saveLabel} confirm={saveWarning} sticky>
             {/* Optimistic locking: refused if someone else saved after this page loaded. */}
             <input type="hidden" name="expectedUpdatedAt" value={String(e.updated_at ?? "")} />
             <EventFields e={e} bannerUrl={bannerUrl} categories={cats.ok ? cats.data : []} />
           </ActionForm>
-        </Section>
+        </section>
       ) : (
         <p className="mt-6 text-sm text-muted-foreground">You can view this event but not edit it.</p>
       )}

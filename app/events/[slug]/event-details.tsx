@@ -9,7 +9,9 @@ import { GalleryLightbox } from "@/components/gallery-lightbox";
 import { googleCalendarUrl } from "@/lib/ics";
 import { absoluteUrl } from "@/lib/seo/site";
 import { cn } from "@/lib/utils";
-import { Linkified } from "@/app/dashboard/chat/linkify";
+import { renderMarkdown } from "@/lib/markdown";
+// Article typography (headings, lists, quotes) shared with the blog.
+import "@/app/blog/[slug]/blog.css";
 import { RegistrationGate } from "./registration";
 import { countdown, eventPhase, type EventPhase } from "../event-status";
 
@@ -151,7 +153,8 @@ export function EventDetails({ event, fields, gallery = [], people = [], attachm
             {description && (
               <section aria-labelledby="about-h">
                 <h2 id="about-h" className="mb-3 text-2xl font-bold">About the event</h2>
-                <div className="whitespace-pre-line text-base leading-relaxed text-muted-foreground wrap-break-word"><Linkified text={description} /></div>
+                {/* Formatting written in the dashboard (headings, lists, links); every line break kept. Safe HTML only. */}
+                <div className="prose max-w-none wrap-break-word [&_:first-child]:mt-0! [&_h2]:mt-8! [&_h2]:text-2xl! [&_h3]:mt-6! [&_h3]:text-xl!"><div className="markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(description, { breaks: true }) }} /></div>
               </section>
             )}
 

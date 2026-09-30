@@ -14,7 +14,7 @@ export default async function NewPost({ searchParams }: { searchParams: Promise<
   return (
     <>
       <PageHeader title={`New ${type === "BLOG" ? "blog post" : type.toLowerCase()}`} description={session.adminAccess ? "Saved as a draft. Publishing may need approval depending on your position and the governance rules." : "Saved as a draft only you can see. When it's ready, send it for review: a club reviewer approves it or tells you what to change."} />
-      <ActionForm action={createPostAction} submitLabel="Create draft" redirectTo="/dashboard/posts/{id}">
+      <ActionForm action={createPostAction} submitLabel="Create draft" redirectTo="/dashboard/posts/{id}" sticky>
         <PostFields type={type} categories={cats.ok ? cats.data : []} />
       </ActionForm>
     </>

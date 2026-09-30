@@ -15,8 +15,11 @@ export function FlashMessage() {
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     const m = takeFlash();
-    if (!m) return;
-    setMessage(m);
+    if (m) setMessage(m);
+    // Messages from saves that update the page in place (no reload).
+    const on = (e: Event) => { setCopied(false); setMessage(String((e as CustomEvent<string>).detail)); };
+    window.addEventListener("gucc:flash", on);
+    return () => window.removeEventListener("gucc:flash", on);
   }, []);
   // Long enough to read (about a third of a second per word, at least 6 s); paused while pointed at or focused.
   const [hold, setHold] = useState(false);

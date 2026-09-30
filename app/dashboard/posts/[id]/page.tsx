@@ -55,14 +55,15 @@ export default async function PostDetail({ params }: { params: Promise<{ id: str
       </Section>
 
       {cap.edit ? (
-        <Section title="Content" className="mt-6">
-          <ActionForm action={updatePostAction.bind(null, id)} submitLabel={saveLabel}
+        <section className="mt-8" aria-labelledby="content-h">
+          <h2 id="content-h" className="mb-3 text-lg font-semibold">Content</h2>
+          <ActionForm action={updatePostAction.bind(null, id)} submitLabel={saveLabel} sticky
             confirm={p.status === "PENDING_APPROVAL" ? "Saving takes it out of the approval queue (reviewers mustn't approve old text). Send it for approval again afterwards. Save now?" : undefined}>
             {/* Optimistic locking: refused if someone else saved after this page loaded. */}
             <input type="hidden" name="expectedUpdatedAt" value={String(p.updated_at ?? "")} />
             <PostFields p={p as unknown as Record<string, unknown>} type={p.type} coverUrl={coverUrl} categories={cats.ok ? cats.data : []} />
           </ActionForm>
-        </Section>
+        </section>
       ) : (
         <p className="mt-6 text-sm text-muted-foreground">You can read this post but not edit it.</p>
       )}

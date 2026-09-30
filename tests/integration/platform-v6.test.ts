@@ -123,23 +123,26 @@ describe("people data has one source", () => {
     expect(row("SELECT public_email FROM profiles WHERE user_id = ?", exec).public_email).toBe("new@x.bd");
   });
 
-  it("archiving a committee freezes who held which post; the photo keeps following the person", async () => {
+  it("archiving a committee freezes who held which post; the person's own profile (name, links, photo) keeps following them", async () => {
     const pres = await w.user({ email: "pres@x.bd", name: "Leader", roles: ["member"], positions: ["president"] });
     const exec = await w.user({ email: "e@x.bd", name: "Tanvir", roles: ["member"], positions: ["executive-member"] });
     w.sqlite.prepare("UPDATE profiles SET avatar_media_id = ?, github_url = 'https://github.com/tanvir' WHERE user_id = ?").run(photo("med_term", exec), exec);
 
     await createCommittee(await w.ctx(pres), { name: "GUCC 2027", slug: "2027", termLabel: "2027", status: "CURRENT" });
-    const frozen = row("SELECT avatar_media_id, display_name, legacy_json FROM committee_members WHERE committee_id = ? AND profile_id = (SELECT id FROM profiles WHERE user_id = ?)", w.committeeId, exec);
+    const frozen = row("SELECT avatar_media_id, display_name, legacy_json, position_title FROM committee_members WHERE committee_id = ? AND profile_id = (SELECT id FROM profiles WHERE user_id = ?)", w.committeeId, exec);
     // No photo copy: the photo stays the profile's.
     expect(frozen).toMatchObject({ avatar_media_id: null, display_name: "Tanvir" });
     expect(JSON.parse(String(frozen.legacy_json))).toMatchObject({ github: "https://github.com/tanvir" });
 
     await updateOwnProfile(await w.ctx(exec), { fullName: "Tanvir Hasan", github: "https://github.com/other" });
     await setOwnAvatar(await w.ctx(exec), photo("med_later", exec));
-    const past = roster(w.committeeId)["Tanvir"]!;
-    // The name and links of that term stay; the photo is the person's newest.
-    expect(past.github).toBe("https://github.com/tanvir");
-    expect(past.avatarUrl).toContain("med_later");
+    // The post held that term stays; the person keeps their own profile: name, links and photo
+    // are their newest in every year they served.
+    const renamed = roster(w.committeeId)["Tanvir Hasan"]!;
+    expect(roster(w.committeeId)["Tanvir"]).toBeUndefined();
+    expect(renamed.position).toBe(frozen.position_title);
+    expect(renamed.github).toBe("https://github.com/other");
+    expect(renamed.avatarUrl).toContain("med_later");
   });
 
   it("renaming a position renames live listings that used the old name, not chosen titles or history", async () => {

@@ -309,17 +309,30 @@ export async function sendInThread(ctx: Ctx, conversationId: string, rawBody: un
  * doesn't fetch the thread again). One statement, a write only when something was unread; the
  * others see "Seen" when both share read receipts.
  */
+/**
+ * Reading a conversation also reads its notices ("New message from …", "… added you to …"): the
+ * bell's count follows what you've actually seen, also for messages that arrive while it's open.
+ * One indexed statement (the user's unread notices, by link).
+ */
+export const readConversationNoticesStmt = (ctx: Ctx, userId: string, conversationId: string, at: string) =>
+  ctx.db.stmt("UPDATE notifications SET read_at = ?3 WHERE user_id = ?1 AND read_at IS NULL AND link = ?2 RETURNING id", userId, `/dashboard/chat/${conversationId}`, at);
+
 export async function markConversationRead(ctx: Ctx, conversationId: string): Promise<{ at: string | null }> {
   const actor = requireActor(ctx);
   const now = nowIso();
-  const row = await ctx.db.first<{ receipts: number; others: string }>(
-    `UPDATE conversation_members SET last_read_at = ?3 WHERE conversation_id = ?1 AND user_id = ?2 AND left_at IS NULL
-       AND (last_read_at IS NULL OR last_read_at < (SELECT last_message_at FROM conversations WHERE id = ?1))
-     RETURNING (SELECT read_receipts FROM users WHERE id = ?2) AS receipts,
-               (SELECT json_group_array(o.user_id) FROM conversation_members o WHERE o.conversation_id = ?1 AND o.user_id <> ?2 AND o.left_at IS NULL) AS others`,
-    conversationId, actor.user.id, now);
+  const [read, notices] = (await ctx.db.batchAll([
+    ctx.db.stmt(
+      `UPDATE conversation_members SET last_read_at = ?3 WHERE conversation_id = ?1 AND user_id = ?2 AND left_at IS NULL
+         AND (last_read_at IS NULL OR last_read_at < (SELECT last_message_at FROM conversations WHERE id = ?1))
+       RETURNING (SELECT read_receipts FROM users WHERE id = ?2) AS receipts,
+                 (SELECT json_group_array(o.user_id) FROM conversation_members o WHERE o.conversation_id = ?1 AND o.user_id <> ?2 AND o.left_at IS NULL) AS others`,
+      conversationId, actor.user.id, now),
+    readConversationNoticesStmt(ctx, actor.user.id, conversationId, now),
+  ])) as [{ results?: Array<{ receipts: number; others: string }> }, { results?: unknown[] }];
+  const row = read.results?.[0];
+  // My other tabs and devices: the badges follow.
+  if (row || notices.results?.length) emit(ctx, [actor.user.id], { t: "sync" });
   if (!row) return { at: null };
-  emit(ctx, [actor.user.id], { t: "sync" });
   if (row.receipts) emit(ctx, JSON.parse(row.others) as string[], { t: "read", c: conversationId, u: actor.user.id, at: now });
   return { at: now };
 }
@@ -475,7 +488,7 @@ export async function thread(ctx: Ctx, conversationId: string, opts: { before?: 
             (SELECT x.user_id FROM conversation_members x WHERE x.conversation_id = c.id AND x.role = 'OWNER' AND x.left_at IS NULL) AS group_owner,
             CASE WHEN g.conversation_id IS NOT NULL THEN (
               SELECT json_group_array(json_object('id', gu.id, 'name', ${personName("gu", "gp")}, 'handle', CASE WHEN gu.deleted_at IS NULL THEN COALESCE(gp.slug, gp.id) END,
-                       'avatar', ${avatarOfUserSql("gu.id")}, 'role', gcm.role, 'read', CASE WHEN gu.read_receipts = 1 AND mu.read_receipts = 1 THEN gcm.last_read_at END,
+                       'avatar', ${avatarOfUserSql("gu.id")}, 'role', CASE WHEN gcm.role = 'OWNER' THEN 'OWNER' WHEN gcm.is_admin = 1 THEN 'ADMIN' ELSE 'MEMBER' END, 'read', CASE WHEN gu.read_receipts = 1 AND mu.read_receipts = 1 THEN gcm.last_read_at END,
                        'active', ${lastActiveSql("gu", "mu.show_active_status")},
                        'pos', ${positionOfUserSql("gu.id")}, 'mod', ${moderatorOfUserSql("gu.id")}, 'type', gp.person_type))
               FROM conversation_members gcm JOIN users gu ON gu.id = gcm.user_id LEFT JOIN profiles gp ON gp.user_id = gu.id AND gp.deleted_at IS NULL
@@ -513,9 +526,13 @@ export async function thread(ctx: Ctx, conversationId: string, opts: { before?: 
   let readNow: string | null = null;
   if (!before && !info.left_at && info.last_message_at && info.last_message_at > (info.my_read ?? "")) {
     readNow = nowIso();
-    await ctx.db.run(
-      `UPDATE conversation_members SET last_read_at = ?3 WHERE conversation_id = ?1 AND user_id = ?2
-         AND (last_read_at IS NULL OR last_read_at < (SELECT last_message_at FROM conversations WHERE id = ?1))`, conversationId, me, readNow);
+    await ctx.db.batch([
+      ctx.db.stmt(
+        `UPDATE conversation_members SET last_read_at = ?3 WHERE conversation_id = ?1 AND user_id = ?2
+           AND (last_read_at IS NULL OR last_read_at < (SELECT last_message_at FROM conversations WHERE id = ?1))`, conversationId, me, readNow),
+      // Its notices too, so the bell's count drops at once.
+      readConversationNoticesStmt(ctx, me, conversationId, readNow),
+    ]);
   }
   const members: GroupMember[] = isGroup
     ? (JSON.parse(info.members ?? "[]") as Array<{ id: string; name: string; handle: string | null; avatar: string | null; role: "OWNER" | "ADMIN" | "MEMBER"; read: string | null; active: string | null; pos: string | null; mod: number; type: string | null }>)

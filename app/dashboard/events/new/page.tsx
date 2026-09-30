@@ -14,7 +14,7 @@ export default async function NewEvent() {
         description={session.adminAccess
           ? "Saved as a draft. On the next page you can add speakers, guests and photos, then publish; depending on your position and the rules it goes live or waits for approval."
           : "Saved as a draft only you can see. On the next page add the details and a cover photo, then send it for review. Nothing is public, and nobody can register, until a club reviewer approves it."} />
-      <ActionForm action={createEventAction} submitLabel="Create draft" redirectTo="/dashboard/events/{id}">
+      <ActionForm action={createEventAction} submitLabel="Create draft" redirectTo="/dashboard/events/{id}" sticky>
         <EventFields categories={cats.ok ? cats.data : []} />
       </ActionForm>
     </>

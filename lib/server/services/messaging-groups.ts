@@ -97,6 +97,9 @@ export async function createGroup(ctx: Ctx, input: { name?: unknown; description
 
 export type GroupRole = "OWNER" | "ADMIN" | "MEMBER";
 
+/** A member's role from its two columns: role (OWNER, MEMBER) and is_admin (migration 0014). */
+export const groupRoleSql = (alias: string) => `CASE WHEN ${alias}.role = 'OWNER' THEN 'OWNER' WHEN ${alias}.is_admin = 1 THEN 'ADMIN' ELSE 'MEMBER' END`;
+
 interface GroupAccess {
   name: string;
   owner: string | null;
@@ -114,8 +117,8 @@ interface GroupAccess {
 async function groupAccess(ctx: Ctx, conversationId: string, manage: boolean): Promise<GroupAccess> {
   const actor = requireActor(ctx);
   const g = await ctx.db.first<{ name: string; role: GroupRole; members: string }>(
-    `SELECT g.name, me.role,
-            (SELECT json_group_object(x.user_id, x.role) FROM conversation_members x WHERE x.conversation_id = g.conversation_id AND x.left_at IS NULL) AS members
+    `SELECT g.name, ${groupRoleSql("me")} AS role,
+            (SELECT json_group_object(x.user_id, ${groupRoleSql("x")}) FROM conversation_members x WHERE x.conversation_id = g.conversation_id AND x.left_at IS NULL) AS members
      FROM chat_groups g JOIN conversation_members me ON me.conversation_id = g.conversation_id AND me.user_id = ?2 AND me.left_at IS NULL
      WHERE g.conversation_id = ?1 AND g.deleted_at IS NULL`, conversationId, actor.user.id);
   if (!g) throw new NotFoundError("Group");
@@ -154,7 +157,7 @@ export async function setGroupRole(ctx: Ctx, conversationId: string, userId: str
   const now = nowIso();
   const sys = systemMessageStatements(ctx, conversationId, text, now);
   await ctx.db.batch([
-    ctx.db.stmt("UPDATE conversation_members SET role = ?3 WHERE conversation_id = ?1 AND user_id = ?2 AND left_at IS NULL AND role <> 'OWNER'", conversationId, userId, role),
+    ctx.db.stmt("UPDATE conversation_members SET is_admin = ?3 WHERE conversation_id = ?1 AND user_id = ?2 AND left_at IS NULL AND role <> 'OWNER'", conversationId, userId, role === "ADMIN" ? 1 : 0),
     ...sys.stmts,
     auditStmt(ctx, { action: "chat.group.role", resourceType: "conversation", resourceId: conversationId, after: { userId, role } }),
   ]);
@@ -173,8 +176,8 @@ export async function transferGroup(ctx: Ctx, conversationId: string, userId: st
   const now = nowIso();
   const sys = systemMessageStatements(ctx, conversationId, `${actor.profile?.full_name ?? "A member"} made ${who} the group's owner.`, now);
   await ctx.db.batch([
-    ctx.db.stmt("UPDATE conversation_members SET role = 'ADMIN' WHERE conversation_id = ?1 AND role = 'OWNER' AND left_at IS NULL", conversationId),
-    ctx.db.stmt("UPDATE conversation_members SET role = 'OWNER' WHERE conversation_id = ?1 AND user_id = ?2 AND left_at IS NULL", conversationId, userId),
+    ctx.db.stmt("UPDATE conversation_members SET role = 'MEMBER', is_admin = 1 WHERE conversation_id = ?1 AND role = 'OWNER' AND left_at IS NULL", conversationId),
+    ctx.db.stmt("UPDATE conversation_members SET role = 'OWNER', is_admin = 0 WHERE conversation_id = ?1 AND user_id = ?2 AND left_at IS NULL", conversationId, userId),
     ...sys.stmts,
     auditStmt(ctx, { action: "chat.group.transfer", resourceType: "conversation", resourceId: conversationId, before: { owner: g.owner }, after: { owner: userId } }),
   ]);
@@ -227,7 +230,7 @@ export async function addGroupMembers(ctx: Ctx, conversationId: string, rawIds: 
     // People who were in the group before come back (their old messages are still theirs).
     ctx.db.stmt(`INSERT INTO conversation_members (conversation_id, user_id, role, joined_at, added_by, last_read_at)
                  SELECT ?1, value, 'MEMBER', ?2, ?3, NULL FROM json_each(?4) WHERE 1
-                 ON CONFLICT(conversation_id, user_id) DO UPDATE SET left_at = NULL, archived_at = NULL, role = 'MEMBER', joined_at = excluded.joined_at, added_by = excluded.added_by`,
+                 ON CONFLICT(conversation_id, user_id) DO UPDATE SET left_at = NULL, archived_at = NULL, role = 'MEMBER', is_admin = 0, joined_at = excluded.joined_at, added_by = excluded.added_by`,
       conversationId, now, actor.user.id, JSON.stringify(people.map((p) => p.id))),
     ...sys.stmts,
     ...notifyStmts(ctx, people.map((p) => p.id), { type: "message.received", title: `${me} added you to “${g.name}”`, link: `/dashboard/chat/${conversationId}`, resourceType: "conversation", resourceId: conversationId }),
@@ -250,7 +253,7 @@ export async function removeGroupMember(ctx: Ctx, conversationId: string, userId
   const now = nowIso();
   const sys = systemMessageStatements(ctx, conversationId, `${actor.profile?.full_name ?? "A member"} removed ${who}.`, now);
   await ctx.db.batch([
-    ctx.db.stmt("UPDATE conversation_members SET left_at = ?3 WHERE conversation_id = ?1 AND user_id = ?2 AND left_at IS NULL", conversationId, userId, now),
+    ctx.db.stmt("UPDATE conversation_members SET left_at = ?3, is_admin = 0 WHERE conversation_id = ?1 AND user_id = ?2 AND left_at IS NULL", conversationId, userId, now),
     ...sys.stmts,
     auditStmt(ctx, { action: "chat.group.remove", resourceType: "conversation", resourceId: conversationId, after: { removed: userId } }),
   ]);
@@ -266,11 +269,11 @@ export async function leaveGroup(ctx: Ctx, conversationId: string): Promise<void
   const sys = systemMessageStatements(ctx, conversationId, `${actor.profile?.full_name ?? "A member"} left the group.`, now);
   await ctx.db.batch([
     ...sys.stmts,
-    ctx.db.stmt("UPDATE conversation_members SET left_at = ?3, role = 'MEMBER' WHERE conversation_id = ?1 AND user_id = ?2", conversationId, actor.user.id, now),
+    ctx.db.stmt("UPDATE conversation_members SET left_at = ?3, role = 'MEMBER', is_admin = 0 WHERE conversation_id = ?1 AND user_id = ?2", conversationId, actor.user.id, now),
     ...(g.owner === actor.user.id && !last
-      ? [ctx.db.stmt(`UPDATE conversation_members SET role = 'OWNER' WHERE conversation_id = ?1 AND user_id = (
+      ? [ctx.db.stmt(`UPDATE conversation_members SET role = 'OWNER', is_admin = 0 WHERE conversation_id = ?1 AND user_id = (
                         SELECT user_id FROM conversation_members WHERE conversation_id = ?1 AND left_at IS NULL AND user_id <> ?2
-                        ORDER BY role = 'ADMIN' DESC, COALESCE(joined_at, ''), user_id LIMIT 1)`,
+                        ORDER BY is_admin DESC, COALESCE(joined_at, ''), user_id LIMIT 1)`,
           conversationId, actor.user.id)]
       : []),
     ...(last ? [ctx.db.stmt("UPDATE chat_groups SET deleted_at = ?2 WHERE conversation_id = ?1", conversationId, now)] : []),

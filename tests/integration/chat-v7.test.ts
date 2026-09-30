@@ -7,7 +7,7 @@ import type { Ctx } from "@/lib/server/context";
 import type { LiveItem } from "@/lib/server/live";
 import { verifyPass, type RoomPass } from "@/lib/server/live";
 import {
-  chatDirectory, chatHome, deleteMessage, myConversations, reactToMessage, sendInThread, sendToPerson, setBlock, setConversationState, setMessagePrivacy, thread,
+  chatDirectory, chatHome, deleteMessage, markConversationRead, myConversations, reactToMessage, sendInThread, sendToPerson, setBlock, setConversationState, setMessagePrivacy, thread,
 } from "@/lib/server/services/messaging";
 import { addGroupMembers, createGroup, deleteGroup, leaveGroup, removeGroupMember, setGroupRole, transferGroup, updateGroup } from "@/lib/server/services/messaging-groups";
 import { positionShort } from "@/lib/server/person-badge";
@@ -206,7 +206,7 @@ describe("group admins", () => {
   it("the owner makes admins; admins edit and add or remove members, but not other admins or the owner", async () => {
     const { owner, a, b, treasurer } = await people();
     const { conversationId: id } = await createGroup(await w.ctx(owner), { name: "Fair crew", memberIds: [a, b, treasurer] });
-    const role = (u: string) => (w.sqlite.prepare("SELECT role FROM conversation_members WHERE conversation_id = ? AND user_id = ?").get(id, u) as { role: string }).role;
+    const role = (u: string) => (w.sqlite.prepare("SELECT CASE WHEN role = 'OWNER' THEN 'OWNER' WHEN is_admin = 1 THEN 'ADMIN' ELSE 'MEMBER' END AS role FROM conversation_members WHERE conversation_id = ? AND user_id = ?").get(id, u) as { role: string }).role;
     // A plain member can't change anything.
     await expect(updateGroup(await w.ctx(a), id, { name: "Mine" })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await setGroupRole(await w.ctx(owner), id, a, "ADMIN");
@@ -231,7 +231,7 @@ describe("group admins", () => {
   it("the owner hands the group over and stays an admin; when an owner leaves, an admin takes over first", async () => {
     const { owner, a, b } = await people();
     const { conversationId: id } = await createGroup(await w.ctx(owner), { name: "Fair crew", memberIds: [a, b] });
-    const role = (u: string) => (w.sqlite.prepare("SELECT role FROM conversation_members WHERE conversation_id = ? AND user_id = ?").get(id, u) as { role: string }).role;
+    const role = (u: string) => (w.sqlite.prepare("SELECT CASE WHEN role = 'OWNER' THEN 'OWNER' WHEN is_admin = 1 THEN 'ADMIN' ELSE 'MEMBER' END AS role FROM conversation_members WHERE conversation_id = ? AND user_id = ?").get(id, u) as { role: string }).role;
     await expect(transferGroup(await w.ctx(a), id, a)).rejects.toMatchObject({ code: "FORBIDDEN" });
     await transferGroup(await w.ctx(owner), id, a);
     expect([role(owner), role(a)]).toEqual(["ADMIN", "OWNER"]);
@@ -255,4 +255,21 @@ describe("group admins", () => {
     expect(t.group?.members.find((m) => m.id === a)?.avatarUrl).toContain("med_face");
     expect(t.group?.members.find((m) => m.id === b)?.avatarUrl).toBeNull();
   });
+
+  it("reading a conversation reads its notices too, also for a message that arrives while it's open", async () => {
+    const { a, b } = await people();
+    const { conversationId } = await sendToPerson(await w.ctx(a), { userId: b, body: "first" });
+    const unreadNotices = () => (w.sqlite.prepare("SELECT COUNT(*) n FROM notifications WHERE user_id = ? AND read_at IS NULL AND link = ?").get(b, `/dashboard/chat/${conversationId}`) as { n: number }).n;
+    expect(unreadNotices()).toBe(1);
+    // Opening it reads the message and its notice.
+    await thread(await w.ctx(b), conversationId);
+    expect(unreadNotices()).toBe(0);
+    // A new message while it's open: a new notice, cleared when the open page marks it read.
+    await sendInThread(await w.ctx(a), conversationId, "second");
+    expect(unreadNotices()).toBe(1);
+    await markConversationRead(await w.ctx(b), conversationId);
+    expect(unreadNotices()).toBe(0);
+    expect((await sessionCounts(await w.ctx(b))).unread).toBe(0);
+  });
 });
+

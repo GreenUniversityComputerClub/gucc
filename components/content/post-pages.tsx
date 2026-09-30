@@ -8,6 +8,7 @@ import { markdownToReact } from "@/app/blog/[slug]/util";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { JsonLd } from "@/components/seo/json-ld";
 import { articleSchema, breadcrumbSchema, graph } from "@/lib/seo/schema";
+import { FramedImage } from "@/components/framed-image";
 
 type Kind = { type: "NEWS" | "ANNOUNCEMENT"; basePath: string; label: string; description: string };
 
@@ -80,8 +81,7 @@ export async function PostDetail({ kind, slug }: { kind: Kind; slug: string }) {
         {fmt(p.publishedAt)} · {p.author.name}
       </p>
       {p.coverImage && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={p.coverImage} alt="" className="mt-8 w-full rounded-2xl object-cover" loading="eager" />
+        <FramedImage src={p.coverImage} alt="" eager className="mt-8 rounded-2xl border" />
       )}
       <div className="prose prose-slate dark:prose-invert mt-8 max-w-none">{body}</div>
       {!body && p.url && (

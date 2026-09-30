@@ -31,7 +31,7 @@ const hoverButton = "inline-flex h-8 w-8 shrink-0 items-center justify-center ro
  */
 export const MessageRow = memo(function MessageRow({
   m, me, joinsPrev, endsGroup, showSender, avatar, names, senderInfo, canAct, reacting, editing, highlight,
-  onReacting, onReact, onReply, onEdit, onEditChange, onEditSave, onEditCancel, onDelete, onReport, onCopy, onJump,
+  onReacting, onReact, onReply, onEdit, onEditChange, onEditSave, onEditCancel, onDelete, onReport, onCopy, onJump, onShowReactions,
 }: {
   m: Message;
   me: string;
@@ -58,6 +58,8 @@ export const MessageRow = memo(function MessageRow({
   onReport: (m: Message) => void;
   onCopy: (text: string) => void;
   onJump: (id: string) => void;
+  /** Open the list of who reacted. */
+  onShowReactions: (m: Message) => void;
 }) {
   const press = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [burst, setBurst] = useState<ReactionKey | null>(null);
@@ -168,19 +170,16 @@ export const MessageRow = memo(function MessageRow({
         </div>
         {editing === m.id && <EditBox initial={m.body ?? ""} onChange={onEditChange} onSave={onEditSave} onCancel={onEditCancel} />}
         {grouped.length > 0 && (
-          <div className={cn("-mt-1.5 flex flex-wrap gap-1", m.mine ? "mr-2 justify-end" : "ml-2")}>
-            {grouped.map((g) => {
-              const mine = g.users.includes(me);
-              return (
-                <button key={g.e} type="button" disabled={!interactive} onClick={() => toggle(g.e)} title={`${REACTIONS[g.e].label}: ${who(g.users)}`}
-                  aria-label={`${REACTIONS[g.e].label} by ${who(g.users)}${interactive ? (mine ? ". Remove yours" : ". Add yours") : ""}`} aria-pressed={mine}
-                  className={cn("relative z-10 inline-flex h-6 items-center gap-1 rounded-full border bg-background px-1.5 text-xs shadow-sm transition-transform hover:scale-110 disabled:hover:scale-100 motion-safe:animate-in motion-safe:zoom-in-50",
-                    mine && "border-primary/50 bg-primary/10")}>
-                  <span aria-hidden className="text-sm leading-none">{REACTIONS[g.e].emoji}</span>
-                  {g.count > 1 && <span className="tabular-nums text-muted-foreground">{g.count}</span>}
-                </button>
-              );
-            })}
+          // One pill: the most used reactions and how many; tapping it shows who reacted.
+          <div className={cn("-mt-1.5 flex", m.mine ? "mr-2 justify-end" : "ml-2")}>
+            <button type="button" onClick={() => onShowReactions(m)}
+              title={grouped.map((g) => `${REACTIONS[g.e].label}: ${who(g.users)}`).join("\n")}
+              aria-label={`Reactions: ${grouped.map((g) => `${REACTIONS[g.e].label} ${g.count}`).join(", ")}. See who reacted`}
+              className={cn("relative z-10 inline-flex h-6 items-center gap-0.5 rounded-full border bg-background pl-1 pr-1.5 text-xs shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:animate-in motion-safe:zoom-in-50",
+                grouped.some((g) => g.users.includes(me)) && "border-primary/50 bg-primary/10")}>
+              <span aria-hidden className="flex text-sm leading-none">{grouped.slice(0, 3).map((g) => <span key={g.e}>{REACTIONS[g.e].emoji}</span>)}</span>
+              {m.reactions.length > 1 && <span className="ml-0.5 tabular-nums text-muted-foreground">{m.reactions.length}</span>}
+            </button>
           </div>
         )}
       </div>

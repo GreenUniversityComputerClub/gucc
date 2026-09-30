@@ -8,7 +8,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { reloadWith } from "@/lib/flash";
+import { useSoftRefresh } from "@/lib/soft-refresh";
 import { reauthAction } from "@/app/dashboard/reauth-actions";
 import { fieldClass } from "./field-class";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -53,6 +53,7 @@ export function ActionForm({
   inline = false,
   onSuccess,
   submitAriaLabel,
+  sticky = false,
 }: {
   action: ServerAction;
   children?: React.ReactNode;
@@ -69,12 +70,15 @@ export function ActionForm({
   onSuccess?: (data: unknown) => void;
   /** A fuller name for the button when several on a page share a label ("Sign out: Chrome on Android"). */
   submitAriaLabel?: string;
+  /** Long forms: the button (and any error) stays in view at the bottom of the screen while you scroll. */
+  sticky?: boolean;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const lastData = useRef<FormData | null>(null);
   const [state, setState] = useState<Result | null>(null);
   const [pending, startTransition] = useTransition();
   const [ask, askDialog] = useConfirm();
+  const refresh = useSoftRefresh();
   const me = useRef(Symbol("form"));
 
   useEffect(() => {
@@ -82,8 +86,10 @@ export function ActionForm({
     const id = me.current;
     return () => void unsaved.delete(id);
   }, []);
+  const [dirty, setDirty] = useState(false);
   const markDirty = () => {
     if (!unsaved.has(me.current)) unsaved.set(me.current, submitLabel);
+    if (sticky && !dirty) setDirty(true);
   };
 
   // After a refused submit, take the reader to the problem: the first field marked invalid, else the message.
@@ -98,6 +104,7 @@ export function ActionForm({
   useEffect(() => {
     if (!state?.ok) return;
     unsaved.delete(me.current);
+    setDirty(false);
     const data = state.data as { id?: string; message?: string } | undefined;
     const msg = typeof data?.message === "string" ? data.message : state.message ?? successMessage;
     if (onSuccess) {
@@ -105,9 +112,8 @@ export function ActionForm({
       onSuccess(state.data);
     }
     if (resetOnSuccess) formRef.current?.reset();
-    // Reload for a fresh server render: dependable on every device, and admin
-    // pages are rendered per request anyway. The message survives the reload.
-    reloadWith(msg || undefined, redirectTo ? redirectTo.replace("{id}", encodeURIComponent(String(data?.id ?? ""))) : undefined);
+    // A fresh server render in place (no reload); a full reload only if that doesn't finish.
+    refresh(msg || undefined, redirectTo ? redirectTo.replace("{id}", encodeURIComponent(String(data?.id ?? ""))) : undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per result
   }, [state]);
 
@@ -148,7 +154,6 @@ export function ActionForm({
     });
   };
 
-  const message = state?.ok ? (typeof (state.data as { message?: string } | undefined)?.message === "string" ? (state.data as { message: string }).message : successMessage) : null;
 
   return (
     <FieldErrors.Provider value={state && !state.ok ? state.fields ?? {} : {}}>
@@ -162,11 +167,12 @@ export function ActionForm({
         noValidate
       >
         {children}
-        <div className={cn("flex flex-wrap items-center gap-3", inline && "contents")}>
-          <Button type="submit" size={inline ? "sm" : "default"} variant={variant} disabled={pending} aria-label={submitAriaLabel} className="min-h-11 md:min-h-10">
+        <div className={cn("flex flex-wrap items-center gap-3", inline && "contents",
+          sticky && "sticky bottom-0 z-20 -mx-4 border-t bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-6px_16px_-10px_rgb(0_0_0/0.35)] supports-backdrop-filter:bg-background/80 supports-backdrop-filter:backdrop-blur sm:-mx-6 sm:px-6")}>
+          <Button type="submit" size={inline ? "sm" : "default"} variant={variant} disabled={pending} aria-label={submitAriaLabel} className={cn("min-h-11 md:min-h-10", sticky && "px-6")}>
             {pending ? "Working…" : submitLabel}
           </Button>
-          {message && !inline && <span role="status" className="text-sm text-green-600 dark:text-green-400">{message}</span>}
+          {sticky && dirty && !pending && <span className="text-sm text-muted-foreground">Unsaved changes</span>}
         </div>
         {state && !state.ok && state.code !== "REAUTH_REQUIRED" && (
           <div role="alert" tabIndex={-1} data-form-error className={cn("rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive focus:outline-none", inline && "basis-full")}>
@@ -342,6 +348,25 @@ export function StatusBadge({ status, content }: { status: string; content?: boo
   const key = status.replace(/\s+/g, "_").toUpperCase();
   const word = content && key === "REJECTED" ? "changes requested" : STATUS_WORDS[key] ?? status.replace(/_/g, " ").toLowerCase();
   return <span className={cn("inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium", STATUS_COLORS[content && key === "REJECTED" ? "CHANGES_REQUESTED" : key] ?? "bg-muted text-muted-foreground")}>{word}</span>;
+}
+
+/**
+ * One part of a long form: a card with a heading and a line saying what goes in it, so a form
+ * reads in steps (Basics, Date and place, Registration…) instead of one long list.
+ */
+export function FormSection({ title, description, children, className, aside }: { title: string; description?: string; children: React.ReactNode; className?: string; aside?: React.ReactNode }) {
+  return (
+    <section className={cn("min-w-0 rounded-xl border bg-card p-4 sm:p-5", className)}>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold">{title}</h2>
+          {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
+        </div>
+        {aside}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
 }
 
 /** `back` is the list this page belongs to ("Blog posts"), shown above the title on detail pages. */

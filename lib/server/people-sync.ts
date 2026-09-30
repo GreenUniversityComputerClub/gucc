@@ -4,7 +4,9 @@
  *     photo reaches the roster, the executive page and every year the person served at once.
  *   - Name, faculty designation, links: the profile is the truth for the current committee and
  *     the one being prepared. A past committee keeps a snapshot of them, frozen onto its listings
- *     when it stops being current, so the record of who held which post doesn't change.
+ *     when it stops being current, so archiving never changes what a year shows. When the person
+ *     later changes their profile (or an administrator does it for them), the change reaches
+ *     their listings in every year too; the post they held that year never changes.
  */
 import type { Ctx } from "./context";
 import type { D1StatementLike } from "./db";
@@ -39,6 +41,48 @@ export const keepCutoutIfSame = (param: string) => `cutout_media_id = CASE WHEN 
 
 export const keepFramingIfSame = (param: string) =>
   `avatar_position_x = CASE WHEN avatar_media_id IS ${param} THEN avatar_position_x END, avatar_position_y = CASE WHEN avatar_media_id IS ${param} THEN avatar_position_y END, avatar_scale = CASE WHEN avatar_media_id IS ${param} THEN avatar_scale END`;
+
+type ListedDetails = {
+  full_name: string | null;
+  /** Leave undefined when the form doesn't edit it (members can't change their own). */
+  designation?: string | null;
+  linkedin_url: string | null;
+  github_url: string | null;
+  twitter_url: string | null;
+  facebook_url: string | null;
+  public_email: string | null;
+};
+
+/**
+ * A profile's name, faculty designation, links or public email changed: every listing of the
+ * person, past years included, follows, so a former executive's correction shows on each year's
+ * roster. Put it in the batch BEFORE the profile update: it compares with what the profile has
+ * now, so saving without changing anything leaves the listings alone, and a name an administrator
+ * chose for one listing stays until the person's name itself changes.
+ *   - Name and faculty designation: the listing drops its own copy, so the profile's shows.
+ *   - Links and email: that year's recorded link is replaced by the new one, or removed when the
+ *     person removed theirs (a JSON merge patch drops keys set to null).
+ */
+export function profileEditedStmt(ctx: Ctx, profileId: string, next: ListedDetails, now: string): D1StatementLike {
+  const link = (key: string, column: string, param: string) =>
+    `'${key}', CASE WHEN p.${column} IS NOT ${param} THEN ${param} ELSE json_extract(committee_members.legacy_json, '$.${key}') END`;
+  return ctx.db.stmt(
+    `UPDATE committee_members SET
+       display_name = CASE WHEN p.full_name IS NOT ?2 THEN NULL ELSE committee_members.display_name END,
+       designation = CASE WHEN ?3 = 1 AND committee_members.section = 'FACULTY' AND p.designation IS NOT ?4 THEN NULL ELSE committee_members.designation END,
+       legacy_json = CASE WHEN committee_members.legacy_json IS NULL THEN NULL ELSE json_patch(committee_members.legacy_json, json_object(
+         ${link("linkedin", "linkedin_url", "?5")}, ${link("github", "github_url", "?6")}, ${link("twitter", "twitter_url", "?7")},
+         ${link("facebook", "facebook_url", "?8")}, ${link("mail", "public_email", "?9")})) END,
+       updated_at = ?10
+     FROM profiles p
+     WHERE p.id = ?1 AND committee_members.profile_id = ?1 AND committee_members.deleted_at IS NULL
+       AND ((p.full_name IS NOT ?2 AND committee_members.display_name IS NOT NULL)
+         OR (?3 = 1 AND committee_members.section = 'FACULTY' AND p.designation IS NOT ?4 AND committee_members.designation IS NOT NULL)
+         OR (committee_members.legacy_json IS NOT NULL AND (p.linkedin_url IS NOT ?5 OR p.github_url IS NOT ?6 OR p.twitter_url IS NOT ?7 OR p.facebook_url IS NOT ?8 OR p.public_email IS NOT ?9)))`,
+    profileId, next.full_name, next.designation === undefined ? 0 : 1, next.designation ?? null,
+    next.linkedin_url, next.github_url, next.twitter_url, next.facebook_url, next.public_email, now,
+  );
+}
 
 /**
  * Freeze the current committee's listings before it is archived: what they show from the live

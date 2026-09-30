@@ -12,7 +12,7 @@
  * Uses `marked` (small, no WASM) rather than the MDX toolchain, which kept the
  * server Worker over Cloudflare's size limit and can execute JSX.
  */
-import { Marked, type Tokens } from "marked";
+import { Marked, type MarkedExtension, type Tokens } from "marked";
 import { safeLocalPath } from "./safe-path";
 
 import { escapeHtml } from "./html";
@@ -43,8 +43,7 @@ function slug(text: string): string {
     .slice(0, 80);
 }
 
-const md = new Marked({ gfm: true, breaks: false, async: false });
-md.use({
+const safeRenderer: MarkedExtension = {
   renderer: {
     html({ text }: Tokens.HTML | Tokens.Tag) {
       return escapeHtml(text);
@@ -67,8 +66,14 @@ md.use({
       return `<img src="${escapeHtml(url)}" alt="${escapeHtml(text)}"${title ? ` title="${escapeHtml(title)}"` : ""} loading="lazy" decoding="async">`;
     },
   },
-});
+};
 
-export function renderMarkdown(source: string): string {
-  return md.parse(source ?? "") as string;
+const md = new Marked({ gfm: true, breaks: false, async: false });
+md.use(safeRenderer);
+/** Every line break kept (event descriptions, written as plain text for years). */
+const mdBreaks = new Marked({ gfm: true, breaks: true, async: false });
+mdBreaks.use(safeRenderer);
+
+export function renderMarkdown(source: string, opts: { breaks?: boolean } = {}): string {
+  return (opts.breaks ? mdBreaks : md).parse(source ?? "") as string;
 }

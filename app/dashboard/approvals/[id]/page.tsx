@@ -12,6 +12,7 @@ import { PersonAvatar } from "@/components/person-avatar";
 import { ActionForm, Field, PageHeader, Section, StatusBadge } from "@/components/admin/ui";
 import { approveAndTrustAction, cancelApprovalAction, decideAction } from "../../actions";
 import { ChangeReasons } from "./change-reasons";
+import { FramedImage } from "@/components/framed-image";
 
 /** A governance request in plain words. */
 function describeChange(p: Record<string, unknown>): string {
@@ -57,8 +58,7 @@ export default async function ApprovalDetail({ params }: { params: Promise<{ id:
             <Section title="The post, as it will appear" description={preview.publishedBefore ? "This post is already live; these are the changes waiting for approval." : undefined}>
               <article className="overflow-hidden rounded-xl border bg-background">
                 {preview.coverUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={preview.coverUrl} alt="" className="aspect-[2/1] w-full object-cover" />
+                  <FramedImage src={preview.coverUrl} alt="" />
                 )}
                 <div className="space-y-2 p-4 sm:p-6">
                   <p className="flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">{preview.type === "BLOG" ? "Blog" : preview.type === "NEWS" ? "News" : "Announcement"}</span>{preview.category && <span className="rounded-full bg-muted px-2 py-0.5">{preview.category}</span>}</p>
@@ -76,8 +76,7 @@ export default async function ApprovalDetail({ params }: { params: Promise<{ id:
             <Section title="The event, as it will appear">
               <article className="overflow-hidden rounded-xl border bg-background">
                 {preview.bannerUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={preview.bannerUrl} alt="" className="aspect-[2/1] w-full object-cover" />
+                  <FramedImage src={preview.bannerUrl} alt="" />
                 )}
                 <div className="space-y-3 p-4 sm:p-6">
                   {preview.category && <p className="text-xs"><span className="rounded-full bg-muted px-2 py-0.5">{preview.category}</span></p>}

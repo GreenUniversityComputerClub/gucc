@@ -13,7 +13,7 @@ import { checkAuditSeals } from "./audit-seal";
 import { appUsage, fetchCloudflareUsage, FREE_LIMITS } from "./cloudflare-usage";
 
 /** The newest migration in this code. A test keeps it in step with migrations/. */
-export const LATEST_MIGRATION = "0013_profile_cutout_media_indexes.sql";
+export const LATEST_MIGRATION = "0014_group_admins.sql";
 
 export type HealthStatus = "HEALTHY" | "WARNING" | "ERROR" | "UNKNOWN";
 export interface HealthCheck {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -100,6 +100,9 @@ export function AdminNav({ groups: rendered, counts: seed }: { groups: Group[]; 
   );
 }
 
+/** Where the phone menu's list was scrolled to, kept across openings (and page changes). */
+let savedScroll = 0;
+
 /**
  * Phones and tablets: a bar that stays under the site header with the current page and a Menu
  * button. The menu opens every section, grouped, with large touch targets and a quick filter.
@@ -118,6 +121,24 @@ export function AdminNavMobile({ groups: rendered, who, counts: seed }: { groups
 
   // A page change (including Back) closes the menu.
   useEffect(() => close(), [path, close]);
+
+  // Reopening shows the list where you left it; if the page you're on isn't in view there, it
+  // scrolls to it (centred), so the current section is always visible without scrolling again.
+  const listRef = useRef<HTMLElement | null>(null);
+  const setList = useCallback((el: HTMLElement | null) => {
+    if (listRef.current && !el) savedScroll = listRef.current.scrollTop;
+    listRef.current = el;
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollTop = savedScroll;
+      const active = el.querySelector<HTMLElement>('[aria-current="page"]');
+      if (!active) return;
+      const box = el.getBoundingClientRect();
+      const at = active.getBoundingClientRect();
+      if (at.top < box.top || at.bottom > box.bottom) active.scrollIntoView({ block: "center" });
+    });
+  }, []);
+  const rememberScroll = () => { if (listRef.current) savedScroll = listRef.current.scrollTop; };
   useEffect(() => {
     if (!open) setFilter("");
   }, [open]);
@@ -164,7 +185,7 @@ export function AdminNavMobile({ groups: rendered, who, counts: seed }: { groups
               <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Find a section…" className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm" />
             </label>
           </div>
-          <nav aria-label="Admin sections" className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-3 py-3">
+          <nav ref={setList} onScroll={rememberScroll} aria-label="Admin sections" className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-3 py-3">
             {shown.length === 0 && <p className="px-3 text-sm text-muted-foreground">Nothing matches “{filter}”.</p>}
             {shown.map((g) => (
               <div key={g.label}>

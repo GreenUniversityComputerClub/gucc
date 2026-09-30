@@ -21,7 +21,7 @@ import { AppError, ConflictError, ForbiddenError, NotFoundError } from "../error
 import { deliverEmail, requireRecentAuth } from "../security";
 import { STUDENT_ID_RE, Validator } from "../validate";
 import { EMAIL_SENDER } from "../../email-hint";
-import { cleanPublicEmail, keepCutoutIfSame, keepFramingIfSame, mergedListingsStmt, photoChangedStmt, PROFILE_TAGS } from "../people-sync";
+import { cleanPublicEmail, keepCutoutIfSame, keepFramingIfSame, mergedListingsStmt, photoChangedStmt, profileEditedStmt, PROFILE_TAGS } from "../people-sync";
 import { avatarOfProfileSql, withAvatars } from "../avatar";
 
 const INVITE_DAYS = 14;
@@ -202,6 +202,7 @@ export async function updatePerson(ctx: Ctx, id: string, input: Record<string, u
   await batchTransition(ctx, [
     ...fresh,
     photoChangedStmt(ctx, id, d.avatar_media_id, now),
+    profileEditedStmt(ctx, id, d, now),
     ctx.db.stmt(
       `UPDATE profiles SET ${keepFramingIfSame("?15")}, ${keepCutoutIfSame("?15")}, full_name = ?2, person_type = ?3, student_id = ?4, department = ?5, batch = ?6, designation = ?7, bio = ?8, public_email = ?9,
               linkedin_url = ?10, github_url = ?11, twitter_url = ?12, facebook_url = ?13, website_url = ?14, avatar_media_id = ?15, updated_at = ?16, updated_by = ?17

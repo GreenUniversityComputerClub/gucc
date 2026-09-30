@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AvatarCropper } from "@/components/profile/avatar-cropper";
 import { vetPhoto } from "@/components/profile/photo-guard";
 import { uploadImage } from "@/lib/media/client";
-import { reloadWith } from "@/lib/flash";
+import { useSoftRefresh } from "@/lib/soft-refresh";
 import { ActionForm } from "@/components/admin/ui";
 import { saveEmailPreferencesAction, setAvatarAction, updateProfileAction } from "./actions";
 import { initials } from "@/lib/initials";
@@ -27,6 +27,7 @@ export function AvatarUploader({ url, name, canUpload }: { url: string | null; n
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<File | null>(null);
   const [confirm, confirmDialog] = useConfirm();
+  const refresh = useSoftRefresh();
   const input = useRef<HTMLInputElement>(null);
   const letters = initials(name);
 
@@ -57,7 +58,7 @@ export function AvatarUploader({ url, name, canUpload }: { url: string | null; n
     else if (res && !res.ok) setError(res.error);
     else {
       void refreshSession();
-      reloadWith("Photo updated. It now shows everywhere on the site.");
+      refresh("Photo updated. It now shows everywhere on the site.");
     }
   }
 
@@ -70,7 +71,7 @@ export function AvatarUploader({ url, name, canUpload }: { url: string | null; n
     if (!res.ok) setError(res.error);
     else {
       void refreshSession();
-      reloadWith("Photo removed.");
+      refresh("Photo removed.");
     }
   }
 
@@ -159,6 +160,7 @@ type Profile = Record<string, unknown>;
 /** The member's own profile, in three short sections with one save. */
 export function ProfileEditor({ profile, locked }: { profile: Profile; locked: boolean }) {
   const [pending, start] = useTransition();
+  const refresh = useSoftRefresh();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [bio, setBio] = useState(String(profile.bio ?? ""));
@@ -186,7 +188,8 @@ export function ProfileEditor({ profile, locked }: { profile: Profile; locked: b
       const res = await updateProfileAction(Object.fromEntries(fd) as Record<string, string>);
       setErrors(res.ok ? {} : res.fields ?? {});
       setMsg(res.ok ? { ok: true, text: "Profile saved." } : { ok: false, text: res.error });
-      if (res.ok) reloadWith("Profile saved.");
+      // The page (completeness, your page's link) updates in place; the saved text stays in the form.
+      if (res.ok) refresh();
     });
   }
 

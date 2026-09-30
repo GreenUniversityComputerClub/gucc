@@ -68,7 +68,12 @@ test("messages, typing, reactions and notifications arrive live, without a reloa
   // A reaction appears on the other side.
   const bubble = bubbles(a).getByText("Hello", { exact: true });
   await bubble.dblclick();
-  await expect(b.getByRole("button", { name: /Love by/ })).toBeVisible({ timeout: 15_000 });
+  const pill = b.getByRole("button", { name: /Reactions: Love/ });
+  await expect(pill).toBeVisible({ timeout: 15_000 });
+  // Who reacted: the pill opens the list, with the person's name.
+  await pill.click();
+  await expect(b.getByRole("dialog", { name: "Reactions" }).getByText(A.name)).toBeVisible();
+  await b.keyboard.press("Escape");
 
   // A notification shows up on the notifications page while it's open.
   await b.goto("/dashboard/notifications?tab=all");

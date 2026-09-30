@@ -15,7 +15,7 @@ export const REACTIONS = {
 
 export type ReactionKey = keyof typeof REACTIONS;
 export const REACTION_KEYS = Object.keys(REACTIONS) as ReactionKey[];
-export const isReaction = (v: unknown): v is ReactionKey => typeof v === "string" && v in REACTIONS;
+export const isReaction = (v: unknown): v is ReactionKey => typeof v === "string" && Object.prototype.hasOwnProperty.call(REACTIONS, v);
 
 /** Reactions grouped for display: most used first, with who left them. */
 export function groupReactions(list: Array<{ u: string; e: ReactionKey }>): Array<{ e: ReactionKey; count: number; users: string[] }> {

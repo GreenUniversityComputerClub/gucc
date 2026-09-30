@@ -7,6 +7,7 @@ import CodeBlockEnhancer from "@/components/blog/code-block-enhancer";
 import { Post, PostEdge } from "./types";
 import { initials } from "@/lib/initials";
 import { PostReactions, ShareMenu, TableOfContents } from "./article-extras";
+import { FramedImage } from "@/components/framed-image";
 
 /** Plain wrapper: React view transitions need React's experimental build, which Next only ships behind a flag. */
 function ViewTransition({ children }: { name?: string; children: React.ReactNode }) {
@@ -198,13 +199,7 @@ export default function PostContent({ post, mdx, extras }: PostContentProps) {
 
           {/* Featured Cover Image */}
           {post.coverImage && (
-            <div className="mt-8 relative w-full rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-md">
-              <img
-                src={post.coverImage.url}
-                alt={post.title}
-                className="w-full h-auto object-cover max-h-[460px]"
-              />
-            </div>
+            <FramedImage src={post.coverImage.url} alt={post.title} eager className="mt-8 rounded-2xl border border-slate-200/80 shadow-md dark:border-slate-800" />
           )}
         </header>
 

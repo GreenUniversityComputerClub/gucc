@@ -26,7 +26,11 @@ const readDraft = (key: string): { v: string; at: number } | null => {
  * (`draftKey`) so a closed tab or a lost connection doesn't lose writing. The textarea keeps the
  * field name, so it works inside any server-action form.
  */
-export function MarkdownEditor({ name, label, defaultValue, rows = 16, hint, draftKey }: { name: string; label: string; defaultValue?: string | null; rows?: number; hint?: string; draftKey?: string }) {
+export function MarkdownEditor({ name, label, defaultValue, rows = 16, hint, draftKey, breaks = false }: {
+  name: string; label: string; defaultValue?: string | null; rows?: number; hint?: string; draftKey?: string;
+  /** Keep every line break (event descriptions), as the public page does. */
+  breaks?: boolean;
+}) {
   const id = useId();
   const ref = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState(defaultValue ?? "");
@@ -129,7 +133,7 @@ export function MarkdownEditor({ name, label, defaultValue, rows = 16, hint, dra
   const button = "inline-flex h-10 w-10 md:h-9 md:w-9 items-center justify-center rounded-md hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
   const preview = value.trim()
     // The same wrappers as the public post page, so the preview looks like the published post.
-    ? <div className="article-reading-container max-h-[70vh] overflow-y-auto px-4 py-3"><div className="prose"><div className="markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(value) }} /></div></div>
+    ? <div className="article-reading-container max-h-[70vh] overflow-y-auto px-4 py-3"><div className="prose"><div className="markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(value, { breaks }) }} /></div></div>
     : <p className="px-4 py-6 text-sm text-muted-foreground">Nothing to preview yet.</p>;
   return (
     <div className="grid gap-1.5">

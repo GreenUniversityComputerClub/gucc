@@ -16,7 +16,7 @@ import { notifyStmts, usersWithPermission } from "../notifications";
 import { deliverEmail, requireRecentAuth } from "../security";
 import { STUDENT_ID_RE, Validator } from "../validate";
 import { claimEmailTasksStmts } from "./task-claim";
-import { cleanPublicEmail, PROFILE_TAGS } from "../people-sync";
+import { cleanPublicEmail, profileEditedStmt, PROFILE_TAGS } from "../people-sync";
 import { avatarOfProfileSql, withAvatars } from "../avatar";
 import { ensureProfileHandle } from "./profiles";
 
@@ -283,16 +283,20 @@ export async function updateOwnProfile(ctx: Ctx, input: Record<string, unknown>)
   if (skills && skills.some((x) => x.length > 40)) v.check(false, "skills", "Keep each skill under 40 characters.");
   if (skills && skills.length > 15) v.check(false, "skills", "Up to 15 skills.");
   v.done();
+  const now = nowIso();
   await ctx.db.batch([
+    // Every year the person is listed in follows (before the update: it compares with the old values).
+    profileEditedStmt(ctx, actor.profile.id, data, now),
     ctx.db.stmt(
       `UPDATE profiles SET full_name = ?2, department = ?3, batch = ?4, bio = ?5, linkedin_url = ?6, github_url = ?7, facebook_url = ?8, website_url = ?9, phone = ?10,
               twitter_url = ?13, public_email = ?14, skills_json = CASE WHEN ?15 IS NULL THEN skills_json ELSE ?15 END,
               visibility = COALESCE(?16, visibility), updated_at = ?11, updated_by = ?12 WHERE id = ?1`,
-      actor.profile.id, data.full_name, data.department, data.batch, data.bio, data.linkedin_url, data.github_url, data.facebook_url, data.website_url, data.phone, nowIso(), actor.user.id,
+      actor.profile.id, data.full_name, data.department, data.batch, data.bio, data.linkedin_url, data.github_url, data.facebook_url, data.website_url, data.phone, now, actor.user.id,
       data.twitter_url, data.public_email, skills ? JSON.stringify(skills) : null, visibility ?? null,
     ),
     auditStmt(ctx, { action: "profile.update", resourceType: "profile", resourceId: actor.profile.id, after: { ...data, phone: undefined } }),
-  ]);  if (studentId) {
+  ]);
+  if (studentId) {
     const holder = await ctx.db.first<{ id: string }>("SELECT id FROM profiles WHERE student_id = ?1 AND deleted_at IS NULL AND id <> ?2", studentId, actor.profile.id);
     await ctx.db.run(
       holder
