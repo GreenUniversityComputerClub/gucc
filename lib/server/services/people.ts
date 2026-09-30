@@ -21,7 +21,7 @@ import { AppError, ConflictError, ForbiddenError, NotFoundError } from "../error
 import { deliverEmail, requireRecentAuth } from "../security";
 import { STUDENT_ID_RE, Validator } from "../validate";
 import { EMAIL_SENDER } from "../../email-hint";
-import { cleanPublicEmail, keepFramingIfSame, mergedListingsStmt, photoChangedStmt, PROFILE_TAGS } from "../people-sync";
+import { cleanPublicEmail, keepCutoutIfSame, keepFramingIfSame, mergedListingsStmt, photoChangedStmt, PROFILE_TAGS } from "../people-sync";
 import { avatarOfProfileSql, withAvatars } from "../avatar";
 
 const INVITE_DAYS = 14;
@@ -203,7 +203,7 @@ export async function updatePerson(ctx: Ctx, id: string, input: Record<string, u
     ...fresh,
     photoChangedStmt(ctx, id, d.avatar_media_id, now),
     ctx.db.stmt(
-      `UPDATE profiles SET ${keepFramingIfSame("?15")}, full_name = ?2, person_type = ?3, student_id = ?4, department = ?5, batch = ?6, designation = ?7, bio = ?8, public_email = ?9,
+      `UPDATE profiles SET ${keepFramingIfSame("?15")}, ${keepCutoutIfSame("?15")}, full_name = ?2, person_type = ?3, student_id = ?4, department = ?5, batch = ?6, designation = ?7, bio = ?8, public_email = ?9,
               linkedin_url = ?10, github_url = ?11, twitter_url = ?12, facebook_url = ?13, website_url = ?14, avatar_media_id = ?15, updated_at = ?16, updated_by = ?17
        WHERE id = ?1`,
       id, d.full_name, d.person_type, d.student_id, d.department, d.batch, d.designation, d.bio, d.public_email, d.linkedin_url, d.github_url, d.twitter_url,
@@ -214,22 +214,29 @@ export async function updatePerson(ctx: Ctx, id: string, input: Record<string, u
   ctx.revalidate?.(PROFILE_TAGS);
 }
 
-/** Members set their own photo from /account (any image they uploaded as an avatar). */
-export async function setOwnAvatar(ctx: Ctx, mediaId: string | null): Promise<void> {
+/**
+ * Members set their own photo from /account (any image they uploaded as an avatar). `cutoutId`:
+ * the same photo with its background removed (transparent), shown on the executives list; a new
+ * photo without one clears the old cut-out.
+ */
+export async function setOwnAvatar(ctx: Ctx, mediaId: string | null, cutoutId: string | null = null): Promise<void> {
   const actor = requireActor(ctx);
   if (!actor.profile) throw new NotFoundError("Profile");
-  if (mediaId) {
-    const m = await ctx.db.first<{ uploaded_by: string | null }>("SELECT uploaded_by FROM media WHERE id = ?1 AND deleted_at IS NULL", mediaId);
+  const own = async (id: string) => {
+    const m = await ctx.db.first<{ uploaded_by: string | null }>("SELECT uploaded_by FROM media WHERE id = ?1 AND deleted_at IS NULL", id);
     if (!m || m.uploaded_by !== actor.user.id) throw new ForbiddenError("Upload the photo from this page first.");
-    await checkAvatar(ctx, mediaId);
-  }
+    await checkAvatar(ctx, id);
+  };
+  if (mediaId) await own(mediaId);
+  const cutout = mediaId && cutoutId && cutoutId !== mediaId ? cutoutId : null;
+  if (cutout) await own(cutout);
   const now = nowIso();
   await ctx.db.batch([
     // A new photo starts unzoomed: the old framing belonged to the old picture.
     photoChangedStmt(ctx, actor.profile.id, mediaId, now),
-    ctx.db.stmt(`UPDATE profiles SET ${keepFramingIfSame("?2")}, avatar_media_id = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1`,
-      actor.profile.id, mediaId, now, actor.user.id),
-    auditStmt(ctx, { action: "profile.avatar", resourceType: "profile", resourceId: actor.profile.id, after: { mediaId } }),
+    ctx.db.stmt(`UPDATE profiles SET ${keepFramingIfSame("?2")}, avatar_media_id = ?2, cutout_media_id = ?5, updated_at = ?3, updated_by = ?4 WHERE id = ?1`,
+      actor.profile.id, mediaId, now, actor.user.id, cutout),
+    auditStmt(ctx, { action: "profile.avatar", resourceType: "profile", resourceId: actor.profile.id, after: { mediaId, cutoutId: cutout } }),
   ]);
   ctx.revalidate?.(PROFILE_TAGS);
 }

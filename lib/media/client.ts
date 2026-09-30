@@ -12,7 +12,7 @@ import { encodeTargets, type EncodeTarget } from "./encode";
  * bandwidth, storage (R2's free 10 GB) and Worker CPU.
  */
 
-export type Purpose = "library" | "lostfound" | "event" | "avatar";
+export type Purpose = "library" | "lostfound" | "event" | "avatar" | "group";
 type VariantName = "thumb" | "sm" | "md" | "lg" | "master";
 
 /**
@@ -22,6 +22,7 @@ type VariantName = "thumb" | "sm" | "md" | "lg" | "master";
  */
 export const PROFILES: Record<Purpose | "document", Partial<Record<VariantName, number>>> = {
   avatar: { thumb: 400, master: 800 },
+  group: { thumb: 400, master: 800 },
   lostfound: { thumb: 400, sm: 800, master: 1280 },
   event: { thumb: 400, sm: 800, md: 1280, master: 1920 },
   library: { thumb: 400, sm: 800, md: 1280, master: 1920 },

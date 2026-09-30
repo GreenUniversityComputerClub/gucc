@@ -34,6 +34,9 @@ export function photoChangedStmt(ctx: Ctx, profileId: string, newPhotoId: string
 }
 
 /** SET clause for a profile update: keep the framing only while the photo stays the same (`?n` holds the new photo id). */
+/** A leader setting someone's photo: the member's old cut-out (of the previous photo) goes. */
+export const keepCutoutIfSame = (param: string) => `cutout_media_id = CASE WHEN avatar_media_id IS ${param} THEN cutout_media_id END`;
+
 export const keepFramingIfSame = (param: string) =>
   `avatar_position_x = CASE WHEN avatar_media_id IS ${param} THEN avatar_position_x END, avatar_position_y = CASE WHEN avatar_media_id IS ${param} THEN avatar_position_y END, avatar_scale = CASE WHEN avatar_media_id IS ${param} THEN avatar_scale END`;
 

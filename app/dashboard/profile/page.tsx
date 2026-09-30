@@ -75,11 +75,11 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             </div>
           )}
         </div>
-        <div className="flex gap-2 sm:flex-col">
-          <Link prefetch={false} href="/dashboard/security" className="inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm hover:bg-muted"><KeyRound className="h-4 w-4" aria-hidden />Security</Link>
-          <Link prefetch={false} href={`/dashboard/access/${encodeURIComponent(session.user.id)}`} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm hover:bg-muted"><ShieldCheck className="h-4 w-4" aria-hidden />Your access</Link>
+        <div className="flex flex-wrap gap-2 sm:flex-col sm:flex-nowrap">
+          <Link prefetch={false} href="/dashboard/security" className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-2 text-sm hover:bg-muted sm:flex-none sm:justify-start"><KeyRound className="h-4 w-4" aria-hidden />Security</Link>
+          <Link prefetch={false} href={`/dashboard/access/${encodeURIComponent(session.user.id)}`} className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-2 text-sm hover:bg-muted sm:flex-none sm:justify-start"><ShieldCheck className="h-4 w-4" aria-hidden />Your access</Link>
           {typeof profile.handle === "string" && status === "ACTIVE" && (
-            <Link prefetch={false} href={`/members/${profile.handle}`} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm hover:bg-muted"><UserRound className="h-4 w-4" aria-hidden />Your page</Link>
+            <Link prefetch={false} href={`/members/${profile.handle}`} className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-2 text-sm hover:bg-muted sm:flex-none sm:justify-start"><UserRound className="h-4 w-4" aria-hidden />Your page</Link>
           )}
         </div>
       </section>

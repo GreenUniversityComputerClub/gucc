@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AvatarCropper } from "@/components/profile/avatar-cropper";
+import { vetPhoto } from "@/components/profile/photo-guard";
 import { uploadImage } from "@/lib/media/client";
 import { reloadWith } from "@/lib/flash";
 import { ActionForm } from "@/components/admin/ui";
@@ -22,19 +23,35 @@ import { refreshSession } from "@/lib/api/use-session";
  * navbar picture updates without a reload. Visible buttons, so it works the same on touch screens.
  */
 export function AvatarUploader({ url, name, canUpload }: { url: string | null; name: string; canUpload: boolean }) {
-  const [busy, setBusy] = useState<"upload" | "remove" | null>(null);
+  const [busy, setBusy] = useState<"check" | "upload" | "remove" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<File | null>(null);
   const [confirm, confirmDialog] = useConfirm();
   const input = useRef<HTMLInputElement>(null);
   const letters = initials(name);
 
-  async function upload(file: File) {
+  /** A blank, placeholder or tiny picture is refused before anything is uploaded. */
+  async function pick(file: File) {
+    setError(null);
+    setBusy("check");
+    const v = await vetPhoto(file, { kind: "profile", stage: "picked", confirm });
+    setBusy(null);
+    if (!v.ok) return setError(v.error);
+    setPicked(file);
+  }
+
+  async function upload(file: File, cutout?: File) {
     setPicked(null);
     setBusy("upload");
     setError(null);
-    const up = await uploadImage(file, { purpose: "avatar" });
-    const res = up.ok ? await setAvatarAction(up.id) : null;
+    const framed = await vetPhoto(file, { kind: "profile", stage: "framed" });
+    if (!framed.ok) {
+      setBusy(null);
+      return setError(framed.error);
+    }
+    // The cut-out (background removed) is a nicety for the executives list: without it, the photo still saves.
+    const [up, cut] = await Promise.all([uploadImage(file, { purpose: "avatar" }), cutout ? uploadImage(cutout, { purpose: "avatar" }) : Promise.resolve(null)]);
+    const res = up.ok ? await setAvatarAction(up.id, cut?.ok ? cut.id : null) : null;
     setBusy(null);
     if (!up.ok) setError(up.error);
     else if (res && !res.ok) setError(res.error);
@@ -57,39 +74,55 @@ export function AvatarUploader({ url, name, canUpload }: { url: string | null; n
     }
   }
 
+  const status = busy === "upload" ? "Uploading…" : busy === "check" ? "Checking…" : busy === "remove" ? "Removing…" : null;
   return (
-    <div className="flex shrink-0 flex-col items-center gap-2">
+    <div className="flex shrink-0 flex-col items-center gap-2.5">
       {confirmDialog}
-      <div className="relative h-20 w-20 overflow-hidden rounded-full border sm:h-24 sm:w-24">
-        {url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <span className="flex h-full w-full items-center justify-center bg-muted text-xl font-semibold text-muted-foreground">{letters}</span>
-        )}
-        {busy && <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs text-white" role="status">{busy === "upload" ? "Uploading…" : "Removing…"}</span>}
+      {/* The photo is the button: a ring in the club's green, and a camera on hover or focus. */}
+      <div className="rounded-full bg-linear-to-br from-emerald-400 via-primary to-teal-600 p-[3px] shadow-lg shadow-primary/15">
+        <div className="rounded-full bg-card p-[3px]">
+        <button type="button" onClick={() => canUpload && input.current?.click()} disabled={!canUpload || Boolean(busy)}
+          aria-label={canUpload ? (url ? "Change your photo" : "Add your photo") : "Your photo"}
+          className="group relative block h-24 w-24 overflow-hidden rounded-full bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default sm:h-28 sm:w-28">
+          {url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full w-full flex-col items-center justify-center bg-muted text-muted-foreground">
+              <span className="text-2xl font-semibold">{letters}</span>
+              {canUpload && <span className="mt-0.5 text-[10px] font-medium uppercase tracking-wide">Add photo</span>}
+            </span>
+          )}
+          {canUpload && !busy && (
+            <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/55 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden>
+              <Camera className="h-5 w-5" />{url ? "Change" : "Add"}
+            </span>
+          )}
+          {status && <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-xs font-medium text-white" role="status">{status}</span>}
+        </button>
+        </div>
       </div>
       {canUpload && (
         <div className="flex gap-1">
           <button type="button" onClick={() => input.current?.click()} disabled={Boolean(busy)}
-            className="inline-flex min-h-9 items-center gap-1 rounded-md border px-2.5 text-xs font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            className="inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-xs font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Camera className="h-3.5 w-3.5" aria-hidden />{url ? "Change photo" : "Add photo"}
           </button>
           {url && (
             <button type="button" onClick={remove} disabled={Boolean(busy)}
-              className="inline-flex min-h-9 items-center rounded-md px-2 text-xs text-muted-foreground hover:bg-muted hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              className="inline-flex min-h-9 items-center rounded-full px-2.5 text-xs text-muted-foreground hover:bg-muted hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               Remove
             </button>
           )}
           <input ref={input} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-hidden disabled={Boolean(busy)} onChange={(e) => {
             const f = e.target.files?.[0];
             e.target.value = "";
-            if (f) setPicked(f);
+            if (f) void pick(f);
           }} />
         </div>
       )}
-      {picked && <AvatarCropper file={picked} onCancel={() => setPicked(null)} onCropped={upload} />}
-      {error && <p role="alert" className="max-w-40 text-center text-xs text-destructive">{error}</p>}
+      {picked && <AvatarCropper file={picked} onCancel={() => setPicked(null)} onCropped={upload} backgrounds />}
+      {error && <p role="alert" className="max-w-56 text-center text-xs text-destructive">{error}</p>}
     </div>
   );
 }

@@ -7,8 +7,8 @@ export async function updateProfileAction(input: Record<string, string>) {
   return runAction("account.updateProfile", input);
 }
 
-export async function setAvatarAction(mediaId: string | null) {
-  return runAction("account.setAvatar", { mediaId }, { message: "Photo updated." });
+export async function setAvatarAction(mediaId: string | null, cutoutId: string | null = null) {
+  return runAction("account.setAvatar", { mediaId, cutoutId }, { message: "Photo updated." });
 }
 
 export async function saveEmailPreferencesAction(fd: FormData) {

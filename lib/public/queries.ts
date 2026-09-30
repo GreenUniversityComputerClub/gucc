@@ -31,7 +31,8 @@ const MEMBER_COLUMNS = `
   p.avatar_position_x AS p_avatar_x, p.avatar_position_y AS p_avatar_y, p.avatar_scale AS p_avatar_scale,
   (m.id IS NOT NULL AND m.id IS p.avatar_media_id) AS avatar_is_profile,
   CASE WHEN p.visibility = 'PUBLIC' THEN p.slug END AS public_handle,
-  m.storage AS avatar_storage, m.object_key AS avatar_object_key, m.legacy_path AS avatar_legacy_path, m.external_url AS avatar_external_url`;
+  m.storage AS avatar_storage, m.object_key AS avatar_object_key, m.legacy_path AS avatar_legacy_path, m.external_url AS avatar_external_url,
+  cut.storage AS cutout_storage, cut.object_key AS cutout_object_key`;
 
 const MEMBER_FROM = `
 FROM committee_members cm
@@ -39,6 +40,9 @@ JOIN committees co ON co.id = cm.committee_id
 JOIN profiles p ON p.id = cm.profile_id AND p.deleted_at IS NULL
 LEFT JOIN media m ON m.id = ${listingAvatarIdSql("cm", "p")}
   AND m.deleted_at IS NULL AND m.visibility = 'PUBLIC' AND m.status = 'READY'
+-- The profile photo's cut-out (background removed), only while that photo is the one shown.
+LEFT JOIN media cut ON cut.id = p.cutout_media_id AND m.id IS p.avatar_media_id
+  AND cut.deleted_at IS NULL AND cut.visibility = 'PUBLIC' AND cut.status = 'READY'
 WHERE cm.deleted_at IS NULL
   -- Someone whose assignment ended leaves the current roster (their year keeps them in history).
   AND NOT (co.status = 'CURRENT' AND cm.end_date IS NOT NULL AND cm.end_date < strftime('%Y-%m-%d', 'now'))`;
@@ -65,7 +69,10 @@ WHERE e.deleted_at IS NULL AND e.status IN ('PUBLISHED','ONGOING','COMPLETED')`;
 export const EVENTS_SQL = `${EVENTS_SELECT}
 ORDER BY substr(e.start_at, 1, 10), e.rowid`;
 
-export const EVENT_BY_SLUG_SQL = EVENTS_SELECT.replace("SELECT e.id,", "SELECT e.registration_fields_json, e.id,") + " AND e.slug = ?1";
+/** One event by its address; a cancelled one too, so its page can say so instead of a 404. */
+export const EVENT_BY_SLUG_SQL = EVENTS_SELECT
+  .replace("SELECT e.id,", "SELECT e.registration_fields_json, e.id,")
+  .replace("e.status IN ('PUBLISHED','ONGOING','COMPLETED')", "e.status IN ('PUBLISHED','ONGOING','COMPLETED','CANCELLED')") + " AND e.slug = ?1";
 
 export const CONTESTS_SQL = `
 SELECT c.id, c.legacy_id, c.type, c.title, c.held_on_text, c.host, c.platform, c.contest_link, c.problemset_link, c.standings_link, c.editorial_link, c.practice_link,

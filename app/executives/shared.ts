@@ -11,6 +11,8 @@ export interface Executive {
   department?: string;
   campus?: string;
   avatarUrl?: string;
+  /** The profile photo with its background removed (transparent), for the list's cards. */
+  cutoutUrl?: string;
   avatarPosition?: { x: number; y: number };
   avatarScale?: number;
   linkedin?: string;

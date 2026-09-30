@@ -24,7 +24,7 @@ import { getSetting, getSettings } from "../security";
 import { hmac, requireSecret, verificationSecrets, verifyHmac } from "../signing";
 import { TAGS } from "./cache-tags";
 
-export type UploadPurpose = "library" | "event" | "lostfound" | "avatar" | "recruitment";
+export type UploadPurpose = "library" | "event" | "lostfound" | "avatar" | "group" | "recruitment";
 
 export interface UploadInput {
   files: Partial<Record<VariantName, Uint8Array>>;
@@ -58,6 +58,8 @@ export interface MediaRecord {
 
 type Bucket = keyof MediaBuckets;
 const IMAGE_TYPES: SniffedType[] = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+/** Below this many bytes per pixel a WebP profile picture is blank (a real portrait is 10× more). */
+export const BLANK_BYTES_PER_PIXEL = 0.003;
 /** One upload request carries at most the five variants of one file. */
 export const MAX_BYTES_PER_REQUEST = 60 * 1024 * 1024;
 export const PUBLIC_CACHE = "public, max-age=31536000, immutable";
@@ -145,7 +147,8 @@ export async function uploadMedia(ctx: Ctx, input: UploadInput): Promise<MediaRe
       if (!domains.some((d) => actor.user.email.toLowerCase().endsWith(d))) throw new ForbiddenError("Only university accounts can attach photos.");
       await limit(ctx, "media.upload.lostfound", actor.user.id);
       visibility = "PUBLIC";
-    } else if (purpose === "avatar") {
+    } else if (purpose === "avatar" || purpose === "group") {
+      // Profile and group photos: any signed-in member, their own (group photos are checked again when set).
       await limit(ctx, "media.upload.avatar", actor.user.id);
       visibility = "PUBLIC";
     } else {
@@ -166,7 +169,7 @@ export async function uploadMedia(ctx: Ctx, input: UploadInput): Promise<MediaRe
   const type = sniff(master);
   if (!type) throw new ValidationError("Unsupported file. Upload a JPEG, PNG, WebP or AVIF image, or a PDF.");
   const isImage = IMAGE_TYPES.includes(type);
-  if (["lostfound", "avatar"].includes(purpose) && !isImage) throw new ValidationError("Only images are accepted here.");
+  if (["lostfound", "avatar", "group"].includes(purpose) && !isImage) throw new ValidationError("Only images are accepted here.");
   visibility = visibility ?? (isImage ? "PUBLIC" : "PRIVATE");
   if (!["PUBLIC", "PRIVATE", "RESTRICTED"].includes(visibility)) throw new ValidationError("Invalid visibility.");
 
@@ -193,6 +196,13 @@ export async function uploadMedia(ctx: Ctx, input: UploadInput): Promise<MediaRe
   }
 
   const masterClean = cleaned.master!;
+  // The browser refuses blank or placeholder profile pictures before uploading; this catches what
+  // skipped it. A blank square compresses to almost nothing (under 2 KB at 800 px), a real face
+  // never does. The Worker can't decode images within its CPU limit, so the size is the signal.
+  if (purpose === "avatar" && masterClean.type === "image/webp" && masterClean.width && masterClean.height && masterClean.width * masterClean.height >= 160_000
+    && masterClean.bytes.length / (masterClean.width * masterClean.height) < BLANK_BYTES_PER_PIXEL) {
+    throw new ValidationError("This picture looks blank. Please upload your real photo: a clear picture of your face helps members recognise you.", { photo: "Upload a real photo." });
+  }
   const checksum = await sha256Hex(masterClean.bytes);
   if (replacing && !isImage) throw new ValidationError("Replace an image with another image.");
   // Applicants' documents are never shared between applications; a replacement is always stored.
@@ -329,13 +339,18 @@ export interface MediaListRow {
 
 const REFS_SQL = `(SELECT COUNT(*) FROM media_references r WHERE r.media_id = m.id)
   + (SELECT COUNT(*) FROM profiles p WHERE p.avatar_media_id = m.id AND p.deleted_at IS NULL)
+  + (SELECT COUNT(*) FROM profiles p WHERE p.cutout_media_id = m.id AND p.deleted_at IS NULL)
   + (SELECT COUNT(*) FROM committee_members c WHERE c.avatar_media_id = m.id AND c.deleted_at IS NULL)
   + (SELECT COUNT(*) FROM events e WHERE e.banner_media_id = m.id AND e.deleted_at IS NULL)
   + (SELECT COUNT(*) FROM event_media em WHERE em.media_id = m.id)
   + (SELECT COUNT(*) FROM posts po WHERE po.featured_media_id = m.id AND po.deleted_at IS NULL)
   + (SELECT COUNT(*) FROM contest_media cm WHERE cm.media_id = m.id)
   + (SELECT COUNT(*) FROM lost_found_posts lf WHERE lf.image_media_id = m.id AND lf.deleted_at IS NULL)
-  + (SELECT COUNT(*) FROM recruitment_applications ra WHERE m.id IN (ra.cv_media_id, ra.photo_media_id, ra.id_card_media_id))
+  + (SELECT COUNT(*) FROM chat_groups cg WHERE cg.photo_media_id = m.id AND cg.deleted_at IS NULL)
+  + (SELECT COUNT(*) FROM recruitment_applications ra WHERE ra.cv_media_id = m.id)
+  + (SELECT COUNT(*) FROM recruitment_applications ra WHERE ra.photo_media_id = m.id)
+  + (SELECT COUNT(*) FROM recruitment_applications ra WHERE ra.id_card_media_id = m.id)
+  -- Files placed inside text (article bodies, event descriptions, settings): these small tables are read.
   + (SELECT COUNT(*) FROM posts po WHERE po.deleted_at IS NULL AND instr(po.body_markdown, m.id) > 0)
   + (SELECT COUNT(*) FROM events e WHERE e.deleted_at IS NULL AND instr(e.description, m.id) > 0)
   + (SELECT COUNT(*) FROM organization_settings s WHERE instr(s.value_json, m.id) > 0 OR (m.legacy_path IS NOT NULL AND instr(s.value_json, m.legacy_path) > 0))`;
@@ -383,7 +398,7 @@ export async function mediaDetails(ctx: Ctx, id: string) {
      WHERE m.id = ?1 AND m.deleted_at IS NULL`, id);
   if (!file) throw new NotFoundError("Media");
   const usage = await ctx.db.all<{ kind: string; label: string; link: string | null }>(
-    `SELECT 'Profile photo' AS kind, p.full_name AS label, '/dashboard/people/' || p.id AS link FROM profiles p WHERE p.avatar_media_id = ?1 AND p.deleted_at IS NULL
+    `SELECT 'Profile photo' AS kind, p.full_name AS label, '/dashboard/people/' || p.id AS link FROM profiles p WHERE (p.avatar_media_id = ?1 OR p.cutout_media_id = ?1) AND p.deleted_at IS NULL
      UNION ALL SELECT 'Committee portrait', pr.full_name || ' · ' || c.name, '/dashboard/committees/' || c.id FROM committee_members cm
        JOIN profiles pr ON pr.id = cm.profile_id JOIN committees c ON c.id = cm.committee_id WHERE cm.avatar_media_id = ?1 AND cm.deleted_at IS NULL
      UNION ALL SELECT CASE em.kind WHEN 'GALLERY' THEN 'Event photo' WHEN 'ATTACHMENT' THEN 'Event document' ELSE 'Event banner' END, e.title, '/dashboard/events/' || e.id

@@ -67,3 +67,5 @@ public/og
 # E2E server logs
 /.e2e/
 /.next-e2e/
+/.next-qa/
+/public/mediapipe/

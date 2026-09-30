@@ -73,7 +73,8 @@ export function ExecutiveCard({
   isResizeMode: boolean;
 }) {
   const router = useRouter();
-  const avatar = getExecutiveAvatar(executive);
+  // A member's own cut-out (background removed) floats on the card like the club's portraits.
+  const avatar = executive.cutoutUrl ?? getExecutiveAvatar(executive);
   const [position, setPosition] = useState(
     executive.avatarPosition || { x: 0, y: 0 }
   );

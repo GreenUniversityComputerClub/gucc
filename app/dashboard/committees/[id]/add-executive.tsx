@@ -75,7 +75,7 @@ export function AddExecutive({ committeeId, positions, units, isModerator, flatA
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field name="fullName" label="Full name" required />
                 {section === "FACULTY" ? <Field name="designation" label="Designation" placeholder="Lecturer, Dept. of CSE" /> : <Field name="studentId" label="Student ID" placeholder="9 digits" hint="Used for their profile page /executives/<id>" />}
-                <div className="sm:col-span-2"><MediaField name="avatarMediaId" label="Photo (optional)" /></div>
+                <div className="sm:col-span-2"><MediaField name="avatarMediaId" label="Photo (optional)" shape="portrait" /></div>
               </div>
             )}
             {needsInvite && (

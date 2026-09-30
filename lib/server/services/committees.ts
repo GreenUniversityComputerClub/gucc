@@ -16,7 +16,7 @@ import { notifyStmts } from "../notifications";
 import { assertStmt, batchTransition, staleAnswer, unchangedSince } from "../transition";
 import { STUDENT_ID_RE, Validator } from "../validate";
 import { requireRecentAuthForPositions } from "../security";
-import { freezeCurrentListingsStmt, keepFramingIfSame, photoChangedStmt, PROFILE_TAGS } from "../people-sync";
+import { freezeCurrentListingsStmt, keepCutoutIfSame, keepFramingIfSame, photoChangedStmt, PROFILE_TAGS } from "../people-sync";
 
 export interface CommitteeRow {
   id: string;
@@ -256,7 +256,7 @@ export async function assignExecutive(ctx: Ctx, committeeId: string, input: Reco
     ...person.stmts,
     ...(d.avatarMediaId ? [
       photoChangedStmt(ctx, person.id, d.avatarMediaId, now),
-      ctx.db.stmt(`UPDATE profiles SET ${keepFramingIfSame("?2")}, avatar_media_id = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1`, person.id, d.avatarMediaId, now, actor.user.id),
+      ctx.db.stmt(`UPDATE profiles SET ${keepFramingIfSame("?2")}, ${keepCutoutIfSame("?2")}, avatar_media_id = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1`, person.id, d.avatarMediaId, now, actor.user.id),
     ] : []),
     ...(layoutChanged ? [ctx.db.stmt("UPDATE committees SET layout_json = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1", committeeId, JSON.stringify(layout), now, actor.user.id)] : []),
     ctx.db.stmt(

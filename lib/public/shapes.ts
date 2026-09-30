@@ -56,6 +56,8 @@ export interface PublicExecutive {
   department?: string;
   campus?: string;
   avatarUrl?: string;
+  /** The profile photo with its background removed (transparent): the executives list's card picture. */
+  cutoutUrl?: string;
   avatarPosition?: { x: number; y: number };
   avatarScale?: number;
   linkedin?: string;
@@ -109,6 +111,8 @@ export interface MemberRow {
   avatar_object_key: string | null;
   avatar_legacy_path: string | null;
   avatar_external_url: string | null;
+  cutout_storage?: string | null;
+  cutout_object_key?: string | null;
   /** The member page address, only when its owner made it public. */
   public_handle?: string | null;
 }
@@ -159,6 +163,8 @@ function toExecutive(r: MemberRow, historic = false): PublicExecutive {
       : null,
   );
   if (avatar) e.avatarUrl = avatar;
+  const cutout = r.cutout_storage ? mediaUrl({ id: "", storage: r.cutout_storage as "R2", object_key: r.cutout_object_key ?? null, legacy_path: null, external_url: null }) : null;
+  if (cutout) e.cutoutUrl = cutout;
   if (r.public_handle) e.profileHandle = r.public_handle;
   // The listing's framing (set on the year page) wins; otherwise the profile's, when the photo
   // shown is the profile's own. A new photo clears both, so an old zoom never lands on it.
@@ -248,6 +254,9 @@ export interface PublicEvent {
   seatsTaken?: number;
   /** An external registration form (Google Forms), when the event uses one. */
   registrationForm?: { url: string; label: string | null };
+  /** Exact start and end (UTC instants), for countdowns, calendars and structured data. */
+  startAt?: string;
+  endAt?: string;
 }
 
 export interface EventRow {
@@ -290,7 +299,7 @@ const dateOnly = (v: string | null) => {
   return Number.isNaN(t) ? v.slice(0, 10) : new Date(t + 6 * 3600_000).toISOString().slice(0, 10);
 };
 
-export function buildEvent(r: EventRow, now = new Date()): PublicEvent {
+export function buildEvent(r: EventRow, now = new Date(), opts: { description?: boolean } = {}): PublicEvent {
   const date = dateOnly(r.start_at) ?? "";
   const e: PublicEvent = {
     sl: r.legacy_sl ?? 0,
@@ -324,7 +333,10 @@ export function buildEvent(r: EventRow, now = new Date()): PublicEvent {
   if (r.organizer) e.organizer = r.organizer;
   if (r.category_name) e.category = r.category_name;
   if (r.external_link) e.link = r.external_link;
-  if (r.description) e.description = r.description;
+  // Lists leave the write-up out (up to 20,000 characters each): only the event page shows it.
+  if (r.description && opts.description !== false) e.description = r.description;
+  if (r.start_at && r.start_at.includes("T")) e.startAt = r.start_at;
+  if (r.end_at && r.end_at.includes("T")) e.endAt = r.end_at;
   if (r.registration_form_url) e.registrationForm = { url: r.registration_form_url, label: r.registration_form_label ?? null };
   if (r.registration_enabled) {
     const opens = r.registration_opens_at ? new Date(r.registration_opens_at) : null;

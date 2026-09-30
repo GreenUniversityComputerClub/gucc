@@ -84,7 +84,7 @@ export default async function PersonPage({ params, searchParams }: { params: Pro
             </div>
             {v("user_id") === session.user.id && studentId && <input type="hidden" name="studentId" value={studentId} />}
             <Field name="bio" label="Bio" type="textarea" rows={4} defaultValue={v("bio")} />
-            <MediaField name="avatarMediaId" label="Photo" defaultId={v("avatar_media_id")} defaultUrl={avatarUrl} />
+            <MediaField name="avatarMediaId" label="Photo" defaultId={v("avatar_media_id")} defaultUrl={avatarUrl} shape="portrait" />
           </ActionForm>
         </Section>
         <div className="space-y-6">

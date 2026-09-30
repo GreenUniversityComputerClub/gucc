@@ -10,7 +10,7 @@ export function OpenPrivate({ id, label = "Open" }: { id: string; label?: string
     <span className="inline-flex items-center gap-2">
       <button
         type="button"
-        className="underline"
+        className="inline-flex min-h-9 items-center underline underline-offset-2"
         onClick={async () => {
           setError(null);
           // Open synchronously (popup blockers), then point it at the signed link.

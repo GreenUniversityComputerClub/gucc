@@ -24,13 +24,16 @@ const origin = (u: string) => {
  */
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+  // 'wasm-unsafe-eval': compiling WebAssembly (the in-browser photo background remover); it allows
+  // no string eval of JavaScript.
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   // The media origin by name too: it is plain http on local and test builds.
   `img-src 'self' data: blob: https: ${origin(MEDIA_BASE)}`.trim(),
   `media-src 'self' blob: https: ${origin(MEDIA_BASE)}`.trim(),
-  `connect-src 'self' ${[...new Set([origin(API_BASE), origin(MEDIA_BASE)].filter(Boolean))].join(" ")} https://challenges.cloudflare.com`,
+  // The API's ws(s):// origin too: dashboard tabs keep one live connection to it.
+  `connect-src 'self' ${[...new Set([origin(API_BASE), origin(MEDIA_BASE), origin(API_BASE).replace(/^http/, "ws")].filter(Boolean))].join(" ")} https://challenges.cloudflare.com`,
   "frame-src 'self' https://docs.google.com https://forms.gle https://challenges.cloudflare.com",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
@@ -117,7 +120,8 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-DNS-Prefetch-Control", value: "on" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+          // The camera for this site only (QR check-in at events); nothing else, and never for embeds.
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=()" },
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
           // Pages this site opens elsewhere can't reach back into it through window.opener.
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
@@ -136,6 +140,11 @@ const nextConfig: NextConfig = {
             : [{ key: "Content-Security-Policy", value: "frame-ancestors 'none'" }]),
           { key: "Cache-Control", value: "private, no-store" },
         ],
+      },
+      {
+        // The photo background remover's runtime and model: large, fetched once, then from cache.
+        source: "/:dir(mediapipe|models)/:file*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=2592000" }],
       },
       {
         // Deploy-time images in public/: cached hard, revalidated in the background.

@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "node scripts/optimize-images.mjs && next build",
+    "dev": "node scripts/copy-mediapipe.mjs && next dev --turbopack",
+    "build": "node scripts/copy-mediapipe.mjs && node scripts/optimize-images.mjs && next build",
     "optimize:images": "node scripts/optimize-images.mjs",
     "optimize:images:check": "node scripts/optimize-images.mjs --dry-run",
     "start": "next start",
@@ -29,9 +29,11 @@
     "release:api:staging": "bun scripts/platform/release.ts --target staging",
     "release:api:production": "bun scripts/platform/release.ts --target production --confirm-production",
     "check:worker-size": "wrangler deploy --dry-run --outdir .wrangler/dry-run",
-    "production:setup": "bun scripts/platform/production.ts"
+    "production:setup": "bun scripts/platform/production.ts",
+    "postinstall": "node scripts/copy-mediapipe.mjs"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "1.0.1",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
