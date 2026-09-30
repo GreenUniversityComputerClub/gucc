@@ -979,6 +979,8 @@ export const SETTING_RANGES: Record<string, { min: number; max: number; unit?: s
   "security.reauth_minutes": { min: 1, max: 60 },
   "notifications.retention_days": { min: 30, max: 730 },
   "auth.session_days": { min: 1, max: 90 },
+  // Every message in a group fans out to each member's open tabs through the live hub.
+  "chat.max_group_members": { min: 3, max: 100, unit: "people (at most 100)" },
 };
 
 function checkSettingRange(key: string, value: unknown): void {

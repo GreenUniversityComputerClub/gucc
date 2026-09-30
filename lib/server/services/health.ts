@@ -3,6 +3,7 @@
  * read, a configuration test); anything that can't be checked says "Unknown" instead of
  * guessing. Values of secrets are never read out, only whether they're set.
  */
+import { modelChain } from "./assistant";
 import { can, requireActor, requirePermission } from "../authz";
 import type { Ctx } from "../context";
 import { emailState, lastSuccessfulTest } from "../email";
@@ -12,7 +13,7 @@ import { checkAuditSeals } from "./audit-seal";
 import { appUsage, fetchCloudflareUsage, FREE_LIMITS } from "./cloudflare-usage";
 
 /** The newest migration in this code. A test keeps it in step with migrations/. */
-export const LATEST_MIGRATION = "0010_platform_v6.sql";
+export const LATEST_MIGRATION = "0013_profile_cutout_media_indexes.sql";
 
 export type HealthStatus = "HEALTHY" | "WARNING" | "ERROR" | "UNKNOWN";
 export interface HealthCheck {
@@ -121,7 +122,9 @@ export async function systemHealth(ctx: Ctx) {
       ? "TURNSTILE_SECRET_KEY isn't set on the API: sign-up, sign-in and the public forms rely on rate limits only. Add the Turnstile keys (see RUNBOOK.md)."
       : "Turnstile isn't configured; forms rely on rate limits and a hidden field." });
   checks.push({ key: "assistant", label: "Site assistant", status: ctx.env.GOOGLE_API_KEY ? "HEALTHY" : "WARNING",
-    detail: ctx.env.GOOGLE_API_KEY ? "The AI model key is configured." : "No AI model key: the assistant answers from the club's own FAQ and data only." });
+    detail: ctx.env.GOOGLE_API_KEY
+      ? `The AI model key is configured. Models tried in order: ${modelChain(ctx.env.GEMINI_MODEL).join(" → ")}; if none answers, the club's own FAQ and data do.`
+      : "No AI model key: the assistant answers from the club's own FAQ and data only." });
 
   const [usage, extra] = await Promise.all([freeTierUsage(ctx), activity(ctx)]);
   if (!usage.controls.uploadsEnabled) {

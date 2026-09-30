@@ -4,4 +4,4 @@
  * progress, or the local site pointed at the live API) the dashboard says so instead of
  * breaking. Bump it whenever the website starts relying on a new procedure or field.
  */
-export const API_VERSION = "2026.09.28";
+export const API_VERSION = "2026.09.30";

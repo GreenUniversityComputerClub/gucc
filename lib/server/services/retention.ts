@@ -13,6 +13,7 @@
  *   rejected or withdrawn applications (and their files)   12 months after the recruitment closed
  *   event registrations     anonymised 24 months after the event
  *   archived lost & found posts (and their photos)         12 months after archiving
+ *   messages of deleted group conversations                 30 days after the group was deleted
  *   activity log            2 years (sealed ranges are removed whole)
  *
  * Files nothing uses any more are marked (media.unreferenced_since). They are never deleted
@@ -38,6 +39,7 @@ export interface RetentionReport {
   auditRows: number;
   mediaMarkedUnused: number;
   mediaInUseAgain: number;
+  groupMessages?: number;
 }
 
 const ago = (now: Date, days: number) => new Date(now.getTime() - days * DAY).toISOString();
@@ -116,6 +118,18 @@ export async function runRetention(ctx: Ctx, now = new Date()): Promise<Retentio
       ctx.db.stmt("DELETE FROM lost_found_posts WHERE id IN (SELECT value FROM json_each(?1))", ids),
     ]);
     report.lostFound = posts.length;
+  }
+
+  // Messages (and their reactions) of groups deleted a month ago; reported messages are kept in
+  // the reports as their snapshot.
+  const gone = JSON.stringify((await ctx.db.all<{ id: string }>(
+    `SELECT m.id FROM messages m JOIN chat_groups g ON g.conversation_id = m.conversation_id AND g.deleted_at IS NOT NULL AND g.deleted_at < ?1 LIMIT 500`, ago(now, 30))).map((r) => r.id));
+  if (gone !== "[]") {
+    await ctx.db.batch([
+      ctx.db.stmt("DELETE FROM message_reactions WHERE message_id IN (SELECT value FROM json_each(?1))", gone),
+      ctx.db.stmt("DELETE FROM messages WHERE id IN (SELECT value FROM json_each(?1))", gone),
+    ]);
+    report.groupMessages = (JSON.parse(gone) as string[]).length;
   }
 
   // Activity log entries older than two years, whole sealed ranges at a time (so the remaining
