@@ -24,6 +24,9 @@ import * as homeViews from "../../../lib/server/views/home";
 import * as account from "../../../lib/server/services/account";
 import * as activity from "../../../lib/server/services/activity";
 import * as messaging from "../../../lib/server/services/messaging";
+import * as live from "../../../lib/server/live";
+import * as groups from "../../../lib/server/services/messaging-groups";
+import { requirePermission } from "../../../lib/server/authz";
 import * as work from "../../../lib/server/services/work";
 import * as mfa from "../../../lib/server/services/mfa";
 import * as health from "../../../lib/server/services/health";
@@ -112,7 +115,7 @@ const oneOf = <T extends string>(i: Input, k: string, allowed: readonly T[]): T 
 };
 const grant = (i: Input) => ({ permission: s(i, "permission"), scope: (opt(i, "scope") ?? "ALL") as Scope, scopeValue: opt(i, "scopeValue") ?? "" });
 
-const UPLOAD_PURPOSES = ["library", "event", "lostfound", "avatar"] as const;
+const UPLOAD_PURPOSES = ["library", "event", "lostfound", "avatar", "group"] as const;
 
 /**
  * Changes to who may do what, and deletions, need the password (or a two-factor code) entered in
@@ -131,6 +134,12 @@ export const procedures: Record<string, Handler> = {
   // ── session & authentication ──
   "session.me": ({ ctx }) => views.sessionMe(ctx),
   "session.counts": ({ ctx }) => community.sessionCounts(ctx),
+  /** A two-minute ticket for the live connection (or "poll" when live updates are off). */
+  "live.ticket": ({ ctx }) => live.issueTicket(ctx),
+  "live.status": async ({ ctx }) => {
+    requirePermission(ctx, "system.health");
+    return ctx.hub ? await ctx.hub.stats() : null;
+  },
   "people.profile": ({ ctx, input }) => profiles.getProfile(ctx, input.handle),
   "members.directory": ({ ctx, input }) => profiles.membersDirectory(ctx, input),
   "auth.login": async ({ ctx, input }) => {
@@ -154,7 +163,7 @@ export const procedures: Record<string, Handler> = {
   // ── own account ──
   "account.view": ({ ctx }) => views.accountView(ctx),
   "account.updateProfile": ({ ctx, input }) => members.updateOwnProfile(ctx, input),
-  "account.setAvatar": ({ ctx, input }) => people.setOwnAvatar(ctx, opt(input, "mediaId") ?? null),
+  "account.setAvatar": ({ ctx, input }) => people.setOwnAvatar(ctx, opt(input, "mediaId") ?? null, opt(input, "cutoutId") ?? null),
   "notifications.list": ({ ctx, input }) => community.myNotifications(ctx, Math.min(n(input, "limit") ?? 30, 100), { unreadOnly: input.unread === true, before: typeof input.before === "string" ? input.before : null }),
   "notifications.markRead": ({ ctx, input }) => community.markNotificationsRead(ctx, Array.isArray(input.ids) ? input.ids.map(String) : "all"),
   "notifications.markUnread": ({ ctx, input }) => community.markNotificationUnread(ctx, s(input, "id")),
@@ -285,6 +294,10 @@ export const procedures: Record<string, Handler> = {
   "events.registrations": ({ ctx, input }) => events.listAllRegistrations(ctx, { q: opt(input, "q"), status: opt(input, "status"), eventId: opt(input, "eventId"), page: n(input, "page") }),
   "events.exportRegistrations": ({ ctx, input }) => events.exportRegistrations(ctx, s(input, "id")),
   "events.removeMedia": ({ ctx, input }) => events.removeEventMedia(ctx, s(input, "eventId"), s(input, "mediaId")),
+  "events.checkIn": ({ ctx, input }) => events.checkInByCode(ctx, input.code, s(input, "eventId")),
+  "events.mine": ({ ctx }) => events.myRegistrations(ctx),
+  "events.agenda": ({ ctx, input }) => events.saveEventAgenda(ctx, s(input, "id"), input.items),
+  "events.duplicate": ({ ctx, input }) => events.duplicateEvent(ctx, s(input, "id")),
 
   // ── posts ──
   "posts.list": ({ ctx, input }) => posts.listPostsAdmin(ctx, { type: opt(input, "type"), status: opt(input, "status"), q: opt(input, "q"), category: opt(input, "category"), page: n(input, "page") }),
@@ -295,6 +308,8 @@ export const procedures: Record<string, Handler> = {
   "posts.archive": ({ ctx, input }) => posts.archivePost(ctx, s(input, "id"), opt(input, "reason") ?? null),
   "posts.restore": ({ ctx, input }) => posts.restorePost(ctx, s(input, "id")),
   "posts.revision": ({ ctx, input }) => posts.getRevision(ctx, s(input, "postId"), s(input, "revisionId")),
+  "posts.reactions": ({ ctx, input }) => posts.postReactions(ctx, s(input, "id")),
+  "posts.react": ({ ctx, input }) => posts.reactToPost(ctx, s(input, "id"), input.emoji ?? null),
   "posts.restoreRevision": ({ ctx, input }) => posts.restoreRevision(ctx, s(input, "postId"), s(input, "revisionId")),
 
   // ── media ──
@@ -322,7 +337,16 @@ export const procedures: Record<string, Handler> = {
   "notifications.broadcast": ({ ctx, input }) => community.broadcast(ctx, { title: s(input, "title"), body: s(input, "body"), link: opt(input, "link"), audience: input.audience === "executives" ? "executives" : "members" }),
   "chat.start": ({ ctx, input }) => messaging.sendToPerson(ctx, input),
   "chat.recipients": ({ ctx, input }) => messaging.searchRecipients(ctx, input.q),
-  "chat.send": ({ ctx, input }) => messaging.sendInThread(ctx, s(input, "conversationId"), input.body, input.clientId),
+  "chat.send": ({ ctx, input }) => messaging.sendInThread(ctx, s(input, "conversationId"), input.body, input.clientId, input.replyTo),
+  "chat.directory": ({ ctx }) => messaging.chatDirectory(ctx),
+  "chat.read": ({ ctx, input }) => messaging.markConversationRead(ctx, s(input, "conversationId")),
+  "chat.react": ({ ctx, input }) => messaging.reactToMessage(ctx, s(input, "id"), input.emoji ?? null),
+  "chat.groupCreate": ({ ctx, input }) => groups.createGroup(ctx, input),
+  "chat.groupUpdate": ({ ctx, input }) => groups.updateGroup(ctx, s(input, "conversationId"), input),
+  "chat.groupAdd": ({ ctx, input }) => groups.addGroupMembers(ctx, s(input, "conversationId"), input.memberIds),
+  "chat.groupRemove": ({ ctx, input }) => groups.removeGroupMember(ctx, s(input, "conversationId"), s(input, "userId")),
+  "chat.groupLeave": ({ ctx, input }) => groups.leaveGroup(ctx, s(input, "conversationId")),
+  "chat.groupDelete": ({ ctx, input }) => groups.deleteGroup(ctx, s(input, "conversationId")),
   "chat.list": ({ ctx, input }) => messaging.myConversations(ctx, { archived: input.archived === true, before: opt(input, "before") ?? null }),
   "chat.home": ({ ctx, input }) => messaging.chatHome(ctx, { archived: input.archived === true, to: opt(input, "to") ?? null }),
   "chat.blocks": ({ ctx }) => messaging.myBlocks(ctx),
@@ -344,15 +368,26 @@ export const procedures: Record<string, Handler> = {
   "activity.feed": ({ ctx, input }) => activity.activityFeed(ctx, { actor: opt(input, "actor"), area: opt(input, "area"), q: opt(input, "q"), from: opt(input, "from"), to: opt(input, "to"), before: opt(input, "before"), request: opt(input, "request") }),
   "tasks.create": ({ ctx, input }) => work.createTask(ctx, input),
   "tasks.update": ({ ctx, input }) => work.updateTask(ctx, s(input, "id"), input),
-  "tasks.comment": ({ ctx, input }) => work.commentOnTask(ctx, s(input, "id"), input.body),
-  "tasks.list": ({ ctx, input }) => work.listTasks(ctx, { view: opt(input, "view"), status: opt(input, "status"), assignee: opt(input, "assignee") }),
+  "tasks.setStatus": ({ ctx, input }) => work.setTaskStatus(ctx, s(input, "id"), input.status, input.boardPosition),
+  "tasks.bulk": ({ ctx, input }) => work.bulkTasks(ctx, input),
+  "tasks.delete": ({ ctx, input }) => work.deleteTask(ctx, s(input, "id")),
+  "tasks.items": ({ ctx, input }) => work.changeTaskItems(ctx, s(input, "id"), input),
+  "tasks.comment": ({ ctx, input }) => work.commentOnTask(ctx, s(input, "id"), input.body, input.mentions),
+  "tasks.commentChange": ({ ctx, input }) => work.changeTaskComment(ctx, s(input, "id"), { body: input.body, delete: input.delete === true }),
+  "tasks.list": ({ ctx, input }) => work.listTasks(ctx, { view: opt(input, "view"), status: opt(input, "status"), assignee: opt(input, "assignee"), page: n(input, "page") }),
   "tasks.get": ({ ctx, input }) => work.taskDetail(ctx, s(input, "id")),
+  "tasks.saveTemplate": ({ ctx, input }) => work.saveTaskTemplate(ctx, input),
+  "tasks.deleteTemplate": ({ ctx, input }) => work.deleteTaskTemplate(ctx, s(input, "id")),
   "meetings.schedule": ({ ctx, input }) => work.scheduleMeeting(ctx, input),
   "meetings.update": ({ ctx, input }) => work.updateMeeting(ctx, s(input, "id"), input),
   "meetings.cancel": ({ ctx, input }) => work.cancelMeeting(ctx, s(input, "id"), input.reason),
-  "meetings.notes": ({ ctx, input }) => work.saveMeetingNotes(ctx, s(input, "id"), input.notes),
+  "meetings.notes": ({ ctx, input }) => work.saveMeetingNotes(ctx, s(input, "id"), input.notes, input.decisions),
+  "meetings.agenda": ({ ctx, input }) => work.saveAgenda(ctx, s(input, "id"), input.items),
+  "meetings.attendance": ({ ctx, input }) => work.saveAttendance(ctx, s(input, "id"), input.attended),
+  "meetings.actionItems": ({ ctx, input }) => work.meetingActionItems(ctx, s(input, "id"), input.items),
   "meetings.respond": ({ ctx, input }) => work.respondToMeeting(ctx, s(input, "id"), input.response),
-  "meetings.list": ({ ctx, input }) => work.listMeetings(ctx, { when: opt(input, "when"), all: input.all === true }),
+  "meetings.conflicts": ({ ctx, input }) => work.meetingConflicts(ctx, input),
+  "meetings.list": ({ ctx, input }) => work.listMeetings(ctx, { when: opt(input, "when"), all: input.all === true, month: opt(input, "month") }),
   "meetings.get": ({ ctx, input }) => work.meetingDetail(ctx, s(input, "id")),
   "system.health": ({ ctx }) => health.systemHealth(ctx),
   "system.switch": ({ ctx, input }) => systemControls.setSwitch(ctx, s(input, "key"), input.on === true),

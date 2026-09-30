@@ -6,6 +6,7 @@
  *   POST /v1/rpc/:procedure        everything else, from the Next.js server only (API key
  *                                  + optional user session as a bearer token)
  *   POST /v1/upload                browser → Worker file upload with a short-lived signed token
+ *   GET  /v1/live                  browser WebSocket to the live hub (signed two-minute ticket)
  *   GET  /media/<key>              R2 objects: public ones cached for a year, private ones
  *                                  only with a valid expiring signature
  *   cron (hourly)                  housekeeping
@@ -17,7 +18,7 @@ import { AppError, AuthRequiredError, ValidationError } from "../../../lib/serve
 import { readCommittees, readContests, readEvent, readEvents, readForm, readPost, readPosts, readSetting, readSitemap } from "../../../lib/public/read";
 import type { VariantName } from "../../../lib/media/bytes";
 import { forgetMediaLookup, resolveMediaAccess, uploadMedia, uploadsOpen, MAX_BYTES_PER_REQUEST } from "../../../lib/server/services/media";
-import { recordHeartbeat, runMaintenance } from "../../../lib/server/services/maintenance";
+import { recordHeartbeat, runDailyHousekeeping, runMaintenance } from "../../../lib/server/services/maintenance";
 import { remindStaleApprovals } from "../../../lib/server/services/approvals";
 import { runRetention } from "../../../lib/server/services/retention";
 import { sealAuditLog } from "../../../lib/server/services/audit-seal";
@@ -31,10 +32,14 @@ import { allowedOrigins, corsHeaders, errorResponse, json, notFound, safeEqual, 
 import { allow, clientIp, EDGE_LIMITS, tooMany } from "./guard";
 import { beginIdempotent, isIdempotent } from "../../../lib/server/idempotency";
 import { limit } from "../../../lib/server/limits";
-import { flushOutbox } from "../../../lib/server/email-outbox";
+import { flushOutbox, sendDigests } from "../../../lib/server/email-outbox";
 import { procedures, STEP_UP } from "./rpc";
 import { requireRecentAuth } from "../../../lib/server/security";
 import { API_VERSION } from "../../../lib/version";
+import { emitLive, handleLiveConnect } from "./live";
+
+/** The live hub's Durable Object class (wrangler.jsonc "exports"). */
+export { LiveHub } from "./live-hub";
 
 const VARIANTS: VariantName[] = ["master", "lg", "md", "sm", "thumb"];
 /** The daily cron in wrangler.jsonc (data retention and media lifecycle); the other one is hourly. */
@@ -110,7 +115,7 @@ async function recordError(env: Env, e: { requestId: string; procedure: string; 
 }
 
 /** Frequent checks answered from the session alone (see buildCtx `light`). */
-const LIGHT_PROCEDURES = new Set(["session.counts", "chat.pulse", "notifications.seenPath"]);
+const LIGHT_PROCEDURES = new Set(["session.counts", "chat.pulse", "notifications.seenPath", "live.ticket", "posts.reactions"]);
 
 async function handleRpc(env: Env, req: Request, name: string, ectx: ExecutionContext): Promise<Response> {
   const requestId = req.headers.get("x-request-id")?.slice(0, 64) || crypto.randomUUID();
@@ -155,6 +160,8 @@ async function handleRpc(env: Env, req: Request, name: string, ectx: ExecutionCo
     // Public pages that changed are also refreshed from here, so an update never depends on the
     // website's own refresh call alone getting through.
     if (tags.size) background(ectx, pingRevalidate(env, new Set(tags)));
+    // Open tabs hear about it now; only for work that really happened.
+    if (ctx.live?.length) background(ectx, emitLive(env, ctx.live.splice(0)));
     return json({ ok: true, data: data ?? null, revalidate: [...tags] });
   } catch (e) {
     if (statusOf(e) >= 500) background(ectx, recordError(env, { requestId, procedure: name, error: e, actorId }));
@@ -212,6 +219,7 @@ async function handleUpload(env: Env, req: Request, ectx: ExecutionContext): Pro
     // Browsers upload here directly, so no server action refreshes the pages: do it from here.
     if (tags.size) background(ectx, pingRevalidate(env, tags));
     if (ctx.outbox?.length) background(ectx, flushOutbox(ctx));
+    if (ctx.live?.length) background(ectx, emitLive(env, ctx.live.splice(0)));
     return json({ ok: true, data: record }, { headers: cors });
   } catch (e) {
     return errorResponse(e, requestId, cors);
@@ -299,6 +307,10 @@ export default {
         if (!allow(`m:${clientIp(req)}`, EDGE_LIMITS.media * edge)) return tooMany();
         return handleMedia(env, req, url);
       }
+      if (path === "/v1/live" && req.method === "GET") {
+        if (!allow(`l:${clientIp(req)}`, EDGE_LIMITS.live * edge)) return tooMany();
+        return handleLiveConnect(env, req);
+      }
       if (path === "/v1/upload" && (req.method === "POST" || req.method === "OPTIONS")) {
         if (req.method === "POST" && !allow(`u:${clientIp(req)}`, EDGE_LIMITS.upload * edge)) return tooMany();
         return handleUpload(env, req, ectx);
@@ -328,8 +340,10 @@ export default {
         (async () => {
           const { ctx: c } = await buildCtx(env, new Request("https://cron.internal/daily"), { trusted: false });
           try {
-            const report = await runRetention(c);
+            const report = { ...(await runRetention(c)), housekeeping: await runDailyHousekeeping(c) };
             await recordHeartbeat(c, "retention", true, report);
+            await flushOutbox(c);
+            if (c.live?.length) await emitLive(env, c.live.splice(0));
             console.log("retention", JSON.stringify(report));
           } catch (e) {
             await recordHeartbeat(c, "retention", false, { error: (e instanceof Error ? e.message : "failed").slice(0, 200) }).catch(() => undefined);
@@ -365,6 +379,10 @@ export default {
           // A guard that didn't run means uploads wouldn't pause near the free limit: System health shows the run as failed.
           await recordHeartbeat(c, "maintenance", !guardFailed, { ...report, auditSealed: seal.sealed, guard, ...(guardFailed ? { error: "The free-tier guard failed; see the Worker log." } : {}) });
           await flushOutbox(c);
+          // One email per person for what's still unread (roles, tasks, events, messages).
+          report = { ...report, digests: await sendDigests(c) };
+          // Reminders and other notices written by this run reach open tabs at once.
+          if (c.live?.length) await emitLive(env, c.live.splice(0));
         } catch (e) {
           // Only the error's message is kept: no request data or secrets.
           await recordHeartbeat(c, "maintenance", false, { error: (e instanceof Error ? e.message : "failed").slice(0, 200) }).catch(() => undefined);

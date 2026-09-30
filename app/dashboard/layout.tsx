@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { requireSignedIn } from "@/lib/api/session";
 import { AdminNav, AdminNavMobile } from "./nav";
 import { SeenOnOpen } from "@/components/dashboard/seen-on-open";
+import { LiveToaster } from "@/components/dashboard/live-toaster";
 import { FlashMessage } from "@/components/admin/flash";
 import { API_VERSION } from "@/lib/version";
 
@@ -89,7 +90,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <Suspense fallback={<div className="h-14 lg:hidden" />}>
           <AdminNavMobile groups={visible} counts={counts} who={titles.length > 0 ? `${who} · ${titles.slice(0, 2).join(", ")}` : who} />
         </Suspense>
-        <aside className="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:w-60 lg:shrink-0 lg:overflow-y-auto">
+        <aside className="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100dvh-6rem)] lg:w-60 lg:shrink-0 lg:overflow-y-auto">
           <div className="mb-3">
             <Link prefetch={false} href="/dashboard" className="text-lg font-bold">GUCC Dashboard</Link>
             <p className="mt-1 truncate text-xs text-muted-foreground" title={who}>
@@ -122,6 +123,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <FlashMessage />
         <Suspense fallback={null}>
           <SeenOnOpen seed={counts} />
+          <LiveToaster meId={session.user.id} />
         </Suspense>
       </div>
     </div>

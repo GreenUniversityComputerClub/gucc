@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { liveStatus, onLive, startLive } from "./live-client";
 
 /** The badges: unread notifications, unread conversations, open tasks. */
 export interface LiveCounts {
@@ -47,23 +48,44 @@ export function adjustCounts(delta: Partial<LiveCounts>) {
   });
 }
 
-const POLL_MS = 120_000;
+const POLL_MS = 90_000;
 let pollers = 0;
 let stopPolling: (() => void) | null = null;
 
-/** While any page asks for it: every 2 minutes, and whenever the tab comes back into view. */
+/**
+ * While any dashboard page asks for it: the live connection pushes changes (a notification adds
+ * one at once; a message or a read elsewhere re-counts, debounced). Without a live connection
+ * (switched off, blocked network) the badges are re-counted every 90 seconds instead, and always
+ * when the tab comes back into view.
+ */
 function startPolling() {
   pollers++;
   if (pollers > 1) return;
+  let debounce: ReturnType<typeof setTimeout> | undefined;
+  const soon = () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => void refreshCounts(), 1200);
+  };
   const onVisible = () => {
     if (!document.hidden) void refreshCounts();
   };
   const timer = setInterval(() => {
-    if (!document.hidden) void refreshCounts();
+    if (!document.hidden && liveStatus() !== "live") void refreshCounts();
   }, POLL_MS);
+  const offs = [
+    startLive(),
+    onLive("ntf", () => adjustCounts({ unread: 1 })),
+    onLive("msg", soon),
+    onLive("read", soon),
+    onLive("sync", soon),
+    onLive("resync", soon),
+    onLive("task", soon),
+  ];
   document.addEventListener("visibilitychange", onVisible);
   stopPolling = () => {
     clearInterval(timer);
+    clearTimeout(debounce);
+    offs.forEach((off) => off());
     document.removeEventListener("visibilitychange", onVisible);
   };
 }

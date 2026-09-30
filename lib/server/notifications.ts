@@ -7,6 +7,7 @@ import type { Ctx } from "./context";
 import { newId, nowIso, type D1StatementLike } from "./db";
 import { GOVERNING_UNIT_SQL } from "./authz";
 import { MODERATOR_EQUAL_POSITIONS } from "../governance/engine";
+import { emit } from "./live";
 
 export interface NotificationInput {
   type: string;
@@ -36,6 +37,8 @@ export function notifyStmts(ctx: Ctx, userIds: string[], n: NotificationInput): 
   // (and only those that exist) are emailed to people who want them.
   const rows = unique.map((u) => ({ id: newId("ntf"), u }));
   ctx.outbox?.push(...rows.map((r) => r.id));
+  // Open tabs show it at once. One event per person keeps each one's id (for "mark read").
+  for (const r of rows) emit(ctx, [r.u], { t: "ntf", n: { id: r.id, type: n.type, title: n.title.slice(0, 200), body: n.body?.slice(0, 300) ?? null, link: n.link ?? null } });
   return [
     ctx.db.stmt(
       `INSERT INTO notifications (id, user_id, type, title, body, link, resource_type, resource_id, channel, created_at, actor_user_id)
@@ -51,6 +54,7 @@ export function notifyEachStmts(ctx: Ctx, items: Array<NotificationInput & { use
   const list = items.filter((i) => i.userId).map((n) => ({ ...n, id: newId("ntf") }));
   if (list.length === 0) return [];
   ctx.outbox?.push(...list.map((n) => n.id));
+  for (const n of list) emit(ctx, [n.userId], { t: "ntf", n: { id: n.id, type: n.type, title: n.title.slice(0, 200), body: n.body?.slice(0, 300) ?? null, link: n.link ?? null } });
   return [
     ctx.db.stmt(
       `INSERT INTO notifications (id, user_id, type, title, body, link, resource_type, resource_id, channel, created_at, actor_user_id)

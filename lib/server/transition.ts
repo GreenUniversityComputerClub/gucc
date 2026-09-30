@@ -51,7 +51,7 @@ export async function alreadyDone(ctx: Ctx, table: "users" | "posts" | "events",
 }
 
 /** Tables whose edit forms send back the `updated_at` they loaded (optimistic locking). */
-export type StampedTable = "posts" | "events" | "profiles" | "positions" | "roles" | "rules" | "committees" | "committee_members" | "system_settings" | "organization_settings";
+export type StampedTable = "posts" | "events" | "profiles" | "positions" | "roles" | "rules" | "committees" | "committee_members" | "system_settings" | "organization_settings" | "tasks" | "meetings";
 const KEY_COLUMN: Partial<Record<StampedTable, string>> = { system_settings: "key", organization_settings: "key" };
 
 function staleError(row: { updated_at: string; name: string | null }): AppError {

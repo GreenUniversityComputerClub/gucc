@@ -7,9 +7,10 @@ import { CheckCheck, Circle, MailOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PersonAvatar } from "@/components/person-avatar";
 import { adjustCounts } from "@/lib/api/live-counts";
+import { useLive } from "@/lib/api/live-client";
 import { dhakaDateTime, relativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import { markAllSeenAction, markSeenAction, markUnreadAction } from "../live-actions";
+import { latestNotificationsAction, markAllSeenAction, markSeenAction, markUnreadAction } from "../live-actions";
 
 export interface NotificationRow {
   id: string;
@@ -32,8 +33,10 @@ const BATCH_MS = 600;
  * batches, one small call), the badge updates at once and nothing reloads; rows stay where they
  * are until the next visit. "Mark unread" undoes it. Opening a notification goes to its page.
  */
-export function NotificationList({ rows, emptyText }: { rows: NotificationRow[]; emptyText: string }) {
-  const [read, setRead] = useState<Record<string, boolean>>(() => Object.fromEntries(rows.map((r) => [r.id, Boolean(r.read_at)])));
+export function NotificationList({ rows: initial, emptyText, live }: { rows: NotificationRow[]; emptyText: string; live?: { unreadOnly: boolean } }) {
+  const [rows, setRows] = useState(initial);
+  const [fresh, setFresh] = useState<Set<string>>(() => new Set());
+  const [read, setRead] = useState<Record<string, boolean>>(() => Object.fromEntries(initial.map((r) => [r.id, Boolean(r.read_at)])));
   const [failed, setFailed] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const queue = useRef(new Set<string>());
@@ -46,6 +49,26 @@ export function NotificationList({ rows, emptyText }: { rows: NotificationRow[];
     const t = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(t);
   }, []);
+
+  // On the newest page, notifications that arrive while it's open slide in at the top.
+  const pulling = useRef(false);
+  const pull = useCallback(async () => {
+    if (!live || pulling.current) return;
+    pulling.current = true;
+    const latest = await latestNotificationsAction(live.unreadOnly).catch(() => null);
+    pulling.current = false;
+    if (!latest) return;
+    setRows((cur) => {
+      const known = new Set(cur.map((r) => r.id));
+      const added = latest.filter((r) => !known.has(r.id));
+      if (!added.length) return cur;
+      setFresh((f) => new Set([...f, ...added.map((r) => r.id)]));
+      setRead((r) => ({ ...Object.fromEntries(added.map((a) => [a.id, Boolean(a.read_at)])), ...r }));
+      return [...added, ...cur];
+    });
+  }, [live]);
+  useLive("ntf", () => void pull());
+  useLive("resync", () => void pull());
 
   const flush = useCallback(() => {
     flushTimer.current = null;
@@ -94,6 +117,7 @@ export function NotificationList({ rows, emptyText }: { rows: NotificationRow[];
       }
     }, { threshold: [0, 0.6, 1] });
     list.current?.querySelectorAll<HTMLElement>('li[data-unread="1"]').forEach((el) => observer.observe(el));
+    // Re-observed whenever new rows arrive.
     return () => {
       observer.disconnect();
       timers.forEach((t) => clearTimeout(t));
@@ -103,7 +127,7 @@ export function NotificationList({ rows, emptyText }: { rows: NotificationRow[];
         flush();
       }
     };
-  }, [markSeen, flush]);
+  }, [markSeen, flush, rows.length]);
 
   async function markAll() {
     const ids = rows.filter((r) => !read[r.id]).map((r) => r.id);
@@ -126,7 +150,7 @@ export function NotificationList({ rows, emptyText }: { rows: NotificationRow[];
     }
   }
 
-  if (rows.length === 0) return <p className="py-6 text-center text-sm text-muted-foreground">{emptyText}</p>;
+  if (rows.length === 0) return <p className="py-6 text-center text-sm text-muted-foreground" aria-live="polite">{emptyText}</p>;
 
   return (
     <div>
@@ -141,13 +165,13 @@ export function NotificationList({ rows, emptyText }: { rows: NotificationRow[];
         )}
       </div>
       {failed && <p role="alert" className="mb-2 text-xs text-destructive">Couldn&apos;t save that just now. It will be tried again next time.</p>}
-      <ul ref={list} className="divide-y">
+      <ul ref={list} className="divide-y" aria-live="polite" aria-relevant="additions">
         {rows.map((n) => {
           const isRead = read[n.id];
           const href = n.link ? `/dashboard/notifications/open/${n.id}?to=${encodeURIComponent(n.link)}` : null;
           return (
             <li key={n.id} data-id={n.id} data-unread={isRead ? "0" : "1"}
-              className={cn("group flex items-start gap-3 py-3 pl-1 pr-1 transition-colors sm:pl-2", !isRead && "bg-primary/[0.04]")}>
+              className={cn("group flex items-start gap-3 py-3 pl-1 pr-1 transition-colors sm:pl-2", !isRead && "bg-primary/[0.04]", fresh.has(n.id) && "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 motion-safe:duration-300")}>
               <span className="mt-1.5 flex h-2 w-2 shrink-0 items-center justify-center" aria-hidden>
                 {!isRead && <Circle className="h-2 w-2 fill-primary text-primary" />}
               </span>

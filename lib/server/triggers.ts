@@ -21,6 +21,8 @@ export const TRIGGER_EVENTS = {
   "member.pending": "A membership application arrives",
   "application.submitted": "A recruitment application arrives",
   "message.received": "A contact message arrives",
+  "task.completed": "A task is marked done",
+  "meeting.scheduled": "A meeting is scheduled",
 } as const;
 export type TriggerEvent = keyof typeof TRIGGER_EVENTS;
 

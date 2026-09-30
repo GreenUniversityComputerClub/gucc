@@ -4,6 +4,7 @@
  */
 import type { Rule, Subject } from "../governance/types";
 import type { Db } from "./db";
+import type { HubClient, LiveItem } from "./live";
 
 export interface RequestMeta {
   requestId: string;
@@ -100,6 +101,10 @@ export interface Ctx {
    * written are emailed (lib/server/email-outbox.ts). Absent where nothing flushes it.
    */
   outbox?: string[];
+  /** Live events this request produces (lib/server/live.ts); pushed to open tabs after it succeeds. */
+  live?: LiveItem[];
+  /** The live hub, where the Worker has one. */
+  hub?: HubClient;
 }
 
 /**

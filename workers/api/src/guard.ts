@@ -26,7 +26,8 @@ export function allow(key: string, limit: number, windowMs = 60_000, now = Date.
 }
 
 /** Per-minute limits for the routes browsers call directly. */
-export const EDGE_LIMITS = { media: 300, health: 30, upload: 30 } as const;
+/** `live`: a tab reconnects every half hour, or after a dropped connection with growing waits. */
+export const EDGE_LIMITS = { media: 300, health: 30, upload: 30, live: 20 } as const;
 
 export function clientIp(req: Request): string {
   return req.headers.get("cf-connecting-ip") ?? "unknown";

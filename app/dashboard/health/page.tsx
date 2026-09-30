@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { requireSignedIn, view } from "@/lib/api/session";
+import { requireSignedIn, rpc, view } from "@/lib/api/session";
+import type { HubStats } from "@/lib/server/live";
 import type { HealthStatus, systemHealth, UsageRow } from "@/lib/server/services/health";
 import { ActionForm, PageHeader, Section } from "@/components/admin/ui";
 import { switchAction, testEmailAction } from "../actions";
@@ -71,7 +72,8 @@ function Switch({ label, on, keyName, controls, extra, canTurnOn = true }: { lab
 
 export default async function HealthPage() {
   await requireSignedIn("/dashboard/health");
-  const h = await view<Health>("system.health", {}, "/dashboard/health");
+  const [h, hubResult] = await Promise.all([view<Health>("system.health", {}, "/dashboard/health"), rpc<HubStats | null>("live.status")]);
+  const hub = hubResult.ok ? hubResult.data : null;
   const checks = h.checks ?? [];
   const worst = (["ERROR", "WARNING", "UNKNOWN"] as const).find((s) => checks.some((c) => c.status === s)) ?? "HEALTHY";
   const controls = h.controls ?? { uploadsEnabled: true, emailEnabled: false, canSwitchOff: false, canSwitchOn: false, canTestEmail: false };
@@ -101,6 +103,20 @@ export default async function HealthPage() {
           <ul className="divide-y">{h.usage.map((r) => <UsageLine key={r.key} row={r} />)}</ul>
         </Section>
       )}
+
+      <Section title="Live updates" description="Open dashboard tabs get messages, notifications and active status through one connection each. At 80% of the free daily allowance the hub rests until midnight UTC and pages check on a timer instead.">
+        {hub ? (
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg bg-muted/50 p-3"><p className="text-2xl font-semibold tabular-nums">{hub.connections}</p><p className="text-xs text-muted-foreground">Open connections ({hub.people} {hub.people === 1 ? "person" : "people"})</p></div>
+            <div className="rounded-lg bg-muted/50 p-3">
+              <p className="text-2xl font-semibold tabular-nums">{hub.requestsToday.toLocaleString("en-US")}</p>
+              <p className="text-xs text-muted-foreground">Hub requests today, of {hub.cap.toLocaleString("en-US")}</p>
+              <div className="mt-2 h-1.5 rounded-full bg-muted"><div className={cn("h-1.5 rounded-full", hub.requestsToday / Math.max(1, hub.cap) > 0.8 ? "bg-destructive" : "bg-primary")} style={{ width: `${Math.min(100, (hub.requestsToday / Math.max(1, hub.cap)) * 100)}%` }} /></div>
+            </div>
+            <div className="rounded-lg bg-muted/50 p-3"><p className={cn("text-lg font-semibold", hub.paused ? "text-amber-600" : "text-emerald-600")}>{hub.paused ? "Resting" : "Live"}</p><p className="text-xs text-muted-foreground">{hub.paused ? "Pages check for news every minute or so until midnight UTC." : "Changes reach open tabs at once."}</p></div>
+          </div>
+        ) : <p className="text-sm text-muted-foreground">The live hub isn&apos;t configured on this API (or it is older than this website). Pages check for news on a timer.</p>}
+      </Section>
 
       <Section title="Switches" description="Anyone who can see this page can switch uploads or email off at once. Switching back on is a Moderator's decision.">
         <div className="divide-y">

@@ -3,6 +3,8 @@ export interface Env {
   DB: D1Database;
   MEDIA_PUBLIC: R2Bucket;
   MEDIA_PRIVATE: R2Bucket;
+  /** The live hub (live-hub.ts). Optional: without it pages check for news on a timer. */
+  LIVE?: DurableObjectNamespace;
   APP_ENV: string;
   /** The Vercel frontend's public origin, used in emailed links. */
   PUBLIC_BASE_URL: string;

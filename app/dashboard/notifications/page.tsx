@@ -26,7 +26,8 @@ export default async function NotificationsAdmin({ searchParams }: { searchParam
     <>
       <PageHeader title="Notifications" description="Updates about your membership, approvals, events and messages. Notifications you look at, or whose page you open, are marked read by themselves." />
       <Section title="Yours" actions={<nav className="flex gap-1" aria-label="Show">{tabLink("unread", `Unread${unread ? ` (${unread})` : ""}`)}{tabLink("all", "All")}</nav>}>
-        <NotificationList key={`${tab}:${sp.before ?? ""}`} rows={rows as NotificationRow[]} emptyText={tab === "unread" ? "You're all caught up." : "Nothing yet."} />
+        <NotificationList key={`${tab}:${sp.before ?? ""}`} rows={rows as NotificationRow[]} emptyText={tab === "unread" ? "You're all caught up." : "Nothing yet."}
+          live={sp.before ? undefined : { unreadOnly: tab === "unread" }} />
         {(sp.before || next) && (
           <div className="mt-3 flex gap-3 text-sm">
             {sp.before && <Link href={tab === "all" ? "/dashboard/notifications?tab=all" : "/dashboard/notifications"} className="underline">Newest</Link>}

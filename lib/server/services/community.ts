@@ -11,6 +11,7 @@ import { AppError, AuthRequiredError, ConflictError, ForbiddenError, NotFoundErr
 import { avatarOfUserSql, avatarUrl } from "../avatar";
 import { getOrgSetting } from "../security";
 import { notifyStmts, usersWithPermission } from "../notifications";
+import { emit } from "../live";
 import { sendToPerson } from "./messaging";
 import { toSlug, Validator } from "../validate";
 import { TAGS } from "./cache-tags";
@@ -376,14 +377,17 @@ export async function myNotifications(ctx: Ctx, limit = 30, opts: { unreadOnly?:
 export async function markNotificationsRead(ctx: Ctx, ids: string[] | "all") {
   const actor = requireActor(ctx);
   const now = nowIso();
-  if (ids === "all") await ctx.db.run("UPDATE notifications SET read_at = ?2 WHERE user_id = ?1 AND read_at IS NULL", actor.user.id, now);
-  else await ctx.db.run("UPDATE notifications SET read_at = ?3 WHERE user_id = ?2 AND read_at IS NULL AND id IN (SELECT value FROM json_each(?1))", JSON.stringify(ids.slice(0, 100)), actor.user.id, now);
+  const n = ids === "all"
+    ? await ctx.db.run("UPDATE notifications SET read_at = ?2 WHERE user_id = ?1 AND read_at IS NULL", actor.user.id, now)
+    : await ctx.db.run("UPDATE notifications SET read_at = ?3 WHERE user_id = ?2 AND read_at IS NULL AND id IN (SELECT value FROM json_each(?1))", JSON.stringify(ids.slice(0, 100)), actor.user.id, now);
+  // Your other tabs and devices update their badges.
+  if (n) emit(ctx, [actor.user.id], { t: "sync" });
 }
 
 /** Undo: back to unread (your own notifications only). */
 export async function markNotificationUnread(ctx: Ctx, id: string): Promise<void> {
   const actor = requireActor(ctx);
-  await ctx.db.run("UPDATE notifications SET read_at = NULL WHERE id = ?1 AND user_id = ?2", id, actor.user.id);
+  if (await ctx.db.run("UPDATE notifications SET read_at = NULL WHERE id = ?1 AND user_id = ?2", id, actor.user.id)) emit(ctx, [actor.user.id], { t: "sync" });
 }
 
 /** The signed-in account from the session alone (light procedures skip loading permissions). */
@@ -405,6 +409,7 @@ export async function markSeenAtPath(ctx: Ctx, rawPath: unknown): Promise<{ clea
   // The page with or without its query ("/dashboard/members?status=…" and "/dashboard/tasks/…").
   const bare = path.split("?")[0]!;
   const cleared = await ctx.db.run("UPDATE notifications SET read_at = ?4 WHERE user_id = ?1 AND read_at IS NULL AND link IN (?2, ?3)", userId, path, bare, nowIso());
+  if (cleared) emit(ctx, [userId], { t: "sync" });
   return { cleared };
 }
 
@@ -418,7 +423,7 @@ export async function sessionCounts(ctx: Ctx): Promise<{ unread: number; unreadM
     `SELECT (SELECT COUNT(*) FROM notifications WHERE user_id = ?1 AND read_at IS NULL) AS unread,
             (SELECT COUNT(*) FROM tasks WHERE assignee_user_id = ?1 AND deleted_at IS NULL AND status IN ('OPEN','IN_PROGRESS')) AS tasks,
             (SELECT COUNT(*) FROM conversation_members me JOIN conversations c ON c.id = me.conversation_id
-              WHERE me.user_id = ?1 AND me.archived_at IS NULL AND me.muted = 0 AND c.last_message_at > COALESCE(me.last_read_at, '')) AS messages`, userId);
+              WHERE me.user_id = ?1 AND me.archived_at IS NULL AND me.left_at IS NULL AND me.muted = 0 AND c.last_message_at > COALESCE(me.last_read_at, '')) AS messages`, userId);
   return { unread: r?.unread ?? 0, unreadMessages: r?.messages ?? 0, openTasks: r?.tasks ?? 0 };
 }
 

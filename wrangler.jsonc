@@ -9,7 +9,8 @@
  *   env.staging   staging      gucc-api-staging.<account>.workers.dev
  *   env.production production  gucc-api.<account>.workers.dev (or api.<domain>)
  *
- * Bindings are NOT inherited by environments, so every block repeats them.
+ * Bindings are NOT inherited by environments, so every block repeats them (D1, R2 and the
+ * live hub's Durable Object).
  * Database IDs and bucket names are not secrets. Secrets are set with
  * `wrangler secret put <NAME> --env <env>` (API_SHARED_SECRET, AUTH_SECRET,
  * PASSWORD_PEPPER, TURNSTILE_SECRET_KEY, SMTP2GO_API_KEY, GOOGLE_API_KEY).
@@ -44,6 +45,10 @@
     { "binding": "MEDIA_PUBLIC", "bucket_name": "gucc-media-public-dev" },
     { "binding": "MEDIA_PRIVATE", "bucket_name": "gucc-media-private-dev" }
   ],
+  // The live hub (workers/api/src/live-hub.ts): one SQLite-backed Durable Object, available on
+  // Workers Free. It caps itself at 80% of the free 100,000 requests a day, then pages poll.
+  "durable_objects": { "bindings": [{ "name": "LIVE", "class_name": "LiveHub" }] },
+  "exports": { "LiveHub": { "type": "durable-object", "storage": "sqlite" } },
 
   "env": {
     "staging": {
@@ -66,7 +71,9 @@
       "r2_buckets": [
         { "binding": "MEDIA_PUBLIC", "bucket_name": "gucc-media-public-staging" },
         { "binding": "MEDIA_PRIVATE", "bucket_name": "gucc-media-private-staging" }
-      ]
+      ],
+      "durable_objects": { "bindings": [{ "name": "LIVE", "class_name": "LiveHub" }] },
+      "exports": { "LiveHub": { "type": "durable-object", "storage": "sqlite" } }
     },
 
     "production": {
@@ -96,7 +103,9 @@
       "r2_buckets": [
         { "binding": "MEDIA_PUBLIC", "bucket_name": "gucc-media-public-production" },
         { "binding": "MEDIA_PRIVATE", "bucket_name": "gucc-media-private-production" }
-      ]
+      ],
+      "durable_objects": { "bindings": [{ "name": "LIVE", "class_name": "LiveHub" }] },
+      "exports": { "LiveHub": { "type": "durable-object", "storage": "sqlite" } }
     }
   }
 }

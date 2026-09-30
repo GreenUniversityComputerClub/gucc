@@ -34,10 +34,14 @@ export const LIMITS = {
   "media.upload": { limit: 60, windowSeconds: 3600, label: "Uploads per account, hour" },
   "media.upload.applicant": { limit: 15, windowSeconds: 3600, label: "Application files per address, hour" },
   "media.upload.lostfound": { limit: 10, windowSeconds: 86_400, label: "Lost & found photos per account, day" },
-  "media.upload.avatar": { limit: 10, windowSeconds: 86_400, label: "Profile photos per account, day" },
+  // A profile photo with its background removed is two uploads (the photo and its cut-out).
+  "media.upload.avatar": { limit: 20, windowSeconds: 86_400, label: "Profile and group photos per account, day (a photo with its background removed counts twice)" },
   // Members' everyday actions: moderate.
   "chat.send": { limit: 30, windowSeconds: 600, label: "Messages per account, 10 minutes" },
   "chat.newConversation": { limit: 10, windowSeconds: 86_400, label: "New conversations per account, day" },
+  "chat.react": { limit: 120, windowSeconds: 600, label: "Message reactions per account, 10 minutes" },
+  "chat.newGroup": { limit: 3, windowSeconds: 86_400, label: "New group conversations per account, day" },
+  "chat.groupEdit": { limit: 30, windowSeconds: 3600, label: "Group changes (name, photo, members) per account, hour" },
   "report": { limit: 10, windowSeconds: 3600, label: "Reports per account, hour" },
   "lostfound.post": { limit: 10, windowSeconds: 86_400, label: "Lost & found posts per account, day" },
   "content.create": { limit: 10, windowSeconds: 86_400, label: "New posts and events per member, day" },

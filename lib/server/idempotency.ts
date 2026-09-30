@@ -20,11 +20,11 @@ const READ = /^(session\.me|views\..+|.+\.(list|get|search|view|feed|related|mat
 const NEVER = new Set([
   "auth.login", "auth.mfaVerify", "auth.logout", "auth.register", "auth.resendVerification", "auth.verifyEmail", "auth.confirmEmailChange", "auth.requestPasswordReset", "auth.resetPassword",
   "auth.changePassword", "auth.acceptInvite", "account.reauth", "account.mfaStart", "account.mfaConfirm", "account.mfaDisable", "account.mfaRecoveryCodes", "account.mfaReplaceStart", "account.mfaReplaceConfirm",
-  "members.resetLink", "people.invite", "media.uploadToken", "recruitment.uploadToken", "assistant.chat", "chat.send", "chat.start", "notifications.markRead", "notifications.markUnread", "notifications.seenPath", "notifications.open",
+  "members.resetLink", "people.invite", "media.uploadToken", "recruitment.uploadToken", "assistant.chat", "chat.send", "chat.start", "notifications.markRead", "notifications.markUnread", "notifications.seenPath", "notifications.open", "live.ticket",
   "audit.verify", "email.test",
   // Toggles: switching on, off and on again within seconds is deliberate, not a double click (the
   // forms disable while they run, and each change is guarded or idempotent in its service).
-  "chat.state", "chat.block", "system.switch", "executives.move", "rules.setStatus", "roles.setGrant", "positions.setGrant",
+  "chat.state", "chat.block", "chat.react", "chat.read", "tasks.setStatus", "tasks.items", "meetings.respond", "meetings.attendance", "meetings.conflicts", "events.checkIn", "events.mine", "posts.react", "posts.reactions", "system.switch", "executives.move", "rules.setStatus", "roles.setGrant", "positions.setGrant",
 ]);
 
 export function isIdempotent(procedure: string): boolean {

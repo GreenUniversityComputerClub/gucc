@@ -9,6 +9,7 @@ import { hashIp } from "../../../lib/server/crypto";
 import { Db } from "../../../lib/server/db";
 import { resolveSessionInfo } from "../../../lib/server/services/auth";
 import type { Env } from "./env";
+import { hubClient } from "./live";
 
 export interface BuiltCtx {
   ctx: Ctx;
@@ -54,6 +55,8 @@ export async function buildCtx(env: Env, req: Request, opts: { trusted: boolean;
     media: { public: env.MEDIA_PUBLIC as never, private: env.MEDIA_PRIVATE as never },
     revalidate: (t) => t.forEach((x) => tags.add(x)),
     outbox: [],
+    live: [],
+    hub: hubClient(env),
   };
   const session = !opts.userId && opts.sessionToken ? await resolveSessionInfo(ctx, opts.sessionToken) : null;
   if (session) ctx.session = session;

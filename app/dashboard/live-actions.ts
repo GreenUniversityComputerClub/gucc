@@ -1,6 +1,7 @@
 "use server";
 
 import { rpc } from "@/lib/api/session";
+import type { NotificationRow } from "./notifications/list";
 
 /**
  * Small, frequent calls from dashboard pages: no page refresh and no cache work, so they stay
@@ -27,4 +28,10 @@ export async function markUnreadAction(id: string): Promise<boolean> {
 export async function markAllSeenAction(): Promise<boolean> {
   const r = await rpc("notifications.markRead", { ids: "all" });
   return r.ok;
+}
+
+/** The newest notifications, for the list when a new one arrives live (no page reload). */
+export async function latestNotificationsAction(unreadOnly: boolean): Promise<NotificationRow[] | null> {
+  const r = await rpc<{ rows: NotificationRow[] }>("notifications.list", { limit: 30, unread: unreadOnly });
+  return r.ok && Array.isArray(r.data.rows) ? r.data.rows : null;
 }
