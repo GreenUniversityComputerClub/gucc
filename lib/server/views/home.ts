@@ -8,6 +8,7 @@ import type { Ctx } from "../context";
 import { nowIso } from "../db";
 import { emailEnabled } from "../email";
 import { activityFeed } from "../services/activity";
+import { checkInCode } from "../services/events";
 import { isContentReviewer, listApprovals } from "../services/approvals";
 
 type Row = Record<string, unknown>;
@@ -49,7 +50,10 @@ export async function homeView(ctx: Ctx) {
     ctx.db.stmt(
       `SELECT r.id, r.status, e.title, e.slug, e.start_at FROM event_registrations r
        JOIN events e ON e.id = r.event_id AND e.deleted_at IS NULL AND e.status IN ('PUBLISHED','ONGOING')
-       WHERE r.user_id = ?1 AND r.status IN ('REGISTERED','WAITLISTED') AND (e.start_at IS NULL OR e.start_at > ?2) ORDER BY e.start_at LIMIT 5`, uid, now),
+       WHERE r.user_id = ?1 AND r.status IN ('REGISTERED','WAITLISTED','ATTENDED')
+         -- Kept until the event ends (the check-in code is needed at the door).
+         AND ((e.end_at IS NOT NULL AND e.end_at > ?2) OR (e.end_at IS NULL AND (e.start_at IS NULL OR e.start_at > ?3))) ORDER BY e.start_at LIMIT 5`,
+      uid, now, new Date(Date.now() - 12 * 3600_000).toISOString()),
     ctx.db.stmt(
       // Only the figures this person's sections show are counted (a CASE branch not taken isn't
       // run), so the page stays cheap on the free plan's daily row reads for ordinary members.
@@ -101,7 +105,10 @@ export async function homeView(ctx: Ctx) {
     myRequests: requests.results ?? [],
     expiring: expiring.results ?? [],
     upcoming: upcoming.results ?? [],
-    myRegistrations: myRegs.results ?? [],
+    // Each registration's check-in code, shown as a QR code (signed: no extra query).
+    myRegistrations: await Promise.all(((myRegs.results ?? []) as Array<{ id: string; status: string; title: string; slug: string; start_at: string | null }>).map(async (r) => ({
+      ...r, code: r.status === "REGISTERED" ? await checkInCode(ctx, String(r.id)) : null,
+    }))),
     campaign: campaign.results?.[0] ?? null,
     notifications: notes.results ?? [],
     tasks: tasks.results ?? [],

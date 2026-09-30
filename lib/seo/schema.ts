@@ -237,6 +237,7 @@ export interface EventInput {
   image?: string;
   organizer?: string;
   attendees?: number;
+  cancelled?: boolean;
 }
 
 /** Event rich results (date, venue, organiser) for the events section. */
@@ -250,7 +251,7 @@ export function eventSchema(event: EventInput): Json {
     description: event.description,
     startDate: event.startDate,
     endDate: event.endDate ?? event.startDate,
-    eventStatus: "https://schema.org/EventScheduled",
+    eventStatus: event.cancelled ? "https://schema.org/EventCancelled" : "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     image: event.image ? [absoluteUrl(event.image)] : [absoluteUrl(SITE.logo)],
     location: {

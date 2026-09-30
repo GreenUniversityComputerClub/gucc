@@ -18,7 +18,16 @@ export async function readCommittees(db: Db): Promise<{ committees: PublicCommit
 }
 
 export async function readEvents(db: Db): Promise<PublicEvent[]> {
-  return (await db.all<EventRow>(EVENTS_SQL)).map((r) => buildEvent(r));
+  const now = new Date();
+  return (await db.all<EventRow>(EVENTS_SQL)).map((r) => buildEvent(r, now, { description: false }));
+}
+
+export interface EventAgendaItemPublic {
+  startsAt: string | null;
+  endsAt: string | null;
+  title: string;
+  speaker: string | null;
+  description: string | null;
 }
 
 export interface RegistrationFieldPublic {
@@ -35,7 +44,7 @@ export interface EventPersonPublic {
   title: string | null;
 }
 
-export async function readEvent(db: Db, slug: string): Promise<{ event: PublicEvent; fields: RegistrationFieldPublic[]; gallery: Array<{ url: string; thumb: string; alt: string | null }>; people: EventPersonPublic[]; attachments: Array<{ url: string; name: string }> } | null> {
+export async function readEvent(db: Db, slug: string): Promise<{ event: PublicEvent; fields: RegistrationFieldPublic[]; gallery: Array<{ url: string; thumb: string; alt: string | null }>; people: EventPersonPublic[]; attachments: Array<{ url: string; name: string }>; agenda: EventAgendaItemPublic[] } | null> {
   const row = await db.first<EventRow & { id: string; registration_fields_json: string | null }>(
     EVENT_BY_SLUG_SQL, slug);
   if (!row) return null;
@@ -52,8 +61,11 @@ export async function readEvent(db: Db, slug: string): Promise<{ event: PublicEv
     `SELECT m.id, m.storage, m.object_key, m.legacy_path, m.external_url, m.variants_json, m.original_filename
      FROM event_media em JOIN media m ON m.id = em.media_id AND m.deleted_at IS NULL AND m.visibility = 'PUBLIC' AND m.status = 'READY'
      WHERE em.event_id = ?1 AND em.kind = 'ATTACHMENT' ORDER BY em.sort_order LIMIT 20`, row.id);
+  const agenda = await db.all<{ starts_at: string | null; ends_at: string | null; title: string; speaker: string | null; description: string | null }>(
+    "SELECT starts_at, ends_at, title, speaker, description FROM event_agenda_items WHERE event_id = ?1 ORDER BY position LIMIT 50", row.id);
   return {
     event,
+    agenda: agenda.map((a) => ({ startsAt: a.starts_at, endsAt: a.ends_at, title: a.title, speaker: a.speaker, description: a.description })),
     fields: event.registrationOpen ? (JSON.parse(row.registration_fields_json ?? "[]") as RegistrationFieldPublic[]) : [],
     gallery: gallery.map((g) => ({ url: mediaUrl(g, "lg")!, thumb: mediaUrl(g, "sm")!, alt: g.alt_text })).filter((g) => g.url),
     people,
@@ -89,6 +101,8 @@ export interface PublicPost {
   author: { name: string; url: string | null; avatarUrl?: string | null };
   seoTitle: string | null;
   seoDescription: string | null;
+  /** Reaction counts by kind (members react when signed in). */
+  reactions?: Record<string, number>;
 }
 
 const POST_SQL = `
@@ -97,7 +111,8 @@ SELECT p.id, p.type, p.slug, p.title, p.subtitle, p.excerpt, p.body_markdown, c.
        COALESCE(p.author_url, pr.github_url) AS author_url,
        am.storage AS author_storage, am.object_key AS author_object_key, am.legacy_path AS author_legacy_path, am.external_url AS author_external_url, am.variants_json AS author_variants_json,
        m.storage, m.object_key, m.legacy_path, m.external_url, m.variants_json,
-       (SELECT group_concat(t.name, '|') FROM post_tags pt JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = p.id) AS tags
+       (SELECT group_concat(t.name, '|') FROM post_tags pt JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = p.id) AS tags,
+       (SELECT json_group_object(x.emoji, x.n) FROM (SELECT emoji, COUNT(*) AS n FROM post_reactions WHERE post_id = p.id GROUP BY emoji) x) AS reactions
 FROM posts p
 LEFT JOIN categories c ON c.id = p.category_id
 LEFT JOIN profiles pr ON pr.id = p.author_profile_id AND pr.deleted_at IS NULL
@@ -118,6 +133,7 @@ function toPost(r: Record<string, unknown>, withBody: boolean): PublicPost {
         external_url: r.author_external_url as string | null, variants_json: r.author_variants_json as string | null } : null, "thumb") ?? null,
     },
     seoTitle: (r.seo_title as string) ?? null, seoDescription: (r.seo_description as string) ?? null,
+    reactions: typeof r.reactions === "string" ? (JSON.parse(r.reactions) as Record<string, number>) : {},
   };
 }
 

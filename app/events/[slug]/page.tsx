@@ -15,5 +15,14 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const { slug } = await params;
   const detail = await getPublicEventDetail(slug);
   if (!detail) notFound();
-  return <EventDetails event={detail.event} fields={detail.fields} gallery={detail.gallery} people={detail.people ?? []} attachments={detail.attachments ?? []} />;
+  // Related: same category first, then the nearest in time (from the cached list, no extra query).
+  const all = await getPublicEvents();
+  const at = Date.parse(detail.event.startAt ?? `${detail.event.date}T00:00:00+06:00`);
+  const related = all
+    .filter((e) => e.slug !== slug)
+    .map((e) => ({ e, score: (e.category && e.category === detail.event.category ? 0 : 1) * 1e13 + Math.abs(Date.parse(e.startAt ?? `${e.date}T00:00:00+06:00`) - at) }))
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3)
+    .map((x) => x.e);
+  return <EventDetails event={detail.event} fields={detail.fields} gallery={detail.gallery} people={detail.people ?? []} attachments={detail.attachments ?? []} agenda={detail.agenda ?? []} related={related} />;
 }

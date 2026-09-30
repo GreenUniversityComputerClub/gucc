@@ -1,9 +1,10 @@
 import { Field } from "@/components/admin/ui";
 import { MediaField } from "@/components/admin/media-field";
 import { RegistrationFieldsEditor, type RegFieldRow } from "@/components/admin/structured-editors";
+import { dhakaLocalInput } from "@/lib/time";
 
 /** Stored instants → the value a datetime-local input expects, in Dhaka time (UTC+6, no DST). */
-const dt = (v: unknown) => (typeof v === "string" && v ? (v.length === 10 ? `${v}T00:00` : new Date(new Date(v).getTime() + 6 * 3600_000).toISOString().slice(0, 16)) : "");
+const dt = (v: unknown) => (typeof v === "string" && v.length === 10 ? `${v}T00:00` : dhakaLocalInput(typeof v === "string" ? v : null));
 
 /** Shared fields for creating and editing an event. Times are entered in local (Dhaka) time. */
 export function EventFields({ e, bannerUrl, categories = [] }: { e?: Record<string, unknown>; bannerUrl?: string | null; categories?: Array<{ slug: string; name: string }> }) {

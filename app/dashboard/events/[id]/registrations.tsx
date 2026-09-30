@@ -83,7 +83,7 @@ export function Registrations({ initial }: { initial: Registration[] }) {
                 <p className="truncate text-xs text-muted-foreground">{[r.email, r.student_id, `registered ${dhakaDateTime(r.created_at)}`].filter(Boolean).join(" · ")}</p>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {(r.status === "REGISTERED" || r.status === "WAITLISTED") && (
+                {r.status === "REGISTERED" && (
                   <button type="button" className={cn(btn, "border-emerald-500/50")} disabled={busy === r.id} onClick={() => set(r, "ATTENDED")}>
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden />Check in
                   </button>

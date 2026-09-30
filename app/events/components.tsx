@@ -35,7 +35,7 @@ export function EventCard({
     <Card className="group overflow-hidden flex flex-col h-full transition-all duration-300 hover:shadow-lg border-border/50 hover:border-border">
       {/* Image Container with Overlay */}
       <div className="relative h-52 w-full overflow-hidden">
-        <Link href={`/events/${slug}`} className="block h-full">
+        <Link href={`/events/${slug}`} className="relative block h-full">
           <Image
             src={event.image}
             alt={`${event.name} — GUCC event at Green University of Bangladesh`}

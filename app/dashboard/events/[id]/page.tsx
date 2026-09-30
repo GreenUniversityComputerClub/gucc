@@ -7,6 +7,9 @@ import { eventPeopleAction, eventStatusAction, publishEventAction, removeEventMe
 import { EventFields } from "../event-form";
 import { GalleryUploader } from "../gallery-uploader";
 import { Registrations } from "./registrations";
+import { AgendaEditor } from "./agenda-editor";
+import { CheckInScanner } from "./check-in";
+import { duplicateEventAction } from "./event-tools";
 
 type View = Awaited<ReturnType<typeof eventView>>;
 
@@ -16,7 +19,7 @@ export default async function EventDetail({ params }: { params: Promise<{ id: st
     view<View>("views.event", { id }, `/dashboard/events/${id}`),
     rpc<Array<{ slug: string; name: string }>>("categories.list", { kind: "EVENT" }),
   ]);
-  const { event: e, people, counts, capabilities: cap, bannerUrl, registrations, gallery, canUploadGallery, sentBack } = data;
+  const { event: e, people, counts, capabilities: cap, bannerUrl, registrations, gallery, canUploadGallery, sentBack, agenda } = data;
   const status = String(e.status);
   const isPublic = ["PUBLISHED", "ONGOING", "COMPLETED"].includes(status);
   // The save button (and its warning) says what saving does here. Registered people are told
@@ -32,7 +35,8 @@ export default async function EventDetail({ params }: { params: Promise<{ id: st
         back={{ href: "/dashboard/events", label: "Events" }}
         title={String(e.title)}
         description={`/events/${e.slug}${e.category_name ? ` · ${e.category_name}` : ""}`}
-        actions={<><StatusBadge status={status} content />{isPublic && <Link prefetch={false} href={`/events/${e.slug}`} className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted">View public page</Link>}</>}
+        actions={<><StatusBadge status={status} content />{isPublic && <Link prefetch={false} href={`/events/${e.slug}`} className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted">View public page</Link>}
+          <ActionForm action={duplicateEventAction.bind(null, id)} submitLabel="Duplicate" variant="outline" inline confirm="Make a copy of this event as a new draft (details, speakers, programme and form; you set the new date)?" /></>}
       />
 
       {sentBack && (
@@ -79,6 +83,12 @@ export default async function EventDetail({ params }: { params: Promise<{ id: st
         </Section>
       )}
 
+      {cap.edit && (
+        <Section title="Programme" description="Sessions shown on the public event page, in order." className="mt-6">
+          <AgendaEditor eventId={id} initial={agenda ?? []} />
+        </Section>
+      )}
+
       <Section title={`Gallery (${gallery.length})`} description="Photos shown on the public event page." className="mt-6">
         {canUploadGallery && <GalleryUploader eventId={id} />}
         {gallery.length === 0 ? (
@@ -105,6 +115,7 @@ export default async function EventDetail({ params }: { params: Promise<{ id: st
       {cap.registrations && (
         <Section title="Registrations" description={`${counts.registered} registered · ${counts.attended ?? 0} attended · ${counts.waitlisted} on the waitlist${e.capacity ? ` · ${e.capacity} seats` : ""}`} className="mt-6"
           actions={registrations.length > 0 ? <a href={`/api/admin/events/${id}/registrations`} className="inline-flex min-h-10 items-center text-sm underline">Download CSV</a> : undefined}>
+          {["PUBLISHED", "ONGOING"].includes(status) && <div className="mb-4"><CheckInScanner eventId={id} /></div>}
           <Registrations initial={registrations} />
         </Section>
       )}

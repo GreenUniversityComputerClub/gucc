@@ -25,7 +25,10 @@ export async function generateMetadata({
   const { slug } = await params;
   const event = await getPublicEventBySlug(slug);
 
-  if (!event) {
+  if (!event || event.status === "CANCELLED") {
+    if (event) {
+      return buildMetadata({ title: `${event.name} (cancelled)`, description: `${event.name} was cancelled.`, path: `/events/${slug}`, noIndex: true, image: event.image });
+    }
     return buildMetadata({
       title: "Event not found",
       description: "This GUCC event could not be found.",
@@ -49,7 +52,7 @@ export async function generateMetadata({
     ),
     path: `/events/${slug}`,
     type: "article",
-    publishedTime: new Date(event.date).toISOString(),
+    publishedTime: event.startAt ?? new Date(`${event.date}T00:00:00+06:00`).toISOString(),
     keywords: [
       event.name,
       `${event.name} GUCC`,
@@ -87,10 +90,10 @@ export default async function EventLayout({
               name: event.name,
               path: `/events/${slug}`,
               description: summarize(event.description, event.name),
-              startDate: new Date(event.date).toISOString(),
-              endDate: event.endDate
-                ? new Date(event.endDate).toISOString()
-                : undefined,
+              // The real times, with Dhaka's offset for events imported with a date only.
+              startDate: event.startAt ?? `${event.date}T00:00:00+06:00`,
+              endDate: event.endAt ?? (event.endDate ? `${event.endDate}T23:59:00+06:00` : undefined),
+              cancelled: event.status === "CANCELLED",
               location: event.location,
               image: event.image,
               organizer: event.organizer,

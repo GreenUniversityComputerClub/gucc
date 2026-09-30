@@ -32,6 +32,8 @@ export interface PublicEventDetail {
   gallery: Array<{ url: string; thumb: string; alt: string | null }>;
   people?: Array<{ role: "SPEAKER"; name: string; title: string | null }>;
   attachments?: Array<{ url: string; name: string }>;
+  /** The programme, when the organisers added one (missing from an older API). */
+  agenda?: Array<{ startsAt: string | null; endsAt: string | null; title: string; speaker: string | null; description: string | null }>;
 }
 
 export const getPublicEventDetail = cache(async (slug: string): Promise<PublicEventDetail | null> =>

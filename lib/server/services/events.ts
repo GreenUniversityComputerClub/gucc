@@ -13,6 +13,7 @@ import { authorize, eventResource, requireActor, requirePermission, scopesFor } 
 import type { Ctx } from "../context";
 import { newId, nowIso, type D1StatementLike } from "../db";
 import { sha256Hex } from "../crypto";
+import { hmac, requireSecret } from "../signing";
 import { AppError, ConflictError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
 import { notifyStmts } from "../notifications";
 import { getSetting, requireRecentAuth, verifyTurnstile } from "../security";
@@ -563,12 +564,20 @@ export async function setRegistrationStatus(ctx: Ctx, registrationId: string, st
   // Admitting someone takes a seat: not past the capacity (the waitlist is for that).
   // People marked attended keep their seat.
   const seated = (s: string) => s === "REGISTERED" || s === "ATTENDED";
-  if (seated(status) && !seated(reg.status) && reg.capacity !== null) {
+  const full = () => new AppError(409, "FULL", `The event is full (${reg.capacity} seats). Raise the capacity first, or keep them on the waitlist.`);
+  const takesSeat = seated(status) && !seated(reg.status) && reg.capacity !== null;
+  if (takesSeat) {
     const taken = (await ctx.db.value<number>("SELECT COUNT(*) FROM event_registrations WHERE event_id = ?1 AND status IN ('REGISTERED','ATTENDED')", reg.event_id)) ?? 0;
-    if (taken >= reg.capacity) throw new AppError(409, "FULL", `The event is full (${reg.capacity} seats). Raise the capacity first, or keep them on the waitlist.`);
+    if (taken >= reg.capacity!) throw full();
   }
-  await ctx.db.batch([
-    ctx.db.stmt("UPDATE event_registrations SET status = ?2, updated_at = ?3 WHERE id = ?1", registrationId, status, nowIso()),
+  const now = nowIso();
+  await batchTransition(ctx, [
+    // Checked again inside the batch: two organisers admitting the last seat at once can't overbook.
+    ...(takesSeat ? [assertStmt(ctx, "(SELECT COUNT(*) FROM event_registrations WHERE event_id = ?1 AND status IN ('REGISTERED','ATTENDED')) < ?2", reg.event_id, reg.capacity!)] : []),
+    ctx.db.stmt(`UPDATE event_registrations SET status = ?2, updated_at = ?3,
+                   checked_in_at = CASE WHEN ?2 = 'ATTENDED' THEN COALESCE(checked_in_at, ?3) ELSE NULL END,
+                   checked_in_by = CASE WHEN ?2 = 'ATTENDED' THEN COALESCE(checked_in_by, ?4) ELSE NULL END WHERE id = ?1`,
+      registrationId, status, now, ctx.actor?.user.id ?? null),
     // A freed seat goes to the next person on the waitlist.
     ...(seated(reg.status) && !seated(status) ? await promoteWaitlistStmts(ctx, reg.event_id, reg.title, reg.slug) : []),
     auditStmt(ctx, { action: "event.registration_status", resourceType: "event", resourceId: reg.event_id, before: { status: reg.status }, after: { status, registrationId }, decision }),
@@ -581,8 +590,100 @@ export async function setRegistrationStatus(ctx: Ctx, registrationId: string, st
           link: `/events/${reg.slug}`, resourceType: "event", resourceId: reg.event_id,
         })
       : []),
-  ]);
+  ], full);
   ctx.revalidate?.([TAGS.event(reg.slug)]);
+}
+
+/** A registration's check-in code (shown as a QR code to its holder): the id plus a short signature. */
+export async function checkInCode(ctx: Pick<Ctx, "env">, registrationId: string): Promise<string> {
+  return `${registrationId}.${(await hmac(requireSecret(ctx.env.AUTH_SECRET), `checkin:${registrationId}`)).slice(0, 16)}`;
+}
+
+/**
+ * Check someone in by the code on their phone (the event page's scanner, or typed in). Only for
+ * people who manage this event's registrations; a second scan says so instead of failing.
+ */
+export async function checkInByCode(ctx: Ctx, rawCode: unknown, eventId: string): Promise<{ name: string; already: boolean; status: string }> {
+  const code = String(rawCode ?? "").trim().replace(/^.*[?&]c=/, "");
+  const [id, sig] = code.split(".");
+  if (!id || !sig || id.length > 80) throw new ValidationError("That isn't a GUCC check-in code.");
+  if ((await checkInCode(ctx, id)) !== `${id}.${sig}`) throw new ValidationError("That code isn't valid.");
+  const reg = await ctx.db.first<{ event_id: string; status: string; name: string; checked_in_at: string | null }>(
+    "SELECT event_id, status, name, checked_in_at FROM event_registrations WHERE id = ?1", id);
+  if (!reg || reg.event_id !== eventId) throw new ValidationError("This code is for another event.");
+  if (reg.status === "ATTENDED") return { name: reg.name, already: true, status: reg.status };
+  if (reg.status === "CANCELLED" || reg.status === "REJECTED") throw new AppError(409, "NOT_REGISTERED", `${reg.name}'s registration was ${reg.status.toLowerCase()}.`);
+  await setRegistrationStatus(ctx, id, "ATTENDED");
+  return { name: reg.name, already: false, status: "ATTENDED" };
+}
+
+/** My registrations with their check-in codes (the member's dashboard shows them as QR codes). */
+export async function myRegistrations(ctx: Ctx) {
+  const actor = requireActor(ctx);
+  const rows = await ctx.db.all<{ id: string; status: string; title: string; slug: string; start_at: string | null; venue: string | null }>(
+    `SELECT r.id, r.status, e.title, e.slug, e.start_at, e.venue FROM event_registrations r JOIN events e ON e.id = r.event_id AND e.deleted_at IS NULL
+     WHERE r.user_id = ?1 AND r.status IN ('REGISTERED','WAITLISTED','ATTENDED') AND e.status IN ('PUBLISHED','ONGOING')
+     ORDER BY e.start_at LIMIT 20`, actor.user.id);
+  return Promise.all(rows.map(async (r) => ({ ...r, code: r.status === "REGISTERED" ? await checkInCode(ctx, r.id) : null })));
+}
+
+/** The programme shown on the event page (replaces the list). */
+export async function saveEventAgenda(ctx: Ctx, eventId: string, raw: unknown): Promise<void> {
+  const resource = await eventResource(ctx.db, eventId);
+  if (!resource) throw new NotFoundError("Event");
+  const decision = requirePermission(ctx, "events.update", resource);
+  const items = (Array.isArray(raw) ? raw : []).slice(0, 50).map((x, i) => {
+    const o = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
+    const v = new Validator(o);
+    const startsAt = v.datetime("startsAt", { label: "Starts" });
+    const endsAt = v.datetime("endsAt", { label: "Ends" });
+    v.done();
+    return { title: String(o.title ?? "").trim().slice(0, 200), speaker: String(o.speaker ?? "").trim().slice(0, 200) || null, description: String(o.description ?? "").trim().slice(0, 2000) || null, startsAt, endsAt, position: i };
+  }).filter((x) => x.title);
+  const slug = await ctx.db.value<string>("SELECT slug FROM events WHERE id = ?1", eventId);
+  await ctx.db.batch([
+    ctx.db.stmt("DELETE FROM event_agenda_items WHERE event_id = ?1", eventId),
+    ...(items.length ? [ctx.db.stmt(
+      `INSERT INTO event_agenda_items (id, event_id, starts_at, ends_at, title, speaker, description, position)
+       SELECT 'eai_' || lower(hex(randomblob(12))), ?1, json_extract(j.value, '$.startsAt'), json_extract(j.value, '$.endsAt'), json_extract(j.value, '$.title'),
+              json_extract(j.value, '$.speaker'), json_extract(j.value, '$.description'), json_extract(j.value, '$.position') FROM json_each(?2) AS j`,
+      eventId, JSON.stringify(items))] : []),
+    auditStmt(ctx, { action: "event.agenda", resourceType: "event", resourceId: eventId, after: { items: items.length }, decision }),
+  ]);
+  ctx.revalidate?.([TAGS.events, ...(slug ? [TAGS.event(slug)] : [])]);
+}
+
+export async function eventAgenda(ctx: Ctx, eventId: string) {
+  return ctx.db.all<{ starts_at: string | null; ends_at: string | null; title: string; speaker: string | null; description: string | null }>(
+    "SELECT starts_at, ends_at, title, speaker, description FROM event_agenda_items WHERE event_id = ?1 ORDER BY position", eventId);
+}
+
+/** A copy of an event as a new draft (for a series): same details, speakers and form; new dates to set. */
+export async function duplicateEvent(ctx: Ctx, eventId: string): Promise<{ id: string }> {
+  const src = await ctx.db.first<Record<string, unknown>>(
+    `SELECT title, description, category_id, organizer, venue, capacity, registration_enabled, registration_fields_json, guests_text, judges_text, banner_media_id, start_at, end_at
+     FROM events WHERE id = ?1 AND deleted_at IS NULL`, eventId);
+  if (!src) throw new NotFoundError("Event");
+  const resource = await eventResource(ctx.db, eventId);
+  requirePermission(ctx, "events.read", resource!);
+  // A week after the original (or a week from now), same time of day: the organiser sets the real date.
+  const WEEK = 7 * 86_400_000;
+  const base = typeof src.start_at === "string" && src.start_at.includes("T") ? Date.parse(src.start_at) : Date.now();
+  const shift = Math.max(1, Math.ceil((Date.now() - base) / WEEK) + 1) * WEEK;
+  const startAt = new Date(base + (base > Date.now() ? WEEK : shift)).toISOString();
+  const endAt = typeof src.end_at === "string" && src.end_at.includes("T") ? new Date(Date.parse(src.end_at) - base + Date.parse(startAt)).toISOString() : undefined;
+  const { id } = await createEvent(ctx, { title: `${String(src.title).slice(0, 180)} (copy)`, startAt, endAt, slug: `${toSlug(String(src.title)).slice(0, 100) || "event"}-copy-${newId().slice(0, 6)}`, description: src.description ?? undefined, venue: src.venue ?? undefined,
+    organizer: src.organizer ?? undefined, capacity: src.capacity ?? undefined });
+  await ctx.db.batch([
+    ctx.db.stmt(`UPDATE events SET category_id = ?2, registration_enabled = ?3, registration_fields_json = ?4, guests_text = ?5, judges_text = ?6, banner_media_id = ?7 WHERE id = ?1`,
+      id, src.category_id as string | null, src.registration_enabled as number, src.registration_fields_json as string | null, src.guests_text as string | null, src.judges_text as string | null, src.banner_media_id as string | null),
+    ctx.db.stmt(`INSERT INTO event_agenda_items (id, event_id, starts_at, ends_at, title, speaker, description, position)
+                 SELECT 'eai_' || lower(hex(randomblob(12))), ?2, NULL, NULL, title, speaker, description, position FROM event_agenda_items WHERE event_id = ?1`, eventId, id),
+    ctx.db.stmt(`INSERT INTO event_people (id, event_id, role, name, title, user_id, sort_order)
+                 SELECT 'evp_' || lower(hex(randomblob(12))), ?2, role, name, title, user_id, sort_order FROM event_people WHERE event_id = ?1 AND role = 'SPEAKER'`, eventId, id),
+    auditStmt(ctx, { action: "event.duplicate", resourceType: "event", resourceId: id, after: { from: eventId } }),
+  ]);
+  return { id };
 }
 
 /** CSV for spreadsheets: UTF-8 with a BOM (Bangla names open correctly in Excel), CRLF lines, formula-safe cells. */

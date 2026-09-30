@@ -6,6 +6,7 @@ import { ActionForm, Section, StatusBadge } from "@/components/admin/ui";
 import { ActivityList } from "@/components/admin/activity-list";
 import { normalizeHome } from "@/lib/api/contracts";
 import { cancelRegistrationAction } from "./actions";
+import { CheckInQr } from "@/components/dashboard/check-in-qr";
 
 type Home = Awaited<ReturnType<typeof homeView>>;
 const when = (iso: unknown) => (iso ? new Date(String(iso)).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "Date to be announced");
@@ -107,7 +108,10 @@ export default async function DashboardHome() {
                   <Link href={`/events/${String(r.slug)}`} className="font-medium hover:underline">{String(r.title)}</Link>
                   <span className="block text-xs text-muted-foreground">{when(r.start_at)} · {String(r.status).toLowerCase()}</span>
                 </span>
-                <ActionForm action={cancelRegistrationAction.bind(null, String(r.id))} submitLabel="Cancel" variant="outline" inline confirm={`Cancel your registration for ${String(r.title)}?`} />
+                <span className="flex flex-wrap items-center gap-2">
+                  {r.code ? <CheckInQr code={String(r.code)} title={String(r.title)} /> : null}
+                  {r.status !== "ATTENDED" && <ActionForm action={cancelRegistrationAction.bind(null, String(r.id))} submitLabel="Cancel" variant="outline" inline confirm={`Cancel your registration for ${String(r.title)}?`} />}
+                </span>
               </li>
             ))}
           </ul>

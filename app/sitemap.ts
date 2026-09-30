@@ -44,13 +44,17 @@ const STATIC_ROUTES: Array<{
 /** Published blog posts, news and announcements from D1. */
 async function blogEntries(): Promise<Entry[]> {
   const posts = [...(await getPublishedPosts("BLOG", 500)), ...(await getPublishedPosts("NEWS", 500)), ...(await getPublishedPosts("ANNOUNCEMENT", 500))];
-  return posts.map((p) => ({
+  // Topic pages (/blog/tag/…), dated by their newest post.
+  const tagDates = new Map<string, number>();
+  for (const p of posts) if (p.type === "BLOG") for (const t of p.tags ?? []) tagDates.set(t, Math.max(tagDates.get(t) ?? 0, Date.parse(p.updatedAt ?? p.publishedAt ?? "") || 0));
+  const tags: Entry[] = [...tagDates].map(([t, at]) => ({ url: absoluteUrl(`/blog/tag/${encodeURIComponent(t)}`), ...(at ? { lastModified: new Date(at) } : {}), changeFrequency: "weekly" as const, priority: 0.4 }));
+  return [...tags, ...posts.map((p) => ({
     url: absoluteUrl(p.type === "BLOG" ? `/blog/${p.slug}` : `/${p.type === "NEWS" ? "news" : "announcements"}/${p.slug}`),
     lastModified: p.updatedAt ? new Date(p.updatedAt) : p.publishedAt ? new Date(p.publishedAt) : now,
     changeFrequency: "monthly" as const,
     priority: 0.6,
     ...(p.coverImage ? { images: [absoluteUrl(p.coverImage)] } : {}),
-  }));
+  }))];
 }
 
 const latest = (...isos: Array<string | null | undefined>) => {

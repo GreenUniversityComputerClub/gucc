@@ -53,3 +53,10 @@ export function relativeTime(iso: string, now = Date.now()): string {
   if (days < 7) return `${days} days ago`;
   return new Date(iso).toLocaleDateString("en-GB", { timeZone: TZ, day: "numeric", month: "short", year: "numeric" });
 }
+
+/** A stored instant as the value of a datetime-local input, in Dhaka time ("" when empty). */
+export function dhakaLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  return Number.isNaN(t) ? "" : new Date(t + OFFSET_MS).toISOString().slice(0, 16);
+}

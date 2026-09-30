@@ -15,7 +15,7 @@ import type { Ctx } from "../context";
 import { NotFoundError } from "../errors";
 import { listAssignments, type CommitteeRow } from "../services/committees";
 import { listContestsAdmin, myNotifications } from "../services/community";
-import { getEventForEdit, listRegistrations } from "../services/events";
+import { getEventForEdit, listRegistrations, eventAgenda } from "../services/events";
 import { listPermissions, listPolicies, listPositions, listRules } from "../services/governance";
 import { getPostForEdit } from "../services/posts";
 import { TRIGGER_EVENTS } from "../triggers";
@@ -157,6 +157,7 @@ export async function eventView(ctx: Ctx, id: string) {
       canRemove: Boolean(data.capabilities.edit) || (g.uploaded_by !== null && g.uploaded_by === ctx.actor?.user.id) })),
     canUploadGallery: authorize(ctx, "media.upload", resource).outcome === "ALLOW",
     sentBack: String(data.event.status) === "REJECTED" ? await lastSentBack(ctx, "event", id) : null,
+    agenda: await eventAgenda(ctx, id),
   };
 }
 
