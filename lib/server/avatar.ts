@@ -20,9 +20,12 @@ export const avatarOfUserSql = (userIdExpr: string) =>
 
 /** The URL of a photo selected with one of the fragments above ("thumb" for lists and chat). */
 export function avatarUrl(json: unknown, variant: Variant = "thumb"): string | null {
-  if (typeof json !== "string" || !json) return null;
+  // As text (a column), or already an object (the same fragment nested inside json_object(), as in
+  // a group's member list, which SQLite embeds as JSON rather than as a string).
+  const m = json && typeof json === "object" ? json : null;
+  if (!m && (typeof json !== "string" || !json)) return null;
   try {
-    return mediaUrl({ id: "", ...(JSON.parse(json) as Omit<MediaRow, "id">) }, variant) ?? null;
+    return mediaUrl({ id: "", ...((m ?? JSON.parse(json as string)) as Omit<MediaRow, "id">) }, variant) ?? null;
   } catch {
     return null;
   }

@@ -45,7 +45,7 @@ CREATE INDEX chat_groups_creator_idx ON chat_groups(created_by, created_at);
 
 -- OWNER created the group (manages it with holders of chat.groups.manage); left_at keeps who
 -- was in the group, so their old messages still show their name.
-ALTER TABLE conversation_members ADD COLUMN role TEXT NOT NULL DEFAULT 'MEMBER' CHECK (role IN ('OWNER', 'MEMBER'));
+ALTER TABLE conversation_members ADD COLUMN role TEXT NOT NULL DEFAULT 'MEMBER' CHECK (role IN ('OWNER', 'ADMIN', 'MEMBER'));
 ALTER TABLE conversation_members ADD COLUMN joined_at TEXT;
 ALTER TABLE conversation_members ADD COLUMN left_at TEXT;
 ALTER TABLE conversation_members ADD COLUMN added_by TEXT;

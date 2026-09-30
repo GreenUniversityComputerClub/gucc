@@ -61,7 +61,7 @@ export function NewConversation({ open, onOpenChange, initialMode = "direct", ca
   const preset = useMemo<DirectoryPerson | null>(() => {
     if (!to) return null;
     return data?.people.find((p) => p.user_id === to.id) ?? {
-      user_id: to.id, id: to.id, full_name: to.name, handle: null, avatarUrl: to.avatarUrl, badge: { label: "Member", tier: "member", rank: 1000 }, department: null, batch: null, lastActiveAt: null,
+      user_id: to.id, id: to.id, full_name: to.name, handle: null, avatarUrl: to.avatarUrl, badge: { label: "Member", short: "Member", tier: "member", rank: 1000 }, department: null, batch: null, lastActiveAt: null,
     };
   }, [to, data]);
   const chosen = person ?? (mode === "direct" ? preset : null);

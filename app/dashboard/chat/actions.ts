@@ -81,6 +81,14 @@ export async function addGroupMembersAction(conversationId: string, memberIds: s
   return r.ok ? { ...r, message: `Added ${r.data?.added ?? 0} ${r.data?.added === 1 ? "person" : "people"}.` } : r;
 }
 
+export async function setGroupRoleAction(conversationId: string, userId: string, role: "ADMIN" | "MEMBER") {
+  return runAction("chat.groupRole", { conversationId, userId, role }, { message: role === "ADMIN" ? "Made an admin." : "No longer an admin." });
+}
+
+export async function transferGroupAction(conversationId: string, userId: string) {
+  return runAction("chat.groupTransfer", { conversationId, userId }, { message: "Ownership handed over." });
+}
+
 export async function removeGroupMemberAction(conversationId: string, userId: string) {
   return runAction("chat.groupRemove", { conversationId, userId }, { message: "Removed from the group." });
 }

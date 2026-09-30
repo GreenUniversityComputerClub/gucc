@@ -1,11 +1,13 @@
 /**
  * Group conversations. Any approved member can start one (chat.groups.create, three a day) with
- * people who accept messages from them, up to `chat.max_group_members` people. The person who
- * created it owns it; the owner and members who hold chat.groups.manage (by default the six
- * senior positions: President, both Vice-Presidents, General Secretary, both Joint General
- * Secretaries; Moderators hold everything) change its name, description and photo, add and
- * remove people, or delete it. Anyone can leave; when the owner leaves, the longest-standing
- * member becomes the owner.
+ * people who accept messages from them, up to `chat.max_group_members` people.
+ *
+ * Roles: the person who created it is the OWNER; the owner makes members ADMINs (and hands over
+ * ownership). The owner, admins and members who hold chat.groups.manage (by default the six senior
+ * positions; Moderators hold everything) change its name, description and photo and add or
+ * remove members; only the owner and those leaders remove admins, change roles or delete the
+ * group. An admin may step down. Anyone can leave; when the owner leaves, the longest-standing
+ * admin (else member) becomes the owner.
  *
  * Every change is one batch with a system line in the conversation ("Rafi added Nusrat") and an
  * audit row, and the members' open tabs refresh at once.
@@ -93,28 +95,90 @@ export async function createGroup(ctx: Ctx, input: { name?: unknown; description
   return { conversationId: id };
 }
 
+export type GroupRole = "OWNER" | "ADMIN" | "MEMBER";
+
 interface GroupAccess {
   name: string;
   owner: string | null;
-  role: string;
+  role: GroupRole;
   members: string[];
+  roles: Record<string, GroupRole>;
   count: number;
+  /** Owner, admin or a club leader: change the details, add and remove members. */
   canManage: boolean;
+  /** Owner or a club leader: change roles, remove admins, delete the group. */
+  canGovern: boolean;
 }
 
-/** The group and my place in it; `manage` requires the owner or chat.groups.manage. */
+/** The group and my place in it; `manage` requires the owner, an admin or chat.groups.manage. */
 async function groupAccess(ctx: Ctx, conversationId: string, manage: boolean): Promise<GroupAccess> {
   const actor = requireActor(ctx);
-  const g = await ctx.db.first<{ name: string; role: string; owner: string | null; members: string }>(
-    `SELECT g.name, me.role, (SELECT x.user_id FROM conversation_members x WHERE x.conversation_id = g.conversation_id AND x.role = 'OWNER' AND x.left_at IS NULL) AS owner,
-            (SELECT json_group_array(x.user_id) FROM conversation_members x WHERE x.conversation_id = g.conversation_id AND x.left_at IS NULL) AS members
+  const g = await ctx.db.first<{ name: string; role: GroupRole; members: string }>(
+    `SELECT g.name, me.role,
+            (SELECT json_group_object(x.user_id, x.role) FROM conversation_members x WHERE x.conversation_id = g.conversation_id AND x.left_at IS NULL) AS members
      FROM chat_groups g JOIN conversation_members me ON me.conversation_id = g.conversation_id AND me.user_id = ?2 AND me.left_at IS NULL
      WHERE g.conversation_id = ?1 AND g.deleted_at IS NULL`, conversationId, actor.user.id);
   if (!g) throw new NotFoundError("Group");
-  const members = JSON.parse(g.members) as string[];
-  const canManage = g.owner === actor.user.id || can(ctx, "chat.groups.manage");
-  if (manage && !canManage) throw new ForbiddenError("Only the group's owner and the club's senior leaders can change this group.");
-  return { name: g.name, owner: g.owner, role: g.role, members, count: members.length, canManage };
+  const roles = JSON.parse(g.members) as Record<string, GroupRole>;
+  const members = Object.keys(roles);
+  const owner = members.find((id) => roles[id] === "OWNER") ?? null;
+  const leader = can(ctx, "chat.groups.manage");
+  const canGovern = g.role === "OWNER" || leader;
+  const canManage = canGovern || g.role === "ADMIN";
+  if (manage && !canManage) throw new ForbiddenError("Only the group's owner, its admins and the club's senior leaders can change this group.");
+  return { name: g.name, owner, role: g.role, members, roles, count: members.length, canManage, canGovern };
+}
+
+const nameOf = async (ctx: Ctx, userId: string) =>
+  (await ctx.db.value<string>("SELECT COALESCE(full_name, 'Member') FROM profiles WHERE user_id = ?1 AND deleted_at IS NULL", userId)) ?? "A member";
+
+/**
+ * Make a member an admin, or an admin a member again. The owner (and club leaders) do both; an
+ * admin may also make members admins, and step down themselves.
+ */
+export async function setGroupRole(ctx: Ctx, conversationId: string, userId: string, rawRole: unknown): Promise<void> {
+  const actor = await requireSender(ctx);
+  const role = rawRole === "ADMIN" ? "ADMIN" : rawRole === "MEMBER" ? "MEMBER" : null;
+  if (!role) throw new ValidationError("Choose admin or member.");
+  const g = await groupAccess(ctx, conversationId, true);
+  const current = g.roles[userId];
+  if (!current) throw new NotFoundError("Member");
+  if (current === "OWNER") throw new ForbiddenError("The owner's role can't be changed. The owner can hand the group over to someone else.");
+  if (current === role) return;
+  const stepDown = role === "MEMBER" && userId === actor.user.id;
+  if (role === "MEMBER" && !g.canGovern && !stepDown) throw new ForbiddenError("Only the group's owner can remove an admin.");
+  await limit(ctx, "chat.groupEdit", actor.user.id);
+  const me = actor.profile?.full_name ?? "A member";
+  const who = await nameOf(ctx, userId);
+  const text = stepDown ? `${me} is no longer an admin.` : role === "ADMIN" ? `${me} made ${who} an admin.` : `${me} removed ${who} as an admin.`;
+  const now = nowIso();
+  const sys = systemMessageStatements(ctx, conversationId, text, now);
+  await ctx.db.batch([
+    ctx.db.stmt("UPDATE conversation_members SET role = ?3 WHERE conversation_id = ?1 AND user_id = ?2 AND left_at IS NULL AND role <> 'OWNER'", conversationId, userId, role),
+    ...sys.stmts,
+    auditStmt(ctx, { action: "chat.group.role", resourceType: "conversation", resourceId: conversationId, after: { userId, role } }),
+  ]);
+  emit(ctx, g.members, { t: "conv", c: conversationId });
+}
+
+/** The owner hands the group over; they stay on as an admin. */
+export async function transferGroup(ctx: Ctx, conversationId: string, userId: string): Promise<void> {
+  const actor = await requireSender(ctx);
+  const g = await groupAccess(ctx, conversationId, true);
+  if (!g.canGovern) throw new ForbiddenError("Only the group's owner can hand it over.");
+  if (!g.roles[userId]) throw new NotFoundError("Member");
+  if (g.roles[userId] === "OWNER") return;
+  await limit(ctx, "chat.groupEdit", actor.user.id);
+  const who = await nameOf(ctx, userId);
+  const now = nowIso();
+  const sys = systemMessageStatements(ctx, conversationId, `${actor.profile?.full_name ?? "A member"} made ${who} the group's owner.`, now);
+  await ctx.db.batch([
+    ctx.db.stmt("UPDATE conversation_members SET role = 'ADMIN' WHERE conversation_id = ?1 AND role = 'OWNER' AND left_at IS NULL", conversationId),
+    ctx.db.stmt("UPDATE conversation_members SET role = 'OWNER' WHERE conversation_id = ?1 AND user_id = ?2 AND left_at IS NULL", conversationId, userId),
+    ...sys.stmts,
+    auditStmt(ctx, { action: "chat.group.transfer", resourceType: "conversation", resourceId: conversationId, before: { owner: g.owner }, after: { owner: userId } }),
+  ]);
+  emit(ctx, g.members, { t: "conv", c: conversationId });
 }
 
 /** Rename the group, change its description or photo (null removes the photo). */
@@ -180,8 +244,9 @@ export async function removeGroupMember(ctx: Ctx, conversationId: string, userId
   const g = await groupAccess(ctx, conversationId, true);
   if (!g.members.includes(userId)) throw new NotFoundError("Member");
   if (userId === g.owner) throw new ForbiddenError("The group's owner can't be removed. They can leave, or you can delete the group.");
+  if (g.roles[userId] === "ADMIN" && !g.canGovern) throw new ForbiddenError("Only the group's owner can remove an admin.");
   await limit(ctx, "chat.groupEdit", actor.user.id);
-  const who = (await ctx.db.value<string>("SELECT COALESCE(full_name, 'Member') FROM profiles WHERE user_id = ?1 AND deleted_at IS NULL", userId)) ?? "A member";
+  const who = await nameOf(ctx, userId);
   const now = nowIso();
   const sys = systemMessageStatements(ctx, conversationId, `${actor.profile?.full_name ?? "A member"} removed ${who}.`, now);
   await ctx.db.batch([
@@ -192,7 +257,7 @@ export async function removeGroupMember(ctx: Ctx, conversationId: string, userId
   emit(ctx, g.members, { t: "conv", c: conversationId });
 }
 
-/** Leave the group. The owner's role passes to the member who joined earliest; the last one out closes it. */
+/** Leave the group. The owner's role passes to the earliest admin (else member); the last one out closes it. */
 export async function leaveGroup(ctx: Ctx, conversationId: string): Promise<void> {
   const actor = requireActor(ctx);
   const g = await groupAccess(ctx, conversationId, false);
@@ -204,7 +269,8 @@ export async function leaveGroup(ctx: Ctx, conversationId: string): Promise<void
     ctx.db.stmt("UPDATE conversation_members SET left_at = ?3, role = 'MEMBER' WHERE conversation_id = ?1 AND user_id = ?2", conversationId, actor.user.id, now),
     ...(g.owner === actor.user.id && !last
       ? [ctx.db.stmt(`UPDATE conversation_members SET role = 'OWNER' WHERE conversation_id = ?1 AND user_id = (
-                        SELECT user_id FROM conversation_members WHERE conversation_id = ?1 AND left_at IS NULL AND user_id <> ?2 ORDER BY COALESCE(joined_at, '') , user_id LIMIT 1)`,
+                        SELECT user_id FROM conversation_members WHERE conversation_id = ?1 AND left_at IS NULL AND user_id <> ?2
+                        ORDER BY role = 'ADMIN' DESC, COALESCE(joined_at, ''), user_id LIMIT 1)`,
           conversationId, actor.user.id)]
       : []),
     ...(last ? [ctx.db.stmt("UPDATE chat_groups SET deleted_at = ?2 WHERE conversation_id = ?1", conversationId, now)] : []),
@@ -217,6 +283,7 @@ export async function leaveGroup(ctx: Ctx, conversationId: string): Promise<void
 export async function deleteGroup(ctx: Ctx, conversationId: string): Promise<void> {
   requireActor(ctx);
   const g = await groupAccess(ctx, conversationId, true);
+  if (!g.canGovern) throw new ForbiddenError("Only the group's owner can delete it.");
   const now = nowIso();
   await ctx.db.batch([
     ctx.db.stmt("UPDATE chat_groups SET deleted_at = ?2 WHERE conversation_id = ?1 AND deleted_at IS NULL", conversationId, now),

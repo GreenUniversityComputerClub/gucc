@@ -1,5 +1,8 @@
 "use client";
 
+import { BadgePill } from "@/components/chat/badge-pill";
+import type { Badge } from "@/lib/server/person-badge";
+
 import { memo, useRef, useState } from "react";
 import Link from "next/link";
 import { Copy, Flag, MoreHorizontal, Pencil, Reply, SmilePlus, Trash2 } from "lucide-react";
@@ -27,7 +30,7 @@ const hoverButton = "inline-flex h-8 w-8 shrink-0 items-center justify-center ro
  * a double tap or double click gives a ❤️. System lines ("Rafi added Nusrat") are centred.
  */
 export const MessageRow = memo(function MessageRow({
-  m, me, joinsPrev, endsGroup, showSender, avatar, names, canAct, reacting, editing, highlight,
+  m, me, joinsPrev, endsGroup, showSender, avatar, names, senderInfo, canAct, reacting, editing, highlight,
   onReacting, onReact, onReply, onEdit, onEditChange, onEditSave, onEditCancel, onDelete, onReport, onCopy, onJump,
 }: {
   m: Message;
@@ -38,6 +41,8 @@ export const MessageRow = memo(function MessageRow({
   showSender: boolean;
   avatar: { name: string; url: string | null } | null;
   names: (id: string) => string;
+  /** Group conversations: the sender's club badge (short position and year) and group role, next to their name. */
+  senderInfo?: { badge: Badge | null; role: "OWNER" | "ADMIN" | "MEMBER" | null } | null;
   canAct: boolean;
   reacting: boolean;
   editing: string | null;
@@ -85,7 +90,14 @@ export const MessageRow = memo(function MessageRow({
       highlight && "motion-safe:animate-pulse")}>
       {!m.mine && <span className="w-8 shrink-0">{endsGroup && avatar && <PersonAvatar name={avatar.name} url={avatar.url} size="sm" />}</span>}
       <div className={cn("flex max-w-[85%] flex-col sm:max-w-[70%]", m.mine ? "items-end" : "items-start")}>
-        {showSender && !m.mine && m.sender && <p className="mb-0.5 ml-3 text-[11px] font-medium text-muted-foreground">{m.sender.name}</p>}
+        {showSender && !m.mine && m.sender && (
+          <p className="mb-0.5 ml-3 flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+            <span className="truncate">{m.sender.name}</span>
+            {senderInfo?.role === "OWNER" && <span className="shrink-0 text-amber-600 dark:text-amber-400">Owner</span>}
+            {senderInfo?.role === "ADMIN" && <span className="shrink-0 text-primary">Admin</span>}
+            {senderInfo?.badge && senderInfo.badge.tier !== "member" && <BadgePill badge={senderInfo.badge} />}
+          </p>
+        )}
         <div className={cn("flex items-center gap-1", m.mine && "flex-row-reverse")}>
           <div className="relative min-w-0">
             {reacting && interactive && <ReactionBar mine={mineReaction} align={m.mine ? "end" : "start"} onClose={() => onReacting(null)} onPick={(e) => { onReacting(null); toggle(e); }} />}

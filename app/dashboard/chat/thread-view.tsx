@@ -238,6 +238,8 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
 
   const messages = useMemo(() => merge(older, t.messages), [older, t.messages]);
 
+  // Each group member's badge and role, looked up once (stable, so message rows don't re-render).
+  const memberInfo = useMemo(() => new Map((group?.members ?? []).map((x) => [x.id, { badge: x.badge, role: x.role }] as const)), [group]);
   const names = useCallback((id: string) => group?.members.find((x) => x.id === id)?.name ?? (id === other?.id ? other.name : "Someone"), [group, other]);
 
   // Stay at the bottom while you are there; otherwise leave the view alone and offer a jump.
@@ -518,6 +520,7 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
                 </div>
               )}
               <MessageRow m={m} me={me} joinsPrev={joinsPrev} endsGroup={endsGroup} showSender={Boolean(group) && !joinsPrev} avatar={avatar} names={names}
+                senderInfo={m.sender ? memberInfo.get(m.sender.id) ?? null : null}
                 canAct={Boolean(composerOpen)} reacting={reacting === m.id} editing={editing?.id ?? null} highlight={highlight === m.id}
                 onReacting={setReacting} onReact={react} onReply={startReply} onEdit={(x) => setEditing({ id: x.id, body: x.body ?? "" })}
                 onEditChange={(v) => setEditing((e) => (e ? { ...e, body: v } : e))} onEditSave={saveEdit} onEditCancel={() => setEditing(null)}
@@ -606,7 +609,7 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
               <button type="button" onClick={() => setEmoji((v) => !v)} aria-pressed={emoji} aria-label="Emoji" className={cn(iconButton, "h-11 w-11 shrink-0 text-muted-foreground", emoji && "bg-muted text-foreground")}><Smile className="h-5 w-5" /></button>
               <label className="sr-only" htmlFor="chat-body">Message to {group?.name ?? other?.name}</label>
               <div className="relative flex-1">
-                <Textarea ref={composer} id="chat-body" value={body} rows={1} maxLength={MAX} placeholder={group ? `Message ${group.name}` : "Write a message"} enterKeyHint="send"
+                <Textarea ref={composer} id="chat-body" value={body} rows={1} maxLength={MAX} placeholder="Write a message" enterKeyHint="send"
                   onChange={(e) => {
                     onType(e.target.value);
                     const el = e.currentTarget;

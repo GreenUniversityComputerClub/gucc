@@ -139,6 +139,20 @@ the blog stylesheet loads only where articles are shown; SEO and layout audit sc
   each look a single search. `tests/integration/query-plans.test.ts` checks the hot queries use
   indexes.
 
+**Messages, part 4 (2026-09-30).**
+
+- _Group admins._ Roles are owner, admin and member. The owner makes admins, removes them and
+  hands the group over (staying an admin); admins change the name, photo and description and add
+  or remove members, but not the owner or other admins, and can't delete the group; an admin may
+  step down. When the owner leaves, an admin takes over first. Each member in the group's details
+  has a menu with what you may do; every change is a line in the conversation.
+- _Badges._ A person's position in their latest committee, short with its year ("GS-2026",
+  "JIS-2025"), for past executives too (in a muted style), with the full title on hover and for
+  screen readers; shown in the conversation list, the conversation header, next to senders'
+  names in groups, the people picker ("Past executives" filter) and the member list.
+- _Fixed._ Group members' photos never showed in the member list (a photo nested in the member
+  list's JSON was dropped); the group's message box no longer wraps its placeholder on phones.
+
 ## Round 7 (2026-09-29): one source for people, messages that work, member submissions, profiles
 
 Everything below is in the working tree and **not released**. Schema and data changes are in

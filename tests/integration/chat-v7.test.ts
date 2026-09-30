@@ -9,7 +9,8 @@ import { verifyPass, type RoomPass } from "@/lib/server/live";
 import {
   chatDirectory, chatHome, deleteMessage, myConversations, reactToMessage, sendInThread, sendToPerson, setBlock, setConversationState, setMessagePrivacy, thread,
 } from "@/lib/server/services/messaging";
-import { addGroupMembers, createGroup, deleteGroup, leaveGroup, removeGroupMember, updateGroup } from "@/lib/server/services/messaging-groups";
+import { addGroupMembers, createGroup, deleteGroup, leaveGroup, removeGroupMember, setGroupRole, transferGroup, updateGroup } from "@/lib/server/services/messaging-groups";
+import { positionShort } from "@/lib/server/person-badge";
 import { sessionCounts } from "@/lib/server/services/community";
 import { createWorld, type TestWorld } from "../support/d1";
 
@@ -162,16 +163,25 @@ describe("reactions and replies", () => {
 });
 
 describe("who people are", () => {
-  it("badges come from the current committee, the Moderator role or the profile, never made up", async () => {
+  it("badges: short position and the latest committee's year (past executives too), the Moderator role or the profile", async () => {
     const { owner, a, pres, treasurer } = await people();
     const mod = await w.user({ email: "mod@x.bd", name: "Dr Mod", roles: ["moderator"] });
     w.sqlite.prepare("UPDATE profiles SET person_type = 'FACULTY' WHERE user_id = ?").run(mod);
+    // A past executive: Joint Information Secretary in 2025, no current position.
+    const past = await w.user({ email: "past@x.bd", name: "Rafi", roles: ["member"] });
+    w.sqlite.prepare("INSERT INTO committees (id, slug, name, term_label, status) VALUES ('cmt_2025', '2025', 'GUCC 2025', '2025', 'ARCHIVED')").run();
+    w.sqlite.prepare(`INSERT INTO committee_members (id, committee_id, profile_id, position_id, position_title, section, display_order)
+      SELECT 'cm_past', 'cmt_2025', id, 'pos:executive-member', 'Joint Information Secretary', 'STUDENT', 5 FROM profiles WHERE user_id = ?`).run(past);
+    const year = (w.sqlite.prepare("SELECT slug FROM committees WHERE id = ?").get(w.committeeId) as { slug: string }).slug;
     const { people: dir } = await chatDirectory(await w.ctx(owner));
     const label = (id: string) => dir.find((p) => p.user_id === id)?.badge;
-    expect(label(a)).toMatchObject({ label: "Member", tier: "member" });
-    expect(label(pres)).toMatchObject({ label: "president", tier: "leader" });
-    expect(label(treasurer)).toMatchObject({ label: "treasurer", tier: "executive" });
-    expect(label(mod)).toMatchObject({ label: "Moderator", tier: "leader" });
+    expect(label(a)).toMatchObject({ short: "Member", tier: "member" });
+    expect(label(pres)).toMatchObject({ short: `PRES-${year}`, tier: "leader" });
+    expect(label(treasurer)).toMatchObject({ short: `TREAS-${year}`, tier: "executive" });
+    expect(label(past)).toMatchObject({ short: "JIS-2025", tier: "former", label: "Joint Information Secretary · 2025 (former)" });
+    expect(label(mod)).toMatchObject({ short: "Moderator", tier: "leader" });
+    expect(["General Secretary", "Joint General Secretary (activity)", "Vice-president (technical)", "Organizing Secretary", "Executive Member", "President", "Treasurer"].map(positionShort))
+      .toEqual(["GS", "JGS", "VP", "OS", "EM", "PRES", "TREAS"]);
     // Blocked either way, or accepting nobody: not in the directory.
     await setBlock(await w.ctx(a), owner, true);
     await setMessagePrivacy(await w.ctx(pres), { privacy: "NOBODY" });
@@ -189,5 +199,60 @@ describe("who people are", () => {
     await setMessagePrivacy(await w.ctx(a), { showActive: false });
     expect((await thread(await w.ctx(a), conversationId)).person?.lastActiveAt).toBeNull();
     expect((await chatHome(await w.ctx(a))).settings.showActive).toBe(false);
+  });
+});
+
+describe("group admins", () => {
+  it("the owner makes admins; admins edit and add or remove members, but not other admins or the owner", async () => {
+    const { owner, a, b, treasurer } = await people();
+    const { conversationId: id } = await createGroup(await w.ctx(owner), { name: "Fair crew", memberIds: [a, b, treasurer] });
+    const role = (u: string) => (w.sqlite.prepare("SELECT role FROM conversation_members WHERE conversation_id = ? AND user_id = ?").get(id, u) as { role: string }).role;
+    // A plain member can't change anything.
+    await expect(updateGroup(await w.ctx(a), id, { name: "Mine" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await setGroupRole(await w.ctx(owner), id, a, "ADMIN");
+    expect(role(a)).toBe("ADMIN");
+    // An admin renames, promotes a member, removes a member...
+    await updateGroup(await w.ctx(a), id, { name: "Fair crew 2026" });
+    await setGroupRole(await w.ctx(a), id, b, "ADMIN");
+    await removeGroupMember(await w.ctx(a), id, treasurer);
+    // ...but can't remove another admin, demote one, remove the owner or delete the group.
+    await expect(removeGroupMember(await w.ctx(a), id, b)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(setGroupRole(await w.ctx(a), id, b, "MEMBER")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(removeGroupMember(await w.ctx(a), id, owner)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(deleteGroup(await w.ctx(a), id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    // An admin may step down; the owner may demote.
+    await setGroupRole(await w.ctx(b), id, b, "MEMBER");
+    expect(role(b)).toBe("MEMBER");
+    const lines = (w.sqlite.prepare("SELECT body FROM messages WHERE conversation_id = ? AND kind = 'SYSTEM' ORDER BY created_at").all(id) as Array<{ body: string }>).map((r) => r.body).join(" | ");
+    expect(lines).toMatch(/made Anika an admin/);
+    expect(lines).toMatch(/is no longer an admin/);
+  });
+
+  it("the owner hands the group over and stays an admin; when an owner leaves, an admin takes over first", async () => {
+    const { owner, a, b } = await people();
+    const { conversationId: id } = await createGroup(await w.ctx(owner), { name: "Fair crew", memberIds: [a, b] });
+    const role = (u: string) => (w.sqlite.prepare("SELECT role FROM conversation_members WHERE conversation_id = ? AND user_id = ?").get(id, u) as { role: string }).role;
+    await expect(transferGroup(await w.ctx(a), id, a)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await transferGroup(await w.ctx(owner), id, a);
+    expect([role(owner), role(a)]).toEqual(["ADMIN", "OWNER"]);
+    // b is an admin now; the new owner (a) leaves: b (the admin), not the earliest member, takes over.
+    await setGroupRole(await w.ctx(a), id, b, "ADMIN");
+    await setGroupRole(await w.ctx(owner), id, owner, "MEMBER");
+    await leaveGroup(await w.ctx(a), id);
+    expect(role(b)).toBe("OWNER");
+    // Roles show in the conversation for everyone, owner first.
+    const t = await thread(await w.ctx(owner), id);
+    expect(t.group?.members.map((m) => m.role)).toEqual(["OWNER", "MEMBER"]);
+    expect(t.group?.canManage).toBe(false);
+  });
+
+  it("group members' photos show in the member list (a nested photo isn't lost)", async () => {
+    const { owner, a, b } = await people();
+    w.sqlite.prepare("INSERT INTO media (id, storage, bucket, object_key, original_filename, mime_type, media_type, visibility, status, uploaded_by) VALUES ('med_face', 'R2', 'public', 'media/med_face/master.webp', 'f.webp', 'image/webp', 'IMAGE', 'PUBLIC', 'READY', ?)").run(a);
+    w.sqlite.prepare("UPDATE profiles SET avatar_media_id = 'med_face' WHERE user_id = ?").run(a);
+    const { conversationId: id } = await createGroup(await w.ctx(owner), { name: "Faces", memberIds: [a, b] });
+    const t = await thread(await w.ctx(owner), id);
+    expect(t.group?.members.find((m) => m.id === a)?.avatarUrl).toContain("med_face");
+    expect(t.group?.members.find((m) => m.id === b)?.avatarUrl).toBeNull();
   });
 });

@@ -100,7 +100,7 @@ export function ConversationList({ items: initial, selected, meId, archived, wat
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return items.filter((c) => (filter !== "unread" || c.unread) && (filter !== "groups" || c.isGroup)
-      && (!needle || c.other_name.toLowerCase().includes(needle) || (c.last_body ?? "").toLowerCase().includes(needle) || (c.badge?.label ?? "").toLowerCase().includes(needle)));
+      && (!needle || c.other_name.toLowerCase().includes(needle) || (c.last_body ?? "").toLowerCase().includes(needle) || (c.badge?.short ?? "").toLowerCase().includes(needle) || (c.badge?.label ?? "").toLowerCase().includes(needle)));
   }, [items, q, filter]);
   const unreadCount = items.filter((c) => c.unread).length;
   const groups = items.filter((c) => c.isGroup).length;
@@ -157,7 +157,7 @@ export function ConversationList({ items: initial, selected, meId, archived, wat
                     <span className="flex items-baseline justify-between gap-2">
                       <span className={cn("flex min-w-0 items-center gap-1.5 text-sm", c.unread ? "font-semibold" : "font-medium")}>
                         <span className="truncate">{c.other_name}</span>
-                        {!c.isGroup && c.badge && c.badge.tier !== "member" && <BadgePill badge={c.badge} className="hidden sm:inline-flex" />}
+                        {!c.isGroup && c.badge && c.badge.tier !== "member" && <BadgePill badge={c.badge} />}
                         {c.isGroup && <span className="shrink-0 text-[11px] font-normal text-muted-foreground">· {c.memberCount}</span>}
                         {c.muted ? <BellOff className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="muted" /> : null}
                         {c.blocked ? <Ban className="h-3.5 w-3.5 shrink-0 text-destructive" aria-label="blocked" /> : null}

@@ -445,13 +445,15 @@ export interface ThreadMessage {
   context: { title: string; href: string } | null;
 }
 
+const ROLE_ORDER = { OWNER: 0, ADMIN: 1, MEMBER: 2 } as const;
+
 export interface GroupMember {
   id: string;
   name: string;
   handle: string | null;
   avatarUrl: string | null;
   badge: Badge;
-  role: "OWNER" | "MEMBER";
+  role: "OWNER" | "ADMIN" | "MEMBER";
   lastReadAt: string | null;
   lastActiveAt: string | null;
 }
@@ -516,9 +518,9 @@ export async function thread(ctx: Ctx, conversationId: string, opts: { before?: 
          AND (last_read_at IS NULL OR last_read_at < (SELECT last_message_at FROM conversations WHERE id = ?1))`, conversationId, me, readNow);
   }
   const members: GroupMember[] = isGroup
-    ? (JSON.parse(info.members ?? "[]") as Array<{ id: string; name: string; handle: string | null; avatar: string | null; role: "OWNER" | "MEMBER"; read: string | null; active: string | null; pos: string | null; mod: number; type: string | null }>)
+    ? (JSON.parse(info.members ?? "[]") as Array<{ id: string; name: string; handle: string | null; avatar: string | null; role: "OWNER" | "ADMIN" | "MEMBER"; read: string | null; active: string | null; pos: string | null; mod: number; type: string | null }>)
         .map((x) => ({ id: x.id, name: x.name, handle: x.handle, avatarUrl: avatarUrl(x.avatar), role: x.role, lastReadAt: x.read, lastActiveAt: x.active, badge: badgeOf({ badge_pos: x.pos, badge_mod: x.mod, badge_type: x.type }) }))
-        .sort((a, b) => (a.role === "OWNER" ? -1 : b.role === "OWNER" ? 1 : 0) || a.badge.rank - b.badge.rank || a.name.localeCompare(b.name))
+        .sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || a.badge.rank - b.badge.rank || a.name.localeCompare(b.name))
     : [];
   const others = isGroup ? members.map((x) => x.id).filter((id) => id !== me) : info.other_id ? [info.other_id] : [];
   if (readNow) {
@@ -535,7 +537,11 @@ export async function thread(ctx: Ctx, conversationId: string, opts: { before?: 
   // "Seen" only when both people share read receipts.
   const seenAt = !isGroup && info.other_receipts && info.my_receipts ? info.other_read : null;
   const { sig } = before ? { sig: "" } : await pulse(ctx, conversationId);
-  const canManage = isGroup && !info.left_at && (info.group_owner === me || can(ctx, "chat.groups.manage"));
+  // Owner, admins and club leaders manage; the owner and leaders also change roles and delete.
+  const myRole = members.find((x) => x.id === me)?.role ?? null;
+  const leader = can(ctx, "chat.groups.manage");
+  const canGovern = isGroup && !info.left_at && (myRole === "OWNER" || leader);
+  const canManage = isGroup && !info.left_at && (canGovern || myRole === "ADMIN");
   const other = !isGroup && info.other_id ? {
     id: info.other_id, name: info.other_name ?? "Former member", handle: info.handle, avatarUrl: avatarUrl(info.avatar_json), active: info.other_status === "ACTIVE" && !info.other_deleted,
     blocked: Boolean(info.blocked), blockedMe: Boolean(info.blocked_me), badge: badgeOf(info), lastActiveAt: info.last_active,
@@ -556,7 +562,7 @@ export async function thread(ctx: Ctx, conversationId: string, opts: { before?: 
     /** The other person (direct conversations). */
     person: other,
     group: isGroup ? {
-      name: info.group_name!, description: info.group_description, avatarUrl: avatarUrl(info.group_photo, "sm"), members, ownerId: info.group_owner, canManage,
+      name: info.group_name!, description: info.group_description, avatarUrl: avatarUrl(info.group_photo, "sm"), members, ownerId: info.group_owner, canManage, canGovern, myRole,
       maxMembers: await getSetting(ctx, "chat.max_group_members", 50),
     } : null,
     me,

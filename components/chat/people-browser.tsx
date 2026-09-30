@@ -8,8 +8,8 @@ import { activeLabel, usePresence } from "@/lib/api/presence";
 import { cn } from "@/lib/utils";
 import type { DirectoryPerson } from "@/lib/server/services/messaging";
 
-type Filter = "all" | "active" | "leader" | "executive" | "faculty" | "member";
-const FILTERS: Array<[Filter, string]> = [["all", "Everyone"], ["active", "Active now"], ["leader", "Leaders"], ["executive", "Executives"], ["faculty", "Faculty"], ["member", "Members"]];
+type Filter = "all" | "active" | "leader" | "executive" | "former" | "faculty" | "member";
+const FILTERS: Array<[Filter, string]> = [["all", "Everyone"], ["active", "Active now"], ["leader", "Leaders"], ["executive", "Executives"], ["former", "Past executives"], ["faculty", "Faculty"], ["member", "Members"]];
 
 /**
  * Browse and choose people from the directory: search by name, position, department or batch,
@@ -40,14 +40,14 @@ export function PeopleBrowser({ people, multi, selected, onToggle, exclude = [],
       .filter((p) => filter === "all" || (filter === "active" ? online(p.user_id) : p.badge.tier === filter))
       .filter((p) => {
         if (!words.length) return true;
-        const hay = `${p.full_name} ${p.badge.label} ${p.department ?? ""} ${p.batch ?? ""}`.toLowerCase();
+        const hay = `${p.full_name} ${p.badge.label} ${p.badge.short} ${p.department ?? ""} ${p.batch ?? ""}`.toLowerCase();
         return words.every((w) => hay.includes(w));
       })
       // Active people first, then by seniority, then by name.
       .sort((a, b) => Number(online(b.user_id)) - Number(online(a.user_id)) || (q ? 0 : a.badge.rank - b.badge.rank) || a.full_name.localeCompare(b.full_name));
   }, [people, exclude, filter, q, online]);
   const counts = useMemo(() => {
-    const c: Record<Filter, number> = { all: 0, active: 0, leader: 0, executive: 0, faculty: 0, member: 0 };
+    const c: Record<Filter, number> = { all: 0, active: 0, leader: 0, executive: 0, former: 0, faculty: 0, member: 0 };
     for (const p of people) {
       if (exclude.includes(p.user_id)) continue;
       c.all++;
