@@ -97,7 +97,7 @@ export function FormViewer({ form }: { form: { slug: string; title: string; url:
                   <iframe
                     src={embedUrl}
                     title={form.title}
-                    className="w-full border-0 h-[calc(100vh-240px)] min-h-[500px] max-h-[800px]"
+                    className="w-full border-0 h-[calc(100dvh-240px)] min-h-[500px] max-h-[800px]"
                     allowFullScreen
                     onLoad={handleFormLoad}
                   />

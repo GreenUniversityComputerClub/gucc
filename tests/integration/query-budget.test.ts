@@ -3,7 +3,8 @@ import { Db } from "@/lib/server/db";
 import { loadActor } from "@/lib/server/authz";
 import type { Ctx } from "@/lib/server/context";
 import { broadcast, markSeenAtPath, saveContest, sessionCounts } from "@/lib/server/services/community";
-import { pulse, sendToPerson } from "@/lib/server/services/messaging";
+import { chatDirectory, myConversations, pulse, reactToMessage, sendInThread, sendToPerson, thread } from "@/lib/server/services/messaging";
+import { addGroupMembers, createGroup } from "@/lib/server/services/messaging-groups";
 import { remindStaleApprovals } from "@/lib/server/services/approvals";
 import { moveAssignment } from "@/lib/server/services/committees";
 import { createEvent, publishEvent, setEventPeople, setEventStatus } from "@/lib/server/services/events";
@@ -11,13 +12,13 @@ import { committeeView, contestsView, eventView, sessionMe } from "@/lib/server/
 import { homeView } from "@/lib/server/views/home";
 import { activityFeed } from "@/lib/server/services/activity";
 import { systemHealth } from "@/lib/server/services/health";
-import { createTask, listTasks, scheduleMeeting, updateMeeting } from "@/lib/server/services/work";
+import { bulkTasks, createTask, listTasks, meetingActionItems, scheduleMeeting, taskDetail, updateMeeting } from "@/lib/server/services/work";
 import { runRetention } from "@/lib/server/services/retention";
-import { runMaintenance } from "@/lib/server/services/maintenance";
+import { runDailyHousekeeping, runMaintenance } from "@/lib/server/services/maintenance";
 import { guardFreeTier } from "@/lib/server/services/cloudflare-usage";
 import { sealAuditLog } from "@/lib/server/services/audit-seal";
 import { simulateAccess } from "@/lib/server/services/access";
-import { flushOutbox } from "@/lib/server/email-outbox";
+import { flushOutbox, sendDigests } from "@/lib/server/email-outbox";
 import { notifyStmts } from "@/lib/server/notifications";
 import { forgetEmailSettings } from "@/lib/server/email";
 import { createWorld, type TestWorld } from "../support/d1";
@@ -57,6 +58,27 @@ beforeAll(async () => {
   for (let i = 0; i < 80; i++) reg.run(`reg_${i}`, eventId, `usr_bulk_${i}`, `Member ${i}`, `m${i}@x.bd`);
 });
 
+/** Tasks made directly in the database (not part of the measured request). */
+let seeded = 0;
+function seedTasks(k: number): string[] {
+  const ids = Array.from({ length: k }, () => `tsk_seed_${seeded++}`);
+  const ins = w.sqlite.prepare("INSERT INTO tasks (id, title, assignee_user_id, created_by) VALUES (?, 'Seeded task', 'usr_bulk_3', ?)");
+  for (const id of ids) ins.run(id, pres);
+  return ids;
+}
+
+/** A 50-person group the President is in, with a message (made once, outside the measured request). */
+let big: string | null = null;
+async function bigGroup(): Promise<string> {
+  if (big) return big;
+  const ctx = await w.ctx(pres);
+  big = (await createGroup(ctx, { name: "Big group", memberIds: Array.from({ length: 49 }, (_, i) => `usr_bulk_${i + 10}`) })).conversationId;
+  await sendInThread(ctx, big, "Welcome everyone");
+  // Group creation is limited per day; the measured requests below create more.
+  w.sqlite.prepare("DELETE FROM rate_limits").run();
+  return big;
+}
+
 /** Statements a request would run: session lookup (1) + loading the actor + the operation. */
 async function measure(userId: string, op: (ctx: Ctx) => Promise<unknown>): Promise<number> {
   const db = new Db(w.db.raw);
@@ -87,6 +109,27 @@ describe("every request stays within the free plan's 50 D1 statements", () => {
     ["schedule and move a 70-person meeting", async (c: Ctx) => {
       const { id } = await scheduleMeeting(c, { title: "Sync", startsAt: "2030-05-03T10:00", allExecutives: true, participants: "" });
       await updateMeeting(c, id, { title: "Sync", startsAt: "2030-05-04T10:00", participants: Array.from({ length: 70 }, (_, i) => `usr_bulk_${i}`).join(",") });
+    }],
+    // Groups at the size limit (50 people): creating, writing, reading, reacting, adding.
+    ["start a 50-person group", (c: Ctx) => createGroup(c, { name: "Everyone", memberIds: Array.from({ length: 49 }, (_, i) => `usr_bulk_${i}`) })],
+    ["write in a 50-person group", async (c: Ctx) => sendInThread(c, await bigGroup(), "Meeting at 3 in room 402")],
+    ["open a 50-person group", async (c: Ctx) => thread(c, await bigGroup())],
+    ["react in a 50-person group", async (c: Ctx) => {
+      const id = (w.sqlite.prepare("SELECT id FROM messages WHERE conversation_id = ? AND kind = 'TEXT' LIMIT 1").get(await bigGroup()) as { id: string }).id;
+      return reactToMessage(c, id, "love");
+    }],
+    ["add 30 people to a group", async (c: Ctx) => {
+      const { conversationId } = await createGroup({ ...c, db: w.db }, { name: "Small", memberIds: ["usr_bulk_100", "usr_bulk_101"] });
+      return addGroupMembers(c, conversationId, Array.from({ length: 30 }, (_, i) => `usr_bulk_${60 + i}`));
+    }],
+    ["the new-message directory (120 members)", (c: Ctx) => chatDirectory(c)],
+    ["the conversation list", (c: Ctx) => myConversations(c)],
+    ["bulk-change 100 tasks", (c: Ctx) => bulkTasks(c, { ids: seedTasks(100), action: "status", status: "DONE" })],
+    ["open a task with its checklist, comments and history", (c: Ctx) => taskDetail(c, seedTasks(1)[0]!)],
+    ["schedule a weekly meeting 12 times for the whole committee", (c: Ctx) => scheduleMeeting(c, { title: "Weekly", startsAt: "2030-06-01T10:00", allExecutives: true, participants: "", repeatWeeks: 12, agendaItems: "Updates\nBudget\nAny other business" })],
+    ["20 action items from a meeting", async (c: Ctx) => {
+      const { id } = await scheduleMeeting({ ...c, db: w.db }, { title: "Review", startsAt: "2030-06-02T10:00", participants: "usr_bulk_1" });
+      return meetingActionItems(c, id, Array.from({ length: 20 }, (_, i) => ({ title: `Action ${i}`, assigneeUserId: `usr_bulk_${i}` })));
     }],
     ["access simulator", (c: Ctx) => simulateAccess(c, { userId: "usr_bulk_1", permission: "events.publish", resourceType: "event", resourceId: eventId })],
     // A notification to 60 people and its email copies, flushed after the response in the same invocation.
@@ -121,6 +164,7 @@ describe("every request stays within the free plan's 50 D1 statements", () => {
     await guardFreeTier(ctx);
     await sealAuditLog(ctx);
     await flushOutbox(ctx);
+    await sendDigests(ctx, new Date(Date.now() + 3600_000));
     expect(db.queries + 1, `ran ${db.queries + 1} statements`).toBeLessThanOrEqual(HEADROOM);
   });
 
@@ -142,6 +186,8 @@ describe("every request stays within the free plan's 50 D1 statements", () => {
     const db = new Db(w.db.raw);
     const ctx: Ctx = { ...(await w.ctx(null)), db };
     await runRetention(ctx);
+    await runDailyHousekeeping(ctx);
+    await flushOutbox({ ...ctx, outbox: ctx.outbox ?? [] });
     expect(db.queries + 1, `ran ${db.queries + 1} statements`).toBeLessThanOrEqual(HEADROOM);
   });
 });

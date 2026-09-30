@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { acceptInvite } from "@/lib/server/services/auth";
 import { assignExecutive, moveAssignment, startNextCommittee } from "@/lib/server/services/committees";
 import { listMessages, setMessageStatus, submitContact } from "@/lib/server/services/contact";
-import { runMaintenance } from "@/lib/server/services/maintenance";
+import { runDailyHousekeeping, runMaintenance } from "@/lib/server/services/maintenance";
 import { uploadMedia } from "@/lib/server/services/media";
 import { invitePerson, updatePerson } from "@/lib/server/services/people";
 import { applicationsCsv, getApplication, listApplications, publicCampaign, recruitmentUploadToken, reviewApplication, saveCampaign, submitApplication } from "@/lib/server/services/recruitment";
@@ -76,7 +76,7 @@ describe("recruitment", () => {
     await saveCampaign(await w.ctx(pres), campaignId, { title: "Call for Executives 2027", closesAt: new Date(Date.now() + 86400_000).toISOString(), status: "CLOSED", positionIds: ["pos:executive-member"] });
     await expect(recruitmentUploadToken(anon, { campaignId })).rejects.toMatchObject({ code: "RECRUITMENT_CLOSED" });
     w.sqlite.prepare("UPDATE media SET created_at = '2020-01-01T00:00:00.000Z' WHERE id = ?").run(orphan.id);
-    const report = await runMaintenance(await w.ctx(null));
+    const report = await runDailyHousekeeping(await w.ctx(null));
     expect(report.orphanUploads).toBe(1);
     expect(w.privateBucket.objects.size).toBe(0);
   });
@@ -107,7 +107,7 @@ describe("maintenance", () => {
     w.sqlite.prepare("INSERT INTO sessions (id, user_id, created_at, expires_at) VALUES ('s_old', ?, '2020-01-01', '2020-02-01'), ('s_live', ?, '2026-01-01', '2999-01-01')").run(u, u);
     w.sqlite.prepare("INSERT INTO events (id, slug, title, start_at, end_at, status) VALUES ('ev1', 'past', 'Past', '2020-01-01T10:00:00.000Z', '2020-01-01T12:00:00.000Z', 'PUBLISHED')").run();
     const r = await runMaintenance(await w.ctx(null));
-    expect(r.sessions).toBe(1);
+    expect((await runDailyHousekeeping(await w.ctx(null))).sessions).toBe(1);
     expect(r.eventsCompleted).toBe(1);
     expect(w.sqlite.prepare("SELECT status FROM events WHERE id = 'ev1'").get()).toEqual({ status: "COMPLETED" });
     expect(w.sqlite.prepare("SELECT COUNT(*) n FROM sessions").get()).toEqual({ n: 1 });
