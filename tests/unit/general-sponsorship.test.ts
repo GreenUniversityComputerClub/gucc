@@ -1,11 +1,11 @@
-/** The general "Partner with GUCC" page: migration 0015 creates it with the same content as lib/sponsorship/general.ts. */
+/** The general "Partner with GUCC" page: migration 0016 creates it with the same content as lib/sponsorship/general.ts. */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { GENERAL_SPONSORSHIP, generalSponsorshipSql } from "@/lib/sponsorship/general";
 
 describe("general sponsorship page", () => {
-  it("is created by migration 0015 exactly as lib/sponsorship/general.ts says", () => {
-    const migration = readFileSync("migrations/0015_email_choices.sql", "utf8");
+  it("is created by migration 0016 exactly as lib/sponsorship/general.ts says", () => {
+    const migration = readFileSync("migrations/0016_sponsorship_pages.sql", "utf8");
     expect(migration).toContain(generalSponsorshipSql());
   });
 

@@ -205,10 +205,10 @@ description or page content) is never marked, archived or deleted.
 - `profiles.cutout_media_id`: the member's profile photo with its background removed (transparent), shown on the executives list; cleared when the photo changes without one.
 - Partial indexes on every column that points at a file (`profiles.avatar_media_id`, `committee_members.avatar_media_id`, `events.banner_media_id`, `event_media.media_id`, `posts.featured_media_id`, `contest_media.media_id`, `lost_found_posts.image_media_id`, `chat_groups.photo_media_id`, the three recruitment files), so "is this file used?" is a search per place.
 
-### 0014, 0015
+### 0014, 0015, 0016
 
 - `conversation_members.is_admin` (0014): a group member made an admin; the owner stays `role = 'OWNER'`.
 - `users.security_emails` (0015): the member chose security alerts by email. Every notification email is off by default; the other choices are rows in `notification_preferences`.
 - `cache_stamps` (0015): a change counter per cached thing; triggers on `rules`, `rule_actions`, `rule_conditions` and `approval_policies` bump `rules`, so each Worker reads the rules again only after a change.
 - `posts_author_profile_idx` (0015): a person's posts by their profile (member pages, profile saves).
-- `sponsorship_pages` (0015): one row per sponsorship opportunity (`slug`, `title`, `summary`, `status` ACTIVE/INACTIVE, `is_default`, `sort_order`, `content_json` in the CSE Carnival page's shape). At most one default (unique partial index), and the default is always ACTIVE (CHECK). The Carnival page is copied in from the `page.sponsorship` setting. `0015` also adds the general page `partner-with-gucc` (active, not the default; from `lib/sponsorship/general.ts`, with the Carnival page's achievements, partners and contacts). `sort_order` is the order on `/become-a-sponsor` after the default; `sponsorships.move` renumbers it.
+- `sponsorship_pages` (0016): one row per sponsorship opportunity (`slug`, `title`, `summary`, `status` ACTIVE/INACTIVE, `is_default`, `sort_order`, `content_json` in the CSE Carnival page's shape). At most one default (unique partial index), and the default is always ACTIVE (CHECK). The Carnival page is copied in from the `page.sponsorship` setting. `0016` also adds the general page `partner-with-gucc` (active, not the default; from `lib/sponsorship/general.ts`, with the Carnival page's achievements, partners and contacts). `sort_order` is the order on `/become-a-sponsor` after the default; `sponsorships.move` renumbers it.

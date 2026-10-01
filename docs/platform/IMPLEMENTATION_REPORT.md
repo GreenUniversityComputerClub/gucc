@@ -273,16 +273,16 @@ the blog stylesheet loads only where articles are shown; SEO and layout audit sc
   content; a section without content stays hidden). Dashboard → Content → _Sponsorship pages_
   (settings.manage): edit, duplicate, make public or hide, delete, and **Make default**: the
   navbar's Sponsors link (and `/sponsors`) opens the default. Changing it never hides or removes
-  the others; the default is always public (a CHECK and a unique index in `0015`).
+  the others; the default is always public (a CHECK and a unique index in `0016`).
   `/become-a-sponsor` lists every public page, the default featured. The CSE Carnival page is the
-  first page and the default (copied from the `page.sponsorship` setting by `0015`, or by the
+  first page and the default (copied from the `page.sponsorship` setting by `0016`, or by the
   legacy import on a new database), and looks exactly as before. A website deployed before the API
   shows the Carnival page from the setting, as before.
 - _A general sponsorship page._ `/sponsors/partner-with-gucc` ("Partner with GUCC") names no
   event, so it can go to any company: a year-round partnership across contests, hackathons,
   workshops, tech talks and career events, Gold/Silver/Bronze packages **on request** (price 0,
   "per academic year"), and the club's achievements, partner logos and contacts copied from the
-  Carnival page. It is public and listed, not the default. `0015` creates it (and the legacy
+  Carnival page. It is public and listed, not the default. `0016` creates it (and the legacy
   import on a new database), both from `lib/sponsorship/general.ts`; a unit test keeps the
   migration equal to that file, and an editor's later removal is never undone.
 - _Sponsorship management._ The editor is fields, not JSON: tabs for Hero, Program (with its four
