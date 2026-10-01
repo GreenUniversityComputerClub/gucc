@@ -8,7 +8,7 @@ import "server-only";
  * within one render. Only published, public data is ever returned.
  */
 import { cache } from "react";
-import { publicGet } from "@/lib/api/client";
+import { ApiUnavailableError, publicGet } from "@/lib/api/client";
 import { TAGS } from "@/lib/server/services/cache-tags";
 import type { PublicPost, PublicSponsorship, RegistrationFieldPublic } from "./read";
 import type { PublicCommittee, PublicContest, PublicEvent } from "./shapes";
@@ -65,17 +65,26 @@ export const LEGACY_SPONSORSHIP_SLUG = "cse-carnival-2026";
 type LegacySponsorship = { event?: PublicSponsorship["event"]; packages?: unknown[] };
 
 /**
- * The active sponsorship pages, the default first. An API from before sponsorship pages (it
- * answers 404 here; a newer one always answers with a list) gives the single Carnival page from
- * its setting, so the site works whichever is released first.
+ * The active sponsorship pages, the default first. An API from before sponsorship pages gives the
+ * single Carnival page from its setting, so the site works whichever is released first. That API
+ * answers 404 (no route) or 5xx (a Worker released ahead of its database migration, so the table
+ * is missing); a current one always answers with a list.
  */
-const getSponsorshipState = cache(async (): Promise<{ list: PublicSponsorship[]; legacy: boolean }> => {
-  const list = await publicGet<PublicSponsorship[]>("sponsorships", { tags: [TAGS.sponsorships], revalidate: 6 * HOUR, fallback: null });
-  if (list) return { list, legacy: false };
+const getSponsorshipState = cache(async (): Promise<{ list: PublicSponsorship[]; legacy: boolean; failed: boolean }> => {
+  let list: PublicSponsorship[] | null = null;
+  let failed = false;
+  try {
+    list = await publicGet<PublicSponsorship[]>("sponsorships", { tags: [TAGS.sponsorships], revalidate: 6 * HOUR, fallback: null });
+  } catch (e) {
+    if (!(e instanceof ApiUnavailableError)) throw e;
+    failed = true;
+  }
+  if (list) return { list, legacy: false, failed };
   const old = await getPublicSetting<LegacySponsorship>("page.sponsorship");
-  if (!old) return { list: [], legacy: true };
+  if (!old) return { list: [], legacy: true, failed };
   return {
     legacy: true,
+    failed,
     list: [{ slug: LEGACY_SPONSORSHIP_SLUG, title: old.event?.fullName ?? old.event?.name ?? "Sponsorship", summary: null, isDefault: true, event: old.event ?? null, packages: old.packages?.length ?? 0, updatedAt: "" }],
   };
 });
@@ -101,7 +110,11 @@ export interface PublicSponsorshipPage {
 export const getSponsorship = cache(async (slug: string): Promise<PublicSponsorshipPage | null> => {
   const state = await getSponsorshipState();
   if (state.legacy) {
-    if (slug !== LEGACY_SPONSORSHIP_SLUG) return null;
+    if (slug !== LEGACY_SPONSORSHIP_SLUG) {
+      // After a failed list call the API may only be briefly unwell: ask for the page itself
+      // (an error is not cached) instead of caching a 404 for a page that exists.
+      return state.failed ? publicGet<PublicSponsorshipPage>(`sponsorships/${encodeURIComponent(slug)}`, { tags: [TAGS.sponsorships], revalidate: 6 * HOUR, fallback: null }) : null;
+    }
     const content = await getPublicSetting<LegacySponsorship>("page.sponsorship");
     const first = state.list[0];
     return content && first ? { slug, title: first.title, summary: null, isDefault: true, updatedAt: "", content } : null;
