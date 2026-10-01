@@ -110,8 +110,9 @@ export function ConversationList({ items: initial, selected, meId, archived, wat
   // People I talk with who are active right now (most recent conversation first).
   const activeNow = useMemo(() => items.filter((c) => !c.isGroup && c.other_id && !c.blocked && online(c.other_id)), [items, online]);
 
+  // Phones: part of the page (it scrolls with it); computers: a panel with its own scroll.
   return (
-    <nav aria-label="Conversations" className="flex h-full min-h-0 flex-col rounded-xl border bg-card">
+    <nav aria-label="Conversations" className="flex flex-col rounded-xl border bg-card lg:h-full lg:min-h-0">
       <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
         <h2 className="text-sm font-semibold">{archived ? "Archived" : "Chats"}</h2>
         <div className="flex items-center gap-1">
@@ -165,7 +166,7 @@ export function ConversationList({ items: initial, selected, meId, archived, wat
       ) : shown.length === 0 ? (
         <p className="p-4 text-sm text-muted-foreground">No conversation matches.</p>
       ) : (
-        <ul className="flex-1 divide-y overflow-y-auto overscroll-contain">
+        <ul className="divide-y lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
           {shown.map((c) => {
             const isTyping = (typing[c.id] ?? 0) > Date.now();
             const unread = Boolean(c.unread);

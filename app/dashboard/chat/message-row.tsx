@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import type { Thread } from "./actions";
 import { Linkified } from "./linkify";
 import { ReactionBar } from "./reaction-bar";
+import { MessageSheet, type SheetAction } from "./message-sheet";
 
 export type Message = Thread["messages"][number];
 
@@ -73,6 +74,8 @@ export const MessageRow = memo(function MessageRow({
   // Swipe to reply (touch): where the finger started, and whether this gesture is a sideways drag.
   const swipe = useRef<{ x: number; y: number; id: number; drag: boolean | null; armed: boolean } | null>(null);
   const [dx, setDx] = useState(0);
+  // Phones: the long-press sheet (reactions and every action).
+  const [sheet, setSheet] = useState(false);
 
   if (m.kind === "SYSTEM") {
     return (
@@ -142,7 +145,7 @@ export const MessageRow = memo(function MessageRow({
                   press.current = null;
                   swipe.current = null;
                   navigator.vibrate?.(12);
-                  onReacting(m.id);
+                  setSheet(true);
                 }, LONG_PRESS_MS);
               }}
               onPointerMove={(e) => {
@@ -197,7 +200,9 @@ export const MessageRow = memo(function MessageRow({
             </div>
           </div>
           {interactive && (
-            <div className={cn("flex items-center", m.mine && "flex-row-reverse")}>
+            // Computers: hover or focus shows these. Phones use the long-press sheet instead (the
+            // buttons stay for screen readers), so messages get the full width.
+            <div className={cn("flex items-center [@media(hover:none)]:sr-only", m.mine && "flex-row-reverse")}>
               <button type="button" aria-label="React" className={hoverButton} onClick={() => onReacting(reacting ? null : m.id)}><SmilePlus className="h-4 w-4" /></button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -220,6 +225,18 @@ export const MessageRow = memo(function MessageRow({
           )}
         </div>
         {link && editing !== m.id && <LinkPreviewCard url={link} mine={m.mine} />}
+        {interactive && sheet && (
+          <MessageSheet open={sheet} onOpenChange={setSheet} preview={m.body ?? ""} at={m.at} mine={mineReaction} onReact={toggle}
+            actions={([
+              { key: "reply", label: "Reply", icon: Reply, run: () => onReply(m) },
+              { key: "copy", label: "Copy text", icon: Copy, run: () => onCopy(m.body ?? "") },
+              m.editable ? { key: "edit", label: "Edit", icon: Pencil, run: () => onEdit(m) } : null,
+              onMessagePrivately && !m.mine && m.sender ? { key: "dm", label: `Message ${m.sender.name.split(" ")[0]} privately`, icon: MessageCircle, run: () => onMessagePrivately(m) } : null,
+              grouped.length ? { key: "who", label: "See who reacted", icon: SmilePlus, run: () => onShowReactions(m) } : null,
+              !m.mine && !m.reported ? { key: "report", label: "Report", icon: Flag, danger: true, run: () => onReport(m) } : null,
+              m.mine ? { key: "delete", label: "Delete", icon: Trash2, danger: true, run: () => onDelete(m) } : null,
+            ] as Array<SheetAction | null>).filter((a): a is SheetAction => a !== null)} />
+        )}
         {editing === m.id && <EditBox initial={m.body ?? ""} onChange={onEditChange} onSave={onEditSave} onCancel={onEditCancel} />}
         {grouped.length > 0 && (
           // One pill: the most used reactions and how many; tapping it shows who reacted.
