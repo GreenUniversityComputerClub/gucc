@@ -183,6 +183,88 @@ the blog stylesheet loads only where articles are shown; SEO and layout audit sc
   the picture fills the rest); images inside articles fit the column and stop at the screen's
   height.
 
+**Messages, part 6 (2026-09-30).**
+
+- _A messaging app on phones._ An open conversation fills the screen: its header (back, photo,
+  name, active status) takes the place of the site's bars and the dashboard's Menu bar, the page
+  behind stops scrolling, and the conversation follows the visible area (`visualViewport`), so the
+  on-screen keyboard never covers the message box. On computers the chat fills the window below
+  any notice above it (`chat-frame.tsx`), so a two-factor reminder no longer pushes the message box
+  off the screen. Cards for other conversations come from the top in a conversation.
+- _Active status that reads well._ "Active now" is green with a dot everywhere (header, people
+  picker, group members); times move on each minute and use the moment this tab saw the person
+  go ("Active just now" at once, instead of an old time). The chat list opens with a row of the
+  people active now; a group shows "Active now (2)", a green dot on its photo while anyone is in,
+  and its details list who is active.
+- _Read and unread at a glance._ Unread conversations are tinted and bold with how many messages
+  wait (a count from the index on `messages(conversation_id, created_at)`; grey when muted); the
+  open one has an accent bar. "Mark as unread" (conversation menu, `chat.unread`) brings a
+  conversation back as unread on every device until it's opened; the others aren't told.
+- _Message someone from a group._ A Message button beside each member in Group details, and
+  "Message … privately" in a group message's menu. Both open the existing conversation directly
+  (`/dashboard/chat?to=` redirects), or the new-message box, which says up front when the person
+  doesn't take messages from you.
+- _Link previews._ The first link in a message shows a card (picture, site, title, a line of
+  description) like social sites do. `/api/link-preview` (signed-in members, no database) reads
+  the page's Open Graph / Twitter tags on the website's server: http(s) on the usual ports only,
+  never private or metadata addresses (checked after DNS, on every redirect), 512 KB, 5 s,
+  4 redirects; cached a day by the CDN and the browser. Cards load as they scroll into view.
+- _Faster to use._ Swipe a message to the right to reply (touch); a round button jumps to the
+  latest message after scrolling up; scrolling to the top loads older messages; the view stays at
+  the bottom while cards and reactions appear. The connection line no longer causes a hydration
+  warning (`useSyncExternalStore`).
+
+**Email, part 7 (2026-09-30).**
+
+- _Applications never wait on email._ When a verification email can't go out (email switched
+  off, no provider, the daily or monthly allowance used up, or a failed send), the application
+  goes straight to _Waiting for approval_ and the reviewers are told that its email isn't verified
+  (`lib/server/applications.ts`). This happens at sign-up, at sign-in for accounts already waiting
+  (the right password is enough), for everyone waiting the moment email is switched off (the
+  switch's answer says how many moved), and from the hourly job for anyone whose verification
+  email never went out. Invited accounts are never moved. Before this, switching email off or
+  running out of allowance left applicants unable to sign in and invisible to the reviewers.
+- _Notification emails are opt-in._ Every kind (security alerts, decisions, roles, tasks and
+  meetings, events, messages) is off until the member ticks it in My profile → Email
+  notifications. Security alerts are now a choice too: `users.security_emails` in
+  `0015_email_choices.sql` (the preferences table's category CHECK can't change without a rebuild).
+  Free-tier alerts to the leaders who watch the plans still always go. Account emails
+  (verification, reset, invitations, membership decisions) are unchanged.
+
+**Profiles, production fixes and database reads, part 8 (2026-10-01).**
+
+- _One address per person._ `/executives` opens the latest committee (a per-request 307; the
+  year tabs lead to every other year), so the dashboard menu's Executives link lands where the
+  navbar's and the home page's do. An executive with an account is at their member page:
+  `/executives/<student ID>` leads there (307), and `/members/<student ID>` finds anyone who
+  served (308 to their readable address; an ordinary member's student ID finds nothing). The
+  sitemap lists the member page instead. Member pages of people who served are indexed (what they
+  show is public on the executives pages anyway). The directory's loading screen moved into a
+  route group, so a missing profile is a real 404 and these redirects are real HTTP redirects.
+- _Member profiles, redesigned._ A cover, a large photo with a check for current executives, the
+  position with its short code and year ("GS-2026"), department and batch, Message, Share, copy
+  link and a QR code (saved as a picture); a row of numbers (roles, committee years, posts,
+  events); About with skills; links with their sites; the club journey by year, linking each
+  committee; writing as cards; events with their dates. The owner sees how complete their profile
+  is and what's missing. Light and dark, phone to desktop.
+- _Fixed in production._ `meetings.list` failed for "Today" and "This month" (five values given to
+  a four-placeholder query, which D1 refuses); an applicant correcting their student ID hit the
+  same error. The test database now refuses mismatched values exactly as D1 does
+  (`tests/support/d1.ts`), so the whole suite checks every query for it.
+- _Email on without a second Moderator._ A Moderator (or the President or the General Secretary)
+  switches email on at once once a test email arrived; a request waiting for approval to do so is
+  closed. A test email may go past the club's own daily cap (never SMTP2GO's 200 a day or the
+  month). Uploads back on still waits for another Moderator (R2 is what can bill).
+- _Half the database reads._ Cloudflare's query insights showed one query, loading a signed-in
+  person's permissions on every request, was 56% of all rows read (371 per request). It now
+  looks up "since when" only for sensitive permissions and loops over the person's roles and
+  positions: 617 → 307 rows for the President, same result. The authorization rules (~97 rows
+  per request) are kept by each Worker until a change counter moves (`cache_stamps`, bumped by
+  triggers in the same transaction as any rule change; 0015); a Worker without that table yet
+  reads them every time. A profile save refreshes the executives and blog pages only when the
+  person appears on them, so members editing their profiles no longer make the site re-read
+  every committee (~1,900 rows each time).
+
 ## Round 7 (2026-09-29): one source for people, messages that work, member submissions, profiles
 
 Everything below is in the working tree and **not released**. Schema and data changes are in

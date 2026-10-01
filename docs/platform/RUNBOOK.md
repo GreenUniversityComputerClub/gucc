@@ -92,7 +92,8 @@ in System health.
 - To switch live updates off (for example while investigating), set `live.enabled` to `false` in
   Settings; tabs fall back to timers within half an hour (at their next ticket).
 - Email digests: non-urgent notices go out hourly, one email per person, only if unread after 15
-  minutes. Security notices and decisions waiting for someone are sent at once.
+  minutes. Security alerts and decisions waiting for someone are sent at once. Only to people who
+  turned that kind of email on (My profile → Email notifications): every kind is off by default.
 
 ## Under attack
 
@@ -214,15 +215,24 @@ request or cron run.
 3. System health → _Switches_ → **Send me a test email** (a Moderator). SMTP2GO's answer is shown.
    Check the inbox **and the spam folder**: without the university's DNS records for SMTP2GO,
    some mail providers file club email as spam (every "check your email" screen says so).
-4. When the email has arrived: **Switch email on**. With other Moderators, one of them confirms.
+4. When the email has arrived: **Switch email on**. It applies at once (a Moderator, the President
+   or the General Secretary; no second confirmation). A test email may go past the club's own daily
+   cap (never past SMTP2GO's 200 a day or the month), so you can test even on a busy day.
 
 Optional, better delivery: whoever manages green.edu.bd's DNS adds SMTP2GO's SPF include and DKIM
 records (SMTP2GO → Sender Domains) and merges the two SPF records the domain has today into one.
 
 From then on: account emails (verification, password reset, invitations, membership decisions)
-and email copies of notifications, by each person's choices (My profile → _Email
-notifications_; security notices always). Every message and SMTP2GO's answer are listed in System
+and email copies of the notifications each person turned on (My profile → _Email
+notifications_; every kind, security alerts included, is off until they do; free-tier alerts to
+the leaders who watch the plans always go). Every message and SMTP2GO's answer are listed in System
 health. Club-wide announcements stay in the dashboard (they would use a whole day's allowance).
+
+When email can't verify applicants (switched off, no provider, the daily or monthly allowance used
+up, or a failed send), nobody is left waiting for a link: new applications go straight to
+Members → _Waiting for approval_ (their email shows "not verified"), and so do those already
+waiting for verification, when email is switched off, when they sign in with their password, or
+from the hourly job. Check who they are before approving.
 
 ## Site assistant (Gemini)
 
