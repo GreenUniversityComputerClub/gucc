@@ -44,7 +44,28 @@ export const HAS_MODERATOR_AUTHORITY_SQL = (userCol: string) => `(
             AND p.key IN (${MODERATOR_EQUAL_POSITIONS.map((k) => `'${k}'`).join(", ")})))`;
 const MY_AFFILIATE_LISTING = `SELECT 1 ${MY_LISTINGS} AND NOT ${GOVERNING_UNIT_SQL}`;
 
+/**
+ * When this Worker last found the rules' change counter missing (code deployed before its
+ * migration, 0015): it reads the rules every time until then, and looks again ten minutes later.
+ */
+let stampsMissingAt = 0;
+const STAMPS_RETRY_MS = 10 * 60_000;
+
 export async function loadActor(db: Db, userId: string): Promise<Actor | null> {
+  const withStamp = Date.now() - stampsMissingAt > STAMPS_RETRY_MS;
+  try {
+    return await readActor(db, userId, withStamp);
+  } catch (e) {
+    // Never let the cache's table decide whether anyone can sign in.
+    if (withStamp && /no such table: cache_stamps/.test(String(e))) {
+      stampsMissingAt = Date.now();
+      return readActor(db, userId, false);
+    }
+    throw e;
+  }
+}
+
+async function readActor(db: Db, userId: string, withStamp: boolean): Promise<Actor | null> {
   const now = nowIso();
   const [userRes, roleRes, posRes, grantRes, profileRes, affiliateRes] = (await db.batchAll([
     db.stmt(
@@ -53,6 +74,7 @@ export async function loadActor(db: Db, userId: string): Promise<Actor | null> {
               (SELECT value_json FROM system_settings WHERE key = 'security.mfa_required_for_sensitive') AS mfa_required,
               (SELECT updated_at FROM system_settings WHERE key = 'security.mfa_required_for_sensitive') AS mfa_required_since,
               (SELECT value_json FROM system_settings WHERE key = 'security.mfa_grace_days') AS mfa_grace_days
+              ${withStamp ? ", (SELECT stamp FROM cache_stamps WHERE key = 'rules') AS rules_stamp" : ""}
        FROM users u WHERE u.id = ?1 AND u.deleted_at IS NULL`, userId),
     db.stmt(
       `SELECT r.key FROM user_roles ur JOIN roles r ON r.id = ur.role_id AND r.deleted_at IS NULL
@@ -69,23 +91,29 @@ export async function loadActor(db: Db, userId: string): Promise<Actor | null> {
       userId,
     ),
     db.stmt(
+      // Every grant the account holds (this runs on every signed-in request, so it's kept lean):
+      //  - roles and positions drive the loop (a few rows), each reading its permissions from the
+      //    covering index;
+      //  - "since" (when the account first held it) only matters for sensitive permissions (the
+      //    two-factor grace period), so it's looked up only for those. Computing it for every row
+      //    was most of what this query read (617 rows for the President's 100 grants, now ~300).
       `SELECT 'role:' || r.key AS source, pm.key AS permission, rp.scope, rp.scope_value, pm.is_sensitive,
-              COALESCE((SELECT MIN(ur.granted_at) FROM user_roles ur WHERE ur.user_id = ?1 AND ur.role_id = r.id AND ur.revoked_at IS NULL),
-                       (SELECT MIN(MAX(cm.created_at, COALESCE(cm.start_date, ''))) ${MY_LISTINGS})) AS since
-       FROM role_permissions rp
-       JOIN roles r ON r.id = rp.role_id AND r.deleted_at IS NULL
+              CASE WHEN pm.is_sensitive = 1 THEN
+                COALESCE((SELECT MIN(ur.granted_at) FROM user_roles ur WHERE ur.user_id = ?1 AND ur.role_id = r.id AND ur.revoked_at IS NULL),
+                         (SELECT MIN(MAX(cm.created_at, COALESCE(cm.start_date, ''))) ${MY_LISTINGS})) END AS since
+       FROM roles r CROSS JOIN role_permissions rp ON rp.role_id = r.id
        JOIN permissions pm ON pm.id = rp.permission_id
-       WHERE r.id IN (SELECT role_id FROM user_roles WHERE user_id = ?1 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?2))
+       WHERE r.deleted_at IS NULL AND (
+             r.id IN (SELECT role_id FROM user_roles WHERE user_id = ?1 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?2))
           OR (r.key = 'executive' AND EXISTS (${MY_POSITION_IDS}))
           OR (r.key = 'moderator' AND EXISTS (${MY_MODERATOR_EQUAL}))
-          OR (r.key = 'unit-executive' AND EXISTS (${MY_AFFILIATE_LISTING}) AND NOT EXISTS (${MY_POSITION_IDS}))
+          OR (r.key = 'unit-executive' AND EXISTS (${MY_AFFILIATE_LISTING}) AND NOT EXISTS (${MY_POSITION_IDS})))
        UNION ALL
        SELECT 'position:' || p.key, pm.key, pp.scope, pp.scope_value, pm.is_sensitive,
-              (SELECT MIN(MAX(cm.created_at, COALESCE(cm.start_date, ''))) ${MY_LISTINGS} AND cm.position_id = p.id)
-       FROM position_permissions pp
-       JOIN positions p ON p.id = pp.position_id AND p.is_active = 1 AND p.deleted_at IS NULL
+              CASE WHEN pm.is_sensitive = 1 THEN (SELECT MIN(MAX(cm.created_at, COALESCE(cm.start_date, ''))) ${MY_LISTINGS} AND cm.position_id = p.id) END
+       FROM positions p CROSS JOIN position_permissions pp ON pp.position_id = p.id
        JOIN permissions pm ON pm.id = pp.permission_id
-       WHERE pp.position_id IN (${MY_POSITION_IDS})
+       WHERE p.id IN (${MY_POSITION_IDS}) AND p.is_active = 1 AND p.deleted_at IS NULL
        UNION ALL
        SELECT 'direct', pm.key, up.scope, up.scope_value, pm.is_sensitive, up.granted_at
        FROM user_permissions up
@@ -98,7 +126,7 @@ export async function loadActor(db: Db, userId: string): Promise<Actor | null> {
     db.stmt(`SELECT DISTINCT cm.unit_key ${MY_LISTINGS} AND NOT ${GOVERNING_UNIT_SQL}`, userId),
   ])) as Array<{ results?: Record<string, unknown>[] }>;
 
-  const row = userRes.results?.[0] as (Actor["user"] & { created_at: string; mfa_at: string | null; mfa_required: string | null; mfa_required_since: string | null; mfa_grace_days: string | null }) | undefined;
+  const row = userRes.results?.[0] as (Actor["user"] & { created_at: string; mfa_at: string | null; mfa_required: string | null; mfa_required_since: string | null; mfa_grace_days: string | null; rules_stamp: number | null }) | undefined;
   if (!row) return null;
   const user: Actor["user"] = { id: row.id, email: row.email, status: row.status };
   const positions: SubjectPosition[] = (posRes.results ?? []).map((r) => ({
@@ -129,7 +157,7 @@ export async function loadActor(db: Db, userId: string): Promise<Actor | null> {
   // else keeps working, including turning two-factor on).
   const grants: Grant[] = allGrants.filter((g) => !(security.mfaBlocked && g.sensitive)).map(({ sensitive: _s, since: _since, ...g }) => g);
   const subject: Subject = { userId: user.id, status: user.status, roles, positions, grants };
-  const rules = await loadRules(db);
+  const rules = await rulesFor(db, row.rules_stamp);
   const profile = (profileRes.results?.[0] as Actor["profile"]) ?? null;
   return { user, profile, subject, rules, security };
 }
@@ -152,6 +180,21 @@ const EFFECT_MAP: Record<string, RuleEffect> = {
   REMOVE_PERMISSION: "DENY",
   REQUIRE_APPROVAL: "REQUIRE_APPROVAL",
 };
+
+/**
+ * The rules, kept per database while their change counter stands still (cache_stamps, bumped by
+ * triggers in the same transaction as any change to rules, their actions and conditions, or
+ * approval policies; 0015). The counter is read with the account on every request, so a change
+ * applies on the very next request, exactly as reading the rules every time did.
+ */
+const rulesCache = new WeakMap<object, { stamp: number; rules: Rule[] }>();
+async function rulesFor(db: Db, stamp: number | null | undefined): Promise<Rule[]> {
+  const hit = rulesCache.get(db.raw);
+  if (typeof stamp === "number" && hit && hit.stamp === stamp) return hit.rules;
+  const rules = await loadRules(db);
+  if (typeof stamp === "number") rulesCache.set(db.raw, { stamp, rules });
+  return rules;
+}
 
 export async function loadRules(db: Db): Promise<Rule[]> {
   const rows = await db.all<Record<string, unknown>>(

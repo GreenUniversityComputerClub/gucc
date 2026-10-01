@@ -16,7 +16,7 @@ import { notifyStmts, usersWithPermission } from "../notifications";
 import { deliverEmail, requireRecentAuth } from "../security";
 import { STUDENT_ID_RE, Validator } from "../validate";
 import { claimEmailTasksStmts } from "./task-claim";
-import { cleanPublicEmail, profileEditedStmt, PROFILE_TAGS } from "../people-sync";
+import { cleanPublicEmail, profileEditedStmt, profileTags } from "../people-sync";
 import { avatarOfProfileSql, withAvatars } from "../avatar";
 import { ensureProfileHandle } from "./profiles";
 
@@ -298,11 +298,14 @@ export async function updateOwnProfile(ctx: Ctx, input: Record<string, unknown>)
   ]);
   if (studentId) {
     const holder = await ctx.db.first<{ id: string }>("SELECT id FROM profiles WHERE student_id = ?1 AND deleted_at IS NULL AND id <> ?2", studentId, actor.profile.id);
-    await ctx.db.run(
-      holder
-        ? "UPDATE profiles SET student_id = NULL, legacy_json = json_set(COALESCE(legacy_json, '{}'), '$.claimStudentId', ?2, '$.claimProfileId', ?3) WHERE id = ?1"
-        : "UPDATE profiles SET student_id = ?2, legacy_json = CASE WHEN legacy_json IS NULL THEN NULL ELSE json_remove(legacy_json, '$.claimStudentId', '$.claimProfileId') END WHERE id = ?1",
-      actor.profile.id, studentId, holder?.id ?? null);
+    // Each statement gets exactly the values it uses (D1 refuses extra ones).
+    if (holder) {
+      await ctx.db.run("UPDATE profiles SET student_id = NULL, legacy_json = json_set(COALESCE(legacy_json, '{}'), '$.claimStudentId', ?2, '$.claimProfileId', ?3) WHERE id = ?1",
+        actor.profile.id, studentId, holder.id);
+    } else {
+      await ctx.db.run("UPDATE profiles SET student_id = ?2, legacy_json = CASE WHEN legacy_json IS NULL THEN NULL ELSE json_remove(legacy_json, '$.claimStudentId', '$.claimProfileId') END WHERE id = ?1",
+        actor.profile.id, studentId);
+    }
   }
 
   const pending = await ctx.db.first<{ correction_note: string | null; status: string }>("SELECT correction_note, status FROM users WHERE id = ?1", actor.user.id);
@@ -315,7 +318,8 @@ export async function updateOwnProfile(ctx: Ctx, input: Record<string, unknown>)
   }
   // Your page's address, made from your name the first time.
   await ensureProfileHandle(ctx, actor.profile.id, data.full_name ?? actor.profile.full_name);
-  ctx.revalidate?.(PROFILE_TAGS);
+  const tags = await profileTags(ctx, actor.profile.id);
+  if (tags.length) ctx.revalidate?.(tags);
 }
 
 

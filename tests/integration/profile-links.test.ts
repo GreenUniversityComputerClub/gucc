@@ -76,4 +76,18 @@ describe("profile links everywhere", () => {
     await updatePerson(await w.ctx(pres), "prf_fac", { fullName: "Dr. Abdul Karim", personType: "FACULTY", designation: "Assistant Professor" });
     expect(roster("cmt_2024")["Dr. Abdul Karim"]).toMatchObject({ position: "Advisor", designation: "Assistant Professor" });
   });
+
+  it("a profile save refreshes only the public pages the person appears on", async () => {
+    const { updateOwnProfile: save } = await import("@/lib/server/services/members");
+    const plain = await w.user({ email: "plain@x.bd", name: "Plain Member", roles: ["member"] });
+    const exec = await w.user({ email: "x2@x.bd", name: "Listed Exec", roles: ["member"], positions: ["executive-member"] });
+    const tagsFor = async (userId: string) => {
+      const seen: string[] = [];
+      const ctx = { ...(await w.ctx(userId)), revalidate: (t: string[]) => void seen.push(...t) };
+      await save(ctx, { fullName: userId === plain ? "Plain Member" : "Listed Exec" });
+      return seen;
+    };
+    expect(await tagsFor(plain)).toEqual([]);
+    expect(await tagsFor(exec)).toEqual(["committees"]);
+  });
 });

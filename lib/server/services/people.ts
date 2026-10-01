@@ -21,7 +21,7 @@ import { AppError, ConflictError, ForbiddenError, NotFoundError } from "../error
 import { deliverEmail, requireRecentAuth } from "../security";
 import { STUDENT_ID_RE, Validator } from "../validate";
 import { EMAIL_SENDER } from "../../email-hint";
-import { cleanPublicEmail, keepCutoutIfSame, keepFramingIfSame, mergedListingsStmt, photoChangedStmt, profileEditedStmt, PROFILE_TAGS } from "../people-sync";
+import { cleanPublicEmail, keepCutoutIfSame, keepFramingIfSame, mergedListingsStmt, photoChangedStmt, profileEditedStmt, profileTags } from "../people-sync";
 import { avatarOfProfileSql, withAvatars } from "../avatar";
 
 const INVITE_DAYS = 14;
@@ -212,7 +212,8 @@ export async function updatePerson(ctx: Ctx, id: string, input: Record<string, u
     ),
     auditStmt(ctx, { action: "profile.update", resourceType: "profile", resourceId: id, before, after: d, decision }),
   ], () => staleAnswer(ctx, "profiles", id));
-  ctx.revalidate?.(PROFILE_TAGS);
+  const tags = await profileTags(ctx, id);
+  if (tags.length) ctx.revalidate?.(tags);
 }
 
 /**
@@ -239,7 +240,8 @@ export async function setOwnAvatar(ctx: Ctx, mediaId: string | null, cutoutId: s
       actor.profile.id, mediaId, now, actor.user.id, cutout),
     auditStmt(ctx, { action: "profile.avatar", resourceType: "profile", resourceId: actor.profile.id, after: { mediaId, cutoutId: cutout } }),
   ]);
-  ctx.revalidate?.(PROFILE_TAGS);
+  const tags = await profileTags(ctx, actor.profile.id);
+  if (tags.length) ctx.revalidate?.(tags);
 }
 
 /**

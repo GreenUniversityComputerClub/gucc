@@ -11,12 +11,29 @@ import { Db } from "@/lib/server/db";
 import type { Ctx, BucketLike } from "@/lib/server/context";
 import { loadActor } from "@/lib/server/authz";
 
+/**
+ * How many values a statement takes, as D1 counts them: the highest ?N, or the number of plain ?
+ * (string literals and comments don't count).
+ */
+function parameterCount(sql: string): number {
+  const code = sql.replace(/'(?:[^']|'')*'/g, "''").replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  const numbered = [...code.matchAll(/\?(\d+)/g)].map((m) => Number(m[1]));
+  if (numbered.length) return Math.max(...numbered);
+  return (code.match(/\?/g) ?? []).length;
+}
+
 class Stmt implements D1StatementLike {
   constructor(private readonly sqlite: DatabaseSync, readonly sql: string, private readonly params: unknown[] = []) {}
   bind(...values: unknown[]) {
     return new Stmt(this.sqlite, this.sql, values);
   }
   private prep() {
+    // D1 refuses a statement given more or fewer values than it uses; node:sqlite doesn't, so
+    // check here, or a query that works in tests fails in production.
+    const expected = parameterCount(this.sql);
+    if (this.params.length !== expected) {
+      throw new Error(`D1_ERROR: Wrong number of parameter bindings for SQL query (${this.params.length} given, ${expected} used): ${this.sql.replace(/\s+/g, " ").slice(0, 160)}`);
+    }
     return this.sqlite.prepare(this.sql);
   }
   async all<T>() {

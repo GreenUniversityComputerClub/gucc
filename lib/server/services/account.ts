@@ -17,7 +17,7 @@ import { assertStmt, batchTransition } from "../transition";
 import { AppError, ConflictError, NotFoundError, ValidationError } from "../errors";
 import { notifyStmts } from "../notifications";
 import { deliverEmail, getSetting } from "../security";
-import { PROFILE_TAGS } from "../people-sync";
+import { profileTags } from "../people-sync";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -166,6 +166,8 @@ export async function deleteOwnAccount(ctx: Ctx, input: { password?: unknown; co
   }
   const id = actor.user.id;
   const now = nowIso();
+  // Read before the profile is cleared: the public pages they appear on refresh afterwards.
+  const tags = await profileTags(ctx, actor.profile?.id);
   await ctx.db.batch([
     auditStmt(ctx, { action: "account.delete", resourceType: "user", resourceId: id, reason: "Deleted by the account holder" }),
     ctx.db.stmt("UPDATE sessions SET revoked_at = ?2 WHERE user_id = ?1 AND revoked_at IS NULL", id, now),
@@ -205,6 +207,6 @@ export async function deleteOwnAccount(ctx: Ctx, input: { password?: unknown; co
       `UPDATE users SET email = 'deleted+' || id || '@invalid', password_hash = NULL, status = 'ARCHIVED', deleted_at = ?2, updated_at = ?2,
               correction_note = NULL, review_note = NULL, rejected_reason = NULL, suspended_reason = NULL WHERE id = ?1`, id, now),
   ]);
-  ctx.revalidate?.(PROFILE_TAGS);
+  if (tags.length) ctx.revalidate?.(tags);
   emit(ctx, [id], { t: "bye" });
 }

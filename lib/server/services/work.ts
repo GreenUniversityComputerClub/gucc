@@ -964,21 +964,23 @@ export async function listMeetings(ctx: Ctx, input: { when?: string; all?: boole
   const monthEnd = new Date(monthStart);
   monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
   const iso = now.toISOString();
-  // Upcoming: not over yet (a meeting under way stays here until it ends). Past: over.
-  const range: Record<string, [string, string, string, string]> = {
-    upcoming: [new Date(now.getTime() - 86_400_000).toISOString(), "9999", "ASC", "> ?5"],
-    today: [dayStart, dhakaDayEnd(now), "ASC", "IS NOT NULL"],
-    past: ["0000", iso, "DESC", "<= ?5"],
-    month: [monthStart.toISOString(), monthEnd.toISOString(), "ASC", "IS NOT NULL"],
+  // Upcoming: not over yet (a meeting under way stays here until it ends). Past: over. Today and
+  // the month: everything in them. (?6: 1 = not over, 2 = over, 0 = either; every value is used,
+  // as D1 refuses a statement given more values than it uses.)
+  const range: Record<string, [string, string, string, number]> = {
+    upcoming: [new Date(now.getTime() - 86_400_000).toISOString(), "9999", "ASC", 1],
+    today: [dayStart, dhakaDayEnd(now), "ASC", 0],
+    past: ["0000", iso, "DESC", 2],
+    month: [monthStart.toISOString(), monthEnd.toISOString(), "ASC", 0],
   };
-  const [from, to, order, end] = range[when]!;
+  const [from, to, order, over] = range[when]!;
   const rows = await ctx.db.all<MeetingRow>(
     `${meetingSelect("?4")}
      WHERE m.deleted_at IS NULL AND m.starts_at >= ?2 AND m.starts_at < ?3
-       AND COALESCE(m.ends_at, strftime('%Y-%m-%dT%H:%M:%fZ', m.starts_at, '+3 hours')) ${end}
+       AND (?6 = 0 OR (?6 = 1) = (COALESCE(m.ends_at, strftime('%Y-%m-%dT%H:%M:%fZ', m.starts_at, '+3 hours')) > ?5))
        AND (?1 = 1 OR EXISTS (SELECT 1 FROM meeting_participants mp WHERE mp.meeting_id = m.id AND mp.user_id = ?4))
      ORDER BY m.starts_at ${order} LIMIT 150`,
-    all ? 1 : 0, from, to, me, iso);
+    all ? 1 : 0, from, to, me, iso, over);
   return { rows, all, past: when === "past", when, month, canSchedule: can(ctx, "meetings.schedule"), canManage: manager };
 }
 

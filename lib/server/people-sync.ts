@@ -14,6 +14,20 @@ import type { D1StatementLike } from "./db";
 /** Public pages that show profile data: the rosters (committees) and blog bylines (posts). */
 export const PROFILE_TAGS = ["committees", "posts"];
 
+/**
+ * The cached public pages this person appears on: the rosters if any committee lists them, the
+ * blog's bylines if they published something. Nothing for everyone else, so an ordinary member
+ * saving their profile doesn't make the site re-read every committee (that re-read was a large
+ * share of the database's daily reads). Two indexed lookups.
+ */
+export async function profileTags(ctx: Ctx, profileId: string | null | undefined): Promise<string[]> {
+  if (!profileId) return [];
+  const r = await ctx.db.first<{ listed: number; wrote: number }>(
+    `SELECT EXISTS (SELECT 1 FROM committee_members WHERE profile_id = ?1 AND deleted_at IS NULL) AS listed,
+            EXISTS (SELECT 1 FROM posts WHERE author_profile_id = ?1 AND deleted_at IS NULL AND status = 'PUBLISHED') AS wrote`, profileId);
+  return [...(r?.listed ? ["committees"] : []), ...(r?.wrote ? ["posts"] : [])];
+}
+
 /** Listings of the current committee and the one being prepared. */
 const LIVE_LISTING = "committee_id IN (SELECT id FROM committees WHERE status IN ('CURRENT', 'UPCOMING') AND deleted_at IS NULL)";
 

@@ -152,5 +152,10 @@ describe("meetings", () => {
     await expect(respondToMeeting(await w.ctx(m), r.id, "NO")).rejects.toMatchObject({ code: "BAD_STATE" });
     expect((await runMaintenance(await w.ctx(null))).meetingsDone).toBe(1);
     expect((await listMeetings(await w.ctx(m), { when: "past" })).rows.map((x) => x.status)).toEqual(["DONE"]);
+    // Every view answers (each query gets exactly the values it uses, as D1 requires).
+    for (const when of ["upcoming", "today", "past", "month"]) {
+      const view = await listMeetings(await w.ctx(m), { when, month: new Date(Date.now() + 6 * 3600_000).toISOString().slice(0, 7) });
+      expect(view.when).toBe(when);
+    }
   });
 });
