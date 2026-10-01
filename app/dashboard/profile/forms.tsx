@@ -262,15 +262,15 @@ export function ProfileEditor({ profile, locked }: { profile: Profile; locked: b
 
 type EmailChoice = { key: string; label: string; hint: string; email: boolean };
 
-/** Which notifications also arrive by email. Security notices always do. */
+/** Which notifications also arrive by email: none until the member turns them on. */
 export function EmailPreferences({ choices, emailOn, address }: { choices: EmailChoice[]; emailOn: boolean; address: string }) {
   return (
     <section id="email" className="scroll-mt-20 rounded-xl border bg-card p-4 sm:p-6">
       <h2 className="text-base font-semibold">Email notifications</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {emailOn
-          ? <>Copies of these notifications go to <span className="font-medium text-foreground">{address}</span>. Security notices (new sign-ins, password or email changes) are always emailed.</>
-          : "The club hasn't switched email on yet, so everything arrives in the dashboard only. Your choices apply once it's on."}
+          ? <>Every notification arrives in the dashboard. Tick what you also want by email, to <span className="font-medium text-foreground">{address}</span>; nothing is emailed until you do. Account emails (verification, password reset) always come.</>
+          : "Email is switched off for the club right now, so everything arrives in the dashboard only. Your choices apply once it's back on."}
       </p>
       <ActionForm action={saveEmailPreferencesAction} submitLabel="Save email choices" successMessage="Saved." className="mt-4 space-y-3">
         <div className="space-y-3">

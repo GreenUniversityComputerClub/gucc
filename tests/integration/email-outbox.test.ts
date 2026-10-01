@@ -1,6 +1,6 @@
 /**
  * Email: notification copies go out only after the request's rows exist, only with the switch on,
- * by each person's choices, inside the daily and monthly caps (SMTP2GO's free plan: 1,000 a
+ * only for what each person turned on (everything is off until they do), inside the daily and monthly caps (SMTP2GO's free plan: 1,000 a
  * month), and every outcome is logged. Switching email on needs a test email SMTP2GO accepted.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -32,6 +32,17 @@ const smtpCtx = async (userId: string | null = null): Promise<Ctx> => {
   const c = await w.ctx(userId);
   return { ...c, sendEmail: undefined, outbox: [], env: { ...c.env, APP_ENV: "production", SMTP2GO_API_KEY: "api-test-key", EMAIL_FROM: "GUCC <gucc@green.edu.bd>" } };
 };
+/** Turn these email choices on for these people (every kind is off until they do). */
+const optIn = (ids: string[], ...categories: string[]) => {
+  const st = w.sqlite.prepare("INSERT OR REPLACE INTO notification_preferences (user_id, category, email, updated_at) VALUES (?, ?, 1, '2026-01-01')");
+  const security = w.sqlite.prepare("UPDATE users SET security_emails = 1 WHERE id = ?");
+  for (const id of ids) {
+    for (const c of categories) {
+      if (c === "security") security.run(id);
+      else st.run(id, c);
+    }
+  }
+};
 /** SMTP2GO's answer for an accepted message. */
 const accepted = (id: string) => new Response(JSON.stringify({ request_id: "r1", data: { succeeded: 1, failed: 0, failures: [], email_id: id } }), { status: 200 });
 
@@ -46,20 +57,25 @@ describe("notification emails", () => {
     expect(log()).toHaveLength(0);
   });
 
-  it("with email on: follow each person's choices, always send security notices, log everything", async () => {
+  it("with email on: send only what each person turned on (nothing by default), and log everything", async () => {
     const a = await w.user({ email: "a@x.bd", roles: ["member"] });
     const b = await w.user({ email: "b@x.bd", roles: ["member"] });
-    await saveEmailPreferences(await w.ctx(b), { work: false, approvals: true, roles: true, events: true, messages: false });
+    const c = await w.user({ email: "c@x.bd", roles: ["member"] });
+    optIn([a], "work");
+    await saveEmailPreferences(await w.ctx(b), { security: true, work: false, approvals: true, roles: true, events: true, messages: false });
     const ctx = await withOutbox();
     setting(ctx, "email.enabled", true);
     await ctx.db.batch([
       ...notifyStmts(ctx, [a, b], { type: "task.assigned", title: "New task: Posters", body: "Due Friday.", link: "/dashboard/tasks/t1" }),
       ...notifyStmts(ctx, [b], { type: "security.new_sign_in", title: "New sign-in on Chrome on Android" }),
+      // c chose nothing: neither a security alert nor a task comes by email.
+      ...notifyStmts(ctx, [c], { type: "security.new_sign_in", title: "New sign-in on Firefox" }),
+      ...notifyStmts(ctx, [c], { type: "task.assigned", title: "New task: Banner" }),
       // In-app only: club-wide or already emailed elsewhere.
       ...notifyStmts(ctx, [a], { type: "member.approved", title: "Your GUCC account has been approved" }),
     ]);
-    // Security notices go at once; a task waits for the digest (b doesn't want task emails).
-    expect(await flushOutbox(ctx)).toEqual({ sent: 1, failed: 0, skipped: 1 });
+    // b's security alert goes at once; a's task waits for the digest; b and c don't want theirs.
+    expect(await flushOutbox(ctx)).toEqual({ sent: 1, failed: 0, skipped: 3 });
     expect(w.emails.map((e) => [e.to, e.subject])).toEqual([["b@x.bd", "New sign-in on Chrome on Android"]]);
     // Not yet: the digest waits 15 minutes so reading it in the dashboard first means no email.
     expect(await sendDigests(ctx)).toEqual({ sent: 0, failed: 0, skipped: 0 });
@@ -68,6 +84,7 @@ describe("notification emails", () => {
     expect(w.emails.find((e) => e.to === "a@x.bd")!.text).toContain("http://test.local/dashboard/tasks/t1");
     expect(log().map((r) => [r.recipient, r.type, r.status]).sort()).toEqual([
       ["a@x.bd", "task.assigned", "sent"], ["b@x.bd", "security.new_sign_in", "sent"], ["b@x.bd", "task.assigned", "skipped_pref"],
+      ["c@x.bd", "security.new_sign_in", "skipped_pref"], ["c@x.bd", "task.assigned", "skipped_pref"],
     ]);
     // The outbox is emptied, and a digest goes once: nothing is sent again.
     expect(await flushOutbox(ctx)).toBeNull();
@@ -90,6 +107,7 @@ describe("notification emails", () => {
 
   it("stay inside the daily limit, most important first, and log the rest as skipped", async () => {
     const ids = [await w.user({ email: "1@x.bd", roles: ["member"] }), await w.user({ email: "2@x.bd", roles: ["member"] }), await w.user({ email: "3@x.bd", roles: ["member"] })];
+    optIn(ids, "approvals", "security");
     const ctx = await withOutbox();
     setting(ctx, "email.enabled", true);
     setting(ctx, "email.daily_limit", 2);
@@ -111,6 +129,7 @@ describe("notification emails", () => {
       calls.push({ url, headers: init.headers as Record<string, string>, body: JSON.parse(String(init.body)) });
       return accepted("em_msg_1");
     }));
+    optIn([a], "approvals");
     const ctx = await smtpCtx();
     setting(ctx, "email.enabled", true);
     await ctx.db.batch(notifyStmts(ctx, [a], { type: "approval.requested", title: "Meeting: Planning" }));
@@ -170,6 +189,7 @@ describe("notification emails", () => {
     vi.stubGlobal("fetch", vi.fn(async () => accepted("em_1")));
     const people: string[] = [];
     for (let i = 0; i < MAX_SENDS_PER_RUN + 2; i++) people.push(await w.user({ email: `p${i}@x.bd`, roles: ["member"] }));
+    optIn(people, "approvals");
     const ctx = await smtpCtx();
     setting(ctx, "email.enabled", true);
     setting(ctx, "email.daily_limit", 200);
@@ -181,6 +201,7 @@ describe("notification emails", () => {
   it("put non-urgent notices in one digest per person, skip what was read, and send each once", async () => {
     const a = await w.user({ email: "a@x.bd", roles: ["member"] });
     const b = await w.user({ email: "b@x.bd", roles: ["member"] });
+    optIn([a, b], "work");
     const ctx = await withOutbox();
     setting(ctx, "email.enabled", true);
     await ctx.db.batch([
@@ -198,7 +219,17 @@ describe("notification emails", () => {
       .toEqual([{ email_state: "SENT", n: 2 }, { email_state: "SKIPPED", n: 1 }]);
   });
 
+  it("always email free-tier alerts to the leaders who get them, whatever their choices", async () => {
+    const mod = await w.user({ email: "mod@x.bd", roles: ["moderator"] });
+    const ctx = await withOutbox();
+    setting(ctx, "email.enabled", true);
+    await ctx.db.batch(notifyStmts(ctx, [mod], { type: "system.usage", title: "R2 storage is at 85% of the free plan" }));
+    expect(await flushOutbox(ctx)).toEqual({ sent: 1, failed: 0, skipped: 0 });
+    expect(w.emails[0]!.text).toContain("Free-tier alerts are always emailed");
+  });
+
   it("map notification types to choices", () => {
+    expect(emailCategory("system.usage")).toBe("system");
     expect(emailCategory("security.locked")).toBe("security");
     expect(emailCategory("member.pending")).toBe("approvals");
     expect(emailCategory("approval.approved")).toBe("approvals");
@@ -236,7 +267,26 @@ describe("switching email on", () => {
     expect(log().at(-1)).toMatchObject({ type: "test", status: "sent", recipient: "mod@x.bd" });
     expect(await setSwitch(ctx, "email.enabled", true)).toMatchObject({ applied: true });
     expect(await emailEnabled(await smtpCtx())).toBe(true);
-    expect(w.sqlite.prepare("SELECT COUNT(*) n FROM audit_logs WHERE action IN ('email.test', 'governance.protected_applied_alone')").get()).toEqual({ n: 3 });
+    expect(w.sqlite.prepare("SELECT COUNT(*) n FROM audit_logs WHERE action IN ('email.test', 'settings.system_update')").get()).toEqual({ n: 3 });
+  });
+
+  it("goes on at once for a Moderator, even with other Moderators, and closes a request waiting to switch it on", async () => {
+    const mod = await w.user({ email: "mod@x.bd", roles: ["moderator"] });
+    await w.user({ email: "mod2@x.bd", roles: ["moderator"] });
+    vi.stubGlobal("fetch", vi.fn(async () => accepted("em_test_2")));
+    const ctx = await smtpCtx(mod);
+    w.sqlite.prepare(`INSERT INTO approval_requests (id, policy_id, policy_snapshot, resource_type, resource_id, action, title, status, requested_by, created_at, updated_at)
+      SELECT 'apr_old', id, '{}', 'governance', 'email.enabled', 'governance.protected_change', 'Change protected setting email.enabled', 'PENDING', ?, '2026-09-29', '2026-09-29'
+      FROM approval_policies WHERE key = 'governance-protected'`).run(mod);
+    // A busy day: the club's 40 are used, but a test still goes (SMTP2GO's own 200 a day isn't).
+    w.sqlite.prepare("INSERT INTO usage_counters (day, key, count) VALUES (?, 'email.sent', 40)").run(new Date().toISOString().slice(0, 10));
+    expect((await sendTestEmail(ctx)).message).toMatch(/SMTP2GO accepted/);
+    expect(await setSwitch(ctx, "email.enabled", true)).toEqual({ applied: true, message: "Email switched on." });
+    expect(w.sqlite.prepare("SELECT value_json FROM system_settings WHERE key = 'email.enabled'").get()).toEqual({ value_json: "true" });
+    expect(w.sqlite.prepare("SELECT status, resolution_note FROM approval_requests WHERE id = 'apr_old'").get()).toEqual({ status: "CANCELLED", resolution_note: "Switched on directly." });
+    // Uploads, which can lead to a bill, still need the other Moderator.
+    await setSwitch(ctx, "media.uploads_enabled", false);
+    expect(await setSwitch(ctx, "media.uploads_enabled", true)).toMatchObject({ applied: false });
   });
 
   it("refuses a test email when no provider is configured (an error, never a success message)", async () => {
@@ -258,15 +308,15 @@ describe("switching email on", () => {
     await expect(setSwitch(await w.ctx(pres), "settings.anything", false)).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
-  it("keeps personal choices, with defaults for what isn't chosen yet", async () => {
+  it("start with every email off (security alerts too), and keep each person's own choices", async () => {
     const m = await w.user({ email: "m@x.bd", roles: ["member"] });
     const before = await emailPreferences(await w.ctx(m));
-    expect(before.choices.find((c) => c.key === "messages")!.email).toBe(false);
-    expect(before.choices.find((c) => c.key === "work")!.email).toBe(true);
-    await saveEmailPreferences(await w.ctx(m), { work: false, messages: true, approvals: true, roles: true, events: true });
+    expect(before.choices.map((c) => c.key)).toEqual(["security", "approvals", "roles", "work", "events", "messages"]);
+    expect(before.choices.every((c) => !c.email)).toBe(true);
+    expect((await saveEmailPreferences(await w.ctx(m), { security: true, messages: true })).message).toMatch(/2 kinds of notification will also come by email/);
     const after = await emailPreferences(await w.ctx(m));
-    expect(after.choices.find((c) => c.key === "messages")!.email).toBe(true);
-    expect(after.choices.find((c) => c.key === "work")!.email).toBe(false);
+    expect(after.choices.filter((c) => c.email).map((c) => c.key)).toEqual(["security", "messages"]);
+    expect((await saveEmailPreferences(await w.ctx(m), {})).message).toMatch(/dashboard only/);
   });
 });
 

@@ -62,7 +62,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Sign up</CardTitle>
-          <CardDescription>Apply for GUCC membership. After you verify your email, a club administrator reviews your application.</CardDescription>
+          <CardDescription>Apply for GUCC membership. A club administrator reviews your application (when club email is on, you first confirm your address from a link we send).</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp} noValidate>

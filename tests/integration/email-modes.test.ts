@@ -42,7 +42,7 @@ describe("sign-up without an email provider (no-email mode)", () => {
 
   it("never claims a verification or reset email was sent", async () => {
     await register(await noEmail(), { email: "a@student.green.ac.bd", password: PASSWORD, fullName: "A Member" });
-    expect((await resendVerification(await noEmail(), "a@student.green.ac.bd")).message).toMatch(/isn't available/);
+    expect((await resendVerification(await noEmail(), "a@student.green.ac.bd")).message).toMatch(/isn't needed right now: just sign in/);
     const reset = await requestPasswordReset(await noEmail(), { email: "a@student.green.ac.bd" });
     expect(reset.message).toMatch(/Ask a GUCC administrator/);
     expect((await requestPasswordReset(await noEmail(), { email: "nobody@x.bd" })).message).toBe(reset.message);

@@ -9,7 +9,9 @@
  *  - reminders: tasks due within a day, meetings starting within the hour, events starting
  *    within a day for the members registered (once each);
  *  - pages refresh when a scheduled post went out or an event's registration opened or
- *    closed in the last hour (the public site caches for an hour).
+ *    closed in the last hour (the public site caches for an hour);
+ *  - membership applications that can't be verified by email (email off or out of allowance, or
+ *    their verification email never went out) move to Waiting for approval.
  *
  * Daily (runDailyHousekeeping, with the data retention run), what only needs to happen eventually:
  *  - expired or long-revoked sessions, used/expired auth tokens and stale rate-limit windows are
@@ -24,6 +26,7 @@ import { reconcileStoredBytes } from "../usage";
 import type { Ctx } from "../context";
 import { nowIso } from "../db";
 import { emit } from "../live";
+import { releaseStuckApplications } from "../applications";
 
 export interface MaintenanceReport {
   endedListings?: number;
@@ -33,6 +36,7 @@ export interface MaintenanceReport {
   eventsOngoing: number;
   eventsCompleted: number;
   meetingsDone?: number;
+  applicationsReleased?: number;
   orphanUploads: number;
   expiredGrants: number;
   oldNotifications: number;
@@ -73,6 +77,8 @@ export async function runMaintenance(ctx: Ctx, now = new Date()): Promise<Mainte
   // Assignments whose end date has passed stop counting (approvers, positions' permissions).
   report.endedListings = await ctx.db.run("UPDATE committee_members SET is_active = 0, updated_at = ?1 WHERE is_active = 1 AND deleted_at IS NULL AND end_date IS NOT NULL AND end_date < substr(?1, 1, 10)", iso);
   await reminders(ctx, now, report);
+  // Applications that can't be verified by email go to the reviewers (lib/server/applications.ts).
+  report.applicationsReleased = await releaseStuckApplications(ctx, now);
   // Correct the running total of stored bytes from the files themselves.
   report.storedBytes = await reconcileStoredBytes(ctx);
   // Scheduled posts and registration windows change what the (cached) public pages show.

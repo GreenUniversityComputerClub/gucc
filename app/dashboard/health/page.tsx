@@ -118,7 +118,7 @@ export default async function HealthPage() {
         ) : <p className="text-sm text-muted-foreground">The live hub isn&apos;t configured on this API (or it is older than this website). Pages check for news on a timer.</p>}
       </Section>
 
-      <Section title="Switches" description="Anyone who can see this page can switch uploads or email off at once. Switching back on is a Moderator's decision.">
+      <Section title="Switches" description="Anyone who can see this page can switch uploads or email off at once. A Moderator switches email back on at once (after a test email arrived); uploads back on is confirmed by another Moderator when there is one.">
         <div className="divide-y">
           <Switch label="Uploads" keyName="media.uploads_enabled" on={controls.uploadsEnabled} controls={controls} />
           {/* Email can be switched on only after a test email SMTP2GO accepted (in the last 7 days). */}

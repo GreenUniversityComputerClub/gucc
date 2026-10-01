@@ -11,6 +11,8 @@
  *   the email exists.
  * - Registration never grants privileges: new accounts verify their email,
  *   then wait for approval (members.approve) before becoming ACTIVE members.
+ *   When email can't verify anyone (switched off, allowance used up, a failed
+ *   send), applications go straight to approval instead (lib/server/applications.ts).
  */
 import { limit } from "../limits";
 import { assertCanGrantPermissions, assertNotSelf, GovernanceViolation } from "../../governance/invariants";
@@ -22,6 +24,7 @@ import { newId, nowIso } from "../db";
 import { AppError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
 import { notifyStmts, usersWithPermission } from "../notifications";
 import { emailEnabled } from "../email";
+import { canSendVerification, skipVerificationStmts, whyNoVerification } from "../applications";
 import { SPAM_HINT } from "../../email-hint";
 import { deliverEmail, getSetting, requireRecentAuth, verifyTurnstile } from "../security";
 import { passwordProblem, STUDENT_ID_RE, Validator } from "../validate";
@@ -84,7 +87,7 @@ export interface RegisterInput {
   turnstileToken?: string;
 }
 
-export async function register(ctx: Ctx, input: RegisterInput): Promise<{ message: string }> {
+export async function register(ctx: Ctx, input: RegisterInput): Promise<{ message: string; emailSent?: boolean }> {
   await limit(ctx, "auth.register", ctx.meta.ipHash ?? "unknown");
   const v = new Validator(input as unknown as Record<string, unknown>);
   const email = v.email("email");
@@ -103,7 +106,7 @@ export async function register(ctx: Ctx, input: RegisterInput): Promise<{ messag
   // Mode A (email available): verify the address first. Mode B (no provider): go straight to
   // GUCC approval; reviewers confirm who the applicant is. Same answer whether or not the
   // email already has an account, so the form can't be used to discover members.
-  const withEmail = await emailEnabled(ctx);
+  const withEmail = await canSendVerification(ctx);
   const generic = withEmail
     ? { message: `Check your inbox for a verification link. ${SPAM_HINT} If you already have an account, sign in or reset your password instead.`, emailSent: true }
     : { message: "Your account has been created and is awaiting GUCC approval. If you already had an account with this email, sign in with it instead.", emailSent: false };
@@ -142,8 +145,12 @@ export async function register(ctx: Ctx, input: RegisterInput): Promise<{ messag
     subject: "Verify your GUCC account",
     text: `Hello ${fullName},\n\nConfirm your email address to continue your GUCC membership application:\n${baseUrl(ctx)}/auth/confirm?token=${token}\n\nThe link expires in ${VERIFY_HOURS} hours. If you did not sign up, ignore this email.`,
   }, { type: "account.verify", userId });
-  // Honest when it didn't go out (the daily email limit, or the email service is down).
-  if (!sent) return { message: EMAIL_DELAYED("verification link", "Use “Resend verification email” on the sign-in page") };
+  // It didn't go out (the allowance ran out just now, or the email service is down): nobody is
+  // left waiting for a link that isn't coming. The application goes straight to the reviewers.
+  if (!sent) {
+    await ctx.db.batch(await skipVerificationStmts(ctx, [{ id: userId, label: `${fullName} (${email})` }], "email_failed"));
+    return { message: "Your account has been created and is awaiting GUCC approval (we couldn't email you a verification link just now, so the reviewers will confirm who you are). You can sign in to check your application.", emailSent: false };
+  }
   return generic;
 }
 
@@ -151,13 +158,16 @@ export async function register(ctx: Ctx, input: RegisterInput): Promise<{ messag
 const lockedMessage = (until: string) =>
   `Too many wrong passwords, so sign-in is paused. Try again after ${new Date(until).toLocaleTimeString("en-US", { timeZone: "Asia/Dhaka", hour: "numeric", minute: "2-digit" })} (Dhaka time), or reset your password now.`;
 
+/** Verification by email isn't possible now: signing in is enough (see login). */
+const NO_VERIFY_EMAIL = "Email verification isn't needed right now: just sign in with your email and password, and your application goes straight to GUCC's reviewers for approval.";
+
 /** What to say when an account email couldn't be sent right now. */
 const EMAIL_DELAYED = (what: string, retry: string) =>
   `Your ${what} couldn't be emailed just now (the club's daily email limit, or a temporary problem). ${retry} in a few hours, or ask a GUCC leader for help.`;
 
 export async function resendVerification(ctx: Ctx, emailRaw: string): Promise<{ message: string }> {
   await limit(ctx, "auth.resendVerification", ctx.meta.ipHash ?? "unknown");
-  if (!(await emailEnabled(ctx))) return { message: "Email verification isn't available right now. GUCC's reviewers approve applications directly." };
+  if (!(await canSendVerification(ctx))) return { message: NO_VERIFY_EMAIL };
   const email = String(emailRaw ?? "").trim().toLowerCase();
   const user = await ctx.db.first<{ id: string; status: string }>("SELECT id, status FROM users WHERE email = ?1 AND deleted_at IS NULL", email);
   if (user && user.status === "EMAIL_VERIFICATION_PENDING") {
@@ -165,7 +175,7 @@ export async function resendVerification(ctx: Ctx, emailRaw: string): Promise<{ 
     await limit(ctx, "auth.emailTo", email);
     const token = await issueToken(ctx, user.id, "EMAIL_VERIFY", VERIFY_HOURS * 60);
     const sent = await deliverEmail(ctx, { to: email, subject: "Verify your GUCC account", text: `Confirm your email address:\n${baseUrl(ctx)}/auth/confirm?token=${token}\n\nThe link expires in ${VERIFY_HOURS} hours.` }, { type: "account.verify", userId: user.id });
-    if (!sent) return { message: EMAIL_DELAYED("verification link", "Try again") };
+    if (!sent) return { message: NO_VERIFY_EMAIL };
   }
   return { message: `If that account is waiting for verification, a new link is on its way. ${SPAM_HINT}` };
 }
@@ -257,6 +267,15 @@ export async function login(ctx: Ctx, input: { email: string; password: string; 
       INACTIVE: `This account is inactive. To reactivate it, contact the club: ${contact}`,
     };
     throw new AppError(403, "ACCOUNT_BLOCKED", messages[user.status] ?? "This account is not active.");
+  }
+  const noVerification = user.status === "EMAIL_VERIFICATION_PENDING" ? await whyNoVerification(ctx, user.id) : null;
+  if (noVerification) {
+    // No verification link is coming (email off, out of allowance, or their last one failed):
+    // the right password is proof enough to apply. The application goes to the reviewers, and
+    // the applicant signs in to follow it.
+    const who = await ctx.db.value<string>("SELECT full_name FROM profiles WHERE user_id = ?1 AND deleted_at IS NULL", user.id);
+    await ctx.db.batch(await skipVerificationStmts(ctx, [{ id: user.id, label: `${who ?? email} (${email})` }], noVerification));
+    user.status = "PENDING_APPROVAL";
   }
   if (user.status === "EMAIL_VERIFICATION_PENDING" || user.status === "REGISTERED") {
     throw new AppError(403, "EMAIL_UNVERIFIED", "Verify your email first. We can send a new verification link.");

@@ -1019,13 +1019,23 @@ export async function updateSystemSetting(ctx: Ctx, key: string, rawValue: strin
     if (!(await lastSuccessfulTest(ctx))) throw new AppError(409, "EMAIL_NOT_TESTED", `Send a test email from System health first and check that it arrived (a test counts for ${TEST_VALID_DAYS} days).`);
   }
   if (key.startsWith("email.")) forgetEmailSettings(ctx);
-  // Switching uploads or email off only ever makes things safer: it applies at once.
+  // Switching uploads or email off only ever makes things safer: it applies at once. Switching
+  // email on applies at once too, for whoever may change protected settings (a Moderator, the
+  // President or the General Secretary): it needs a test email that arrived (checked above), and
+  // every send stays inside the daily and monthly caps, so there's nothing for a second Moderator
+  // to protect. A request to switch it on that was waiting for approval is closed.
   const brake = (key === "email.enabled" || key === "media.uploads_enabled") && value === false;
-  if (row.is_protected && brake) {
+  const emailOn = key === "email.enabled" && value === true;
+  if (row.is_protected && (brake || emailOn)) {
+    const now = nowIso();
     await batchTransition(ctx, [
       ...fresh,
-      ctx.db.stmt("UPDATE system_settings SET value_json = ?2, updated_at = ?3, updated_by = ?4 WHERE key = ?1", key, JSON.stringify(value), nowIso(), actor.user.id),
+      ctx.db.stmt("UPDATE system_settings SET value_json = ?2, updated_at = ?3, updated_by = ?4 WHERE key = ?1", key, JSON.stringify(value), now, actor.user.id),
       auditStmt(ctx, { action: "settings.system_update", resourceType: "system_setting", resourceId: key, before: { value: JSON.parse(row.value_json) }, after: { value } }),
+      ctx.db.stmt(
+        `UPDATE approval_requests SET status = 'CANCELLED', resolved_at = ?2, updated_at = ?2, resolution_note = ?3
+         WHERE resource_type = 'governance' AND resource_id = ?1 AND action = 'governance.protected_change' AND status = 'PENDING'`,
+        key, now, value ? "Switched on directly." : "Switched off meanwhile."),
     ], () => staleAnswer(ctx, "system_settings", key));
     return { applied: true };
   }

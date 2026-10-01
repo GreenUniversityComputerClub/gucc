@@ -289,7 +289,10 @@ export async function sendEmail(ctx: Ctx, msg: EmailMessage, info: { type?: stri
       console.warn(`[${ctx.meta.requestId}] Email is off; not sent: ${msg.subject}`);
       return { ok: false, error: provider ? "Email is switched off." : "No email provider is configured." };
     }
-    if (!(await reserveEmail(ctx, 1, state))) {
+    // A test email (a leader checking the set-up, rate-limited) may go past the club's own daily
+    // cap, never past SMTP2GO's free day (200) or the month.
+    const caps = info.force ? { ...state, dailyLimit: Math.max(state.dailyLimit, DAILY_LIMIT_MAX) } : state;
+    if (!(await reserveEmail(ctx, 1, caps))) {
       const { monthly } = await emailAllowanceLeft(ctx, state);
       const error = monthly
         ? `This month's email limit (${state.monthlyLimit}) is reached. It resets on the 1st (UTC).`

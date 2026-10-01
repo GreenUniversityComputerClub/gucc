@@ -5,8 +5,9 @@
  *   email.enabled           off until a test email has really arrived
  *
  * Anyone who can see System health may switch either one OFF at once (a brake is always safe).
- * Switching ON is a protected change: a Moderator does it, confirmed by another Moderator when
- * there is one, and email needs a successful test from the last 7 days first.
+ * Switching ON is a Moderator's (or the President's or General Secretary's) decision. Email goes
+ * on at once, after a test email from the last 7 days arrived; uploads, which can lead to a bill,
+ * are confirmed by another Moderator when there is one.
  */
 import { auditStmt } from "../audit";
 import { can, requireActor, requirePermission } from "../authz";
@@ -18,6 +19,7 @@ import { AppError, ForbiddenError, ValidationError } from "../errors";
 import { limit } from "../limits";
 import { requireRecentAuth } from "../security";
 import { updateSystemSetting } from "./governance";
+import { skipVerificationStmts } from "../applications";
 
 export const SWITCHES = ["media.uploads_enabled", "email.enabled"] as const;
 
@@ -30,12 +32,20 @@ export async function setSwitch(ctx: Ctx, key: string, on: boolean): Promise<{ a
     await requireRecentAuth(ctx);
     const row = await ctx.db.first<{ value_json: string }>("SELECT value_json FROM system_settings WHERE key = ?1", key);
     if (row?.value_json === "false") return { applied: true, message: `${name} is already off.` };
+    // Without email nobody can verify: applications waiting for it go to the reviewers now.
+    const waiting = key === "email.enabled"
+      ? await ctx.db.all<{ id: string; label: string }>(
+        `SELECT u.id, COALESCE(p.full_name, u.email) AS label FROM users u LEFT JOIN profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
+         WHERE u.status = 'EMAIL_VERIFICATION_PENDING' AND u.deleted_at IS NULL ORDER BY u.created_at LIMIT 500`)
+      : [];
     await ctx.db.batch([
       ctx.db.stmt("UPDATE system_settings SET value_json = 'false', updated_at = ?2, updated_by = ?3 WHERE key = ?1", key, nowIso(), actor.user.id),
       auditStmt(ctx, { action: "system.switch_off", resourceType: "system_setting", resourceId: key, before: { value: row ? JSON.parse(row.value_json) : null }, after: { value: false } }),
+      ...(await skipVerificationStmts(ctx, waiting, "email_off")),
     ]);
     if (key === "email.enabled") forgetEmailSettings(ctx);
-    return { applied: true, message: `${name} switched off.` };
+    const moved = waiting.length ? ` ${waiting.length} application${waiting.length === 1 ? "" : "s"} waiting for email verification moved to Waiting for approval.` : "";
+    return { applied: true, message: `${name} switched off.${moved}` };
   }
   requirePermission(ctx, "settings.system");
   await requireRecentAuth(ctx);
@@ -76,7 +86,9 @@ export async function sendTestEmail(ctx: Ctx): Promise<{ ok: boolean; message: s
 
 export async function emailPreferences(ctx: Ctx) {
   const actor = requireActor(ctx);
-  const rows = await ctx.db.all<{ category: string; email: number }>("SELECT category, email FROM notification_preferences WHERE user_id = ?1", actor.user.id);
+  // Security alerts are a column on the account (see 0015_email_choices.sql); the rest are rows.
+  const rows = await ctx.db.all<{ category: string; email: number }>(
+    "SELECT category, email FROM notification_preferences WHERE user_id = ?1 UNION ALL SELECT 'security', security_emails FROM users WHERE id = ?1", actor.user.id);
   const choices = (Object.keys(EMAIL_CATEGORIES) as EmailCategory[]).map((key) => {
     const row = rows.find((r) => r.category === key);
     return { key, label: EMAIL_CATEGORIES[key].label, hint: EMAIL_CATEGORIES[key].hint, email: row ? row.email === 1 : EMAIL_CATEGORIES[key].default };
@@ -89,10 +101,14 @@ export async function saveEmailPreferences(ctx: Ctx, input: Record<string, unkno
   const actor = requireActor(ctx);
   const values = (Object.keys(EMAIL_CATEGORIES) as EmailCategory[]).map((key) => ({ c: key, e: input[key] === true || input[key] === "on" || input[key] === "true" ? 1 : 0 }));
   const now = nowIso();
-  await ctx.db.run(
-    `INSERT INTO notification_preferences (user_id, category, email, updated_at)
-     SELECT ?1, json_extract(j.value, '$.c'), json_extract(j.value, '$.e'), ?3 FROM json_each(?2) AS j WHERE true
-     ON CONFLICT(user_id, category) DO UPDATE SET email = excluded.email, updated_at = excluded.updated_at`,
-    actor.user.id, JSON.stringify(values), now);
-  return { message: "Saved. Security notices are always emailed." };
+  await ctx.db.batch([
+    ctx.db.stmt(
+      `INSERT INTO notification_preferences (user_id, category, email, updated_at)
+       SELECT ?1, json_extract(j.value, '$.c'), json_extract(j.value, '$.e'), ?3 FROM json_each(?2) AS j WHERE true
+       ON CONFLICT(user_id, category) DO UPDATE SET email = excluded.email, updated_at = excluded.updated_at`,
+      actor.user.id, JSON.stringify(values.filter((v) => v.c !== "security")), now),
+    ctx.db.stmt("UPDATE users SET security_emails = ?2 WHERE id = ?1", actor.user.id, values.find((v) => v.c === "security")?.e ?? 0),
+  ]);
+  const on = values.filter((v) => v.e).length;
+  return { message: on ? `Saved. ${on} kind${on === 1 ? "" : "s"} of notification will also come by email.` : "Saved. Notifications stay in the dashboard only." };
 }

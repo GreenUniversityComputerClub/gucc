@@ -11,7 +11,11 @@
  *
  * Club-wide announcements are in-app only: they would use a whole day's allowance at once.
  *
- * Only what can't wait is emailed at once: security notices, and requests waiting for someone's
+ * Every kind of notification email is off until the member turns it on in My profile (email is
+ * scarce: SMTP2GO's free plan is 1,000 a month). The only exception is the free-tier alert to the
+ * leaders who look after the club's plans ("system"), which protects the club from a bill.
+ *
+ * Only what can't wait is emailed at once: security alerts, and requests waiting for someone's
  * decision (unless that person has the dashboard open right now). Everything else (roles, tasks
  * and meetings, events, messages) is marked DUE and goes out in one digest per person from the
  * hourly job, and only if it's still unread after 15 minutes: reading it in the dashboard first
@@ -24,22 +28,25 @@ import { release } from "./usage";
 import { EMAIL_SENDER } from "../email-hint";
 import { onlineNow } from "./live";
 
-/** What people can choose to get by email (security notices always are). */
+/** What people can choose to get by email. All off until they turn them on. */
 export const EMAIL_CATEGORIES = {
-  approvals: { label: "Requests waiting for my decision", hint: "Membership applications, approvals, reports. Emailed at once, unless you have the dashboard open.", default: true },
-  roles: { label: "My roles and permissions", hint: "Roles or permissions given to you or taken away. In the hourly summary.", default: true },
-  work: { label: "Tasks and meetings", hint: "Tasks given to you, comments, meeting invitations and changes. In the hourly summary.", default: true },
-  events: { label: "Events I registered for", hint: "Registration confirmed, waiting list, reminders, changes. In the hourly summary.", default: true },
+  security: { label: "Security alerts", hint: "A sign-in from a new device, a locked account, password or email changes. Emailed at once. Recommended.", default: false },
+  approvals: { label: "Requests waiting for my decision", hint: "Membership applications, approvals, reports. Emailed at once, unless you have the dashboard open.", default: false },
+  roles: { label: "My roles and permissions", hint: "Roles or permissions given to you or taken away. In the hourly summary.", default: false },
+  work: { label: "Tasks and meetings", hint: "Tasks given to you, comments, meeting invitations and changes. In the hourly summary.", default: false },
+  events: { label: "Events I registered for", hint: "Registration confirmed, waiting list, reminders, changes. In the hourly summary.", default: false },
   messages: { label: "New messages", hint: "In the hourly summary, only for messages you haven't read in the dashboard by then.", default: false },
 } as const;
 export type EmailCategory = keyof typeof EMAIL_CATEGORIES;
 
 /**
- * Which choice a notification type falls under. "security" is always emailed; null means in-app
- * only (for example membership decisions, which already get their own email).
+ * Which choice a notification type falls under; null means in-app only (for example membership
+ * decisions, which get their own email). "system" (free-tier alerts to the leaders who look after
+ * the club's plans) isn't a choice: it's always emailed.
  */
-export function emailCategory(type: string): EmailCategory | "security" | null {
-  if (type.startsWith("security.") || type === "system.usage") return "security";
+export function emailCategory(type: string): EmailCategory | "system" | null {
+  if (type === "system.usage") return "system";
+  if (type.startsWith("security.")) return "security";
   if (type.startsWith("approval.") || type === "member.pending" || type === "member.corrected" || type === "report.new" || type === "rule.notify") return "approvals";
   if (type.startsWith("role.") || type.startsWith("permission.") || type === "executive.assigned") return "roles";
   if (type.startsWith("task.") || type.startsWith("meeting.") || type === "recruitment.assigned" || type === "event.assigned") return "work";
@@ -49,12 +56,12 @@ export function emailCategory(type: string): EmailCategory | "security" | null {
 }
 
 /** Emailed at once; every other category waits for the digest. */
-const IMMEDIATE = new Set<EmailCategory | "security">(["security", "approvals"]);
+const IMMEDIATE = new Set<EmailCategory | "system">(["system", "security", "approvals"]);
 
 /** Notice types emailed at most once a day per person. */
 const ONCE_A_DAY = new Set(["security.locked"]);
 
-const PRIORITY: Record<EmailCategory | "security", number> = { security: 0, approvals: 1, roles: 2, work: 3, events: 4, messages: 5 };
+const PRIORITY: Record<EmailCategory | "system", number> = { system: 0, security: 0, approvals: 1, roles: 2, work: 3, events: 4, messages: 5 };
 
 interface Row {
   id: string;
@@ -69,13 +76,13 @@ interface Row {
 
 
 /** The message for one notification. Only same-site paths become links. */
-export function notificationEmail(ctx: Ctx, r: Pick<Row, "email" | "title" | "body" | "link">, category: EmailCategory | "security"): EmailMessage {
+export function notificationEmail(ctx: Ctx, r: Pick<Row, "email" | "title" | "body" | "link">, category: EmailCategory | "system"): EmailMessage {
   const base = siteUrl(ctx);
   const path = r.link && r.link.startsWith("/") && !r.link.startsWith("//") ? r.link : "/dashboard/notifications";
   const url = `${base}${path}`;
-  const why = category === "security"
-    ? "Security notices are always emailed."
-    : `You get this because of your email choices: ${base}/dashboard/profile#email`;
+  const why = category === "system"
+    ? "Free-tier alerts are always emailed to the leaders who look after the club's plans."
+    : `You get this because you turned on these emails in your profile: ${base}/dashboard/profile#email`;
   const contacts = `Add ${EMAIL_SENDER} to your contacts so these don't land in spam.`;
   const text = `${r.title}\n\n${r.body ? `${r.body}\n\n` : ""}Open: ${url}\n\n—\nGreen University Computer Club\n${why}\n${contacts}`;
   const html = renderEmail({
@@ -123,12 +130,13 @@ export async function flushOutbox(ctx: Ctx): Promise<FlushReport | null> {
     // Only notifications that were really written, for active accounts with a confirmed address.
     const rows = await ctx.db.all<Row>(
       `SELECT n.id, n.user_id, n.type, n.title, n.body, n.link, u.email,
-              (SELECT json_group_object(np.category, np.email) FROM notification_preferences np WHERE np.user_id = u.id) AS prefs
+              json_set(COALESCE((SELECT json_group_object(np.category, np.email) FROM notification_preferences np WHERE np.user_id = u.id), '{}'),
+                '$.security', u.security_emails) AS prefs
        FROM notifications n JOIN users u ON u.id = n.user_id AND u.status = 'ACTIVE' AND u.deleted_at IS NULL AND u.email_verified_at IS NOT NULL
        WHERE n.id IN (SELECT value FROM json_each(?1))`,
       JSON.stringify(ids));
     const log: EmailLogRow[] = [];
-    const wanted: Array<{ row: Row; category: EmailCategory | "security" }> = [];
+    const wanted: Array<{ row: Row; category: EmailCategory | "system" }> = [];
     // Repeated notices of one kind (e.g. an account locked again and again by someone guessing)
     // are emailed once a day per person, so they can't use up the club's email allowance.
     const throttled = rows.filter((r) => ONCE_A_DAY.has(r.type));
@@ -145,7 +153,7 @@ export async function flushOutbox(ctx: Ctx): Promise<FlushReport | null> {
         log.push({ userId: row.user_id, recipient: row.email, type: row.type, status: "skipped_limit", error: "Already emailed about this today." });
         continue;
       }
-      if (category !== "security") {
+      if (category !== "system") {
         const prefs = row.prefs ? (JSON.parse(row.prefs) as Record<string, number>) : {};
         const on = prefs[category] === undefined ? EMAIL_CATEGORIES[category].default : prefs[category] === 1;
         if (!on) {
@@ -219,7 +227,7 @@ export function digestEmail(ctx: Ctx, email: string, rows: Array<Pick<DigestRow,
   const shown = rows.slice(0, DIGEST_ITEMS);
   const more = rows.length - shown.length;
   const subject = rows.length === 1 ? rows[0]!.title.slice(0, 200) : `${rows.length} updates waiting for you at GUCC`;
-  const why = `You get this because of your email choices: ${base}/dashboard/profile#email`;
+  const why = `You get this because you turned on these emails in your profile: ${base}/dashboard/profile#email`;
   const text = [
     rows.length === 1 ? "" : "Here's what happened while you were away:\n",
     ...shown.map((r) => `• ${r.title}${r.body ? `\n  ${r.body.slice(0, 200)}` : ""}\n  ${href(r.link)}`),
