@@ -111,7 +111,9 @@ export function ExecutivesHeader({
                   >
                     <TabsList className="w-full min-w-max">
                       {availableYears.map((year) => (
-                        <TabsTrigger key={year} value={year}>
+                        // The tabs switch pages (there's no tab panel here), so they don't point
+                        // at one: a dangling aria-controls is an accessibility error.
+                        <TabsTrigger key={year} value={year} aria-controls={undefined}>
                           <span className="hidden md:inline">{year}</span>
                           <span className="md:hidden">{year.slice(-2)}</span>
                         </TabsTrigger>

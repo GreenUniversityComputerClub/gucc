@@ -391,7 +391,7 @@ describe("profiles people can visit", () => {
     await expect(membersDirectory(await w.ctx(null), {})).rejects.toBeTruthy();
   });
 
-  it("a public member page is linked from the executive page, listed in the sitemap, and links back", async () => {
+  it("an executive with an account: their executive page leads to their member page; public ones are in the sitemap", async () => {
     const { getProfile } = await import("@/lib/server/services/profiles");
     const { readSitemap } = await import("@/lib/public/read");
     const exec = await w.user({ email: "e@x.bd", name: "Sadia Karim", roles: ["member"], positions: ["executive-member"] });
@@ -399,13 +399,18 @@ describe("profiles people can visit", () => {
     await updateOwnProfile(await w.ctx(exec), { fullName: "Sadia Karim", visibility: "PUBLIC" });
     const handle = String(row("SELECT slug FROM profiles WHERE user_id = ?", exec).slug);
     expect(roster(w.committeeId)["Sadia Karim"]!.profileHandle).toBe(handle);
+    // /executives/221902084 leads to the member page (for any visibility: what it shows there is
+    // public anyway), so the member page doesn't link back; the student ID finds them too.
+    expect(roster(w.committeeId)["Sadia Karim"]!.memberHandle).toBe(handle);
     const page = await getProfile(await w.ctx(null), handle);
-    expect(!page.restricted && page.executivePage).toBe("/executives/221902084");
+    expect(page).toMatchObject({ restricted: false, executivePage: null, served: true });
+    expect(await getProfile(await w.ctx(null), "221902084")).toMatchObject({ handle });
     expect((await readSitemap(w.db)).members.map((m) => m.handle)).toContain(handle);
 
-    // Members-only again: no link from the executive page, not in the sitemap.
+    // Members-only again: not in the members sitemap list; the executive page still leads there.
     await updateOwnProfile(await w.ctx(exec), { fullName: "Sadia Karim", visibility: "MEMBERS" });
     expect(roster(w.committeeId)["Sadia Karim"]!.profileHandle).toBeUndefined();
+    expect(roster(w.committeeId)["Sadia Karim"]!.memberHandle).toBe(handle);
     expect((await readSitemap(w.db)).members.map((m) => m.handle)).not.toContain(handle);
   });
 

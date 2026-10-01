@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   getAllExecutiveStudentIds,
   getAvailableYears,
@@ -165,6 +165,10 @@ export default async function ExecutivesYearPage({
     if (executives.length === 0) {
       notFound();
     }
+    // Someone with an account has a member page (photo, every role, writing, events, links,
+    // Message): that's their profile. A temporary redirect, as it depends on the account.
+    const member = executives.find((e) => e.memberHandle)?.memberHandle;
+    if (member) redirect(`/members/${encodeURIComponent(member)}`);
 
     const primary = getPrimaryRole(executives);
     const person = {

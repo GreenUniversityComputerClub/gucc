@@ -100,3 +100,11 @@ export async function acceptConfirms(page: Page) {
   // Also on the page already open.
   await page.evaluate(watch).catch(() => undefined);
 }
+
+/** Refresh cached public pages after changing data directly, as the API Worker does after an edit. */
+export async function revalidate(request: import("@playwright/test").APIRequestContext, tags: string[]) {
+  const { readFileSync: read } = await import("node:fs");
+  const secret = read(".env.local", "utf8").match(/^API_SHARED_SECRET=(.+)$/m)?.[1]?.trim() ?? "";
+  const r = await request.post("/api/revalidate", { headers: { "x-api-key": secret }, data: { tags } });
+  if (r.status() !== 200) throw new Error(`revalidate answered ${r.status()}`);
+}

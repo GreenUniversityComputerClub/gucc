@@ -26,7 +26,7 @@ const PAGES: SearchItem[] = [
   { kind: "page", title: "Home", href: "/", keywords: "gucc green university computer club start" },
   { kind: "page", title: "Events", href: "/events", meta: "Seminars, workshops, contests and more", keywords: "calendar programme workshop seminar" },
   { kind: "page", title: "Blog", href: "/blog", meta: "Articles and tutorials by members", keywords: "articles posts writing" },
-  { kind: "page", title: "Executives", href: "/executives", meta: "Every committee since 2016", keywords: "committee president general secretary leaders team" },
+  { kind: "page", title: "Executives", href: "/executives", meta: "The current committee, and every one since 2016", keywords: "committee president general secretary leaders team" },
   { kind: "page", title: "Contests", href: "/contests", meta: "Programming contests and results", keywords: "icpc competitive programming hackathon" },
   { kind: "page", title: "Join GUCC", href: "/join", meta: "Become a member", keywords: "membership sign up register apply" },
   { kind: "page", title: "Recruitment", href: "/recruitment", meta: "Apply for the executive committee", keywords: "apply volunteer executive" },

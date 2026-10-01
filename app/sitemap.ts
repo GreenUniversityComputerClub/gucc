@@ -23,7 +23,6 @@ const STATIC_ROUTES: Array<{
   changeFrequency: Entry["changeFrequency"];
 }> = [
   { path: "/", priority: 1, changeFrequency: "daily" },
-  { path: "/executives", priority: 0.95, changeFrequency: "weekly" },
   { path: "/events", priority: 0.9, changeFrequency: "daily" },
   { path: "/blog", priority: 0.85, changeFrequency: "daily" },
   { path: "/news", priority: 0.75, changeFrequency: "weekly" },
@@ -102,9 +101,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const primary = getPrimaryRole(roles);
     const avatar = getExecutiveAvatar(primary);
 
+    // People with an account: their executive page leads to their member page, listed instead.
+    const member = roles.find((r) => r.memberHandle)?.memberHandle;
     return [
       {
-        url: absoluteUrl(`/executives/${studentId}`),
+        url: absoluteUrl(member ? `/members/${member}` : `/executives/${studentId}`),
         lastModified: latest(personUpdated.get(studentId)) ?? latestContentDate,
         changeFrequency: "monthly",
         priority: primary.year === latestYear ? 0.9 : 0.65,

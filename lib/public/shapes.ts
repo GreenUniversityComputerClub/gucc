@@ -67,6 +67,8 @@ export interface PublicExecutive {
   mail?: string;
   /** The person's member page (/members/<handle>), when they made it public. */
   profileHandle?: string;
+  /** People with an account: their member page (/members/<memberHandle>), where their executive page leads. */
+  memberHandle?: string;
 }
 
 export interface CommitteeRow {
@@ -114,6 +116,7 @@ export interface MemberRow {
   cutout_storage?: string | null;
   /** The person has an account (and so keeps their own links). */
   has_account?: number | null;
+  member_handle?: string | null;
   cutout_object_key?: string | null;
   /** The member page address, only when its owner made it public. */
   public_handle?: string | null;
@@ -174,6 +177,7 @@ function toExecutive(r: MemberRow, historic = false): PublicExecutive {
   const cutout = r.cutout_storage ? mediaUrl({ id: "", storage: r.cutout_storage as "R2", object_key: r.cutout_object_key ?? null, legacy_path: null, external_url: null }) : null;
   if (cutout) e.cutoutUrl = cutout;
   if (r.public_handle) e.profileHandle = r.public_handle;
+  if (r.member_handle) e.memberHandle = r.member_handle;
   // The listing's framing (set on the year page) wins; otherwise the profile's, when the photo
   // shown is the profile's own. A new photo clears both, so an old zoom never lands on it.
   const own = Boolean(r.avatar_is_profile);

@@ -22,6 +22,8 @@ export interface Executive {
   mail?: string;
   /** Their member page (/members/<handle>), when they made it public. */
   profileHandle?: string;
+  /** People with an account: their member page, where /executives/<student ID> leads. */
+  memberHandle?: string;
 }
 
 export interface ExecutiveYear {

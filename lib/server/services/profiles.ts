@@ -78,8 +78,12 @@ export async function getProfile(ctx: Ctx, rawHandle: unknown) {
             EXISTS (SELECT 1 FROM committee_members cm JOIN committees c ON c.id = cm.committee_id AND c.status <> 'UPCOMING' AND c.deleted_at IS NULL
                     WHERE cm.profile_id = pr.id AND cm.deleted_at IS NULL) AS served
      FROM profiles pr LEFT JOIN users u ON u.id = pr.user_id AND u.deleted_at IS NULL
-     WHERE (pr.slug = ?1 OR pr.id = ?1) AND pr.deleted_at IS NULL AND pr.merged_into_id IS NULL`, handle);
+     WHERE (pr.slug = ?1 OR pr.id = ?1 OR pr.student_id = ?1) AND pr.deleted_at IS NULL AND pr.merged_into_id IS NULL
+     ORDER BY (pr.slug = ?1) DESC, (pr.id = ?1) DESC LIMIT 1`, handle);
   if (!p) throw new NotFoundError("Profile");
+  // A student ID finds only someone who served on a committee (it's on their executive page
+  // already); never an ordinary member's.
+  if (p.student_id === handle && p.slug !== handle && p.id !== handle && !p.served) throw new NotFoundError("Profile");
   // Profiles belong to members (approved accounts) and to people who served on a committee.
   if (!p.served && p.account_status !== "ACTIVE") throw new NotFoundError("Profile");
 
@@ -97,11 +101,11 @@ export async function getProfile(ctx: Ctx, rawHandle: unknown) {
        WHERE cm.profile_id = ?1 AND cm.deleted_at IS NULL ORDER BY CAST(c.slug AS INTEGER) DESC, c.slug DESC, cm.display_order LIMIT 30`, p.id),
     ctx.db.all<{ type: string; slug: string; title: string; excerpt: string | null; published_at: string }>(
       `SELECT type, slug, title, excerpt, published_at FROM posts WHERE author_profile_id = ?1 AND deleted_at IS NULL AND status = 'PUBLISHED'
-         AND published_at <= strftime('%Y-%m-%dT%H:%M:%fZ','now') ORDER BY published_at DESC LIMIT 6`, p.id),
+         AND published_at <= strftime('%Y-%m-%dT%H:%M:%fZ','now') ORDER BY published_at DESC LIMIT 12`, p.id),
     ctx.db.all<{ slug: string; title: string; start_at: string | null; role: string }>(
       `SELECT e.slug, e.title, e.start_at, MIN(ep.role) AS role FROM event_people ep JOIN events e ON e.id = ep.event_id AND ${PUBLIC_EVENT}
        WHERE (ep.profile_id = ?1 OR (?2 IS NOT NULL AND ep.user_id = ?2)) AND ep.role IN ('SPEAKER','COORDINATOR','PHOTOGRAPHER','JUDGE','CHIEF_GUEST','SPECIAL_GUEST','GUEST')
-       GROUP BY e.id ORDER BY e.start_at DESC LIMIT 8`, p.id, p.user_id),
+       GROUP BY e.id ORDER BY e.start_at DESC LIMIT 12`, p.id, p.user_id),
     ctx.actor && p.user_id && !self
       ? ctx.db.first<{ blocked: number }>("SELECT EXISTS (SELECT 1 FROM user_blocks WHERE (blocker_id = ?1 AND blocked_id = ?2) OR (blocker_id = ?2 AND blocked_id = ?1)) AS blocked", ctx.actor.user.id, p.user_id)
       : Promise.resolve(null),
@@ -143,9 +147,12 @@ export async function getProfile(ctx: Ctx, rawHandle: unknown) {
     posts: posts.map((x) => ({ ...x, href: x.type === "BLOG" ? `/blog/${x.slug}` : x.type === "NEWS" ? `/news/${x.slug}` : `/announcements/${x.slug}` })),
     events: events.map((e) => ({ ...e, href: `/events/${e.slug}` })),
     visibility: p.visibility,
-    // Someone who served on a committee also has a public executive page (addressed by student ID,
-    // which that page already shows); linked so search engines see one person.
-    executivePage: p.served && p.student_id && /^\d{9}$/.test(p.student_id) ? `/executives/${p.student_id}` : null,
+    // Someone who served on a committee without an account still has a separate executive page
+    // (by student ID); linked so search engines see one person. With an account, that page leads
+    // here, so there's nothing to link.
+    executivePage: p.served && !p.user_id && p.student_id && /^\d{9}$/.test(p.student_id) ? `/executives/${p.student_id}` : null,
+    /** Served on a committee: name, photo, positions and links are public, as on the executives pages. */
+    served: Boolean(p.served),
     updatedAt: p.updated_at,
     isSelf: self,
     limited: !full,

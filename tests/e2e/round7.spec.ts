@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { acceptConfirms, d1, ensureMember, login, MODERATOR } from "./helpers";
+import { acceptConfirms, d1, ensureMember, login, MODERATOR, revalidate } from "./helpers";
 
 /**
  * Round 7 end to end: photos everywhere (chat and notifications), reporting and blocking in chat,
@@ -131,11 +131,9 @@ test("an executive page shows the person's current profile photo, in past years 
   d1("INSERT OR IGNORE INTO committees (id, slug, name, term_label, status) VALUES ('cmt_e2e_1999', '1999', 'GUCC 1999', '1999', 'ARCHIVED')");
   d1(`INSERT INTO committee_members (id, committee_id, profile_id, position_id, position_title, section, display_order, avatar_media_id)
       VALUES ('cm_e2e_${run}', 'cmt_e2e_1999', 'prf_e2e_${run}', 'pos:executive-member', 'Executive Member', 'STUDENT', 0, '${old.id}')`);
-  // Rows written straight to the database don't refresh the cached pages; a profile save does
-  // (it refreshes everything that shows people), exactly as a real photo change would.
-  await login(page, A.email, A.password, "/dashboard/profile");
-  await page.getByRole("button", { name: "Save profile" }).click();
-  await expect(page.getByText("Profile saved.").first()).toBeVisible();
+  // Rows written straight to the database don't refresh the cached pages: refresh them as the API
+  // does after a real photo change.
+  await revalidate(page.request, ["committees"]);
   await expect.poll(async () => (await page.goto(`/executives/${sid}`))?.status(), { timeout: 30_000, intervals: [1000, 2000, 3000] }).toBe(200);
   const portrait = page.getByAltText(new RegExp(`Past Executive ${run}`)).first();
   // (The test files don't exist in storage, so the image itself may not load; its address is what matters.)
