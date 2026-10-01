@@ -2,21 +2,23 @@
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowLeft, Archive, ArchiveRestore, Ban, Bell, BellOff, Check, CheckCheck, Flag, Info, Loader2, MoreVertical, RotateCw, Send, Smile, WifiOff, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowDown, ArrowLeft, Archive, ArchiveRestore, Ban, Bell, BellOff, Check, CheckCheck, Flag, Info, Loader2, Mail, MoreVertical, RotateCw, Send, Smile, WifiOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { PersonAvatar } from "@/components/person-avatar";
 import { BadgePill } from "@/components/chat/badge-pill";
+import { ActiveStatus } from "@/components/chat/active-status";
 import { useSession } from "@/lib/api/use-session";
 import { ReactionsDialog } from "./reactions-dialog";
 import { sendLive, setLiveRoom, useLive, useLiveStatus } from "@/lib/api/live-client";
-import { activeLabel, usePresence, useWatch } from "@/lib/api/presence";
+import { useActiveLabel, usePresence, useWatch } from "@/lib/api/presence";
 import type { ReactionKey } from "@/lib/chat/reactions";
 import { dayLabel, dhakaDateTime, dhakaDay } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import { blockAction, chatStateAction, deleteChatAction, editChatAction, loadThreadAction, markReadAction, pulseAction, reactAction, sendChatAction, type Thread } from "./actions";
+import { blockAction, chatStateAction, deleteChatAction, editChatAction, loadThreadAction, markReadAction, markUnreadAction, pulseAction, reactAction, sendChatAction, type Thread } from "./actions";
 import { MessageRow, type Message } from "./message-row";
 import { ReportDialog } from "./report-dialog";
 import { GroupSettings } from "./group-settings";
@@ -47,6 +49,10 @@ const iconButton = "inline-flex h-10 w-10 items-center justify-center rounded-md
  * without one, a cheap "anything new?" check runs while the tab is visible (every 8 seconds after
  * activity, slowing to a minute when quiet). Sending shows the message at once and stores it
  * exactly once, even after a double Enter or a dropped connection.
+ *
+ * On phones the conversation fills the screen like a messaging app: its header (back, photo,
+ * name, active status) takes the place of the site's bars, and the message box stays above the
+ * on-screen keyboard.
  */
 export function ThreadView({ conversationId, initial, canSend, restrictedUntil }: { conversationId: string; initial: Thread; canSend: boolean; restrictedUntil?: string | null }) {
   const [t, setT] = useState<Thread>(initial);
@@ -67,8 +73,13 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
   const [emoji, setEmoji] = useState(false);
   const [typing, setTyping] = useState<Record<string, number>>({});
   const [delivered, setDelivered] = useState<Set<string>>(() => new Set());
+  const [away, setAway] = useState(false);
   const [confirm, confirmDialog] = useConfirm();
+  const router = useRouter();
+  const root = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
+  const top = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
   const nearBottom = useRef(true);
   const delay = useRef(ACTIVE_MS);
@@ -80,6 +91,7 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
   const readUpTo = useRef(initial.readUpTo);
   const status = useLiveStatus();
   const online = usePresence();
+  const activeText = useActiveLabel();
   const me = t.me;
   const other = t.person;
   const group = t.group;
@@ -90,6 +102,39 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
     setLiveRoom(t.room ?? null);
     return () => setLiveRoom(null);
   }, [t.room]);
+
+  // Phones: fill the screen (over the site's bars) and follow the visible area, which shrinks when
+  // the keyboard opens, so the message box is never hidden. The page behind doesn't scroll.
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const phone = window.matchMedia("(max-width: 1023.98px)");
+    const vv = window.visualViewport;
+    const html = document.documentElement;
+    const apply = () => {
+      if (!phone.matches) {
+        el.style.height = "";
+        el.style.top = "";
+        html.style.overflow = "";
+        return;
+      }
+      html.style.overflow = "hidden";
+      if (vv) {
+        el.style.height = `${Math.round(vv.height)}px`;
+        el.style.top = `${Math.max(0, Math.round(vv.offsetTop))}px`;
+      }
+    };
+    apply();
+    vv?.addEventListener("resize", apply);
+    vv?.addEventListener("scroll", apply);
+    phone.addEventListener("change", apply);
+    return () => {
+      vv?.removeEventListener("resize", apply);
+      vv?.removeEventListener("scroll", apply);
+      phone.removeEventListener("change", apply);
+      html.style.overflow = "";
+    };
+  }, []);
 
   // The draft survives a reload or a sign-in redirect.
   useEffect(() => setBody(readDraft(conversationId)), [conversationId]);
@@ -272,26 +317,35 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
     else scrollToEnd();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // The phone keyboard opening shrinks the visible area: keep the newest message in view.
+  // The phone keyboard opening shrinks the visible area, and link previews and reactions make
+  // messages taller after they appear: while you're at the bottom, stay there.
   useEffect(() => {
     const vv = window.visualViewport;
-    if (!vv) return;
-    const onResize = () => { if (nearBottom.current) scrollToEnd(); };
-    vv.addEventListener("resize", onResize);
-    return () => vv.removeEventListener("resize", onResize);
+    const keep = () => { if (nearBottom.current) scrollToEnd(); };
+    vv?.addEventListener("resize", keep);
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(keep);
+    // The messages growing, and the visible area shrinking (a reply bar or the emoji row opening).
+    if (content.current) ro?.observe(content.current);
+    if (scroller.current) ro?.observe(scroller.current);
+    return () => {
+      vv?.removeEventListener("resize", keep);
+      ro?.disconnect();
+    };
   }, []);
   const onScroll = () => {
     const el = scroller.current;
     if (!el) return;
     const was = nearBottom.current;
-    nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
+    nearBottom.current = gap < 120;
+    setAway(gap > 600);
     if (nearBottom.current && newBelow) setNewBelow(0);
     if (nearBottom.current && !was) markRead();
   };
 
   async function loadOlder() {
     const first = messages[0];
-    if (!first || loadingOlder) return;
+    if (!first || loadingOlder || !moreOlder) return;
     const el = scroller.current;
     const from = el ? el.scrollHeight - el.scrollTop : 0;
     setLoadingOlder(true);
@@ -416,17 +470,42 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing, patch]);
 
+  // Scrolling up to the oldest message loaded fetches the ones before it (the button stays for keyboards).
+  const loadOlderRef = useRef(loadOlder);
+  loadOlderRef.current = loadOlder;
+  useEffect(() => {
+    const el = top.current;
+    if (!el || !moreOlder || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting) && scroller.current && scroller.current.scrollTop < 400) void loadOlderRef.current();
+    }, { root: scroller.current, rootMargin: "200px 0px 0px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [moreOlder, messages.length]);
+
+  const messagePrivately = useCallback((m: Message) => {
+    if (m.sender) router.push(`/dashboard/chat?to=${encodeURIComponent(m.sender.id)}`);
+  }, [router]);
+
   const lastMine = [...messages].reverse().find((m) => m.mine && m.kind === "TEXT");
   const theirLatest = [...messages].reverse().find((m) => !m.mine && m.kind === "TEXT" && !m.deleted && !m.reported);
+  const fromOthers = messages.some((m) => !m.mine && m.kind === "TEXT" && !m.deleted);
+  // Messenger's "Mark as unread": back to the list, where it shows unread until opened again.
+  async function markUnread() {
+    const r = await markUnreadAction(conversationId).catch(() => null);
+    if (!r?.ok) return say(r && !r.ok ? r.error : "Couldn't mark it unread. Check your connection.", true);
+    router.push("/dashboard/chat");
+  }
   const restricted = restrictedUntil && restrictedUntil > new Date().toISOString() ? restrictedUntil : null;
   const composerOpen = canSend && !restricted && !t.left && (group ? true : other?.active && !other.blocked && !other.blockedMe);
   const typers = Object.entries(typing).filter(([, until]) => until > Date.now()).map(([u]) => names(u));
   const seenBy = group && lastMine ? group.members.filter((x) => x.id !== me && x.lastReadAt && x.lastReadAt >= lastMine.at) : [];
-  const status1 = !other ? "" : !other.active ? "This account isn't active." : other.blocked ? "Blocked" : activeLabel(online(other.id), other.lastActiveAt) ?? "";
+  const presence = other && other.active && !other.blocked ? activeText(other.id, other.lastActiveAt) : null;
+  const status1 = !other ? "" : !other.active ? "This account isn't active." : other.blocked ? "Blocked" : "";
   const activeInGroup = group ? group.members.filter((x) => x.id !== me && online(x.id)).length : 0;
 
   return (
-    <div className="relative flex h-[calc(100dvh-9.5rem)] min-h-88 flex-col overflow-hidden rounded-xl border bg-card lg:h-[calc(100dvh-8rem)]">
+    <div ref={root} className="fixed inset-x-0 top-0 z-50 flex h-dvh flex-col overflow-hidden bg-card lg:relative lg:inset-auto lg:z-auto lg:h-full lg:min-h-88 lg:rounded-xl lg:border">
       {confirmDialog}
       <ReactionsDialog reactions={reactionsOf ? messages.find((m) => m.id === reactionsOf)?.reactions ?? null : null} me={me} person={reactionPerson}
         onClose={() => setReactionsOf(null)}
@@ -435,17 +514,17 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
         onDone={({ message }) => { say(message); void refresh().catch(() => undefined); }} />
       {group && <GroupSettings conversationId={conversationId} group={group} me={me} open={settings} onOpenChange={setSettings} onChanged={() => void refresh().catch(() => undefined)} say={say} />}
 
-      <header className="flex items-center justify-between gap-2 border-b px-2 py-2 sm:px-3">
+      <header className="flex items-center justify-between gap-2 border-b bg-card/95 px-2 py-2 backdrop-blur pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-3 lg:pt-2">
         <div className="flex min-w-0 items-center gap-2">
           <Link prefetch={false} href="/dashboard/chat" className={cn(iconButton, "lg:hidden")} aria-label="Back to conversations"><ArrowLeft className="h-5 w-5" /></Link>
           {group ? (
             <button type="button" onClick={() => setSettings(true)} className="flex min-w-0 items-center gap-2 rounded-md p-1 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <PersonAvatar name={group.name} url={group.avatarUrl} size="md" group />
+              <PersonAvatar name={group.name} url={group.avatarUrl} size="md" group online={activeInGroup > 0} />
               <span className="min-w-0">
                 <span className="block truncate font-medium">{group.name}</span>
                 <span className="block truncate text-xs text-muted-foreground">
                   {typers.length ? <span className="text-primary">{typers.length === 1 ? `${typers[0]!.split(" ")[0]} is typing…` : `${typers.length} people are typing…`}</span>
-                    : `${group.members.length} members${activeInGroup ? ` · ${activeInGroup} active now` : ""}${t.muted ? " · muted" : ""}`}
+                    : <>{group.members.length} members{activeInGroup ? <> · <ActiveStatus label="Active now" className="font-normal" /><span className="text-emerald-600 dark:text-emerald-400"> ({activeInGroup})</span></> : null}{t.muted ? " · muted" : ""}</>}
                 </span>
               </span>
             </button>
@@ -458,7 +537,12 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
                   {other && <BadgePill badge={other.badge} />}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {typers.length ? <span className="text-primary">typing…</span> : [status1, t.muted ? "muted" : null, t.archived ? "archived" : null].filter(Boolean).join(" · ")}
+                  {typers.length ? <span className="text-primary">typing…</span> : (
+                    <>
+                      <ActiveStatus label={presence} />
+                      {[presence ? "" : status1, t.muted ? "muted" : null, t.archived ? "archived" : null].filter(Boolean).map((x, i) => <span key={i}>{presence || i ? " · " : ""}{x}</span>)}
+                    </>
+                  )}
                 </p>
               </div>
             </>
@@ -474,6 +558,9 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
               <DropdownMenuItem className="min-h-11 gap-2" onSelect={() => act(() => chatStateAction(conversationId, { muted: !t.muted }))}>
                 {t.muted ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}{t.muted ? "Unmute notifications" : "Mute notifications"}
               </DropdownMenuItem>
+              {fromOthers && !t.left && (
+                <DropdownMenuItem className="min-h-11 gap-2" onSelect={() => void markUnread()}><Mail className="h-4 w-4" />Mark as unread</DropdownMenuItem>
+              )}
               <DropdownMenuItem className="min-h-11 gap-2" onSelect={() => act(() => chatStateAction(conversationId, { archived: !t.archived }))}>
                 {t.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}{t.archived ? "Move back to inbox" : "Archive conversation"}
               </DropdownMenuItem>
@@ -503,13 +590,15 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
       )}
 
       <div ref={scroller} onScroll={onScroll} className="flex-1 overflow-y-auto overscroll-contain px-2 py-3 sm:px-4" aria-live="polite" aria-relevant="additions">
+        <div ref={content} className="flex min-h-full flex-col">
+        <div ref={top} aria-hidden className="h-px" />
         {moreOlder && messages.length > 0 && (
           <div className="mb-3 flex justify-center">
             <Button type="button" variant="outline" size="sm" onClick={loadOlder} disabled={loadingOlder}>{loadingOlder ? "Loading…" : "Load older messages"}</Button>
           </div>
         )}
         {messages.length === 0 && pending.length === 0 && (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">
             <PersonAvatar name={group?.name ?? other?.name} url={group?.avatarUrl ?? other?.avatarUrl} size="lg" group={Boolean(group)} />
             <p>{group ? `This is the start of “${group.name}”.` : `This is the start of your conversation with ${other?.name ?? "this member"}. Say hello.`}</p>
           </div>
@@ -540,7 +629,8 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
                 canAct={Boolean(composerOpen)} reacting={reacting === m.id} editing={editing?.id ?? null} highlight={highlight === m.id}
                 onReacting={setReacting} onReact={react} onReply={startReply} onEdit={(x) => setEditing({ id: x.id, body: x.body ?? "" })}
                 onEditChange={(v) => setEditing((e) => (e ? { ...e, body: v } : e))} onEditSave={saveEdit} onEditCancel={() => setEditing(null)}
-                onDelete={removeMessage} onReport={(x) => setReporting(x.id)} onCopy={copy} onJump={jump} onShowReactions={showReactions} />
+                onDelete={removeMessage} onReport={(x) => setReporting(x.id)} onCopy={copy} onJump={jump} onShowReactions={showReactions}
+                onMessagePrivately={group ? messagePrivately : undefined} />
             </Fragment>
           );
         })}
@@ -587,13 +677,19 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
             <span>{group ? `${typers.slice(0, 2).map((n) => n.split(" ")[0]).join(" and ")}${typers.length > 2 ? " and others" : ""} ${typers.length === 1 ? "is" : "are"} typing` : "typing"}</span>
           </div>
         )}
+        </div>
       </div>
 
-      {newBelow > 0 && (
-        <button type="button" onClick={() => { scrollToEnd(true); markRead(); }} className="absolute bottom-24 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-md hover:bg-muted">
+      {newBelow > 0 ? (
+        <button type="button" onClick={() => { scrollToEnd(true); markRead(); }} className="absolute bottom-24 left-1/2 z-20 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-md hover:bg-muted motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2">
           <ArrowDown className="h-3.5 w-3.5" aria-hidden />{newBelow} new message{newBelow === 1 ? "" : "s"}
         </button>
-      )}
+      ) : away ? (
+        <button type="button" onClick={() => scrollToEnd(true)} aria-label="Jump to the latest message"
+          className="absolute bottom-24 right-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border bg-background shadow-md hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-90">
+          <ArrowDown className="h-4 w-4" aria-hidden />
+        </button>
+      ) : null}
 
       {toast && (
         <p role={toast.error ? "alert" : "status"} className={cn("absolute inset-x-3 top-16 z-30 mx-auto max-w-md rounded-lg border px-3 py-2 text-center text-sm shadow-md", toast.error ? "border-destructive/50 bg-background text-destructive" : "bg-background")}>

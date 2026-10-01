@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Crown, Loader2, LogOut, MoreVertical, Search, ShieldCheck, ShieldOff, Trash2, UserMinus, UserPlus } from "lucide-react";
+import { ArrowLeft, Crown, Loader2, LogOut, MessageCircle, MoreVertical, Search, ShieldCheck, ShieldOff, Trash2, UserMinus, UserPlus } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,9 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { PersonAvatar } from "@/components/person-avatar";
 import { BadgePill } from "@/components/chat/badge-pill";
+import { ActiveStatus } from "@/components/chat/active-status";
 import { GroupPhotoField } from "@/components/chat/group-photo-field";
 import { PeopleBrowser } from "@/components/chat/people-browser";
-import { activeLabel, usePresence } from "@/lib/api/presence";
+import { useActiveLabel, usePresence } from "@/lib/api/presence";
 import type { DirectoryPerson } from "@/lib/server/services/messaging";
 import { addGroupMembersAction, deleteGroupAction, leaveGroupAction, removeGroupMemberAction, setGroupRoleAction, transferGroupAction, updateGroupAction, type Thread } from "./actions";
 import { useDirectory } from "./use-directory";
@@ -22,8 +23,9 @@ type Group = NonNullable<Thread["group"]>;
 
 /**
  * A group's details: its photo, name and description (changed by the owner, admins and the club's
- * senior leaders), the members with their roles and club badges, making admins and handing the
- * group over (the owner), adding and removing people, leaving, and deleting the group.
+ * senior leaders), who is active now, the members with their roles and club badges (and a button
+ * to message each one on their own), making admins and handing the group over (the owner), adding
+ * and removing people, leaving, and deleting the group.
  */
 export function GroupSettings({ conversationId, group, me, open, onOpenChange, onChanged, say }: {
   conversationId: string;
@@ -43,6 +45,7 @@ export function GroupSettings({ conversationId, group, me, open, onOpenChange, o
   const [confirm, dialog] = useConfirm();
   const [find, setFind] = useState("");
   const online = usePresence();
+  const activeText = useActiveLabel();
   const { data } = useDirectory(open && adding !== null);
 
   useEffect(() => {
@@ -93,6 +96,11 @@ export function GroupSettings({ conversationId, group, me, open, onOpenChange, o
   const needle = find.trim().toLowerCase();
   const shown = needle ? group.members.filter((m) => `${m.name} ${m.badge.label} ${m.badge.short}`.toLowerCase().includes(needle)) : group.members;
   const admins = group.members.filter((m) => m.role === "ADMIN").length;
+  const activeMembers = group.members.filter((m) => m.id !== me && online(m.id));
+  const message = (id: string) => {
+    onOpenChange(false);
+    router.push(`/dashboard/chat?to=${encodeURIComponent(id)}`);
+  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>
@@ -151,6 +159,22 @@ export function GroupSettings({ conversationId, group, me, open, onOpenChange, o
                   <Button type="button" variant="outline" size="sm" className="min-h-9 gap-1.5" onClick={() => setAdding([])}><UserPlus className="h-4 w-4" aria-hidden />Add people</Button>
                 )}
               </div>
+              {activeMembers.length > 0 && !needle && (
+                <div className="mb-3 rounded-lg border bg-emerald-500/5 px-2 py-2">
+                  <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Active now · {activeMembers.length}</p>
+                  <ul className="flex gap-1 overflow-x-auto [scrollbar-width:none]">
+                    {activeMembers.map((m) => (
+                      <li key={m.id} className="shrink-0">
+                        <button type="button" onClick={() => message(m.id)} title={`Message ${m.name}`}
+                          className="flex w-16 flex-col items-center gap-1 rounded-lg p-1 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                          <PersonAvatar name={m.name} url={m.avatarUrl} size="md" className="h-11 w-11" online />
+                          <span className="w-full truncate text-center text-[11px]">{m.name.split(" ")[0]}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {group.members.length > 8 && (
                 <label className="relative mb-2 block">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -160,7 +184,7 @@ export function GroupSettings({ conversationId, group, me, open, onOpenChange, o
               )}
               <ul className="divide-y rounded-lg border">
                 {shown.map((m) => {
-                  const status = activeLabel(online(m.id), m.lastActiveAt);
+                  const status = activeText(m.id, m.lastActiveAt);
                   const self = m.id === me;
                   // What I may do to this person.
                   const canPromote = group.canManage && !self && m.role === "MEMBER";
@@ -180,9 +204,15 @@ export function GroupSettings({ conversationId, group, me, open, onOpenChange, o
                         </p>
                         <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                           <BadgePill badge={m.badge} />
-                          {!self && status && <span>{status}</span>}
+                          {!self && <ActiveStatus label={status} />}
                         </div>
                       </div>
+                      {!self && (
+                        <button type="button" onClick={() => message(m.id)} aria-label={`Message ${m.name}`} title={`Message ${m.name.split(" ")[0]}`}
+                          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                          <MessageCircle className="h-4 w-4" />
+                        </button>
+                      )}
                       {any && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

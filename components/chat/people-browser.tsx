@@ -4,7 +4,8 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Check, Search } from "lucide-react";
 import { PersonAvatar } from "@/components/person-avatar";
 import { BadgePill } from "@/components/chat/badge-pill";
-import { activeLabel, usePresence } from "@/lib/api/presence";
+import { ActiveStatus } from "@/components/chat/active-status";
+import { useActiveLabel, usePresence } from "@/lib/api/presence";
 import { cn } from "@/lib/utils";
 import type { DirectoryPerson } from "@/lib/server/services/messaging";
 
@@ -31,6 +32,7 @@ export function PeopleBrowser({ people, multi, selected, onToggle, exclude = [],
   const [filter, setFilter] = useState<Filter>("all");
   const [active, setActive] = useState(0);
   const online = usePresence();
+  const activeText = useActiveLabel();
   const list = useRef<HTMLUListElement>(null);
 
   const shown = useMemo(() => {
@@ -89,7 +91,7 @@ export function PeopleBrowser({ people, multi, selected, onToggle, exclude = [],
         {shown.map((p, i) => {
           const on = selected.includes(p.user_id);
           const why = disabled?.(p) ?? null;
-          const status = activeLabel(online(p.user_id), p.lastActiveAt);
+          const status = activeText(p.user_id, p.lastActiveAt);
           return (
             <li key={p.user_id} id={`${id}-${p.user_id}`} data-index={i} role="option" aria-selected={on} aria-disabled={Boolean(why) || undefined}
               onMouseEnter={() => setActive(i)} onClick={() => !why && onToggle(p)}
@@ -101,7 +103,10 @@ export function PeopleBrowser({ people, multi, selected, onToggle, exclude = [],
                   <BadgePill badge={p.badge} />
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
-                  {why ?? ([status === "Active now" ? null : status, p.department, p.batch ? `Batch ${p.batch}` : null].filter(Boolean).join(" · ") || " ")}
+                  {why ?? (() => {
+                    const rest = [status === "Active now" ? null : status, p.department, p.batch ? `Batch ${p.batch}` : null].filter(Boolean).join(" · ");
+                    return status === "Active now" ? <><ActiveStatus label={status} />{rest ? ` · ${rest}` : ""}</> : rest || " ";
+                  })()}
                 </span>
               </span>
               {multi && (

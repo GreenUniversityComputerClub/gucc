@@ -3,7 +3,9 @@ import { MessagesSquare } from "lucide-react";
 import { requireSignedIn, view } from "@/lib/api/session";
 import { ActionForm, Field, Section } from "@/components/admin/ui";
 import { dhakaDateTime } from "@/lib/time";
+import { redirect } from "next/navigation";
 import { BlockedList } from "./blocked-list";
+import { ChatFrame } from "./chat-frame";
 import { ChatShell, StartButtons } from "./chat-shell";
 import { chatPrivacyAction, type ChatHome } from "./actions";
 
@@ -17,12 +19,15 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
   const home = await view<ChatHome>("chat.home", { archived, to: sp.to }, "/dashboard/chat");
   const canSend = Boolean(session.caps["chat.send"]) && session.user.status === "ACTIVE" && !home.restrictedUntil;
   const context = sp.contextType === "lost_found_post" && sp.contextId ? { type: sp.contextType, id: sp.contextId } : null;
+  // "Message" on someone you already talk with (from a profile or a group) opens that conversation.
+  const existing = home.to && !context ? home.conversations.find((c) => !c.isGroup && c.other_id === home.to!.id) : null;
+  if (existing) redirect(`/dashboard/chat/${existing.id}`);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
-      <div className="min-h-[60dvh] lg:h-[calc(100dvh-8rem)]">
+      <ChatFrame className="min-h-[60dvh] lg:h-[calc(100dvh-8rem)]">
         <ChatShell home={home} meId={session.user.id} archived={archived} startOpen={canSend && Boolean(home.to)} context={context} />
-      </div>
+      </ChatFrame>
       <div className="space-y-4">
         {home.restrictedUntil && (
           <p role="status" className="rounded-xl border border-amber-400/60 bg-amber-500/5 p-3 text-sm">

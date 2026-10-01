@@ -51,6 +51,11 @@ export async function markReadAction(conversationId: string): Promise<boolean> {
   return r.ok;
 }
 
+/** Show the conversation as unread again (until it's opened). */
+export async function markUnreadAction(conversationId: string) {
+  return runAction("chat.unread", { conversationId }, { message: "Marked as unread." });
+}
+
 /** Everyone I can start a conversation with (with their club badge), for the picker. */
 export async function directoryAction(): Promise<Plain<Directory>> {
   const r = await rpc<Directory>("chat.directory", {});

@@ -5,10 +5,12 @@
  * conversation list, an open conversation and the new-message picker send a signed "watch"
  * list). Only people who share their active status appear, and only to people who share theirs.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { onLive, setLiveWatch } from "./live-client";
 
 const online = new Set<string>();
+/** When someone we watched stopped being active (this tab saw it), so "Active 2 min ago" is right without asking the server. */
+const wentAway = new Map<string, number>();
 const listeners = new Set<() => void>();
 let wired = false;
 
@@ -16,12 +18,18 @@ function wire() {
   if (wired || typeof window === "undefined") return;
   wired = true;
   onLive("presence", (ev) => {
+    const now = Date.now();
     if (ev.all && Array.isArray(ev.on)) {
+      const next = new Set((ev.on as unknown[]).map(String));
+      for (const id of online) if (!next.has(id)) wentAway.set(id, now);
       online.clear();
-      for (const id of ev.on) online.add(String(id));
+      for (const id of next) online.add(id);
     } else if (typeof ev.u === "string") {
       if (ev.on) online.add(ev.u);
-      else online.delete(ev.u);
+      else {
+        if (online.has(ev.u)) wentAway.set(ev.u, now);
+        online.delete(ev.u);
+      }
     }
     listeners.forEach((l) => l());
   });
@@ -67,6 +75,28 @@ export function useWatch(pass: string | null | undefined) {
       setLiveWatch([...passes]);
     };
   }, [pass]);
+}
+
+/** The later of the server's "last active" and when this tab saw the person go. */
+function lastActive(userId: string | null | undefined, serverIso: string | null | undefined): string | null {
+  const seen = userId ? wentAway.get(userId) : undefined;
+  if (!seen) return serverIso ?? null;
+  const iso = new Date(seen).toISOString();
+  return !serverIso || iso > serverIso ? iso : serverIso;
+}
+
+/**
+ * The status line for a person ("Active now", "Active 5 min ago"…), kept current: it follows the
+ * live hub and moves on each minute, so a page left open never shows a stale time.
+ */
+export function useActiveLabel(): (userId: string | null | undefined, lastActiveAt: string | null | undefined) => string | null {
+  const online = usePresence();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  return useCallback((userId, lastActiveAt) => activeLabel(online(userId), lastActive(userId, lastActiveAt), Math.max(now, Date.now())), [online, now]);
 }
 
 /** "Active now", "Active 5 min ago", "Active yesterday"… or null when unknown or hidden. */

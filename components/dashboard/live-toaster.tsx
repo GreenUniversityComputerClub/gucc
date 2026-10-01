@@ -92,17 +92,21 @@ export function LiveToaster({ meId }: { meId: string }) {
     };
   }, []);
 
+  // In an open conversation (full screen on phones) the message box is at the bottom and the
+  // conversation shows its own connection line: cards come from the top there.
+  const inThread = /^\/dashboard\/chat\/[^/]+/.test(path);
   return (
     <>
-      {offline && (
+      {offline && !inThread && (
         <p role="status" className="fixed inset-x-0 top-0 z-[70] flex items-center justify-center gap-2 bg-amber-500 px-3 py-1.5 text-center text-xs font-medium text-black pt-[max(0.375rem,env(safe-area-inset-top))]">
           <WifiOff className="h-3.5 w-3.5" aria-hidden /> You&apos;re offline. Changes will be sent when the connection is back.
         </p>
       )}
-      <div aria-live="polite" className="pointer-events-none fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[65] flex flex-col items-end gap-2 sm:left-auto sm:right-4 sm:w-96">
+      <div aria-live="polite" className={cn("pointer-events-none fixed inset-x-3 z-[65] flex flex-col items-end gap-2 sm:left-auto sm:right-4 sm:w-96",
+        inThread ? "top-[max(0.75rem,env(safe-area-inset-top))] lg:top-auto lg:bottom-4" : "bottom-[max(0.75rem,env(safe-area-inset-bottom))]")}>
         {toasts.map((t) => (
           <div key={t.key} className={cn("pointer-events-auto flex w-full items-start gap-3 rounded-xl border bg-popover p-3 text-popover-foreground shadow-lg",
-            "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 motion-safe:duration-300")}>
+            "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300", inThread ? "motion-safe:slide-in-from-top-3 lg:motion-safe:slide-in-from-bottom-3" : "motion-safe:slide-in-from-bottom-3")}>
             <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary" aria-hidden>
               {t.kind === "msg" ? <MessageCircle className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
             </span>

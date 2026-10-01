@@ -24,10 +24,12 @@ const TYPING_MS = 6000;
 type Filter = "all" | "unread" | "groups";
 
 /**
- * The conversation list (left pane on large screens, the whole page on phones): photo (with a
- * green dot for people active now), name and club badge, the last message ("typing…" while
- * someone writes), time, unread and muted state. New messages move a conversation to the top the
- * moment they arrive; search and the filters work instantly, without asking the server.
+ * The conversation list (left pane on large screens, the whole page on phones): a row of the
+ * people active now, then each conversation with its photo (a green dot while the person is
+ * active), name and club badge, the last message ("typing…" while someone writes) and time.
+ * Unread conversations stand out (tinted, bold, with how many messages wait; grey when muted).
+ * New messages move a conversation to the top the moment they arrive; search and the filters
+ * work instantly, without asking the server.
  */
 export function ConversationList({ items: initial, selected, meId, archived, watch, header }: {
   items: Conversations;
@@ -69,6 +71,7 @@ export function ConversationList({ items: initial, selected, meId, archived, wat
       const next = {
         ...c, last_message_at: m.at, last_body: m.body, last_sender: m.sender, last_sender_name: m.senderName, last_kind: m.kind, last_deleted: null,
         unread: m.sender !== meId && ev.c !== selected ? 1 : c.unread,
+        unreadCount: m.sender !== meId && ev.c !== selected && m.kind !== "SYSTEM" ? (c.unreadCount ?? 0) + 1 : m.sender === meId ? 0 : c.unreadCount,
       };
       return [next, ...list.slice(0, i), ...list.slice(i + 1)];
     });
@@ -94,7 +97,7 @@ export function ConversationList({ items: initial, selected, meId, archived, wat
 
   // The open conversation is read.
   useEffect(() => {
-    if (selected) setItems((list) => list.map((c) => (c.id === selected && c.unread ? { ...c, unread: 0 } : c)));
+    if (selected) setItems((list) => list.map((c) => (c.id === selected && c.unread ? { ...c, unread: 0, unreadCount: 0 } : c)));
   }, [selected]);
 
   const shown = useMemo(() => {
@@ -104,6 +107,8 @@ export function ConversationList({ items: initial, selected, meId, archived, wat
   }, [items, q, filter]);
   const unreadCount = items.filter((c) => c.unread).length;
   const groups = items.filter((c) => c.isGroup).length;
+  // People I talk with who are active right now (most recent conversation first).
+  const activeNow = useMemo(() => items.filter((c) => !c.isGroup && c.other_id && !c.blocked && online(c.other_id)), [items, online]);
 
   return (
     <nav aria-label="Conversations" className="flex h-full min-h-0 flex-col rounded-xl border bg-card">
@@ -134,6 +139,24 @@ export function ConversationList({ items: initial, selected, meId, archived, wat
           )}
         </div>
       )}
+      {!archived && activeNow.length > 0 && !q.trim() && (
+        <section aria-label="Active now" className="border-b px-3 pb-2 pt-2.5">
+          <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />Active now <span className="font-normal normal-case tracking-normal">({activeNow.length})</span>
+          </h3>
+          <ul className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+            {activeNow.map((c) => (
+              <li key={c.id} className="shrink-0">
+                <Link prefetch={false} href={`/dashboard/chat/${c.id}`} title={c.other_name} aria-label={`${c.other_name}, active now`}
+                  className={cn("flex w-16 flex-col items-center gap-1 rounded-lg p-1 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", selected === c.id && "bg-primary/10")}>
+                  <PersonAvatar name={c.other_name} url={c.avatarUrl} size="md" className="h-12 w-12" online />
+                  <span className="w-full truncate text-center text-[11px] leading-tight">{c.other_name.split(" ")[0]}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {items.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground">
           <Users className="h-8 w-8 opacity-40" aria-hidden />
@@ -145,30 +168,41 @@ export function ConversationList({ items: initial, selected, meId, archived, wat
         <ul className="flex-1 divide-y overflow-y-auto overscroll-contain">
           {shown.map((c) => {
             const isTyping = (typing[c.id] ?? 0) > Date.now();
+            const unread = Boolean(c.unread);
+            const waiting = c.unreadCount ?? 0;
             const preview = isTyping ? "typing…"
               : c.last_kind === "SYSTEM" ? c.last_body ?? ""
                 : `${c.last_sender === meId ? "You: " : c.isGroup && c.last_sender_name ? `${c.last_sender_name.split(" ")[0]}: ` : ""}${c.last_deleted ? "Message deleted" : c.last_body ?? ""}`;
             return (
               <li key={c.id}>
                 <Link prefetch={false} href={`/dashboard/chat/${c.id}`} aria-current={selected === c.id ? "page" : undefined}
-                  className={cn("flex items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none", selected === c.id && "bg-primary/10")}>
+                  aria-label={unread ? `${c.other_name}, ${waiting > 1 ? `${waiting} unread messages` : "unread"}` : undefined}
+                  className={cn("relative flex items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none",
+                    unread && !c.muted && "bg-primary/[0.07] hover:bg-primary/[0.12]",
+                    selected === c.id && "bg-primary/10 before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-primary")}>
                   <PersonAvatar name={c.other_name} url={c.avatarUrl} size="md" group={c.isGroup} online={c.isGroup ? undefined : online(c.other_id)} />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-2">
-                      <span className={cn("flex min-w-0 items-center gap-1.5 text-sm", c.unread ? "font-semibold" : "font-medium")}>
+                      <span className={cn("flex min-w-0 items-center gap-1.5 text-sm", unread ? "font-bold text-foreground" : "font-medium text-foreground/90")}>
                         <span className="truncate">{c.other_name}</span>
                         {!c.isGroup && c.badge && c.badge.tier !== "member" && <BadgePill badge={c.badge} />}
                         {c.isGroup && <span className="shrink-0 text-[11px] font-normal text-muted-foreground">· {c.memberCount}</span>}
                         {c.muted ? <BellOff className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="muted" /> : null}
                         {c.blocked ? <Ban className="h-3.5 w-3.5 shrink-0 text-destructive" aria-label="blocked" /> : null}
                       </span>
-                      <time dateTime={c.last_message_at ?? undefined} className={cn("shrink-0 text-[11px]", c.unread ? "font-semibold text-primary" : "text-muted-foreground")}>{short(c.last_message_at)}</time>
+                      <time dateTime={c.last_message_at ?? undefined} className={cn("shrink-0 text-[11px]", unread && !c.muted ? "font-semibold text-primary" : "text-muted-foreground")}>{short(c.last_message_at)}</time>
                     </span>
                     <span className="flex items-center gap-2">
-                      <span className={cn("block min-w-0 flex-1 truncate text-xs", isTyping ? "italic text-primary" : c.unread ? "text-foreground" : "text-muted-foreground", c.last_kind === "SYSTEM" && !isTyping && "italic")}>
+                      <span className={cn("block min-w-0 flex-1 truncate text-xs", isTyping ? "italic text-primary" : unread ? "font-semibold text-foreground" : "text-muted-foreground", c.last_kind === "SYSTEM" && !isTyping && "italic")}>
                         {preview}
                       </span>
-                      {c.unread ? <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary" role="img" aria-label="unread" /> : null}
+                      {unread ? (
+                        waiting > 0 ? (
+                          <span className={cn("inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold tabular-nums", c.muted ? "bg-muted-foreground/25 text-foreground" : "bg-primary text-primary-foreground")} aria-hidden>
+                            {waiting > 99 ? "99+" : waiting}
+                          </span>
+                        ) : <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", c.muted ? "bg-muted-foreground/50" : "bg-primary")} aria-hidden />
+                      ) : null}
                     </span>
                   </span>
                 </Link>

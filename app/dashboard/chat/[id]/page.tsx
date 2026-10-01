@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { requireSignedIn, view } from "@/lib/api/session";
+import { ChatFrame } from "../chat-frame";
 import { ChatShell } from "../chat-shell";
 import { ThreadView } from "../thread-view";
 import type { ChatHome, Thread } from "../actions";
@@ -15,9 +16,10 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
   const home = await view<ChatHome>("chat.home", {}, "/dashboard/chat");
   const canSend = Boolean(session.caps["chat.send"]) && session.user.status === "ACTIVE";
   return (
-    <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
-      <div className="hidden min-h-0 lg:block lg:h-[calc(100dvh-8rem)]"><ChatShell home={home} meId={session.user.id} selected={id} /></div>
+    // Phones show the conversation alone, filling the screen; computers show the list beside it.
+    <ChatFrame className="grid gap-4 lg:h-[calc(100dvh-8rem)] lg:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="hidden min-h-0 lg:block"><ChatShell home={home} meId={session.user.id} selected={id} /></div>
       <ThreadView key={id} conversationId={id} initial={thread} canSend={canSend} restrictedUntil={home.restrictedUntil} />
-    </div>
+    </ChatFrame>
   );
 }

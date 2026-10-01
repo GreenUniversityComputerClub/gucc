@@ -13,7 +13,7 @@
  *   - The first connection says how old the page is, and the hub replays what happened while it
  *     was opening; after any reconnect a "resync" event tells components to fetch what they missed.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { API_PUBLIC_BASE_URL } from "./config";
 
 export type LiveStatus = "off" | "connecting" | "live" | "poll";
@@ -230,13 +230,9 @@ export function useLive(type: string, fn: Handler) {
   useEffect(() => onLive(type, (ev) => ref.current(ev)), [type]);
 }
 
+/** The connection's state; "off" while the page hydrates (as the server rendered it), then the real one. */
 export function useLiveStatus(): LiveStatus {
-  const [s, setS] = useState<LiveStatus>(status);
-  useEffect(() => {
-    setS(status);
-    return onLiveStatus(setS);
-  }, []);
-  return s;
+  return useSyncExternalStore(onLiveStatus, liveStatus, () => "off");
 }
 
 /** Keep the live connection open while this component is mounted. */

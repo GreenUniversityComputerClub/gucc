@@ -13,6 +13,8 @@ const B = { email: `r8b-${run}@student.green.ac.bd`, name: `Bristy ${run}`, pass
 const C = { email: `r8c-${run}@student.green.ac.bd`, name: `Chandni ${run}`, password: "Round-eight-pass-2026!" };
 
 test.describe.configure({ mode: "serial" });
+/** Arif and Bristy's conversation (the first test starts it). */
+let conversation = "";
 
 /** A plain white PNG (a "blank" picture), made here so the test needs no files. */
 function blankPng(size = 400): Buffer {
@@ -53,7 +55,7 @@ test("messages, typing, reactions and notifications arrive live, without a reloa
   await a.getByRole("textbox", { name: /^Message/ }).fill("Hi Bristy, live test!");
   await a.getByRole("button", { name: "Send" }).click();
   await expect(a).toHaveURL(/\/dashboard\/chat\/cnv_/);
-  const conversation = a.url().replace(/^https?:\/\/[^/]+/, "");
+  conversation = a.url().replace(/^https?:\/\/[^/]+/, "");
 
   const b = await pageFor(browser, B, conversation);
   await expect(bubbles(b).getByText("Hi Bristy, live test!")).toBeVisible();
@@ -84,6 +86,40 @@ test("messages, typing, reactions and notifications arrive live, without a reloa
   await expect(b.locator("li[data-id]", { hasText: "Are you coming to the fair?" })).toBeVisible({ timeout: 20_000 });
   await a.context().close();
   await b.context().close();
+});
+
+test("on a phone: unread stands out with a count, a conversation fills the screen, and it can be marked unread", async ({ browser }) => {
+  test.setTimeout(180_000);
+  const a = await pageFor(browser, A, conversation);
+  const aComposer = a.getByLabel(new RegExp(`Message to ${B.name}`));
+  await aComposer.fill("Bring the banner https://github.com/vercel/next.js");
+  await aComposer.press("Enter");
+  await expect(bubbles(a).getByText(/Bring the banner/)).toBeVisible();
+
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const b = await ctx.newPage();
+  await acceptConfirms(b);
+  await login(b, B.email, B.password, "/dashboard/chat");
+  const row = b.getByRole("link", { name: new RegExp(`^${A.name}, \\d+ unread messages$`) });
+  await expect(row).toBeVisible();
+  await row.click();
+  await expect(b).toHaveURL(/\/dashboard\/chat\/cnv_/);
+
+  // The conversation's own header is at the top of the screen (not the site's bars), the message box at the bottom.
+  const back = b.getByRole("link", { name: "Back to conversations" });
+  await expect(back).toBeVisible();
+  expect((await back.boundingBox())!.y).toBeLessThan(40);
+  expect(await b.evaluate(() => document.elementFromPoint(200, 20)?.closest("header")?.textContent ?? "")).toContain(A.name);
+  const box = (await b.getByLabel(new RegExp(`Message to ${A.name}`)).boundingBox())!;
+  expect(box.y + box.height).toBeLessThanOrEqual(844);
+
+  // Mark as unread: back to the list, where it shows unread again.
+  await b.getByRole("button", { name: "Conversation options" }).click();
+  await b.getByRole("menuitem", { name: "Mark as unread" }).click();
+  await expect(b).toHaveURL(/\/dashboard\/chat$/);
+  await expect(b.getByRole("link", { name: new RegExp(`^${A.name}, (\\d+ unread messages|unread)$`) })).toBeVisible();
+  await a.context().close();
+  await ctx.close();
 });
 
 test("a member creates a group; everyone in it sees the conversation", async ({ browser }) => {

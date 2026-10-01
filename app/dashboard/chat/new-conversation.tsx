@@ -11,7 +11,8 @@ import { PersonAvatar } from "@/components/person-avatar";
 import { BadgePill } from "@/components/chat/badge-pill";
 import { PeopleBrowser } from "@/components/chat/people-browser";
 import { GroupPhotoField } from "@/components/chat/group-photo-field";
-import { activeLabel, usePresence } from "@/lib/api/presence";
+import { useActiveLabel, usePresence } from "@/lib/api/presence";
+import { ActiveStatus } from "@/components/chat/active-status";
 import type { DirectoryPerson } from "@/lib/server/services/messaging";
 import { cn } from "@/lib/utils";
 import { createGroupAction, startDirectAction } from "./actions";
@@ -50,6 +51,7 @@ export function NewConversation({ open, onOpenChange, initialMode = "direct", ca
   const [error, setError] = useState<string | null>(null);
   const { data, error: loadError } = useDirectory(open);
   const online = usePresence();
+  const activeText = useActiveLabel();
 
   useEffect(() => {
     if (!open) return;
@@ -65,6 +67,9 @@ export function NewConversation({ open, onOpenChange, initialMode = "direct", ca
     };
   }, [to, data]);
   const chosen = person ?? (mode === "direct" ? preset : null);
+  // Someone chosen from a profile or a group who doesn't take messages from me (their privacy
+  // setting, or a block): say so before anything is written.
+  const unreachable = Boolean(chosen && !person && data && data.people.length < 1500 && !data.people.some((p) => p.user_id === chosen.user_id));
 
   async function sendDirect(e?: React.FormEvent) {
     e?.preventDefault();
@@ -138,11 +143,16 @@ export function NewConversation({ open, onOpenChange, initialMode = "direct", ca
                 <p className="truncate font-medium">{chosen.full_name}</p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                   <BadgePill badge={chosen.badge} />
-                  {activeLabel(online(chosen.user_id), chosen.lastActiveAt) && <span>{activeLabel(online(chosen.user_id), chosen.lastActiveAt)}</span>}
+                  <ActiveStatus label={activeText(chosen.user_id, chosen.lastActiveAt)} />
                 </div>
                 {context?.type === "lost_found_post" && <p className="mt-1 text-xs text-muted-foreground">About their lost &amp; found post</p>}
               </div>
             </div>
+            {unreachable && (
+              <p role="status" className="rounded-md border border-amber-400/60 bg-amber-500/5 px-3 py-2 text-sm">
+                {chosen.full_name.split(" ")[0]} isn&apos;t accepting new messages from you right now (their message settings). You can still talk in groups you share.
+              </p>
+            )}
             {existing[chosen.user_id] && (
               <p className="text-sm text-muted-foreground">You already talk with {chosen.full_name.split(" ")[0]}. <Link prefetch={false} href={`/dashboard/chat/${existing[chosen.user_id]}`} className="font-medium text-primary underline" onClick={() => onOpenChange(false)}>Open the conversation</Link>, or write here.</p>
             )}
@@ -152,7 +162,7 @@ export function NewConversation({ open, onOpenChange, initialMode = "direct", ca
               className="min-h-28 resize-none text-base md:text-sm" />
             <div className="mt-auto flex items-center justify-between gap-2">
               <span className="text-xs text-muted-foreground">{body.length > MAX - 200 ? `${MAX - body.length} characters left` : "Be kind: messages can be reported."}</span>
-              <Button type="submit" disabled={busy || !body.trim()} className="min-h-11 gap-2">{busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}Send</Button>
+              <Button type="submit" disabled={busy || !body.trim() || unreachable} className="min-h-11 gap-2">{busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}Send</Button>
             </div>
           </form>
         ) : mode === "group" && step === "details" ? (

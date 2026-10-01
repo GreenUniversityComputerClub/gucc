@@ -340,6 +340,7 @@ export const procedures: Record<string, Handler> = {
   "chat.send": ({ ctx, input }) => messaging.sendInThread(ctx, s(input, "conversationId"), input.body, input.clientId, input.replyTo),
   "chat.directory": ({ ctx }) => messaging.chatDirectory(ctx),
   "chat.read": ({ ctx, input }) => messaging.markConversationRead(ctx, s(input, "conversationId")),
+  "chat.unread": ({ ctx, input }) => messaging.markConversationUnread(ctx, s(input, "conversationId")),
   "chat.react": ({ ctx, input }) => messaging.reactToMessage(ctx, s(input, "id"), input.emoji ?? null),
   "chat.groupCreate": ({ ctx, input }) => groups.createGroup(ctx, input),
   "chat.groupUpdate": ({ ctx, input }) => groups.updateGroup(ctx, s(input, "conversationId"), input),

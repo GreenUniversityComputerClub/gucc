@@ -337,6 +337,24 @@ export async function markConversationRead(ctx: Ctx, conversationId: string): Pr
   return { at: now };
 }
 
+/**
+ * "Mark as unread": the conversation shows as unread again, from the latest message someone else
+ * sent, on all my devices, until I open it. The others aren't told (their "Seen" stays).
+ */
+export async function markConversationUnread(ctx: Ctx, conversationId: string): Promise<void> {
+  const actor = requireActor(ctx);
+  const n = await ctx.db.run(
+    // Read up to the message just before the others' latest one (none before it: never read).
+    `UPDATE conversation_members SET last_read_at = (
+       SELECT MAX(p.created_at) FROM messages p WHERE p.conversation_id = ?1 AND p.created_at < (
+         SELECT MAX(m.created_at) FROM messages m WHERE m.conversation_id = ?1 AND m.sender_id <> ?2 AND m.kind = 'TEXT' AND m.deleted_at IS NULL))
+     WHERE conversation_id = ?1 AND user_id = ?2 AND left_at IS NULL
+       AND EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = ?1 AND m.sender_id <> ?2 AND m.kind = 'TEXT' AND m.deleted_at IS NULL)`,
+    conversationId, actor.user.id);
+  if (!n) throw new ValidationError("There's no message from the others to mark as unread yet.");
+  emit(ctx, [actor.user.id], { t: "sync" });
+}
+
 /** Add a system line to a group ("Rafi added Nusrat") in the same batch as the change. */
 export function systemMessageStatements(ctx: Ctx, conversationId: string, text: string, at = nowIso()): { id: string; stmts: D1StatementLike[] } {
   const actor = requireActor(ctx);
@@ -356,6 +374,8 @@ export interface ConversationRow {
   last_message_at: string | null;
   muted: number;
   unread: number;
+  /** Messages from others since I last read it (0 when read). */
+  unreadCount: number;
   isGroup: boolean;
   /** The other person (direct) or the group's name. */
   other_id: string | null;
@@ -380,11 +400,15 @@ export async function myConversations(ctx: Ctx, opts: { archived?: boolean; befo
   const actor = requireActor(ctx);
   const before = opts.before && /^\d{4}-\d{2}-\d{2}T/.test(opts.before) ? opts.before : null;
   const size = Math.min(Math.max(opts.limit ?? 60, 1), 100);
-  const rows = await ctx.db.all<{ id: string; last_message_at: string | null; muted: number; unread: number; group_name: string | null; group_photo: string | null; member_count: number;
+  const rows = await ctx.db.all<{ id: string; last_message_at: string | null; muted: number; unread: number; unread_count: number; group_name: string | null; group_photo: string | null; member_count: number;
     other_id: string | null; other_name: string | null; handle: string | null; avatar_json: string | null; blocked: number; last_body: string | null; last_sender: string | null; last_sender_name: string | null;
     last_kind: string | null; last_deleted: string | null; context_type: string | null; last_active: string | null; badge_pos: string | null; badge_mod: number; badge_type: string | null }>(
     `SELECT c.id, c.last_message_at, me.muted,
             (c.last_message_at IS NOT NULL AND c.last_message_at > COALESCE(me.last_read_at, '')) AS unread,
+            -- How many messages from others wait (only counted for unread conversations; the index on (conversation_id, created_at) serves it).
+            CASE WHEN c.last_message_at IS NOT NULL AND c.last_message_at > COALESCE(me.last_read_at, '')
+              THEN (SELECT COUNT(*) FROM messages um WHERE um.conversation_id = c.id AND um.created_at > COALESCE(me.last_read_at, '')
+                      AND um.sender_id <> me.user_id AND um.kind = 'TEXT' AND um.deleted_at IS NULL) ELSE 0 END AS unread_count,
             g.name AS group_name,
             CASE WHEN g.conversation_id IS NOT NULL THEN (SELECT json_object('storage', gm.storage, 'object_key', gm.object_key, 'legacy_path', gm.legacy_path, 'external_url', gm.external_url, 'variants_json', gm.variants_json)
               FROM media gm WHERE gm.id = g.photo_media_id AND gm.deleted_at IS NULL AND gm.status = 'READY') END AS group_photo,
@@ -410,7 +434,7 @@ export async function myConversations(ctx: Ctx, opts: { archived?: boolean; befo
      ORDER BY c.last_message_at DESC LIMIT ?3`, actor.user.id, before, size + 1);
   const more = rows.length > size;
   return rows.slice(0, size).map((r) => ({
-    id: r.id, last_message_at: r.last_message_at, muted: r.muted, unread: r.unread, isGroup: Boolean(r.group_name),
+    id: r.id, last_message_at: r.last_message_at, muted: r.muted, unread: r.unread, unreadCount: Number(r.unread_count) || 0, isGroup: Boolean(r.group_name),
     other_id: r.other_id, other_name: r.group_name ?? r.other_name ?? "Former member", handle: r.handle,
     avatarUrl: avatarUrl(r.group_name ? r.group_photo : r.avatar_json), badge: r.group_name ? null : badgeOf(r), memberCount: r.member_count,
     blocked: r.blocked, last_body: r.last_kind === "SYSTEM" || !r.last_deleted ? r.last_body : null, last_sender: r.last_sender,
