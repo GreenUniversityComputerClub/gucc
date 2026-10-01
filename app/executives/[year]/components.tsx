@@ -203,7 +203,8 @@ export function ExecutiveCard({
                   </span>
                 )}
               </CardTitle>
-              <CardDescription className="line-clamp-1 overflow-hidden text-ellipsis">
+              {/* Two lines at most: long titles ("Former Deputy Moderator") stay readable on phones. */}
+              <CardDescription className="line-clamp-2 overflow-hidden text-ellipsis" title={getRoleName(executive.position)}>
                 {getRoleName(executive.position)}
               </CardDescription>
             </div>
@@ -343,57 +344,53 @@ export function AdminPanel({ year }: { year: string }) {
 type Unit = { name?: string; facultyMembers?: Executive[]; studentExecutives?: Executive[] };
 type CommitteeData = Unit & { year: string; campuses?: Record<string, Unit>; wings?: Record<string, Unit> };
 
+/**
+ * A committee's units as tabs: the main committee (called "GUCC" in years with wings), its
+ * campuses (e.g. GUCC and CSS), then its wings (e.g. VGS), in one row that scrolls sideways on a
+ * small screen. Campuses and wings show together, so a committee with GUCC, CSS and VGS shows all
+ * three. The default tab is the same as the original page's.
+ */
 export function CampusTabs({ year, yearData }: { year: string; yearData: CommitteeData }) {
   const { resizeMode: isResizeMode } = useContext(EditorContext);
   // People listed outside any campus/wing (e.g. added in the admin without a unit).
   const hasMain = (yearData?.facultyMembers?.length ?? 0) + (yearData?.studentExecutives?.length ?? 0) > 0;
 
-  const campuses = yearData.campuses;
-  const wings = yearData.wings;
-  if (campuses && Object.keys(campuses).length > 0) {
-    const campusKeys = Object.keys(campuses);
-    const tabs = [...(hasMain ? ["__main"] : []), ...campusKeys];
-    // Same default as the original page: a real campus, never the fallback tab.
-    const defaultCampus = year === "2023" && campusKeys.includes("merged") ? "merged" : campusKeys.includes("city") ? "city" : campusKeys[0];
+  const campuses = yearData.campuses ?? {};
+  const wings = yearData.wings ?? {};
+  const campusKeys = Object.keys(campuses);
+  const wingKeys = Object.keys(wings);
+  if (campusKeys.length > 0 || wingKeys.length > 0) {
+    const tabs: Array<{ value: string; label: string; unit: Unit | undefined }> = [];
+    if (campusKeys.length > 0) {
+      if (hasMain) tabs.push({ value: "__main", label: "Main committee", unit: yearData });
+      for (const k of campusKeys) tabs.push({ value: k, label: campuses[k]?.name ?? formatCampusLabel(k), unit: campuses[k] });
+    } else if (hasMain) {
+      tabs.push({ value: "gucc", label: "GUCC", unit: yearData });
+    }
+    // A wing whose key is also a campus's gets its own tab value.
+    for (const k of wingKeys) tabs.push({ value: campusKeys.includes(k) || k === "gucc" || k === "__main" ? `wing-${k}` : k, label: wings[k]?.name ?? formatCampusLabel(k).toUpperCase(), unit: wings[k] });
+    // Same default as the original page: a real campus, never the fallback tab; GUCC in years with wings.
+    const defaultTab = campusKeys.length > 0
+      ? year === "2023" && campusKeys.includes("merged") ? "merged" : campusKeys.includes("city") ? "city" : campusKeys[0]
+      : tabs[0]!.value;
 
     return (
-      <Tabs defaultValue={defaultCampus} className="mt-8">
-        <div className="flex justify-center mb-8">
-          <TabsList>
-            {tabs.map((campusKey) => (
-              <TabsTrigger key={campusKey} value={campusKey}>
-                {campusKey === "__main" ? "Main committee" : campuses[campusKey]?.name ?? formatCampusLabel(campusKey)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+      <Tabs defaultValue={defaultTab} className="mt-8">
+        {tabs.length > 1 && (
+          <div className="flex justify-center mb-8">
+            <div className="max-w-full overflow-x-auto [scrollbar-width:none]">
+              <TabsList>
+                {tabs.map((t) => (
+                  <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          </div>
+        )}
 
-        {tabs.map((campusKey) => (
-          <TabsContent key={campusKey} value={campusKey}>
-            {renderCampusContent(campusKey === "__main" ? yearData : campuses[campusKey], isResizeMode)}
-          </TabsContent>
-        ))}
-      </Tabs>
-    );
-  }
-
-  if (wings && Object.keys(wings).length > 0) {
-    const wingKeys = Object.keys(wings);
-    return (
-      <Tabs defaultValue="gucc" className="mt-8">
-        <div className="flex justify-center mb-8">
-          <TabsList>
-            <TabsTrigger value="gucc">GUCC</TabsTrigger>
-            {wingKeys.map((k) => (
-              <TabsTrigger key={k} value={k}>{wings[k]?.name ?? formatCampusLabel(k).toUpperCase()}</TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-
-        <TabsContent value="gucc">{renderCampusContent(yearData, isResizeMode)}</TabsContent>
-        {wingKeys.map((k) => (
-          <TabsContent key={k} value={k}>
-            {renderCampusContent(wings[k], isResizeMode)}
+        {tabs.map((t) => (
+          <TabsContent key={t.value} value={t.value}>
+            {renderCampusContent(t.unit, isResizeMode)}
           </TabsContent>
         ))}
       </Tabs>
@@ -443,31 +440,37 @@ export function CampusTabs({ year, yearData }: { year: string; yearData: Committ
 }
 
 export function renderCampusContent(campus: Unit | undefined, isResizeMode: boolean) {
+  const faculty = campus?.facultyMembers ?? [];
+  const students = campus?.studentExecutives ?? [];
+  // A unit with nobody yet (e.g. just created): say so instead of two empty headings.
+  if (faculty.length === 0 && students.length === 0) {
+    return <p className="py-16 text-center text-muted-foreground">No one is listed here yet.</p>;
+  }
   return (
     <>
-      <section className="mb-12">
+      {faculty.length > 0 && <section className="mb-12">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <GraduationCap className="h-6 w-6 text-primary" />
           Faculty Advisors
         </h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {(campus?.facultyMembers ?? []).map((faculty, index) => (
+          {faculty.map((member, index) => (
             <ExecutiveCard
               key={index}
-              executive={faculty}
+              executive={member}
               isResizeMode={isResizeMode}
             />
           ))}
         </div>
-      </section>
+      </section>}
 
-      <section>
+      {students.length > 0 && <section>
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <Users className="h-6 w-6 text-primary" />
           Student Executives
         </h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {(campus?.studentExecutives ?? []).map((executive, index) => (
+          {students.map((executive, index) => (
             <ExecutiveCard
               key={index}
               executive={executive}
@@ -475,7 +478,7 @@ export function renderCampusContent(campus: Unit | undefined, isResizeMode: bool
             />
           ))}
         </div>
-      </section>
+      </section>}
     </>
   );
 }
@@ -531,6 +534,8 @@ export function getRoleName(position: string) {
 function formatCampusLabel(campusKey: string) {
   if (campusKey === "gucc") return "GUCC";
   if (campusKey === "css") return "CSS";
+  // Short keys without vowels are acronyms (VGS); words keep their capitals (City, Permanent).
+  if (/^[bcdfghjklmnpqrstvwxz]{2,5}$/i.test(campusKey)) return campusKey.toUpperCase();
 
   return campusKey
     .split(/[-_ ]+/)

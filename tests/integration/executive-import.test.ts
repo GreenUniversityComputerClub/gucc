@@ -142,6 +142,47 @@ describe("executive JSON import", () => {
     expect(p2.rows[0].issues.map((i) => i.code)).toContain("MISSING_UNIT");
   });
 
+  it("imports a new committee with GUCC and CSS (campuses) and VGS (a wing), matching units written in full", async () => {
+    const { buildCommittee } = await import("@/lib/public/shapes");
+    const { COMMITTEES_SQL, MEMBERS_SQL } = await import("@/lib/public/queries");
+    w.sqlite.prepare("INSERT INTO committees (id, slug, name, term_label, status) VALUES ('cmt_2027', '2027', 'GUCC 2027', '2027', 'UPCOMING')").run();
+    const file = [{
+      year: "2027",
+      campuses: {
+        gucc: { facultyMembers: [{ position: "Moderator", name: "Dr. Gucc Advisor" }], studentExecutives: [{ position: "President", name: "Gucc President", studentId: "232002101" }] },
+        css: { studentExecutives: [{ position: "President", name: "Css President", studentId: "232002102" }] },
+      },
+      wings: { vgs: { studentExecutives: [{ position: "President", name: "Vgs President", studentId: "232002103" }] } },
+    }];
+    const plan = await previewExecutiveImport(await w.ctx(gs), req(file));
+    expect(plan.rows.map((r) => [r.name, r.unit, r.action])).toEqual([
+      ["Dr. Gucc Advisor", "gucc", "create"], ["Gucc President", "gucc", "create"], ["Css President", "css", "create"], ["Vgs President", "vgs", "create"],
+    ]);
+    // Each unit has its own President.
+    expect(plan.rows.flatMap((r) => r.issues.map((i) => i.code))).not.toContain("POSITION_TAKEN");
+    expect(plan.newUnits.map((u) => u.unit).sort()).toEqual(["css", "gucc", "vgs"]);
+    await applyExecutiveImport(await w.ctx(gs), { ...req(file), planHash: plan.planHash });
+
+    // A later file names the units in full: same units, no new ones.
+    const more = [
+      { name: "Css Treasurer", studentId: "232002104", position: "Treasurer", committee: "2027", unit: "Computer Science Society" },
+      { name: "Gucc Treasurer", studentId: "232002105", position: "Treasurer", committee: "2027", unit: "Green University Computer Club" },
+      { name: "Vgs Treasurer", studentId: "232002106", position: "Treasurer", committee: "2027", unit: "VGS" },
+    ];
+    const p2 = await previewExecutiveImport(await w.ctx(gs), req(more));
+    expect(p2.rows.map((r) => r.unit)).toEqual(["css", "gucc", "vgs"]);
+    expect(p2.newUnits).toEqual([]);
+    await applyExecutiveImport(await w.ctx(gs), { ...req(more), planHash: p2.planHash });
+
+    // The public page gets all three: GUCC and CSS as campuses, VGS as a wing.
+    const c = (w.sqlite.prepare(COMMITTEES_SQL.replace("status <> 'UPCOMING'", "1 = 1")).all() as Array<{ id: string }>).find((x) => x.id === "cmt_2027")!;
+    const built = buildCommittee(c as never, w.sqlite.prepare(MEMBERS_SQL).all() as never) as { campuses?: Record<string, { studentExecutives: Array<{ name: string }> }>; wings?: Record<string, { studentExecutives: Array<{ name: string }> }> };
+    expect(Object.keys(built.campuses ?? {})).toEqual(["gucc", "css"]);
+    expect(Object.keys(built.wings ?? {})).toEqual(["vgs"]);
+    expect(built.campuses!.css!.studentExecutives.map((p) => p.name)).toEqual(["Css President", "Css Treasurer"]);
+    expect(built.wings!.vgs!.studentExecutives.map((p) => p.name)).toEqual(["Vgs President", "Vgs Treasurer"]);
+  });
+
   it("reads CSV with quoted commas and line breaks", () => {
     const csv = 'Name,Student ID,Position,Committee,Bio\n"Islam, Nadia",232002184,Treasurer,2026,"Loves\nC++"\nRafi Hasan,221002001,Executive Member,2026,\n';
     const { rows, errors } = parseCsv(csv);

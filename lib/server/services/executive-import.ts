@@ -290,8 +290,15 @@ async function buildPlan(ctx: Ctx, req: ImportRequest): Promise<{ plan: ImportPl
     }
     const section: "STUDENT" | "FACULTY" = src.section ?? (position?.category === "FACULTY" ? "FACULTY" : "STUDENT");
 
-    // Campus / wing
-    const unit = src.unit ? slugify(src.unit).slice(0, 40) || null : null;
+    // Campus / wing. "CSS", "css" and "Computer Science Society" are the same unit: a name matches
+    // an existing unit (or one added earlier in this file) by its key, its name or their initials.
+    let unit = src.unit ? slugify(src.unit).slice(0, 40) || null : null;
+    if (unit && committee) {
+      const pool = [...committee.layout.units.map((u) => ({ key: u.key, name: typeof u.meta?.name === "string" ? u.meta.name : null })),
+        ...[...newUnits.entries()].filter(([k]) => k.startsWith(`${committee.id}|`)).map(([k, v]) => ({ key: k.slice(committee.id.length + 1), name: v.unit }))];
+      const same = pool.find((u) => sameUnit(u.key, u.name, unit!, src.unit!));
+      if (same) unit = same.key;
+    }
     let unitType: "CAMPUS" | "WING" | null = null;
     let unitLabel: string | null = null;
     if (committee) {
@@ -471,6 +478,21 @@ async function buildPlan(ctx: Ctx, req: ImportRequest): Promise<{ plan: ImportPl
 }
 
 /** Step 1: read the file and show exactly what an import would do. Changes nothing. */
+/** Initials of a unit's name ("Computer Science Society" → "css"), skipping small words. */
+function initialsOf(name: string): string {
+  const words = name.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w && !["of", "and", "the", "for", "at", "in"].includes(w));
+  return words.length >= 2 ? words.map((w) => w[0]).join("") : "";
+}
+
+/** Whether a row's unit (slug and as written) is this unit (key and name): same key or name, or one is the other's initials. */
+function sameUnit(key: string, name: string | null, slug: string, written: string): boolean {
+  const names = [key, name ? slugify(name) : null].filter(Boolean) as string[];
+  if (names.includes(slug)) return true;
+  const mine = initialsOf(written);
+  if (mine && names.includes(mine)) return true;
+  return [key, name].some((n) => n && initialsOf(n) === slug);
+}
+
 export async function previewExecutiveImport(ctx: Ctx, req: ImportRequest): Promise<ImportPlan> {
   return (await buildPlan(ctx, req)).plan;
 }
