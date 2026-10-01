@@ -15,6 +15,7 @@ export default function robots(): MetadataRoute.Robots {
     "/forms/dashboard",
     "/executives/certs/",
     "/certificates/hacktheai/verify",
+    "/sponsors/preview/",
   ];
 
   return {
