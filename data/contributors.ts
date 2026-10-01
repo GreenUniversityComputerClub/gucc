@@ -24,11 +24,11 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "name": "Bakul Ahmed",
     "avatar_url": "https://avatars.githubusercontent.com/u/143816025?v=4",
     "html_url": "https://github.com/BakulBd",
-    "contributions": 60,
-    "realCommits": 33,
-    "additions": 12743,
-    "deletions": 3278,
-    "score": 97.7
+    "contributions": 81,
+    "realCommits": 54,
+    "additions": 26442,
+    "deletions": 7149,
+    "score": 100
   },
   {
     "login": "nurulhudaapon",
@@ -39,7 +39,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 40,
     "additions": 10731,
     "deletions": 2848,
-    "score": 93.9
+    "score": 69.2
   },
   {
     "login": "imranonweb",
@@ -50,7 +50,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 22,
     "additions": 4436,
     "deletions": 2726,
-    "score": 66.2
+    "score": 48.9
   },
   {
     "login": "ShahJahanApurbo",
@@ -61,7 +61,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 3,
     "additions": 3262,
     "deletions": 21,
-    "score": 42.6
+    "score": 30.7
   },
   {
     "login": "MrMajharul",
@@ -72,7 +72,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 9,
     "additions": 2111,
     "deletions": 76,
-    "score": 40.8
+    "score": 30.3
   },
   {
     "login": "jawadhossainmahi",
@@ -83,7 +83,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 9,
     "additions": 1412,
     "deletions": 409,
-    "score": 37
+    "score": 27.6
   },
   {
     "login": "zahinafsar",
@@ -94,18 +94,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 3,
     "additions": 1457,
     "deletions": 820,
-    "score": 33.9
-  },
-  {
-    "login": "imtiazahmadtanvir",
-    "name": "Imtiaz Ahmad Tanvir",
-    "avatar_url": "https://avatars.githubusercontent.com/u/169084828?v=4",
-    "html_url": "https://github.com/imtiazahmadtanvir",
-    "contributions": 2,
-    "realCommits": 2,
-    "additions": 1088,
-    "deletions": 151,
-    "score": 26.9
+    "score": 24.6
   },
   {
     "login": "itshimelz",
@@ -116,7 +105,18 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 5,
     "additions": 625,
     "deletions": 340,
-    "score": 26.5
+    "score": 19.8
+  },
+  {
+    "login": "imtiazahmadtanvir",
+    "name": "Imtiaz Ahmad Tanvir",
+    "avatar_url": "https://avatars.githubusercontent.com/u/169084828?v=4",
+    "html_url": "https://github.com/imtiazahmadtanvir",
+    "contributions": 2,
+    "realCommits": 2,
+    "additions": 1088,
+    "deletions": 151,
+    "score": 19.6
   },
   {
     "login": "ammarbinanwarfuad",
@@ -127,7 +127,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 1,
     "additions": 806,
     "deletions": 1,
-    "score": 21.7
+    "score": 15.7
   },
   {
     "login": "ShipluSaha995",
@@ -138,7 +138,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 4,
     "additions": 346,
     "deletions": 76,
-    "score": 20.2
+    "score": 15.3
   },
   {
     "login": "Arafahmed1314",
@@ -149,7 +149,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 1,
     "additions": 553,
     "deletions": 43,
-    "score": 18.9
+    "score": 13.8
   },
   {
     "login": "idontbyte69",
@@ -160,7 +160,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 3,
     "additions": 292,
     "deletions": 18,
-    "score": 17.7
+    "score": 13.4
   },
   {
     "login": "srtanveer",
@@ -171,7 +171,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 1,
     "additions": 436,
     "deletions": 0,
-    "score": 17
+    "score": 12.4
   },
   {
     "login": "Andrew-Velox",
@@ -182,7 +182,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 2,
     "additions": 188,
     "deletions": 79,
-    "score": 15
+    "score": 11.3
   },
   {
     "login": "naimulhasannabil",
@@ -193,7 +193,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 1,
     "additions": 55,
     "deletions": 11,
-    "score": 8.8
+    "score": 6.8
   },
   {
     "login": "nupur221",
@@ -204,7 +204,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 1,
     "additions": 32,
     "deletions": 9,
-    "score": 7.7
+    "score": 6
   },
   {
     "login": "mahmudaakternadia",
@@ -215,7 +215,7 @@ export const STATIC_CONTRIBUTORS: Contributor[] = [
     "realCommits": 1,
     "additions": 4,
     "deletions": 50,
-    "score": 7.3
+    "score": 5.7
   },
   {
     "login": "Sajjad-Mahmud-Suton",

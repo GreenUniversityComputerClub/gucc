@@ -59,21 +59,40 @@ function readHistory(): Commit[] {
 type Account = { login: string; id: number | null; avatar: string };
 const accounts = new Map<string, Account | null>();
 
-async function accountFor(c: Commit): Promise<Account | null> {
+/** Up to this many commits per email are tried on GitHub before the email is given up on. */
+const TRIES_PER_EMAIL = 6;
+
+async function lookup(sha: string): Promise<Account | null> {
+  const res = await fetch(`https://api.github.com/repos/${REPO}/commits/${sha}`, {
+    headers: { Accept: "application/vnd.github+json", "User-Agent": "gucc-contributors", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (res.ok) {
+    const body = (await res.json()) as { author?: { login: string; id: number; avatar_url: string } | null };
+    return body.author ? { login: body.author.login, id: body.author.id, avatar: `https://avatars.githubusercontent.com/u/${body.author.id}?v=4` } : null;
+  }
+  if (res.status === 403 || res.status === 429) throw new Error("GitHub API rate limit reached. Set GITHUB_TOKEN and run again.");
+  // 404/422: this commit isn't on GitHub (yet): a release runs before the branch is pushed.
+  return null;
+}
+
+/**
+ * The GitHub account behind an author email: from a noreply address, else from GitHub for one of
+ * that email's commits. The oldest commits are tried first (the newest may not be pushed yet:
+ * looking up only the newest once dropped every commit of an author whose latest work was local),
+ * then, failing GitHub, the author's name matched against the club's known contributors.
+ */
+async function accountFor(c: Commit, shasForEmail: string[]): Promise<Account | null> {
   if (accounts.has(c.email)) return accounts.get(c.email)!;
   let found: Account | null = null;
   const noreply = c.email.match(/^(?:(\d+)\+)?([^@]+)@users\.noreply\.github\.com$/);
   if (noreply) found = { login: noreply[2]!, id: noreply[1] ? Number(noreply[1]) : null, avatar: noreply[1] ? `https://avatars.githubusercontent.com/u/${noreply[1]}?v=4` : `https://github.com/${noreply[2]}.png` };
-  else {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/commits/${c.sha}`, {
-      headers: { Accept: "application/vnd.github+json", "User-Agent": "gucc-contributors", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    });
-    if (res.ok) {
-      const body = (await res.json()) as { author?: { login: string; id: number; avatar_url: string } | null };
-      if (body.author) found = { login: body.author.login, id: body.author.id, avatar: `https://avatars.githubusercontent.com/u/${body.author.id}?v=4` };
-    } else if (res.status === 403 || res.status === 429) {
-      throw new Error("GitHub API rate limit reached. Set GITHUB_TOKEN and run again.");
-    }
+  for (const sha of found ? [] : shasForEmail.slice(0, TRIES_PER_EMAIL)) {
+    found = await lookup(sha);
+    if (found) break;
+  }
+  if (!found) {
+    const known = STATIC_CONTRIBUTORS.find((k) => k.name.toLowerCase() === c.name.toLowerCase() || k.login.toLowerCase() === c.name.toLowerCase());
+    if (known) found = { login: known.login, id: null, avatar: known.avatar_url };
   }
   accounts.set(c.email, found);
   return found;
@@ -95,8 +114,11 @@ if (argv.includes("--by-email")) {
 }
 const totals = new Map<string, { login: string; avatar: string; commits: number; realCommits: number; additions: number; deletions: number }>();
 let unmatched = 0;
+// Each email's commits, oldest first (git log lists the newest first).
+const shasByEmail = new Map<string, string[]>();
+for (const c of [...commits].reverse()) shasByEmail.set(c.email, [...(shasByEmail.get(c.email) ?? []), c.sha]);
 for (const c of commits) {
-  const acct = await accountFor(c);
+  const acct = await accountFor(c, shasByEmail.get(c.email) ?? [c.sha]);
   if (!acct) {
     unmatched++;
     continue;
