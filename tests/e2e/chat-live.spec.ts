@@ -118,6 +118,11 @@ test("on a phone: unread stands out with a count, a conversation fills the scree
   await b.getByRole("menuitem", { name: "Mark as unread" }).click();
   await expect(b).toHaveURL(/\/dashboard\/chat$/);
   await expect(b.getByRole("link", { name: new RegExp(`^${A.name}, (\\d+ unread messages|unread)$`) })).toBeVisible();
+  // Back on the list, nothing is wider than the phone (a long preview once widened the page, which
+  // looked like the list was zoomed in), and the New button is on screen.
+  expect(await b.evaluate(() => [...document.querySelectorAll("main *")].filter((e) => e.getBoundingClientRect().right > window.innerWidth + 1 && !e.closest("[class*='overflow-x-auto']")).length)).toBe(0);
+  const newButton = (await b.getByRole("button", { name: "New", exact: true }).boundingBox())!;
+  expect(newButton.x + newButton.width).toBeLessThanOrEqual(390);
   await a.context().close();
   await ctx.close();
 });
