@@ -45,6 +45,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       { href: "/dashboard/posts?type=NEWS", label: "News", show: c("posts.read") && session.adminAccess },
       { href: "/dashboard/posts?type=ANNOUNCEMENT", label: "Announcements", show: c("posts.read") && session.adminAccess },
       { href: "/dashboard/media", label: "Media", show: c("media.read") },
+      { href: "/dashboard/sponsorships", label: "Sponsorship pages", show: c("settings.manage") },
     ] },
     { label: "Events", items: [
       { href: "/dashboard/events", label: "Events", show: writes("events") },

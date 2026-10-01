@@ -24,7 +24,7 @@ const NEVER = new Set([
   "audit.verify", "email.test",
   // Toggles: switching on, off and on again within seconds is deliberate, not a double click (the
   // forms disable while they run, and each change is guarded or idempotent in its service).
-  "chat.state", "chat.block", "chat.react", "chat.read", "chat.unread", "chat.groupRole", "chat.groupTransfer", "tasks.setStatus", "tasks.items", "meetings.respond", "meetings.attendance", "meetings.conflicts", "events.checkIn", "events.mine", "posts.react", "posts.reactions", "system.switch", "executives.move", "rules.setStatus", "roles.setGrant", "positions.setGrant",
+  "chat.state", "chat.block", "chat.react", "chat.read", "chat.unread", "sponsorships.setStatus", "sponsorships.setDefault", "sponsorships.move", "chat.groupRole", "chat.groupTransfer", "tasks.setStatus", "tasks.items", "meetings.respond", "meetings.attendance", "meetings.conflicts", "events.checkIn", "events.mine", "posts.react", "posts.reactions", "system.switch", "executives.move", "rules.setStatus", "roles.setGrant", "positions.setGrant",
 ]);
 
 export function isIdempotent(procedure: string): boolean {

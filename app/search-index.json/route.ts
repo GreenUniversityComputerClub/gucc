@@ -30,7 +30,7 @@ const PAGES: SearchItem[] = [
   { kind: "page", title: "Contests", href: "/contests", meta: "Programming contests and results", keywords: "icpc competitive programming hackathon" },
   { kind: "page", title: "Join GUCC", href: "/join", meta: "Become a member", keywords: "membership sign up register apply" },
   { kind: "page", title: "Recruitment", href: "/recruitment", meta: "Apply for the executive committee", keywords: "apply volunteer executive" },
-  { kind: "page", title: "Sponsors", href: "/sponsors", meta: "Partners who support the club", keywords: "sponsorship partner" },
+  { kind: "page", title: "Become a sponsor", href: "/become-a-sponsor", meta: "Every sponsorship opportunity open now", keywords: "sponsors sponsorship partner packages" },
   { kind: "page", title: "Collaborations", href: "/collaborations", meta: "Clubs and organisations we work with", keywords: "partners clubs" },
   { kind: "page", title: "News", href: "/news", keywords: "announcements updates" },
   { kind: "page", title: "Contact", href: "/contact", meta: "Email, address and message form", keywords: "email address phone location map message" },

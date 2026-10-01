@@ -19,7 +19,7 @@ async function audit(page: Page, opts: { contrast: boolean }) {
   return serious.map((v) => `${v.id} (${v.impact}): ${v.help} — ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(" | ")}`);
 }
 
-for (const path of ["/", "/events", "/executives", "/contact", "/join", "/auth/login", "/auth/sign-up", "/lost-found"]) {
+for (const path of ["/", "/events", "/executives", "/contact", "/join", "/auth/login", "/auth/sign-up", "/lost-found", "/become-a-sponsor", "/sponsors/partner-with-gucc"]) {
   test(`public page ${path} has no serious accessibility problems`, async ({ page }) => {
     await page.goto(path);
     expect(await audit(page, { contrast: false })).toEqual([]);

@@ -10,10 +10,10 @@ import "server-only";
 import { cache } from "react";
 import { publicGet } from "@/lib/api/client";
 import { TAGS } from "@/lib/server/services/cache-tags";
-import type { PublicPost, RegistrationFieldPublic } from "./read";
+import type { PublicPost, PublicSponsorship, RegistrationFieldPublic } from "./read";
 import type { PublicCommittee, PublicContest, PublicEvent } from "./shapes";
 
-export type { PublicPost } from "./read";
+export type { PublicPost, PublicSponsorship } from "./read";
 
 const HOUR = 3600;
 
@@ -58,6 +58,56 @@ export const getPublishedPost = cache(async (type: string, slug: string): Promis
  */
 export const getPublicSetting = cache(async <T,>(key: string): Promise<T | null> =>
   publicGet<T>(`settings/${encodeURIComponent(key)}`, { tags: [TAGS.settings], revalidate: 6 * HOUR, fallback: null }));
+
+/** The CSE Carnival page's address (also used while the API is older than sponsorship pages). */
+export const LEGACY_SPONSORSHIP_SLUG = "cse-carnival-2026";
+
+type LegacySponsorship = { event?: PublicSponsorship["event"]; packages?: unknown[] };
+
+/**
+ * The active sponsorship pages, the default first. An API from before sponsorship pages (it
+ * answers 404 here; a newer one always answers with a list) gives the single Carnival page from
+ * its setting, so the site works whichever is released first.
+ */
+const getSponsorshipState = cache(async (): Promise<{ list: PublicSponsorship[]; legacy: boolean }> => {
+  const list = await publicGet<PublicSponsorship[]>("sponsorships", { tags: [TAGS.sponsorships], revalidate: 6 * HOUR, fallback: null });
+  if (list) return { list, legacy: false };
+  const old = await getPublicSetting<LegacySponsorship>("page.sponsorship");
+  if (!old) return { list: [], legacy: true };
+  return {
+    legacy: true,
+    list: [{ slug: LEGACY_SPONSORSHIP_SLUG, title: old.event?.fullName ?? old.event?.name ?? "Sponsorship", summary: null, isDefault: true, event: old.event ?? null, packages: old.packages?.length ?? 0, updatedAt: "" }],
+  };
+});
+
+export const getSponsorships = cache(async (): Promise<PublicSponsorship[]> => (await getSponsorshipState()).list);
+
+/** Where the navbar's Sponsors link goes: the default sponsorship page, else the overview. */
+export const getSponsorshipHref = cache(async (): Promise<string> => {
+  const def = (await getSponsorships()).find((p) => p.isDefault);
+  return def ? `/sponsors/${def.slug}` : "/become-a-sponsor";
+});
+
+export interface PublicSponsorshipPage {
+  slug: string;
+  title: string;
+  summary: string | null;
+  isDefault: boolean;
+  updatedAt: string;
+  content: unknown;
+}
+
+/** One active sponsorship page with its content, or null. */
+export const getSponsorship = cache(async (slug: string): Promise<PublicSponsorshipPage | null> => {
+  const state = await getSponsorshipState();
+  if (state.legacy) {
+    if (slug !== LEGACY_SPONSORSHIP_SLUG) return null;
+    const content = await getPublicSetting<LegacySponsorship>("page.sponsorship");
+    const first = state.list[0];
+    return content && first ? { slug, title: first.title, summary: null, isDefault: true, updatedAt: "", content } : null;
+  }
+  return publicGet<PublicSponsorshipPage>(`sponsorships/${encodeURIComponent(slug)}`, { tags: [TAGS.sponsorships], revalidate: 6 * HOUR, fallback: null });
+});
 
 export const getPublicForm = cache(async (slug: string) =>
   publicGet<{ slug: string; title: string; url: string }>(`forms/${encodeURIComponent(slug)}`, { tags: [TAGS.forms], revalidate: 6 * HOUR, fallback: null }));

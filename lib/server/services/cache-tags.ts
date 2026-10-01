@@ -8,6 +8,7 @@ export const TAGS = {
   post: (type: string, slug: string) => `post:${type}:${slug}`,
   settings: "settings",
   forms: "forms",
+  sponsorships: "sponsorships",
 };
 
 export function tagsForPost(type: string, ...slugs: string[]): string[] {

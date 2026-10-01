@@ -1,13 +1,13 @@
-import { notFound } from "next/navigation";
-import { getPublicSetting } from "@/lib/public/data";
-import type sponsorJson from "@/data/sponsors.json";
-import { SponsorsClient } from "./sponsors-client";
+import { redirect } from "next/navigation";
+import { getSponsorshipHref } from "@/lib/public/data";
 
-// Page content is the organization setting "page.sponsorship", editable in /admin/settings.
-export const revalidate = 21600;
+// Answered per request, so it follows the dashboard's choice at once.
+export const dynamic = "force-dynamic";
 
-export default async function SponsorsPage() {
-  const data = await getPublicSetting<typeof sponsorJson>("page.sponsorship");
-  if (!data) notFound();
-  return <SponsorsClient sponsorData={data} />;
+/**
+ * /sponsors opens the default sponsorship page (chosen in the dashboard), or the overview of all
+ * of them when there's no default. A temporary redirect: the default can change.
+ */
+export default async function SponsorsIndex() {
+  redirect(await getSponsorshipHref());
 }

@@ -426,3 +426,24 @@ export async function lostFoundStatusAction(id: string, status: "active" | "reje
 export async function lostFoundImageAction(id: string, _fd: Fd) {
   return runAction("lostfound.removeImage", { id }, { message: "Photo removed." });
 }
+
+// ───────────────────────────── sponsorship pages ─────────────────────────────
+
+export async function saveSponsorshipAction(id: string | null, fd: Fd) {
+  return runAction<{ id: string; slug: string }>("sponsorships.save", { id, input: obj(fd) }, { message: id ? "Sponsorship page saved." : "Sponsorship page created." });
+}
+export async function setDefaultSponsorshipAction(id: string, _fd: Fd) {
+  return runAction("sponsorships.setDefault", { id }, { message: "Default changed: the navbar's Sponsors link opens this page now. The others stay as they were." });
+}
+export async function setSponsorshipStatusAction(id: string, status: "ACTIVE" | "INACTIVE", _fd: Fd) {
+  return runAction("sponsorships.setStatus", { id, status }, { message: status === "ACTIVE" ? "Page activated: it's public now." : "Page deactivated: it's hidden from the site." });
+}
+export async function duplicateSponsorshipAction(id: string, _fd: Fd) {
+  return runAction<{ id: string; slug: string }>("sponsorships.duplicate", { id }, { message: "Copy created (inactive until you activate it)." });
+}
+export async function deleteSponsorshipAction(id: string, _fd: Fd) {
+  return runAction("sponsorships.delete", { id }, { message: "Sponsorship page deleted." });
+}
+export async function moveSponsorshipAction(id: string, direction: "up" | "down", _fd: Fd) {
+  return runAction("sponsorships.move", { id, direction }, { message: direction === "up" ? "Moved up." : "Moved down." });
+}

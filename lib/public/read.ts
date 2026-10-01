@@ -164,13 +164,57 @@ function resolvePaths(value: unknown, map: Record<string, string>): unknown {
  * old /public folder are resolved to wherever the file lives now (R2 once
  * migrated), so content keeps working before, during and after the move.
  */
+/** Legacy /public image paths → wherever each file lives now (R2 once migrated). */
+async function legacyMediaMap(db: Db): Promise<Record<string, string>> {
+  const media = await db.all<MediaRow & { legacy_path: string }>(
+    "SELECT id, storage, object_key, legacy_path, external_url, variants_json FROM media WHERE legacy_path IS NOT NULL AND deleted_at IS NULL AND visibility = 'PUBLIC' AND status = 'READY'");
+  return Object.fromEntries(media.map((r) => [r.legacy_path.toLowerCase(), mediaUrl(r) ?? r.legacy_path]));
+}
+
 export async function readSetting(db: Db, key: string): Promise<unknown> {
   const row = await db.first<{ value_json: string }>("SELECT value_json FROM organization_settings WHERE key = ?1 AND is_public = 1", key);
   if (!row) return null;
-  const media = await db.all<MediaRow & { legacy_path: string }>(
-    "SELECT id, storage, object_key, legacy_path, external_url, variants_json FROM media WHERE legacy_path IS NOT NULL AND deleted_at IS NULL AND visibility = 'PUBLIC' AND status = 'READY'");
-  const map = Object.fromEntries(media.map((r) => [r.legacy_path.toLowerCase(), mediaUrl(r) ?? r.legacy_path]));
-  return resolvePaths(JSON.parse(row.value_json), map);
+  return resolvePaths(JSON.parse(row.value_json), await legacyMediaMap(db));
+}
+
+export interface PublicSponsorship {
+  slug: string;
+  title: string;
+  summary: string | null;
+  isDefault: boolean;
+  /** From the page's content, for the cards on /become-a-sponsor. */
+  event: { name?: string; fullName?: string; tagline?: string; organizer?: string } | null;
+  packages: number;
+  updatedAt: string;
+}
+
+/** The active sponsorship pages, the default first (/become-a-sponsor, the navbar, the sitemap). */
+export async function readSponsorships(db: Db): Promise<PublicSponsorship[]> {
+  const rows = await db.all<{ slug: string; title: string; summary: string | null; is_default: number; updated_at: string; event_json: string | null; packages: number | null }>(
+    `SELECT slug, title, summary, is_default, updated_at, json_extract(content_json, '$.event') AS event_json,
+            json_array_length(content_json, '$.packages') AS packages
+     FROM sponsorship_pages WHERE deleted_at IS NULL AND status = 'ACTIVE' ORDER BY is_default DESC, sort_order, title`);
+  return rows.map((r) => ({
+    slug: r.slug, title: r.title, summary: r.summary, isDefault: Boolean(r.is_default), updatedAt: r.updated_at, packages: Number(r.packages ?? 0),
+    event: (() => {
+      try {
+        return r.event_json ? (JSON.parse(r.event_json) as PublicSponsorship["event"]) : null;
+      } catch {
+        return null;
+      }
+    })(),
+  }));
+}
+
+/** One active sponsorship page with its content (image paths resolved), or null. */
+export async function readSponsorship(db: Db, slug: string): Promise<{ slug: string; title: string; summary: string | null; isDefault: boolean; updatedAt: string; content: unknown } | null> {
+  const row = await db.first<{ slug: string; title: string; summary: string | null; is_default: number; updated_at: string; content_json: string }>(
+    "SELECT slug, title, summary, is_default, updated_at, content_json FROM sponsorship_pages WHERE slug = ?1 AND deleted_at IS NULL AND status = 'ACTIVE'", slug);
+  if (!row) return null;
+  return {
+    slug: row.slug, title: row.title, summary: row.summary, isDefault: Boolean(row.is_default), updatedAt: row.updated_at,
+    content: resolvePaths(JSON.parse(row.content_json), await legacyMediaMap(db)),
+  };
 }
 
 export async function readForm(db: Db, slug: string) {

@@ -15,7 +15,7 @@
  */
 import { Db } from "../../../lib/server/db";
 import { AppError, AuthRequiredError, ValidationError } from "../../../lib/server/errors";
-import { readCommittees, readContests, readEvent, readEvents, readForm, readPost, readPosts, readSetting, readSitemap } from "../../../lib/public/read";
+import { readCommittees, readContests, readEvent, readEvents, readForm, readPost, readPosts, readSetting, readSitemap, readSponsorship, readSponsorships } from "../../../lib/public/read";
 import type { VariantName } from "../../../lib/media/bytes";
 import { forgetMediaLookup, resolveMediaAccess, uploadMedia, uploadsOpen, MAX_BYTES_PER_REQUEST } from "../../../lib/server/services/media";
 import { recordHeartbeat, runDailyHousekeeping, runMaintenance } from "../../../lib/server/services/maintenance";
@@ -86,6 +86,11 @@ async function handlePublic(env: Env, url: URL): Promise<Response> {
       return ok(await readPosts(db, (url.searchParams.get("type") ?? "BLOG").toUpperCase(), Number(url.searchParams.get("limit") ?? 50)));
     case "settings":
       return parts[1] ? ok(await readSetting(db, parts[1])) : notFound();
+    case "sponsorships": {
+      if (!parts[1]) return ok(await readSponsorships(db));
+      const page = await readSponsorship(db, parts[1]);
+      return page ? ok(page) : notFound();
+    }
     case "forms": {
       const f = parts[1] ? await readForm(db, parts[1]) : null;
       return f ? ok(f) : notFound();

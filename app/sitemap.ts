@@ -6,7 +6,7 @@ import {
   getLatestExecutiveYear,
   getPrimaryRole,
 } from "@/app/executives/util";
-import { getPublicContests, getPublicEvents, getPublishedPosts, getSitemapData } from "@/lib/public/data";
+import { getPublicContests, getPublicEvents, getPublishedPosts, getSitemapData, getSponsorships } from "@/lib/public/data";
 import { absoluteUrl } from "@/lib/seo/site";
 
 type Entry = MetadataRoute.Sitemap[number];
@@ -30,7 +30,7 @@ const STATIC_ROUTES: Array<{
   { path: "/contests", priority: 0.8, changeFrequency: "weekly" },
   { path: "/join", priority: 0.8, changeFrequency: "monthly" },
   { path: "/contact", priority: 0.7, changeFrequency: "monthly" },
-  { path: "/sponsors", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/become-a-sponsor", priority: 0.7, changeFrequency: "monthly" },
   { path: "/collaborations", priority: 0.7, changeFrequency: "monthly" },
   { path: "/socials", priority: 0.6, changeFrequency: "monthly" },
   { path: "/lost-found", priority: 0.5, changeFrequency: "weekly" },
@@ -132,6 +132,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   // Only contests with results: a page without teams has nothing to index.
+  // Every active sponsorship page (the default most prominent).
+  const sponsorshipEntries: Entry[] = (await getSponsorships().catch(() => [])).map((p) => ({
+    url: absoluteUrl(`/sponsors/${p.slug}`),
+    lastModified: latest(p.updatedAt) ?? latestContentDate,
+    changeFrequency: "monthly",
+    priority: p.isDefault ? 0.75 : 0.6,
+  }));
+
   const contestEntries: Entry[] = contests.filter((contest) => contest.teams.length > 0).map((contest) => ({
     url: absoluteUrl(`/contests/${contest.id}`),
     lastModified: latest(contestUpdated.get(String(contest.id))) ?? latestContentDate,
@@ -148,6 +156,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...profileEntries,
     ...memberEntries,
     ...eventEntries,
+    ...sponsorshipEntries,
     ...contestEntries,
     ...(await blogEntries()),
   ].filter((entry) => !seen.has(entry.url) && seen.add(entry.url));

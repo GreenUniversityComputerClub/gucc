@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type sponsorJson from "@/data/sponsors.json";
+import type { SponsorIcon } from "@/lib/sponsorship/content";
 
 type SponsorData = typeof sponsorJson;
 
@@ -43,14 +44,10 @@ interface Package {
   slots: number;
   price: number;
   currency: string;
+  /** e.g. "per academic year". */
+  period?: string;
   highlight: boolean;
   benefits: string[];
-}
-
-interface ScheduleItem {
-  label: string;
-  date: string;
-  description: string;
 }
 
 interface Contact {
@@ -66,6 +63,7 @@ interface OtherOpportunity {
   title: string;
   detail: string;
   description: string;
+  icon?: string;
 }
 
 interface Program {
@@ -78,6 +76,8 @@ interface Program {
   components?: string[];
   sponsorValue: string[];
   eventSlug: string;
+  /** Up to four highlights under the description; the Carnival's when missing. */
+  facts?: { value: string; label: string }[];
 }
 
 interface ComparisonFeature {
@@ -164,16 +164,12 @@ const OPPORTUNITY_ICONS: Record<string, ElementType> = {
   "Platform / Server Partner": Server,
 };
 
-const WHY_ICONS: Record<string, ElementType> = {
-  Users,
-  Megaphone,
-  Briefcase,
-  Share2,
-  MapPin,
-  GraduationCap,
-  Lightbulb,
-  Mic,
+/** Icons by name (a card's "icon" in the content). */
+const WHY_ICONS: Record<SponsorIcon, ElementType> = {
+  Users, Megaphone, Briefcase, Share2, MapPin, GraduationCap, Lightbulb, Mic,
+  Trophy, Gift, Shirt, Utensils, Server, Code2, Laptop, Shield, Sparkles, Building2,
 };
+const iconByName = (name: string | undefined) => (name && name in WHY_ICONS ? WHY_ICONS[name as SponsorIcon] : undefined);
 
 /* ─── Animation variants ─────────────────────────────── */
 const fadeUp: Variants = {
@@ -196,14 +192,33 @@ const staggerFast: Variants = {
 };
 
 /* ─── Terminal Typing Animation ──────────────────────── */
-const TYPING_PHRASES = [
+/** The CSE Carnival page's phrases (other pages type their own contests). */
+const CARNIVAL_PHRASES = [
   "Inter University Programming Contest",
   "Cyber Security Contest (CTF)",
   "ICT Olympiad",
   "Math Olympiad",
 ];
 
-function TerminalTyping() {
+/** How each part of a program is shown (the Carnival page's parts); others get a plain card. */
+const PROGRAM_CARDS: Record<string, { title: string; subtitle: string; desc: string; icon: ElementType }> = {
+  iupc: { title: "IUPC", subtitle: "Inter University Programming Contest", desc: "A competitive platform bringing together the best problem solvers from universities across the country.", icon: Code2 },
+  ctf: { title: "CTF", subtitle: "Cyber Security Contest", desc: "Capture The Flag competition designed to challenge and sharpen cybersecurity skills.", icon: Shield },
+  "ict olympiad": { title: "ICT Olympiad", subtitle: "ICT Knowledge Competition", desc: "An academic and technical competition to encourage ICT knowledge and innovation.", icon: Laptop },
+  "math olympiad": { title: "Math Olympiad", subtitle: "Mathematics Competition", desc: "A problem-solving competition that promotes analytical thinking and mathematical excellence.", icon: Sigma },
+  workshops: { title: "Workshops", subtitle: "Hands-on workshops", desc: "Build practical skills and industry relevant knowledge.", icon: Wrench },
+  "industry sessions": { title: "Industry Sessions", subtitle: "Learn from experts", desc: "Keynote talks and expert-led sessions.", icon: Mic },
+  networking: { title: "Networking", subtitle: "Connect and collaborate", desc: "Grow with peers, mentors and industry professionals.", icon: Users },
+  awards: { title: "Awards", subtitle: "Recognizing excellence", desc: "Celebrating innovation and outstanding performances.", icon: Trophy },
+  "programming contests": { title: "Programming Contests", subtitle: "IUPC, intra-university and practice rounds", desc: "Competitive programming contests that bring together the strongest problem solvers.", icon: Code2 },
+  hackathons: { title: "Hackathons", subtitle: "Build in a weekend", desc: "Teams turn ideas into working products, with mentors, judges and prizes.", icon: Zap },
+  "tech talks": { title: "Tech Talks", subtitle: "Seminars and keynotes", desc: "Engineers and founders share what they build and how they hire.", icon: Mic },
+  "career events": { title: "Career Events", subtitle: "Hiring and internships", desc: "Job fairs, internship drives and portfolio reviews with partner companies.", icon: Briefcase },
+  "community programs": { title: "Community Programs", subtitle: "Learning for everyone", desc: "Study circles, bootcamps and outreach that grow the next generation of engineers.", icon: GraduationCap },
+};
+
+function TerminalTyping({ phrases }: { phrases: string[] }) {
+  const TYPING_PHRASES = phrases.length ? phrases : [" "];
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [displayed, setDisplayed] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -232,6 +247,7 @@ function TerminalTyping() {
       );
     }
     return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayed, isDeleting, phraseIndex]);
 
   return (
@@ -373,7 +389,12 @@ function AmbientBackground() {
 }
 
 /* ─── Code Visual (Hero Right) ───────────────────────── */
-function CodeVisual() {
+function CodeVisual({ name, fullName }: { name: string; fullName: string }) {
+  // The Carnival page keeps its own wording; a club-wide page reads as a Partnership, others as an Event.
+  const kind = /carnival/i.test(fullName) ? "Carnival" : /partner/i.test(fullName) ? "Partnership" : "Event";
+  const facts = kind === "Partnership"
+    ? ['    community="7,000+ students",', '    calendar="year-round",']
+    : ["    contests=4,", "    participants=500,"];
   return (
     <div className="relative h-[480px] w-full select-none pointer-events-none">
       <div className="absolute inset-0 flex items-center justify-center">
@@ -392,33 +413,33 @@ function CodeVisual() {
           <span className="w-3 h-3 rounded-full bg-yellow-400/70" />
           <span className="w-3 h-3 rounded-full bg-green-400/70" />
           <span className="ml-3 text-xs font-mono text-muted-foreground">
-            contest_runner.py
+            {kind === "Partnership" ? "partnership.py" : "contest_runner.py"}
           </span>
         </div>
         <div className="px-5 py-4 font-mono text-xs leading-relaxed space-y-0.5">
           {[
-            { n: 1, c: "text-muted-foreground/50", t: "# CSE CARNIVAL 2026 · GUCC" },
+            { n: 1, c: "text-muted-foreground/50", t: `# ${name.toUpperCase()} · GUCC` },
             { n: 2, c: "", t: "" },
             {
               n: 3,
               c: "text-blue-400/80",
               t: "from",
-              rest: " gucc import Carnival, Contest",
+              rest: ` gucc import ${kind}, Contest`,
             },
             { n: 4, c: "", t: "" },
             {
               n: 5,
               c: "text-violet-400/80",
-              t: "carnival",
-              rest: " = Carnival(",
+              t: kind.toLowerCase(),
+              rest: ` = ${kind}(`,
             },
             {
               n: 6,
               c: "text-muted-foreground",
-              t: '    name="CSE Carnival 2026",',
+              t: `    name="${fullName}",`,
             },
-            { n: 7, c: "text-muted-foreground", t: "    contests=4," },
-            { n: 8, c: "text-muted-foreground", t: "    participants=500," },
+            { n: 7, c: "text-muted-foreground", t: facts[0] },
+            { n: 8, c: "text-muted-foreground", t: facts[1] },
             {
               n: 9,
               c: "text-muted-foreground",
@@ -429,7 +450,7 @@ function CodeVisual() {
             {
               n: 12,
               c: "text-primary/80",
-              t: "carnival.run()",
+              t: `${kind.toLowerCase()}.run()`,
               rest: "  # 🚀 starting...",
             },
           ].map((line) => (
@@ -571,7 +592,18 @@ function PartnersMarquee({ partners }: { partners: Partner[] }) {
       >
         <div
           ref={trackRef}
-          className={`flex w-full gap-5 overflow-x-auto py-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
+          // Reachable by keyboard too: focus it, then the arrow keys scroll the logos.
+          tabIndex={0}
+          role="region"
+          aria-label="Previous partners"
+          onFocus={() => setPaused(true)}
+          onBlur={() => setPaused(false)}
+          onKeyDown={(e) => {
+            if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+            e.preventDefault();
+            trackRef.current?.scrollBy({ left: e.key === "ArrowLeft" ? -240 : 240, behavior: "smooth" });
+          }}
+          className={`flex w-full gap-5 overflow-x-auto py-4 outline-none focus-visible:ring-2 focus-visible:ring-ring [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
             isDragging ? "cursor-grabbing" : "cursor-grab"
           }`}
           onMouseDown={(e) => { e.preventDefault(); startDrag(e.clientX); }}
@@ -702,7 +734,7 @@ function BenefitItem({
   );
 }
 
-function SponsorNav() {
+function SponsorNav({ has }: { has: Record<"programs" | "packages" | "gallery", boolean> }) {
   const [active, setActive] = useState("");
   const [isHidden, setIsHidden] = useState(false);
 
@@ -738,7 +770,7 @@ function SponsorNav() {
           { id: "programs", icon: Star, label: "Programs" },
           { id: "packages", icon: Gift, label: "Packages" },
           { id: "gallery", icon: Sparkles, label: "Gallery" },
-        ].map((item) => {
+        ].filter((item) => has[item.id as keyof typeof has]).map((item) => {
           const Icon = item.icon;
           const isActive = active === item.id;
           return (
@@ -761,30 +793,43 @@ function SponsorNav() {
   );
 }
 
+/** The program's highlights (the Carnival's unless the page sets its own), with their icons in order. */
+const DEFAULT_FACTS = [
+  { value: "500+", label: "Participants" },
+  { value: "Multi-day", label: "Event" },
+  { value: "Competitions", label: "& Awards" },
+  { value: "Sponsor", label: "Visibility" },
+];
+const FACT_ICONS = [Users, Calendar, Trophy, Building2];
+
 /* ─── Main Page ──────────────────────────────────────── */
 export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
-  const {
-    event,
-    achievements,
-    previousPartners,
-    whySponsorReasons,
-    packages,
-    otherOpportunities,
-    contacts,
-    comparisonFeatures,
-  } = sponsorData as {
-    event: typeof sponsorData.event;
-    about: typeof sponsorData.about;
-    achievements: typeof sponsorData.achievements;
-    schedule: ScheduleItem[];
-    previousPartners: Partner[];
-    whySponsorReasons: typeof sponsorData.whySponsorReasons;
-    packages: Package[];
-    otherOpportunities: OtherOpportunity[];
-    contacts: Contact[];
-    programs: Program[];
-    comparisonFeatures: ComparisonFeature[];
-  };
+  // Any sponsorship page's content: every list may be missing (that section then stays hidden).
+  const data = sponsorData as Partial<SponsorData> & { heroSubtitle?: string; typingPhrases?: string[] };
+  const list = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+  const event = (data.event ?? {}) as SponsorData["event"];
+  const achievements = list<{ title: string; description: string; eventSlug?: string }>(data.achievements);
+  const previousPartners = list<Partner>(data.previousPartners);
+  const whySponsorReasons = list<SponsorData["whySponsorReasons"][number]>(data.whySponsorReasons);
+  const packages = list<Package>(data.packages);
+  const otherOpportunities = list<OtherOpportunity>(data.otherOpportunities);
+  const contacts = list<Contact>(data.contacts);
+  const comparisonFeatures = list<ComparisonFeature>(data.comparisonFeatures);
+  const programs = list<Program>(data.programs);
+  // The flagship program this page sells, and its parts ("IUPC (Inter University …)").
+  const program = programs.find((x) => x.featured) ?? programs[0] ?? null;
+  const parts = program?.components ?? [];
+  const short = (c: string) => c.replace(/\s*\(.*\)\s*$/, "").trim();
+  const featuring = parts.slice(0, 4).map(short);
+  const joinList = (xs: string[]) => (xs.length <= 2 ? xs.join(" and ") : `${xs.slice(0, -1).join(", ")}, and ${xs[xs.length - 1]}`);
+  const eventName = event.fullName ?? event.name ?? "our events";
+  const heroSubtitle = data.heroSubtitle
+    ?? `Partner with Green University Computer Club to sponsor ${program?.name ?? eventName}${featuring.length ? ` — featuring ${joinList(featuring)}` : ""}.`;
+  const typingPhrases = data.typingPhrases?.length ? data.typingPhrases.map(String)
+    : program?.id === "cse-carnival" ? CARNIVAL_PHRASES
+      : featuring.length ? parts.slice(0, 4).map((c) => c.match(/\((.*)\)\s*$/)?.[1] ?? c) : [eventName];
+
+  const programFacts = (program?.facts?.length ? program.facts : DEFAULT_FACTS).slice(0, 4);
 
   const stats = [
     { label: "Community Members", value: 7000, suffix: "+" },
@@ -797,7 +842,7 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
     <MotionConfig reducedMotion="user">
       <ReadingProgress />
       <AmbientBackground />
-      <SponsorNav />
+      <SponsorNav has={{ programs: Boolean(program), packages: packages.length > 0, gallery: true }} />
 
       <div className="relative overflow-hidden">
         {/* ══ SECTION 1 — HERO ══════════════════════════════ */}
@@ -861,7 +906,7 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
                   variants={fadeUp}
                   className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-xl mb-3"
                 >
-                  Partner with Green University Computer Club to sponsor CSE Carnival 2026 — featuring IUPC, CTF, ICT Olympiad, and Math Olympiad.
+                  {heroSubtitle}
                 </motion.p>
 
                 {/* Event badge + typing animation */}
@@ -875,7 +920,7 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
                       {event.name}
                     </span>
                   </div>
-                  <TerminalTyping />
+                  <TerminalTyping phrases={typingPhrases} />
                 </motion.div>
 
                 {/* CTAs */}
@@ -889,7 +934,7 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
                       className="rounded-xl px-8 py-6 text-base font-semibold shadow-lg shadow-primary/25 group"
                       asChild
                     >
-                      <a href="#packages">
+                      <a href={packages.length > 0 ? "#packages" : contacts.length > 0 ? "#contact" : "/contact?topic=partnership"}>
                         Become a Sponsor
                         <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
                       </a>
@@ -902,7 +947,7 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
                       className="rounded-xl px-8 py-6 text-base backdrop-blur-sm border-border/80 hover:border-primary/50 group"
                       asChild
                     >
-                      <a href="#contact">
+                      <a href={contacts.length > 0 ? "#contact" : "/contact?topic=partnership"}>
                         Download Proposal
                         <ExternalLink className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                       </a>
@@ -948,7 +993,7 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 1, delay: 0.4 }}
               >
-                <CodeVisual />
+                <CodeVisual name={event.name ?? event.fullName ?? ""} fullName={event.fullName ?? event.name ?? ""} />
               </motion.div>
             </div>
           </div>
@@ -1025,6 +1070,8 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
         </section>
 
 
+        {program && (
+        <>
         {/* ══ PROGRAMS ════════════════════════════════════ */}
         <section id="programs" className="relative py-24 overflow-hidden bg-[#0a0d12]">
           <div className="container mx-auto px-4 max-w-6xl relative z-10">
@@ -1046,35 +1093,27 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
                   {/* Left Column */}
                   <div>
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-6 w-max">
-                      <Star className="w-3 h-3" /> Flagship Program
+                      <Star className="w-3 h-3" /> {!program?.category || program.category === "Flagship" ? "Flagship Program" : program.category}
                     </div>
                     <h3 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight">
-                      CSE Carnival 2026
+                      {program?.name ?? eventName}
                     </h3>
-                    <p className="text-muted-foreground text-base leading-relaxed mb-10 max-w-lg">
-                      A large-scale technology and student engagement initiative combining competitions, learning, innovation, community, and industry interaction across multiple days. The carnival features four core contests: IUPC, CTF (Cyber Security), ICT Olympiad, and Math Olympiad.
-                    </p>
+                    {program?.description && (
+                      <p className="text-muted-foreground text-base leading-relaxed mb-10 max-w-lg">
+                        {program.description}
+                      </p>
+                    )}
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                      <div className="flex flex-col gap-2">
-                        <Users className="w-5 h-5 text-emerald-500" />
-                        <span className="text-sm font-semibold text-white">500+</span>
-                        <span className="text-xs text-muted-foreground">Participants</span>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Calendar className="w-5 h-5 text-emerald-500" />
-                        <span className="text-sm font-semibold text-white">Multi-day</span>
-                        <span className="text-xs text-muted-foreground">Event</span>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Trophy className="w-5 h-5 text-emerald-500" />
-                        <span className="text-sm font-semibold text-white">Competitions</span>
-                        <span className="text-xs text-muted-foreground">& Awards</span>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Building2 className="w-5 h-5 text-emerald-500" />
-                        <span className="text-sm font-semibold text-white">Sponsor</span>
-                        <span className="text-xs text-muted-foreground">Visibility</span>
-                      </div>
+                      {programFacts.map((f, i) => {
+                        const FactIcon = FACT_ICONS[i % FACT_ICONS.length];
+                        return (
+                          <div key={i} className="flex flex-col gap-2">
+                            <FactIcon className="w-5 h-5 text-emerald-500" />
+                            <span className="text-sm font-semibold text-white">{f.value}</span>
+                            <span className="text-xs text-muted-foreground">{f.label}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1084,13 +1123,7 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
                       Sponsor Value
                     </p>
                     <ul className="space-y-4">
-                      {[
-                        "Maximum brand exposure across all sub-events",
-                        "Multi-day campus activation opportunity",
-                        "Direct engagement with 500+ participants",
-                        "Speaking and judging opportunities",
-                        "Full digital and physical branding package"
-                      ].map((v, i) => (
+                      {(program?.sponsorValue ?? []).map((v, i) => (
                         <li key={i} className="flex items-start gap-3">
                           <div className="mt-0.5 rounded-full border border-emerald-500/30 flex items-center justify-center p-0.5 shrink-0">
                             <Check className="w-3 h-3 text-emerald-500" />
@@ -1106,16 +1139,7 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
 
             <Reveal>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                  { title: "IUPC", subtitle: "Inter University Programming Contest", desc: "A competitive platform bringing together the best problem solvers from universities across the country.", icon: Code2 },
-                  { title: "CTF", subtitle: "Cyber Security Contest", desc: "Capture The Flag competition designed to challenge and sharpen cybersecurity skills.", icon: Shield },
-                  { title: "ICT Olympiad", subtitle: "ICT Knowledge Competition", desc: "An academic and technical competition to encourage ICT knowledge and innovation.", icon: Laptop },
-                  { title: "Math Olympiad", subtitle: "Mathematics Competition", desc: "A problem-solving competition that promotes analytical thinking and mathematical excellence.", icon: Sigma },
-                  { title: "Workshops", subtitle: "Hands-on workshops", desc: "Build practical skills and industry relevant knowledge.", icon: Wrench },
-                  { title: "Industry Sessions", subtitle: "Learn from experts", desc: "Keynote talks and expert-led sessions.", icon: Mic },
-                  { title: "Networking", subtitle: "Connect and collaborate", desc: "Grow with peers, mentors and industry professionals.", icon: Users },
-                  { title: "Awards", subtitle: "Recognizing excellence", desc: "Celebrating innovation and outstanding performances.", icon: Trophy }
-                ].map((item, i) => {
+                {parts.map((c) => PROGRAM_CARDS[short(c).toLowerCase()] ?? { title: short(c), subtitle: c.match(/\((.*)\)\s*$/)?.[1] ?? "", desc: "", icon: Star }).map((item, i) => {
                   const Icon = item.icon;
                   return (
                     <motion.div
@@ -1148,7 +1172,11 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
             </div>
           </div>
         </section>
+        </>
+        )}
 
+        {whySponsorReasons.length > 0 && (
+        <>
         {/* ══ SECTION 4 — WHY SPONSOR ══════════════════════ */}
         <section className="relative py-24 overflow-hidden bg-muted/20">
           <DotGrid className="text-primary" />
@@ -1179,7 +1207,7 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
               variants={staggerContainer}
             >
               {whySponsorReasons.map((r) => {
-                const Icon = WHY_ICONS[r.icon] ?? Lightbulb;
+                const Icon = iconByName(r.icon) ?? Lightbulb;
                 return (
                   <motion.div
                     key={r.title}
@@ -1201,7 +1229,11 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
             </motion.div>
           </div>
         </section>
+        </>
+        )}
 
+        {achievements.length > 0 && (
+        <>
         {/* ══ SECTION 5 — ACHIEVEMENTS ══════════════════════ */}
         <section className="relative py-24 overflow-hidden">
           <ParallaxBlob className="bottom-0 left-0 w-72 h-72 bg-amber-400/10" duration={17} />
@@ -1264,12 +1296,20 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
             </motion.div>
           </div>
         </section>
+        </>
+        )}
 
+        {previousPartners.length > 0 && (
+        <>
         {/* ══ SECTION 6 — PREVIOUS PARTNERS ════════════════ */}
         <div className="bg-muted/20">
           <PartnersMarquee partners={previousPartners} />
         </div>
+        </>
+        )}
 
+        {packages.length > 0 && (
+        <>
         {/* ══ SECTION 7 — SPONSORSHIP PACKAGES ════════════ */}
         <section
           id="packages"
@@ -1377,13 +1417,21 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
 
                         <h3 className="text-xl font-bold text-foreground mb-0.5">{pkg.tier}</h3>
 
-                        <div className="flex items-baseline gap-1 mt-3 mb-5">
-                          <span className="text-2xl font-bold" style={{ color: ac }}>৳</span>
-                          <span className={`font-extrabold text-foreground ${isGold ? "text-4xl" : "text-3xl"}`}>
-                            <CountUp end={pkg.price} duration={1.6} separator="," enableScrollSpy scrollSpyOnce />
-                          </span>
-                          <span className="text-xs text-muted-foreground font-normal ml-1">{pkg.currency}</span>
-                        </div>
+                        {/* A price of 0 (or none) reads "On request": a package agreed with each partner. */}
+                        {pkg.price > 0 ? (
+                          <div className="flex items-baseline gap-1 mt-3 mb-5">
+                            <span className="text-2xl font-bold" style={{ color: ac }}>{pkg.currency === "BDT" || !pkg.currency ? "৳" : ""}</span>
+                            <span className={`font-extrabold text-foreground ${isGold ? "text-4xl" : "text-3xl"}`}>
+                              <CountUp end={pkg.price} duration={1.6} separator="," enableScrollSpy scrollSpyOnce />
+                            </span>
+                            <span className="text-xs text-muted-foreground font-normal ml-1">{pkg.currency}{pkg.period ? ` ${pkg.period}` : ""}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-baseline gap-2 mt-3 mb-5">
+                            <span className={`font-extrabold text-foreground ${isGold ? "text-3xl" : "text-2xl"}`}>On request</span>
+                            {pkg.period && <span className="text-xs text-muted-foreground">{pkg.period}</span>}
+                          </div>
+                        )}
 
                         <div className="h-px w-full bg-border" />
                       </div>
@@ -1406,7 +1454,7 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
                         {/* CTA */}
                         {isGold ? (
                           <motion.a
-                            href="#contact"
+                            href={contacts.length > 0 ? "#contact" : "/contact?topic=partnership"}
                             className="group/btn flex items-center justify-center gap-2 w-full rounded-xl py-3 text-sm font-semibold transition-all duration-200"
                             style={{
                               background: "linear-gradient(135deg,#C9A84C 0%,#e8c96c 50%,#C9A84C 100%)",
@@ -1422,7 +1470,7 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
                           </motion.a>
                         ) : (
                           <motion.a
-                            href="#contact"
+                            href={contacts.length > 0 ? "#contact" : "/contact?topic=partnership"}
                             className="group/btn flex items-center justify-center gap-2 w-full rounded-xl py-3 text-sm font-semibold transition-all duration-200 border border-border bg-muted/50 text-foreground hover:bg-muted"
                             whileHover={{ y: -1 }}
                             whileTap={{ scale: 0.98 }}
@@ -1471,7 +1519,11 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
             </Reveal>
           </div>
         </section>
+        </>
+        )}
 
+        {otherOpportunities.length > 0 && (
+        <>
         {/* ══ SECTION 8 — OTHER OPPORTUNITIES ══════════════ */}
         <section className="bg-muted/20 py-24 relative overflow-hidden">
           <ParallaxBlob className="top-0 left-1/4 w-72 h-72 bg-green-500/10" duration={15} />
@@ -1501,7 +1553,7 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
               variants={staggerContainer}
             >
               {otherOpportunities.map((o) => {
-                const Icon = OPPORTUNITY_ICONS[o.title] ?? Gift;
+                const Icon = iconByName(o.icon) ?? OPPORTUNITY_ICONS[o.title] ?? Gift;
                 return (
                   <motion.div
                     key={o.title}
@@ -1526,12 +1578,16 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
             </motion.div>
           </div>
         </section>
+        </>
+        )}
 
         {/* ══ SECTION 9 — GALLERY ══════════════════════════ */}
         <Gallery />
 
 
 
+        {contacts.length > 0 && (
+        <>
         {/* ══ CONTACT ═══════════════════════════════════════ */}
         <section
           id="contact"
@@ -1620,6 +1676,8 @@ export function SponsorsClient({ sponsorData }: { sponsorData: SponsorData }) {
 
 
         </section>
+        </>
+        )}
       </div>
     </MotionConfig>
   );

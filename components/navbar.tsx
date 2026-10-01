@@ -144,6 +144,7 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
   // A section stays highlighted on its inner pages (/events/…, /blog/…).
   const isActive = (path: string) => {
     if (path === executivesHref) return pathname.startsWith("/executives");
+    if (path === "/sponsors") return pathname.startsWith("/sponsors") || pathname === "/become-a-sponsor";
     return path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`);
   };
   const signInHref = `/auth/login?next=${encodeURIComponent(pathname)}`;
@@ -153,6 +154,8 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
     { href: "/events", label: "Events", icon: CalendarDays },
     { href: "/blog", label: "Blog", icon: Newspaper },
     { href: executivesHref, label: "Executives", icon: Users },
+    // /sponsors redirects, per request, to the default sponsorship page chosen in the dashboard,
+    // so a cached page's navbar can never point at an old default.
     { href: "/sponsors", label: "Sponsors", icon: Handshake },
     { href: "/contact", label: "Contact", icon: Mail },
   ];

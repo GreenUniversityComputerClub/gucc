@@ -13,6 +13,7 @@ import { assistantChat } from "../../../lib/server/services/assistant";
 import * as auth from "../../../lib/server/services/auth";
 import * as committees from "../../../lib/server/services/committees";
 import * as community from "../../../lib/server/services/community";
+import * as sponsorships from "../../../lib/server/services/sponsorships";
 import * as contact from "../../../lib/server/services/contact";
 import * as events from "../../../lib/server/services/events";
 import * as executiveBulk from "../../../lib/server/services/executive-bulk";
@@ -329,6 +330,14 @@ export const procedures: Record<string, Handler> = {
   },
 
   // ── forms, contests, notifications, audit ──
+  "sponsorships.list": ({ ctx }) => sponsorships.listSponsorships(ctx),
+  "sponsorships.get": ({ ctx, input }) => sponsorships.getSponsorship(ctx, s(input, "id")),
+  "sponsorships.save": ({ ctx, input }) => sponsorships.saveSponsorship(ctx, opt(input, "id") ?? null, o(input, "input")),
+  "sponsorships.setStatus": ({ ctx, input }) => sponsorships.setSponsorshipStatus(ctx, s(input, "id"), s(input, "status") as "ACTIVE" | "INACTIVE"),
+  "sponsorships.setDefault": ({ ctx, input }) => sponsorships.setDefaultSponsorship(ctx, s(input, "id")),
+  "sponsorships.duplicate": ({ ctx, input }) => sponsorships.duplicateSponsorship(ctx, s(input, "id")),
+  "sponsorships.delete": ({ ctx, input }) => sponsorships.deleteSponsorship(ctx, s(input, "id")),
+  "sponsorships.move": ({ ctx, input }) => sponsorships.moveSponsorship(ctx, s(input, "id"), oneOf(input, "direction", ["up", "down"] as const)),
   "forms.list": ({ ctx }) => community.listForms(ctx),
   "forms.save": ({ ctx, input }) => community.saveForm(ctx, opt(input, "id") ?? null, o(input, "input")),
   "forms.archive": ({ ctx, input }) => community.archiveForm(ctx, s(input, "id")),

@@ -19,6 +19,7 @@ import { createHash } from "node:crypto";
 import { CURRENT_POSITIONS } from "../governance/catalog";
 import { resolvePosition, slugify } from "../governance/positions";
 import { insertSql, type InsertOptions, type SqlValue } from "./sql";
+import { generalSponsorshipSql } from "../sponsorship/general";
 
 // ───────────────────────────── inputs ─────────────────────────────
 
@@ -734,6 +735,20 @@ export function transformLegacy(src: LegacySources, opts: TransformOptions): Tra
     os.migrated++;
   }
 
+  // The sponsorship page in the dashboard's list of sponsorship pages (0015 copies it on databases
+  // that already had the setting; here for those imported after the migrations ran). Only when
+  // there's no sponsorship page at all, so it never brings back one an editor removed.
+  statements.set("sponsorship_pages", [
+    `INSERT INTO sponsorship_pages (id, slug, title, summary, status, is_default, sort_order, content_json)
+     SELECT 'spn_cse_carnival_2026', 'cse-carnival-2026', COALESCE(json_extract(value_json, '$.event.fullName'), 'CSE Carnival 2026'),
+            'Sponsor the CSE Carnival: IUPC, CTF, ICT Olympiad and Math Olympiad, with workshops, industry sessions and awards.', 'ACTIVE', 1, 0, value_json
+     FROM organization_settings WHERE key = 'page.sponsorship' AND json_valid(value_json)
+       AND NOT EXISTS (SELECT 1 FROM sponsorship_pages)
+     ON CONFLICT(id) DO NOTHING;`,
+    // The general "Partner with GUCC" page, unless it exists (or existed: a removed one stays removed).
+    generalSponsorshipSql(),
+  ]);
+
   // ── unreferenced media & summary notes ─────────────────────────────
   for (const f of src.mediaFiles) {
     const id = mediaIdForPath(f.path);
@@ -755,7 +770,7 @@ export function transformLegacy(src: LegacySources, opts: TransformOptions): Tra
 
   const ORDER = ["media", "positions", "profiles", "committees", "committee_members", "categories", "tags", "events", "event_media", "event_people",
     "contests", "contest_teams", "contest_media", "posts", "post_revisions", "post_tags", "external_forms", "certificate_programs", "certificate_recipients",
-    "organization_settings", "migration_source_map", "migration_conflicts"];
+    "organization_settings", "sponsorship_pages", "migration_source_map", "migration_conflicts"];
   const ordered: string[] = [];
   for (const t of ORDER) ordered.push(...(statements.get(t) ?? []));
   for (const t of statements.keys()) if (!ORDER.includes(t)) throw new Error(`Table ${t} missing from import order`);
