@@ -9,7 +9,6 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { createClient } from "@/lib/supabase/client";
-import { isExecutiveEmail } from "@/lib/auth/executive-access";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,7 +32,28 @@ export function Navbar() {
     return () => subscription.subscription.unsubscribe();
   }, []);
 
-  const isExecutive = isExecutiveEmail(userEmail);
+  const [isExecutive, setIsExecutive] = useState(false);
+
+  // The executive list lives on the server (data/executives.json), so ask it
+  // rather than bundling that file into every page.
+  useEffect(() => {
+    if (!userEmail) {
+      setIsExecutive(false);
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/auth/executive-status")
+      .then((res) => res.json())
+      .then((json) => {
+        if (!cancelled) setIsExecutive(Boolean(json?.data?.isExecutive));
+      })
+      .catch(() => {
+        if (!cancelled) setIsExecutive(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userEmail]);
 
   const handleLogout = async () => {
     const supabase = createClient();
