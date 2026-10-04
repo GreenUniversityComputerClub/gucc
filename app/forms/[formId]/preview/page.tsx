@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { getForm } from "@/lib/forms"
+import { isFormOwner } from "@/lib/form-ownership"
 import { requireExecutive } from "@/lib/auth/require-executive"
 import FormRenderer from "@/components/form-renderer/FormRenderer"
 import { Badge } from "@/components/ui/badge"
@@ -11,16 +12,17 @@ interface Props { params: Promise<{ formId: string }> }
 
 export default async function PreviewPage({ params }: Props) {
   const { formId } = await params
-  await requireExecutive(`/forms/${formId}/preview`)
+  const user = await requireExecutive(`/forms/${formId}/preview`)
   const form = await getForm(formId)
   if (!form) notFound()
+  const isOwner = isFormOwner(form, user.email)
 
   return (
     <div>
       <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-3">
         <Button asChild variant="ghost" size="sm" className="h-7">
-          <Link href={`/forms/${formId}/edit`}>
-            <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back to Editor
+          <Link href={isOwner ? `/forms/${formId}/edit` : "/forms"}>
+            <ArrowLeft className="h-3.5 w-3.5 mr-1" /> {isOwner ? "Back to Editor" : "Back to Forms"}
           </Link>
         </Button>
         <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 text-xs">

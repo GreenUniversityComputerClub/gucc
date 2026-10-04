@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Search, ExternalLink, Edit, Eye, AlertTriangle, Clock, XCircle } from "lucide-react"
 import { FormConfig } from "@/types/form"
 import { getFormAvailability } from "@/lib/form-status"
+import { isFormOwner } from "@/lib/form-ownership"
 import DeleteFormButton from "./DeleteFormButton"
 
 /** Descriptions are sanitized rich-text HTML — strip tags for the plain-text card preview. */
@@ -71,6 +72,8 @@ function FormCard({ form, currentUserEmail }: { form: FormConfig; currentUserEma
     ? null
     : updated.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
   const availability = getFormAvailability(form)
+  // Only the creator can edit or delete; everyone else can still preview and open the live form.
+  const isOwner = isFormOwner(form, currentUserEmail)
 
   return (
     <Card className="group hover:shadow-md transition-shadow">
@@ -115,22 +118,32 @@ function FormCard({ form, currentUserEmail }: { form: FormConfig; currentUserEma
           {form.createdByEmail && <p className="truncate">Created by {form.createdByEmail}</p>}
         </div>
         <div className="flex items-center gap-2 pt-1">
-          <Button asChild size="sm" variant="outline" className="flex-1 h-8 text-xs">
-            <Link href={`/forms/${form.id}/edit`}>
-              <Edit className="h-3.5 w-3.5 mr-1" /> Edit
-            </Link>
-          </Button>
-          <Button asChild size="sm" variant="outline" className="h-8 w-8 p-0">
-            <Link href={`/forms/${form.id}/preview`}>
-              <Eye className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
+          {isOwner ? (
+            <>
+              <Button asChild size="sm" variant="outline" className="flex-1 h-8 text-xs">
+                <Link href={`/forms/${form.id}/edit`}>
+                  <Edit className="h-3.5 w-3.5 mr-1" /> Edit
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="h-8 w-8 p-0">
+                <Link href={`/forms/${form.id}/preview`}>
+                  <Eye className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <Button asChild size="sm" variant="outline" className="flex-1 h-8 text-xs">
+              <Link href={`/forms/${form.id}/preview`}>
+                <Eye className="h-3.5 w-3.5 mr-1" /> Preview
+              </Link>
+            </Button>
+          )}
           <Button asChild size="sm" variant="outline" className="h-8 w-8 p-0">
             <Link href={`/forms/${form.id}/submit`} target="_blank">
               <ExternalLink className="h-3.5 w-3.5" />
             </Link>
           </Button>
-          <DeleteFormButton form={form} currentUserEmail={currentUserEmail} />
+          {isOwner && <DeleteFormButton form={form} currentUserEmail={currentUserEmail} />}
         </div>
       </CardContent>
     </Card>

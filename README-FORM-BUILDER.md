@@ -308,16 +308,19 @@ The header row is written automatically on the first submission.
 
 ### 5. Edit or close a form
 
-- Open `/forms` and click the edit icon. Change what you need and **Save**.
+Only the person who created a form can edit it. On `/forms` you see every
+form, but for forms made by someone else you only get **Preview** and the
+live-link button.
+
+- Open `/forms` and click **Edit** on your own form. Change what you need and
+  **Save**.
 - To stop responses, turn the accepting-responses switch off or set a
   **Closes at** time, then save.
 
 ### 6. Delete a form
 
-- **Your own form:** click the delete icon.
-- **Someone else's form:** click the request icon. The creator receives an
-  email with an **Approve deletion** button. After they approve, you get an
-  email and can delete the form from the list.
+Only the creator can delete a form: click the delete icon on your own form.
+The delete button is not shown on other people's forms.
 
 Deleting a form removes it from the website only. The response sheet and
 uploaded files are not deleted.
