@@ -8,7 +8,7 @@ import { countdown, type EventPhase } from "./event-status";
 const TZ = "Asia/Dhaka";
 
 const PHASE: Record<EventPhase, { label: string; className: string }> = {
-  upcoming: { label: "Upcoming", className: "bg-emerald-600 text-white" },
+  upcoming: { label: "Upcoming", className: "bg-emerald-700 text-white" },
   live: { label: "Happening now", className: "bg-red-600 text-white" },
   past: { label: "Past", className: "bg-black/60 text-white backdrop-blur" },
 };
@@ -27,7 +27,7 @@ export function EventTile({ event, phase, priority = false, now, headingLevel = 
     <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg focus-within:ring-2 focus-within:ring-ring">
       <Link href={`/events/${event.slug}`} className="relative block aspect-16/10 overflow-hidden" tabIndex={-1} aria-hidden>
         <Image src={event.image} alt="" fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105" priority={priority} />
+          className={event.image === "/gucc-logo.png" ? "bg-white object-contain p-6" : "object-cover transition-transform duration-500 group-hover:scale-105"} priority={priority} />
         <span className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent" />
         <span className="absolute left-3 top-3 flex flex-col items-center rounded-xl bg-background/95 px-2.5 py-1.5 text-center text-foreground shadow-md">
           <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">{d.toLocaleDateString("en-GB", { timeZone: TZ, month: "short" })}</span>

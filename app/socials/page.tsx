@@ -6,13 +6,14 @@ const socials = [
   {
     label: 'Facebook Page',
     url: 'https://www.facebook.com/GreenUniversityComputerClub',
-    color: '#1877F3',
+    // Each brand colour a shade deeper where needed, so white text on it reads at 4.5:1.
+    color: '#1467D6',
     icon: Facebook,
   },
   {
     label: 'Facebook Group',
     url: 'https://www.facebook.com/groups/1455061688068622',
-    color: '#1877F3',
+    color: '#1467D6',
     icon: Users,
   },
   {
@@ -30,7 +31,7 @@ const socials = [
   {
     label: 'YouTube',
     url: 'https://www.youtube.com/@GreenUniversityComputerClub',
-    color: '#FF0000',
+    color: '#E00000',
     icon: Youtube,
   },
   {
@@ -42,7 +43,7 @@ const socials = [
   {
     label: 'Website',
     url: 'https://gucc.green.edu.bd/',
-    color: '#2196F3',
+    color: '#1976D2',
     icon: Globe,
   },
 ];
@@ -72,7 +73,8 @@ export default function SocialsPage() {
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white font-medium rounded px-2.5 py-0.5 sm:px-3 sm:py-1 text-xs sm:text-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-white/60 w-fit"
+                  aria-label={`Visit ${item.label}`}
+                  className="inline-flex items-center gap-1.5 bg-black/20 hover:bg-black/30 text-white font-medium rounded px-2.5 py-0.5 sm:px-3 sm:py-1 text-xs sm:text-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-white/60 w-fit"
                 >
                   Visit
                   <ExternalLink size={14} className="ml-1 sm:w-4 sm:h-4 w-3 h-3" />

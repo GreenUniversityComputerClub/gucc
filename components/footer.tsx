@@ -17,9 +17,9 @@ export function Footer() {
                 height={48}
                 className="h-12 w-auto"
               />
-              <h3 className="text-lg font-semibold">
+              <h2 className="text-lg font-semibold">
                 Green University Computer Club
-              </h3>
+              </h2>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
               A dynamic and student-driven non-profit and non-political
@@ -29,7 +29,7 @@ export function Footer() {
             </p>
           </div>
           <div>
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+            <h2 className="text-lg font-semibold mb-4">Quick Links</h2>
             <ul className="mb-3 grid grid-cols-2 gap-x-4 gap-y-2">
               {[
                 ["/events", "Events"],
@@ -76,7 +76,7 @@ export function Footer() {
             </ul>
           </div>
           <div>
-            <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
+            <h2 className="text-lg font-semibold mb-4">Contact Us</h2>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
                 Green University of Bangladesh, Purbachal American City,

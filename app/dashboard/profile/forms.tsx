@@ -11,8 +11,9 @@ import { AvatarCropper } from "@/components/profile/avatar-cropper";
 import { vetPhoto } from "@/components/profile/photo-guard";
 import { uploadImage } from "@/lib/media/client";
 import { useSoftRefresh } from "@/lib/soft-refresh";
-import { ActionForm } from "@/components/admin/ui";
-import { saveEmailPreferencesAction, setAvatarAction, updateProfileAction } from "./actions";
+import { ActionForm, Field } from "@/components/admin/ui";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { changeEmailAction, saveEmailPreferencesAction, setAvatarAction, updateProfileAction } from "./actions";
 import { initials } from "@/lib/initials";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { refreshSession } from "@/lib/api/use-session";
@@ -58,7 +59,10 @@ export function AvatarUploader({ url, name, canUpload }: { url: string | null; n
     else if (res && !res.ok) setError(res.error);
     else {
       void refreshSession();
-      refresh("Photo updated. It now shows everywhere on the site.");
+      // The cut-out is a nicety: the photo is saved either way, but say so when it didn't go.
+      refresh(cut && !cut.ok
+        ? `Photo updated. The background-free copy for the executives list couldn't be saved (${cut.error}); try again later.`
+        : "Photo updated. It now shows everywhere on the site.");
     }
   }
 
@@ -157,6 +161,39 @@ function SkillsInput({ initial }: { initial: string[] }) {
 
 type Profile = Record<string, unknown>;
 
+/**
+ * The sign-in email under the name, with a Change button: a new address is confirmed from a link
+ * sent to it (when the club's email works), so a typo can't lock anyone out.
+ */
+export function SignInEmail({ email, pending }: { email: string; pending: string | null }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="text-sm text-muted-foreground">
+      <p className="flex min-w-0 flex-wrap items-center gap-x-2">
+        <span className="min-w-0 truncate">Signs in as <span className="font-medium text-foreground">{email}</span></span>
+        <button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-9 items-center font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Change</button>
+      </p>
+      {pending && <p className="text-xs text-amber-700 dark:text-amber-400">Waiting for you to open the confirmation link sent to {pending}.</p>}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change your sign-in email</DialogTitle>
+            <DialogDescription>
+              You&apos;ll sign in with the new address. When the club&apos;s email is on, a link goes to it first, and the change happens once you open it. Your other devices are signed out.
+            </DialogDescription>
+          </DialogHeader>
+          <ActionForm action={changeEmailAction} submitLabel="Change email" resetOnSuccess onSuccess={() => setOpen(false)} successMessage="Done. Check the new address for a confirmation link if email is on.">
+            <div className="grid gap-3">
+              <Field name="email" label="New email" type="email" required autoComplete="email" />
+              <Field name="password" label="Your password" type="password" required autoComplete="current-password" />
+            </div>
+          </ActionForm>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 /** The member's own profile, in three short sections with one save. */
 export function ProfileEditor({ profile, locked }: { profile: Profile; locked: boolean }) {
   const [pending, start] = useTransition();
@@ -244,6 +281,16 @@ export function ProfileEditor({ profile, locked }: { profile: Profile; locked: b
           {field("twitter", "X", { type: "url", defaultValue: v("twitter_url"), placeholder: "https://x.com/…" })}
           {field("website", "Website or portfolio", { type: "url", defaultValue: v("website_url"), placeholder: "https://…" })}
           {field("publicEmail", "Public email (optional)", { type: "email", defaultValue: v("public_email") }, "Only if you want it shown on the site.")}
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="p-emailDisplay">Email on your profile and the executives pages</Label>
+          <select id="p-emailDisplay" name="emailDisplay" defaultValue={v("email_display") || "AUTO"}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-base md:h-9 md:text-sm">
+            <option value="AUTO">My public email above (or the one listed in past years)</option>
+            <option value="PROFILE">Only my public email above</option>
+            <option value="HIDDEN">Don&apos;t show an email anywhere</option>
+          </select>
+          <p className="text-xs text-muted-foreground">Past committees showed the email you gave then. Choose &ldquo;Only my public email&rdquo; to replace it everywhere, or hide it.</p>
         </div>
       </fieldset>
 

@@ -4,6 +4,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* A sponsorship page's accent (set per page on its wrapper; the club's green otherwise). Inline, so
+   `text-sp` reads the variables where it's used: a plain theme variable would resolve them once, at
+   the root, where no page has set its accent. */
+@theme inline {
+  --color-sp: var(--sp-ink, var(--sp-accent, #15803d));
+}
+
 @theme {
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
@@ -104,19 +111,20 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 142 76% 36%;
+    /* Green 700-ish: white on it and it on white both pass 4.5:1 (the 36% green gave 3.2:1). */
+    --primary: 142 72% 28%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 215.4 16.3% 43%;
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 142 76% 36%;
+    --ring: 142 72% 28%;
     --radius: 0.5rem;
   }
 
@@ -173,6 +181,31 @@
   color-scheme: dark;
 }
 
+/* A part of a page that is always dark, whatever the theme (the lost & found board): with `dark`
+   beside it, the theme colours are worked out again there from the dark values (they are otherwise
+   resolved once, on <html>). */
+.dark-surface {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+}
+
 /* Error text readable in both themes (WCAG AA, 4.5:1 on the page background). The destructive
  * colour itself stays for buttons and borders; only text uses these shades. */
 .text-destructive {
@@ -225,6 +258,56 @@ body {
   animation: marquee2 20s linear infinite;
 }
 
+/* Sponsorship pages: two rows of event photos gliding in opposite directions (paused while
+   pointed at); people who prefer less motion get rows they can scroll instead. */
+@keyframes sp-gallery {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.sp-gallery-track {
+  animation: sp-gallery 70s linear infinite;
+}
+.sp-gallery-reverse {
+  animation-direction: reverse;
+}
+.sp-gallery:hover .sp-gallery-track {
+  animation-play-state: paused;
+}
+
+/* The page's accent as text: darker on light paper, lighter on dark, so small coloured text stays
+   readable (4.5:1) whatever accent the page chose. */
+.sp-page {
+  --sp-ink: color-mix(in oklab, var(--sp-accent, #16a34a) 78%, black);
+}
+.dark .sp-page {
+  --sp-ink: color-mix(in oklab, var(--sp-accent, #16a34a) 62%, white);
+}
+
+/* A gentle rise as sections scroll in, only where the browser drives it from scrolling (no
+   JavaScript, and the content is there, readable, without it). Movement only: fading would dim the
+   text below the fold under its contrast minimum. */
+@keyframes sp-reveal {
+  from {
+    transform: translateY(24px);
+  }
+  to {
+    transform: none;
+  }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .sp-reveal {
+      animation: sp-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 22%;
+    }
+  }
+}
+
 /* Animated gradient text sweep */
 @keyframes gradient-shift {
   0%,
@@ -252,6 +335,13 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .sp-gallery-row {
+    overflow-x: auto;
+  }
+  .sp-gallery-track {
+    animation: none !important;
   }
 
   /* Marquees translate off-screen, so freezing them mid-run would hide content. */

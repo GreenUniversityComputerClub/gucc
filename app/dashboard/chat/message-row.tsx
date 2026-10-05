@@ -3,9 +3,10 @@
 import { BadgePill } from "@/components/chat/badge-pill";
 import type { Badge } from "@/lib/server/person-badge";
 
-import { memo, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Copy, Flag, MessageCircle, MoreHorizontal, Pencil, Reply, SmilePlus, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Copy, Flag, MessageCircle, MoreHorizontal, Pencil, Reply, SmilePlus, Trash2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -15,7 +16,10 @@ import { groupReactions, REACTIONS, type ReactionKey } from "@/lib/chat/reaction
 import { dhakaDateTime, dhakaTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import type { Thread } from "./actions";
-import { Linkified } from "./linkify";
+import { RichText } from "./rich-text";
+import { MentionList } from "./mention-list";
+import { useMentions, type MentionCandidate } from "./use-mentions";
+import type { Mention } from "@/lib/chat/mentions";
 import { ReactionBar } from "./reaction-bar";
 import { MessageSheet, type SheetAction } from "./message-sheet";
 
@@ -36,7 +40,7 @@ const hoverButton = "inline-flex h-8 w-8 shrink-0 items-center justify-center ro
  * click gives a ❤️. System lines ("Rafi added Nusrat") are centred.
  */
 export const MessageRow = memo(function MessageRow({
-  m, me, joinsPrev, endsGroup, showSender, avatar, names, senderInfo, canAct, reacting, editing, highlight,
+  m, me, joinsPrev, endsGroup, showSender, avatar, profileHref, names, senderInfo, canAct, reacting, editing, highlight, mentionCandidates,
   onReacting, onReact, onReply, onEdit, onEditChange, onEditSave, onEditCancel, onDelete, onReport, onCopy, onJump, onShowReactions, onMessagePrivately,
 }: {
   m: Message;
@@ -46,6 +50,8 @@ export const MessageRow = memo(function MessageRow({
   /** Group conversations: the sender's name above the first message of a run. */
   showSender: boolean;
   avatar: { name: string; url: string | null } | null;
+  /** The sender's profile page (not for my own messages, or people without a profile). */
+  profileHref?: string | null;
   names: (id: string) => string;
   /** Group conversations: the sender's club badge (short position and year) and group role, next to their name. */
   senderInfo?: { badge: Badge | null; role: "OWNER" | "ADMIN" | "MEMBER" | null } | null;
@@ -53,11 +59,13 @@ export const MessageRow = memo(function MessageRow({
   reacting: boolean;
   editing: string | null;
   highlight: boolean;
+  /** Who can be @mentioned while editing. */
+  mentionCandidates?: MentionCandidate[];
   onReacting: (id: string | null) => void;
   onReact: (m: Message, e: ReactionKey | null) => void;
   onReply: (m: Message) => void;
   onEdit: (m: Message) => void;
-  onEditChange: (v: string) => void;
+  onEditChange: (v: string, mentions: Mention[]) => void;
   onEditSave: () => void;
   onEditCancel: () => void;
   onDelete: (m: Message) => void;
@@ -69,6 +77,7 @@ export const MessageRow = memo(function MessageRow({
   /** Groups: write to the sender on their own. */
   onMessagePrivately?: (m: Message) => void;
 }) {
+  const router = useRouter();
   const press = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [burst, setBurst] = useState<ReactionKey | null>(null);
   // Swipe to reply (touch): where the finger started, and whether this gesture is a sideways drag.
@@ -114,11 +123,13 @@ export const MessageRow = memo(function MessageRow({
   return (
     <div id={`msg-${m.id}`} className={cn("group relative flex items-end gap-2", m.mine ? "justify-end" : "justify-start", joinsPrev ? "mt-0.5" : "mt-3",
       highlight && "motion-safe:animate-pulse")}>
-      {!m.mine && <span className="w-8 shrink-0">{endsGroup && avatar && <PersonAvatar name={avatar.name} url={avatar.url} size="sm" />}</span>}
+      {!m.mine && <span className="w-8 shrink-0">{endsGroup && avatar && <PersonAvatar name={avatar.name} url={avatar.url} size="sm" href={profileHref ?? null} />}</span>}
       <div className={cn("flex max-w-[85%] flex-col sm:max-w-[70%]", m.mine ? "items-end" : "items-start")}>
         {showSender && !m.mine && m.sender && (
           <p className="mb-0.5 ml-3 flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-            <span className="truncate">{m.sender.name}</span>
+            {profileHref
+              ? <Link prefetch={false} href={profileHref} className="truncate hover:text-foreground hover:underline">{m.sender.name}</Link>
+              : <span className="truncate">{m.sender.name}</span>}
             {senderInfo?.role === "OWNER" && <span className="shrink-0 text-amber-600 dark:text-amber-400">Owner</span>}
             {senderInfo?.role === "ADMIN" && <span className="shrink-0 text-primary">Admin</span>}
             {senderInfo?.badge && senderInfo.badge.tier !== "member" && <BadgePill badge={senderInfo.badge} />}
@@ -183,7 +194,7 @@ export const MessageRow = memo(function MessageRow({
               {editing === m.id ? null : m.deleted ? (
                 <p className="italic opacity-70">Message deleted</p>
               ) : (
-                <p className="whitespace-pre-wrap wrap-anywhere"><Linkified text={m.body ?? ""} className={cn("underline underline-offset-2", m.mine && "text-primary-foreground")} /></p>
+                <p className="whitespace-pre-wrap wrap-anywhere"><RichText text={m.body ?? ""} mentions={m.mentions} me={me} mine={m.mine} /></p>
               )}
               {endsGroup && editing !== m.id && (
                 <p className={cn("mt-1 text-[11px]", m.mine ? "text-primary-foreground/75" : "text-muted-foreground")}>
@@ -212,6 +223,9 @@ export const MessageRow = memo(function MessageRow({
                   <DropdownMenuItem className="min-h-11 gap-2" onSelect={() => onReply(m)}><Reply className="h-4 w-4" />Reply</DropdownMenuItem>
                   <DropdownMenuItem className="min-h-11 gap-2" onSelect={() => window.setTimeout(() => onReacting(m.id), 0)}><SmilePlus className="h-4 w-4" />React</DropdownMenuItem>
                   <DropdownMenuItem className="min-h-11 gap-2" onSelect={() => onCopy(m.body ?? "")}><Copy className="h-4 w-4" />Copy text</DropdownMenuItem>
+                  {!m.mine && profileHref && (
+                    <DropdownMenuItem asChild className="min-h-11 gap-2"><Link prefetch={false} href={profileHref}><UserRound className="h-4 w-4" />View profile</Link></DropdownMenuItem>
+                  )}
                   {onMessagePrivately && !m.mine && m.sender && (
                     <DropdownMenuItem className="min-h-11 gap-2" onSelect={() => onMessagePrivately(m)}><MessageCircle className="h-4 w-4" />Message {m.sender.name.split(" ")[0]} privately</DropdownMenuItem>
                   )}
@@ -231,13 +245,14 @@ export const MessageRow = memo(function MessageRow({
               { key: "reply", label: "Reply", icon: Reply, run: () => onReply(m) },
               { key: "copy", label: "Copy text", icon: Copy, run: () => onCopy(m.body ?? "") },
               m.editable ? { key: "edit", label: "Edit", icon: Pencil, run: () => onEdit(m) } : null,
+              !m.mine && profileHref ? { key: "profile", label: `View ${(m.sender?.name ?? avatar?.name ?? "their").split(" ")[0]}'s profile`, icon: UserRound, run: () => router.push(profileHref) } : null,
               onMessagePrivately && !m.mine && m.sender ? { key: "dm", label: `Message ${m.sender.name.split(" ")[0]} privately`, icon: MessageCircle, run: () => onMessagePrivately(m) } : null,
               grouped.length ? { key: "who", label: "See who reacted", icon: SmilePlus, run: () => onShowReactions(m) } : null,
               !m.mine && !m.reported ? { key: "report", label: "Report", icon: Flag, danger: true, run: () => onReport(m) } : null,
               m.mine ? { key: "delete", label: "Delete", icon: Trash2, danger: true, run: () => onDelete(m) } : null,
             ] as Array<SheetAction | null>).filter((a): a is SheetAction => a !== null)} />
         )}
-        {editing === m.id && <EditBox initial={m.body ?? ""} onChange={onEditChange} onSave={onEditSave} onCancel={onEditCancel} />}
+        {editing === m.id && <EditBox initial={m.body ?? ""} initialMentions={m.mentions ?? []} candidates={mentionCandidates ?? []} onChange={onEditChange} onSave={onEditSave} onCancel={onEditCancel} />}
         {grouped.length > 0 && (
           // One pill: the most used reactions and how many; tapping it shows who reacted.
           <div className={cn("-mt-1.5 flex", m.mine ? "mr-2 justify-end" : "ml-2")}>
@@ -256,14 +271,34 @@ export const MessageRow = memo(function MessageRow({
   );
 });
 
-function EditBox({ initial, onChange, onSave, onCancel }: { initial: string; onChange: (v: string) => void; onSave: () => void; onCancel: () => void }) {
+function EditBox({ initial, initialMentions, candidates, onChange, onSave, onCancel }: {
+  initial: string;
+  initialMentions: Mention[];
+  candidates: MentionCandidate[];
+  onChange: (v: string, mentions: Mention[]) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
   const [v, setV] = useState(initial);
+  const box = useRef<HTMLTextAreaElement>(null);
+  const set = (text: string) => setV(text);
+  const mention = useMentions({ value: v, setValue: set, input: box, candidates, initial: initialMentions });
+  // The parent saves what's typed here, with who it mentions.
+  const latest = useRef(onChange);
+  latest.current = onChange;
+  useEffect(() => latest.current(v, mention.mentions), [v, mention.mentions]);
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave(); }} className="mt-1 w-full min-w-64 space-y-1 rounded-2xl border bg-background p-2 shadow-sm">
+    <form onSubmit={(e) => { e.preventDefault(); onSave(); }} className="relative mt-1 w-full min-w-64 space-y-1 rounded-2xl border bg-background p-2 shadow-sm">
+      <MentionList id={mention.listId} matches={mention.matches} active={mention.active} onHover={mention.setActive} onChoose={mention.choose} />
       <label className="sr-only" htmlFor="edit-message">Edit message</label>
-      <Textarea id="edit-message" value={v} maxLength={MAX} rows={2} autoFocus className="text-base md:text-sm"
-        onChange={(e) => { setV(e.target.value); onChange(e.target.value); }}
-        onKeyDown={(e) => { if (e.key === "Escape") onCancel(); if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); onSave(); } }} />
+      <Textarea ref={box} id="edit-message" value={v} maxLength={MAX} rows={2} autoFocus className="text-base md:text-sm" {...mention.inputProps}
+        onChange={(e) => { setV(e.target.value); mention.track(e.target.value, e.target.selectionStart); }}
+        onSelect={(e) => mention.track(e.currentTarget.value, e.currentTarget.selectionStart)}
+        onKeyDown={(e) => {
+          if (mention.onKeyDown(e)) return;
+          if (e.key === "Escape") onCancel();
+          if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); onSave(); }
+        }} />
       <div className="flex justify-end gap-1">
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
         <Button type="submit" size="sm" disabled={!v.trim()}>Save</Button>

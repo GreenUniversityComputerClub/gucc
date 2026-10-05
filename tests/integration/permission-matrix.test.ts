@@ -55,8 +55,8 @@ describe("permission matrix (defaults, all changeable in the admin)", () => {
   it("the developer role sees System health and the activity log, and nothing else until granted", async () => {
     const p = await people();
     const me = await sessionMe(await w.ctx(p.developer));
-    // The member baseline (own profile, messages, own blog posts and events) comes from the member role, not this one.
-    const baseline = ["profile.update", "chat.send", "posts.read", "posts.create", "posts.update", "posts.submit", "events.read", "events.create", "events.update", "media.upload", "media.update"];
+    // The member baseline (own profile, messages and group chats, own blog posts and events) comes from the member role, not this one.
+    const baseline = ["profile.update", "chat.send", "chat.groups.create", "posts.read", "posts.create", "posts.update", "posts.submit", "events.read", "events.create", "events.update", "media.upload", "media.update"];
     const held = Object.entries(me!.caps).filter(([k, v]) => v && !baseline.includes(k)).map(([k]) => k).sort();
     expect(held).toEqual(["audit.read", "system.health"]);
   });

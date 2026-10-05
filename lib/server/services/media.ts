@@ -13,7 +13,7 @@
  */
 import { limit } from "../limits";
 import { ensureStoredBytes, release as usageRelease, reserve, usageOf } from "../usage";
-import { dimensions, EXTENSION, sniff, stripMetadata, VARIANTS, type SniffedType, type VariantName } from "../../media/bytes";
+import { dimensions, EXTENSION, hasAlpha, sniff, stripMetadata, VARIANTS, type SniffedType, type VariantName } from "../../media/bytes";
 import { auditStmt } from "../audit";
 import { authorize, eventResource, requireActor, requirePermission } from "../authz";
 import type { Ctx, MediaBuckets } from "../context";
@@ -200,6 +200,8 @@ export async function uploadMedia(ctx: Ctx, input: UploadInput): Promise<MediaRe
   // skipped it. A blank square compresses to almost nothing (under 2 KB at 800 px), a real face
   // never does. The Worker can't decode images within its CPU limit, so the size is the signal.
   if (purpose === "avatar" && masterClean.type === "image/webp" && masterClean.width && masterClean.height && masterClean.width * masterClean.height >= 160_000
+    // A cut-out (background removed) is mostly transparent and legitimately tiny: not blank.
+    && !hasAlpha(masterClean.bytes, masterClean.type)
     && masterClean.bytes.length / (masterClean.width * masterClean.height) < BLANK_BYTES_PER_PIXEL) {
     throw new ValidationError("This picture looks blank. Please upload your real photo: a clear picture of your face helps members recognise you.", { photo: "Upload a real photo." });
   }
@@ -409,7 +411,9 @@ export async function mediaDetails(ctx: Ctx, id: string) {
      UNION ALL SELECT 'Contest image', ct.title, '/dashboard/contests' FROM contest_media x JOIN contests ct ON ct.id = x.contest_id WHERE x.media_id = ?1
      UNION ALL SELECT 'Lost & found post', lf.title, '/lost-found' FROM lost_found_posts lf WHERE lf.image_media_id = ?1 AND lf.deleted_at IS NULL
      UNION ALL SELECT 'Recruitment document', 'A recruitment application', NULL FROM recruitment_applications ra WHERE ?1 IN (ra.cv_media_id, ra.photo_media_id, ra.id_card_media_id)
-     UNION ALL SELECT 'Linked from ' || r.resource_type, r.field, NULL FROM media_references r WHERE r.media_id = ?1 AND r.resource_type NOT IN ('event', 'post')`,
+     UNION ALL SELECT 'Form cover', f.title, '/dashboard/forms/' || f.id FROM media_references r JOIN external_forms f ON f.id = r.resource_id
+       WHERE r.media_id = ?1 AND r.resource_type = 'form' AND f.deleted_at IS NULL
+     UNION ALL SELECT 'Linked from ' || r.resource_type, r.field, NULL FROM media_references r WHERE r.media_id = ?1 AND r.resource_type NOT IN ('event', 'post', 'form')`,
     id);
   return { file, usage };
 }

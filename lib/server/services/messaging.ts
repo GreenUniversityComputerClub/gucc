@@ -22,6 +22,7 @@ import { badgeColumnsSql, badgeOf, moderatorOfUserSql, positionOfUserSql, type B
 import { getSetting } from "../security";
 import { takeDownIfUnused } from "./media";
 import { isReaction, type ReactionKey } from "../../chat/reactions";
+import { EVERYONE, EVERYONE_NAME, mentionIdsOf, parseMentions, presentIn, type Mention } from "../../chat/mentions";
 
 const EDIT_WINDOW_MS = 15 * 60_000;
 const pairKey = (a: string, b: string) => (a < b ? `${a}:${b}` : `${b}:${a}`);
@@ -176,13 +177,16 @@ interface Recipient {
  * people who had nothing unread here (once per unread stretch, never when muted). One statement
  * for the notices however large the group.
  */
-function messageStatements(ctx: Ctx, m: { id: string; conversationId: string; body: string; at: string; kind?: "TEXT" | "SYSTEM"; replyTo?: string | null; clientId?: string | null; context?: { type: string; id: string } | null },
-  recipients: Recipient[], notice: { title: string } | null): D1StatementLike[] {
+function messageStatements(ctx: Ctx, m: { id: string; conversationId: string; body: string; at: string; kind?: "TEXT" | "SYSTEM"; replyTo?: string | null; clientId?: string | null; context?: { type: string; id: string } | null; mentions?: Mention[] },
+  recipients: Recipient[], notice: { title: string } | null, mention?: { ids: string[]; title: string }): D1StatementLike[] {
   const actor = requireActor(ctx);
-  const notify = notice ? recipients.filter((r) => !r.unread && !r.muted).map((r) => r.u) : [];
+  // People mentioned get "… mentioned you" (even in a muted conversation) instead of the usual notice.
+  const mentioned = new Set(mention?.ids ?? []);
+  const notify = notice ? recipients.filter((r) => !r.unread && !r.muted && !mentioned.has(r.u)).map((r) => r.u) : [];
   return [
-    ctx.db.stmt("INSERT INTO messages (id, conversation_id, sender_id, body, context_type, context_id, created_at, client_id, kind, reply_to_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-      m.id, m.conversationId, actor.user.id, m.body, m.context?.type ?? null, m.context?.id ?? null, m.at, m.clientId ?? null, m.kind ?? "TEXT", m.replyTo ?? null),
+    ctx.db.stmt("INSERT INTO messages (id, conversation_id, sender_id, body, context_type, context_id, created_at, client_id, kind, reply_to_id, mentions_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+      m.id, m.conversationId, actor.user.id, m.body, m.context?.type ?? null, m.context?.id ?? null, m.at, m.clientId ?? null, m.kind ?? "TEXT", m.replyTo ?? null,
+      m.mentions?.length ? JSON.stringify(m.mentions) : null),
     ctx.db.stmt("UPDATE conversations SET last_message_at = ?2, last_message_id = ?3 WHERE id = ?1", m.conversationId, m.at, m.id),
     // My read marker moves with my own message; everyone gets the conversation back from Archived.
     ctx.db.stmt(`UPDATE conversation_members SET last_read_at = CASE WHEN user_id = ?2 THEN ?3 ELSE last_read_at END, archived_at = NULL
@@ -190,13 +194,16 @@ function messageStatements(ctx: Ctx, m: { id: string; conversationId: string; bo
     ...(notify.length && notice
       ? notifyStmts(ctx, notify, { type: "message.received", title: notice.title, body: m.body.slice(0, 140), link: `/dashboard/chat/${m.conversationId}`, resourceType: "message", resourceId: m.id })
       : []),
+    ...(mention && mentioned.size
+      ? notifyStmts(ctx, [...mentioned], { type: "message.mention", title: mention.title, body: m.body.slice(0, 140), link: `/dashboard/chat/${m.conversationId}`, resourceType: "message", resourceId: m.id })
+      : []),
   ];
 }
 
 /** What the other members' tabs get for a new message. */
-function liveMessage(ctx: Ctx, m: { id: string; body: string; at: string; kind?: "TEXT" | "SYSTEM"; replyTo?: LiveMessage["replyTo"]; clientId?: string | null }): LiveMessage {
+function liveMessage(ctx: Ctx, m: { id: string; body: string; at: string; kind?: "TEXT" | "SYSTEM"; replyTo?: LiveMessage["replyTo"]; clientId?: string | null; mentions?: Mention[] }): LiveMessage {
   const actor = requireActor(ctx);
-  return { id: m.id, sender: actor.user.id, senderName: actor.profile?.full_name ?? "A member", body: m.body, at: m.at, kind: m.kind ?? "TEXT", replyTo: m.replyTo ?? null, clientId: m.clientId ?? null };
+  return { id: m.id, sender: actor.user.id, senderName: actor.profile?.full_name ?? "A member", body: m.body, at: m.at, kind: m.kind ?? "TEXT", replyTo: m.replyTo ?? null, clientId: m.clientId ?? null, mentions: m.mentions ?? [] };
 }
 
 /** Start (or continue) the thread with someone; optionally about an item such as a lost & found post. */
@@ -243,12 +250,16 @@ interface SendState {
   blocked: number;
   dup: string | null;
   reply: string | null;
+  my_role: string | null;
+  my_admin: number;
+  mentioned: string | null;
 }
 
-async function sendState(ctx: Ctx, conversationId: string, clientId: string | null, replyTo: string | null): Promise<SendState> {
+async function sendState(ctx: Ctx, conversationId: string, clientId: string | null, replyTo: string | null, mentionIds: string[] = []): Promise<SendState> {
   const actor = requireActor(ctx);
   const s = await ctx.db.first<SendState>(
-    `SELECT me.left_at, (g.conversation_id IS NOT NULL) AS is_group, g.name AS group_name, g.deleted_at AS group_deleted,
+    `SELECT me.left_at, (g.conversation_id IS NOT NULL) AS is_group, g.name AS group_name, g.deleted_at AS group_deleted, me.role AS my_role, me.is_admin AS my_admin,
+            ${mentionedSql("?5", "?2")} AS mentioned,
             (SELECT json_group_array(json_object('u', o.user_id, 'muted', o.muted, 'unread', (c.last_message_at IS NOT NULL AND c.last_message_at > COALESCE(o.last_read_at, ''))))
                FROM conversation_members o WHERE o.conversation_id = c.id AND o.user_id <> ?2 AND o.left_at IS NULL) AS others,
             ou.status AS other_status, (ou.deleted_at IS NOT NULL) AS other_deleted,
@@ -260,21 +271,51 @@ async function sendState(ctx: Ctx, conversationId: string, clientId: string | nu
      JOIN conversations c ON c.id = me.conversation_id
      LEFT JOIN chat_groups g ON g.conversation_id = c.id
      LEFT JOIN users ou ON g.conversation_id IS NULL AND ou.id = (SELECT x.user_id FROM conversation_members x WHERE x.conversation_id = c.id AND x.user_id <> ?2 LIMIT 1)
-     WHERE me.conversation_id = ?1 AND me.user_id = ?2`, conversationId, actor.user.id, clientId, replyTo);
+     WHERE me.conversation_id = ?1 AND me.user_id = ?2`, conversationId, actor.user.id, clientId, replyTo, JSON.stringify(mentionIds.filter((u) => u !== EVERYONE)));
   if (!s || s.group_deleted) throw new NotFoundError("Conversation");
   return s;
 }
 
+/**
+ * Who the ids in the JSON list `ids` are (active accounts only), whether they're in conversation
+ * `c`, and whether either of them and `me` blocked the other. Part of the statement that reads the
+ * conversation, so mentions cost no extra statement.
+ */
+const mentionedSql = (ids: string, me: string) => `CASE WHEN json_array_length(${ids}) = 0 THEN NULL ELSE (
+  SELECT json_group_array(json_object('u', mu.id, 'n', ${personName("mu", "mp")}, 'h', COALESCE(mp.slug, mp.id), 'in', (mm.user_id IS NOT NULL AND mm.left_at IS NULL),
+           'blk', EXISTS (SELECT 1 FROM user_blocks b WHERE (b.blocker_id = ${me} AND b.blocked_id = mu.id) OR (b.blocker_id = mu.id AND b.blocked_id = ${me}))))
+  FROM json_each(${ids}) j JOIN users mu ON mu.id = j.value AND mu.status = 'ACTIVE' AND mu.deleted_at IS NULL
+  LEFT JOIN profiles mp ON mp.user_id = mu.id AND mp.deleted_at IS NULL
+  LEFT JOIN conversation_members mm ON mm.conversation_id = c.id AND mm.user_id = mu.id) END`;
+
+/**
+ * The mentions a message keeps: people in the group (in a direct chat, any active member, as a
+ * link only), never across a block, never yourself, only where "@Name" is still in the text.
+ * "@everyone" is for a group's owner and admins, and the club's chat leaders.
+ */
+function resolveMentions(ctx: Ctx, body: string, wanted: string[], s: { is_group: number; my_role: string | null; my_admin: number; mentioned: string | null }): Mention[] {
+  const me = requireActor(ctx).user.id;
+  const found = (JSON.parse(s.mentioned || "[]") as Array<{ u: string; n: string; h: string | null; in: number; blk: number }>)
+    .filter((r) => r.u !== me && !r.blk && (!s.is_group || r.in))
+    .map((r) => ({ u: r.u, n: r.n, h: r.h }));
+  const everyone = s.is_group && wanted.includes(EVERYONE) && body.includes(`@${EVERYONE_NAME}`);
+  if (everyone && !(s.my_role === "OWNER" || s.my_admin || can(ctx, "chat.groups.manage"))) {
+    throw new ForbiddenError("Only the group's owner and admins can mention everyone.");
+  }
+  return presentIn(body, [...(everyone ? [{ u: EVERYONE, n: EVERYONE_NAME }] : []), ...found]);
+}
+
 /** Send in an existing thread (direct or group). Returns the message as stored, so the page shows it at once. */
-export async function sendInThread(ctx: Ctx, conversationId: string, rawBody: unknown, rawClientId?: unknown, rawReplyTo?: unknown): Promise<{ id: string; at: string }> {
+export async function sendInThread(ctx: Ctx, conversationId: string, rawBody: unknown, rawClientId?: unknown, rawReplyTo?: unknown, rawMentions?: unknown): Promise<{ id: string; at: string; mentions: Mention[] }> {
   const actor = await requireSender(ctx);
   const body = cleanBody(rawBody);
   const clientId = clientIdOf(rawClientId);
   const replyTo = typeof rawReplyTo === "string" && rawReplyTo.length <= 80 ? rawReplyTo : null;
-  const s = await sendState(ctx, conversationId, clientId, replyTo);
+  const wanted = mentionIdsOf(rawMentions);
+  const s = await sendState(ctx, conversationId, clientId, replyTo, wanted);
   if (s.dup) {
     const d = JSON.parse(s.dup) as { id: string; at: string };
-    return { id: d.id, at: d.at };
+    return { id: d.id, at: d.at, mentions: [] };
   }
   if (s.left_at) throw new ForbiddenError(s.is_group ? "You're no longer in this group." : "You can't reply to this conversation.");
   if (!s.is_group) {
@@ -282,26 +323,37 @@ export async function sendInThread(ctx: Ctx, conversationId: string, rawBody: un
     if (s.other_status !== "ACTIVE" || s.other_deleted) throw new AppError(409, "UNAVAILABLE", "This person's account isn't active any more.");
   }
   if (replyTo && !s.reply) throw new ValidationError("The message you're replying to isn't in this conversation.");
+  const mentions = resolveMentions(ctx, body, wanted, s);
   await limit(ctx, "chat.send", actor.user.id);
+  const everyone = mentions.some((m) => m.u === EVERYONE);
+  if (everyone) await limit(ctx, "chat.everyone", actor.user.id);
   const recipients = JSON.parse(s.others || "[]") as Recipient[];
   const reply = s.reply ? (JSON.parse(s.reply) as { id: string; body: string; name: string; deleted: number }) : null;
   const id = newId("msg");
   const at = nowIso();
   const name = actor.profile?.full_name ?? "A member";
+  // In groups, the people mentioned are told even when they muted the group; in a direct chat
+  // the other person is told anyway, and anyone else mentioned is only a link.
+  const inGroup = new Set(recipients.map((r) => r.u));
+  const mention = s.is_group && mentions.length
+    ? everyone
+      ? { ids: [...inGroup], title: `${name} mentioned everyone in ${s.group_name}` }
+      : { ids: mentions.map((m) => m.u).filter((u) => inGroup.has(u)), title: `${name} mentioned you in ${s.group_name}` }
+    : undefined;
   try {
-    await ctx.db.batch(messageStatements(ctx, { id, conversationId, body, at, replyTo: reply?.id ?? null, clientId }, recipients,
-      { title: s.is_group ? `${name} in ${s.group_name}` : `New message from ${name}` }));
+    await ctx.db.batch(messageStatements(ctx, { id, conversationId, body, at, replyTo: reply?.id ?? null, clientId, mentions }, recipients,
+      { title: s.is_group ? `${name} in ${s.group_name}` : `New message from ${name}` }, mention));
   } catch (e) {
     // The same message arriving twice at the same moment: the first one won.
     const sent = clientId ? await ctx.db.first<{ id: string; created_at: string }>("SELECT id, created_at FROM messages WHERE sender_id = ?1 AND client_id = ?2", actor.user.id, clientId) : null;
-    if (sent) return { id: sent.id, at: sent.created_at };
+    if (sent) return { id: sent.id, at: sent.created_at, mentions };
     throw e;
   }
   emit(ctx, [actor.user.id, ...recipients.map((r) => r.u)], {
     t: "msg", c: conversationId, from: actor.user.id, group: s.is_group ? s.group_name : null,
-    m: liveMessage(ctx, { id, body, at, clientId, replyTo: reply ? { id: reply.id, name: reply.name, body: reply.deleted ? "" : reply.body } : null }),
+    m: liveMessage(ctx, { id, body, at, clientId, mentions, replyTo: reply ? { id: reply.id, name: reply.name, body: reply.deleted ? "" : reply.body } : null }),
   });
-  return { id, at };
+  return { id, at, mentions };
 }
 
 /**
@@ -480,6 +532,8 @@ export interface ThreadMessage {
   reactions: Array<{ u: string; e: ReactionKey }>;
   replyTo: { id: string; name: string; body: string | null } | null;
   context: { title: string; href: string } | null;
+  /** Who it mentions (links to their profiles). */
+  mentions: Mention[];
 }
 
 const ROLE_ORDER = { OWNER: 0, ADMIN: 1, MEMBER: 2 } as const;
@@ -536,8 +590,8 @@ export async function thread(ctx: Ctx, conversationId: string, opts: { before?: 
   const isGroup = info.group_name !== null;
   const before = opts.before && /^\d{4}-\d{2}-\d{2}T/.test(opts.before) ? opts.before : null;
   const rows = await ctx.db.all<{ id: string; sender_id: string; sender_name: string; sender_avatar: string | null; body: string; kind: string; context_type: string | null; context_id: string | null;
-    created_at: string; edited_at: string | null; deleted_at: string | null; reported: number; reactions: string | null; reply: string | null }>(
-    `SELECT m.id, m.sender_id, m.body, m.kind, m.context_type, m.context_id, m.created_at, m.edited_at, m.deleted_at,
+    created_at: string; edited_at: string | null; deleted_at: string | null; reported: number; reactions: string | null; reply: string | null; mentions_json: string | null }>(
+    `SELECT m.id, m.sender_id, m.body, m.kind, m.context_type, m.context_id, m.created_at, m.edited_at, m.deleted_at, m.mentions_json,
             CASE WHEN ?5 = 1 THEN ${nameOfUserSql("m.sender_id")} END AS sender_name, CASE WHEN ?5 = 1 AND m.sender_id <> ?3 THEN ${avatarOfUserSql("m.sender_id")} END AS sender_avatar,
             EXISTS (SELECT 1 FROM reports r WHERE r.resource_type = 'message' AND r.resource_id = m.id AND r.reporter_id = ?3) AS reported,
             (SELECT json_group_array(json_object('u', x.user_id, 'e', x.emoji)) FROM message_reactions x WHERE x.message_id = m.id) AS reactions,
@@ -595,7 +649,7 @@ export async function thread(ctx: Ctx, conversationId: string, opts: { before?: 
       sender: isGroup ? { id: m.sender_id, name: m.sender_name, avatarUrl: avatarUrl(m.sender_avatar) } : null,
       body: m.deleted_at ? null : m.body, deleted: Boolean(m.deleted_at), edited: Boolean(m.edited_at),
       at: m.created_at, editable: m.sender_id === me && m.kind !== "SYSTEM" && !m.deleted_at && Date.now() - new Date(m.created_at).getTime() < EDIT_WINDOW_MS,
-      reported: Boolean(m.reported), reactions: m.deleted_at ? [] : reactions, replyTo: reply,
+      reported: Boolean(m.reported), reactions: m.deleted_at ? [] : reactions, replyTo: reply, mentions: m.deleted_at ? [] : parseMentions(m.mentions_json),
       context: m.context_type === "lost_found_post" && m.context_id ? { title: titles[m.context_id] ?? "Lost & found post", href: "/lost-found" } : null,
     };
   });
@@ -627,17 +681,43 @@ async function activeMembers(ctx: Ctx, conversationId: string): Promise<string[]
   return (await ctx.db.all<{ user_id: string }>("SELECT user_id FROM conversation_members WHERE conversation_id = ?1 AND left_at IS NULL", conversationId)).map((r) => r.user_id);
 }
 
-export async function editMessage(ctx: Ctx, messageId: string, rawBody: unknown): Promise<void> {
+/**
+ * Search one conversation's messages (Messenger's "Search in conversation"): newest first, 30 at
+ * most, only what this person can see (nothing after they left a group, no deleted messages).
+ */
+export async function searchConversation(ctx: Ctx, conversationId: string, rawQuery: unknown): Promise<Array<{ id: string; at: string; body: string; sender: string; mine: boolean }>> {
   const actor = requireActor(ctx);
-  const m = await ctx.db.first<{ sender_id: string; created_at: string; deleted_at: string | null; kind: string; conversation_id: string; members: string }>(
+  await limit(ctx, "chat.search", actor.user.id);
+  const q = String(rawQuery ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+  if (q.length < 2) return [];
+  const like = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  const rows = await ctx.db.all<{ id: string; created_at: string; body: string; sender_id: string; sender: string }>(
+    `SELECT m.id, m.created_at, substr(m.body, 1, 280) AS body, m.sender_id, ${nameOfUserSql("m.sender_id")} AS sender
+     FROM conversation_members me JOIN messages m ON m.conversation_id = me.conversation_id
+     WHERE me.conversation_id = ?1 AND me.user_id = ?2 AND m.deleted_at IS NULL AND m.kind = 'TEXT'
+       AND (me.left_at IS NULL OR m.created_at <= me.left_at) AND m.body LIKE ?3 ESCAPE '\\'
+     ORDER BY m.created_at DESC LIMIT 30`, conversationId, actor.user.id, like);
+  return rows.map((r) => ({ id: r.id, at: r.created_at, body: r.body, sender: r.sender, mine: r.sender_id === actor.user.id }));
+}
+
+export async function editMessage(ctx: Ctx, messageId: string, rawBody: unknown, rawMentions?: unknown): Promise<{ mentions: Mention[] }> {
+  const actor = requireActor(ctx);
+  const wanted = mentionIdsOf(rawMentions);
+  const m = await ctx.db.first<{ sender_id: string; created_at: string; deleted_at: string | null; kind: string; conversation_id: string; members: string; is_group: number; my_role: string | null; my_admin: number; mentioned: string | null }>(
     `SELECT m.sender_id, m.created_at, m.deleted_at, m.kind, m.conversation_id,
-            (SELECT json_group_array(user_id) FROM conversation_members WHERE conversation_id = m.conversation_id AND left_at IS NULL) AS members
-     FROM messages m WHERE m.id = ?1`, messageId);
+            (SELECT json_group_array(user_id) FROM conversation_members WHERE conversation_id = m.conversation_id AND left_at IS NULL) AS members,
+            EXISTS (SELECT 1 FROM chat_groups g WHERE g.conversation_id = m.conversation_id) AS is_group, me.role AS my_role, COALESCE(me.is_admin, 0) AS my_admin,
+            ${mentionedSql("?3", "?2")} AS mentioned
+     FROM messages m JOIN conversations c ON c.id = m.conversation_id LEFT JOIN conversation_members me ON me.conversation_id = c.id AND me.user_id = ?2
+     WHERE m.id = ?1`, messageId, actor.user.id, JSON.stringify(wanted.filter((u) => u !== EVERYONE)));
   if (!m || m.sender_id !== actor.user.id || m.deleted_at || m.kind === "SYSTEM") throw new NotFoundError("Message");
   if (Date.now() - new Date(m.created_at).getTime() > EDIT_WINDOW_MS) throw new AppError(409, "TOO_LATE", "Messages can be edited for 15 minutes after sending.");
   const body = cleanBody(rawBody);
-  await ctx.db.run("UPDATE messages SET body = ?2, edited_at = ?3 WHERE id = ?1", messageId, body, nowIso());
-  emit(ctx, JSON.parse(m.members) as string[], { t: "edit", c: m.conversation_id, id: messageId, body });
+  // An edit links names again, but tells nobody new (Messenger doesn't either).
+  const mentions = resolveMentions(ctx, body, wanted, m);
+  await ctx.db.run("UPDATE messages SET body = ?2, edited_at = ?3, mentions_json = ?4 WHERE id = ?1", messageId, body, nowIso(), mentions.length ? JSON.stringify(mentions) : null);
+  emit(ctx, JSON.parse(m.members) as string[], { t: "edit", c: m.conversation_id, id: messageId, body, mentions });
+  return { mentions };
 }
 
 /** The notification preview of a message that was deleted or removed no longer shows its text. */

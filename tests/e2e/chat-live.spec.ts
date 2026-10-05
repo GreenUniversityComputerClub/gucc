@@ -1,6 +1,6 @@
 import { deflateSync } from "node:zlib";
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { acceptConfirms, ensureMember, login } from "./helpers";
+import { acceptConfirms, d1, ensureMember, login } from "./helpers";
 
 /**
  * Round 8 end to end: two people in two browsers. A message, "typing…", a reaction and a
@@ -142,6 +142,22 @@ test("a member creates a group; everyone in it sees the conversation", async ({ 
   await dialog.getByRole("button", { name: "Create group" }).click();
   await expect(a).toHaveURL(/\/dashboard\/chat\/cnv_/);
   await expect(a.getByRole("note").getByText(new RegExp(`created the group “Fair crew ${run}”`))).toBeVisible();
+
+  // Mentions: "@" lists the group's members (and "everyone" for its owner); Enter picks one, the
+  // name links to their profile, and they're told.
+  const box = a.getByRole("textbox", { name: /^Message/ });
+  await box.pressSequentially("@ever");
+  await expect(a.getByRole("option", { name: /@everyone/ })).toBeVisible();
+  await box.fill("");
+  await box.pressSequentially("@Bri");
+  await expect(a.getByRole("option", { name: new RegExp(B.name) })).toBeVisible();
+  await box.press("Enter");
+  await expect(box).toHaveValue(`@${B.name} `);
+  await box.pressSequentially("can you check the poster?");
+  await a.getByRole("button", { name: "Send" }).click();
+  await expect(a.getByRole("link", { name: `@${B.name}` })).toHaveAttribute("href", /^\/members\//);
+  await expect.poll(() => d1<{ title: string }>(`SELECT n.title FROM notifications n JOIN users u ON u.id = n.user_id WHERE u.email = '${B.email}' AND n.type = 'message.mention'`).map((r) => r.title))
+    .toEqual([`${A.name} mentioned you in Fair crew ${run}`]);
 
   const c = await pageFor(browser, C, "/dashboard/chat");
   await expect(c.getByRole("link", { name: new RegExp(`Fair crew ${run}`) })).toBeVisible();

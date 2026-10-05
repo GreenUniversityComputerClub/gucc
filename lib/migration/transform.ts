@@ -735,7 +735,7 @@ export function transformLegacy(src: LegacySources, opts: TransformOptions): Tra
     os.migrated++;
   }
 
-  // The sponsorship page in the dashboard's list of sponsorship pages (0015 copies it on databases
+  // The sponsorship page in the dashboard's list of sponsorship pages (0016 copies it on databases
   // that already had the setting; here for those imported after the migrations ran). Only when
   // there's no sponsorship page at all, so it never brings back one an editor removed.
   statements.set("sponsorship_pages", [

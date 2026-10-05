@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowLeft, Archive, ArchiveRestore, Ban, Bell, BellOff, Check, CheckCheck, Flag, Info, Loader2, Mail, MoreVertical, RotateCw, Send, Smile, WifiOff, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, Archive, ArchiveRestore, Ban, Bell, BellOff, Check, CheckCheck, Flag, Info, Loader2, Mail, MoreVertical, RotateCw, Search, Send, Smile, UserRound, WifiOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -22,8 +22,15 @@ import { blockAction, chatStateAction, deleteChatAction, editChatAction, loadThr
 import { MessageRow, type Message } from "./message-row";
 import { ReportDialog } from "./report-dialog";
 import { GroupSettings } from "./group-settings";
+import { ConversationInfo, SearchSheet } from "./conversation-info";
+import type { SearchHit } from "./actions";
+import { RichText } from "./rich-text";
+import { MentionList } from "./mention-list";
+import { useMentions, type MentionCandidate } from "./use-mentions";
+import { useDirectory } from "./use-directory";
+import { EVERYONE, EVERYONE_NAME, type Mention } from "@/lib/chat/mentions";
 
-type Pending = { clientId: string; body: string; at: string; failed?: string; replyTo: Message["replyTo"] };
+type Pending = { clientId: string; body: string; at: string; failed?: string; replyTo: Message["replyTo"]; mentions: Mention[] };
 
 /** Messages by id, oldest first (a message present in both keeps the newer copy). */
 const merge = (a: Message[], b: Message[]) => [...new Map([...a, ...b].map((m) => [m.id, m])).values()].sort((x, y) => x.at.localeCompare(y.at));
@@ -61,7 +68,7 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [pending, setPending] = useState<Pending[]>([]);
   const [body, setBody] = useState("");
-  const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; body: string; mentions: Mention[] } | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [reacting, setReacting] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<string | null>(null);
@@ -70,6 +77,9 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
   const [newBelow, setNewBelow] = useState(0);
   const [reporting, setReporting] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
+  // Messenger's "Chat info" (direct conversations) and "Search in conversation" (groups).
+  const [info, setInfo] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [emoji, setEmoji] = useState(false);
   const [typing, setTyping] = useState<Record<string, number>>({});
   const [delivered, setDelivered] = useState<Set<string>>(() => new Set());
@@ -187,13 +197,13 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
   // ── Live events for this conversation ──
   useLive("msg", (ev) => {
     if (ev.c !== conversationId) return;
-    const lm = ev.m as { id: string; sender: string; senderName: string; body: string; at: string; kind: "TEXT" | "SYSTEM"; replyTo: Message["replyTo"]; clientId?: string | null };
+    const lm = ev.m as { id: string; sender: string; senderName: string; body: string; at: string; kind: "TEXT" | "SYSTEM"; replyTo: Message["replyTo"]; clientId?: string | null; mentions?: Mention[] };
     const mine = lm.sender === me;
     if (mine && lm.clientId) setPending((l) => l.filter((p) => p.clientId !== lm.clientId));
     const avatar = group?.members.find((x) => x.id === lm.sender)?.avatarUrl ?? (lm.sender === other?.id ? other.avatarUrl : null);
     const msg: Message = {
       id: lm.id, mine, kind: lm.kind, sender: group ? { id: lm.sender, name: lm.senderName, avatarUrl: avatar } : null, body: lm.body, deleted: false, edited: false, at: lm.at,
-      editable: mine && lm.kind === "TEXT", reported: false, reactions: [], replyTo: lm.replyTo, context: null,
+      editable: mine && lm.kind === "TEXT", reported: false, reactions: [], replyTo: lm.replyTo, context: null, mentions: lm.mentions ?? [],
     };
     // A tab that just opened may get a message again (the hub replays what it missed): once only.
     const known = latest.current.messages.some((m) => m.id === msg.id);
@@ -204,7 +214,7 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
       else setNewBelow((n) => n + 1);
     }
   });
-  useLive("edit", (ev) => ev.c === conversationId && patch(ev.id, (m) => ({ ...m, body: ev.body, edited: true })));
+  useLive("edit", (ev) => ev.c === conversationId && patch(ev.id, (m) => ({ ...m, body: ev.body, edited: true, mentions: (ev.mentions as Mention[] | undefined) ?? m.mentions })));
   useLive("del", (ev) => ev.c === conversationId && patch(ev.id, (m) => ({ ...m, body: null, deleted: true, reactions: [] })));
   useLive("react", (ev) => {
     if (ev.c !== conversationId) return;
@@ -298,6 +308,13 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
   }, [group, other, me, session?.avatarUrl]);
   // Each group member's badge and role, looked up once (stable, so message rows don't re-render).
   const memberInfo = useMemo(() => new Map((group?.members ?? []).map((x) => [x.id, { badge: x.badge, role: x.role }] as const)), [group]);
+  // Where each person's profile is (members of a group; the other person in a direct chat).
+  const profileOf = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const x of group?.members ?? []) if (x.handle) map.set(x.id, `/members/${encodeURIComponent(x.handle)}`);
+    if (other?.handle) map.set(other.id, `/members/${encodeURIComponent(other.handle)}`);
+    return map;
+  }, [group, other]);
   const names = useCallback((id: string) => group?.members.find((x) => x.id === id)?.name ?? (id === other?.id ? other.name : "Someone"), [group, other]);
 
   // Stay at the bottom while you are there; otherwise leave the view alone and offer a jump.
@@ -358,9 +375,26 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
     requestAnimationFrame(() => { if (el) el.scrollTop = el.scrollHeight - from; });
   }
 
+  // Who can be @mentioned: the group's members (and "everyone", for its owner and admins), or in a
+  // direct chat the other person and anyone in the club directory (loaded when "@" is typed).
+  const [mentionTyping, setMentionTyping] = useState(false);
+  const directory = useDirectory(!group && mentionTyping);
+  const mentionCandidates = useMemo<MentionCandidate[]>(() => {
+    if (group) {
+      const people = group.members.filter((x) => x.id !== me).map((x) => ({ u: x.id, name: x.name, handle: x.handle, avatarUrl: x.avatarUrl, hint: x.role === "OWNER" ? "Group owner" : x.role === "ADMIN" ? "Group admin" : x.badge?.label ?? null }));
+      return group.canManage ? [{ u: EVERYONE, name: EVERYONE_NAME, hint: `Notify all ${group.members.length - 1} members` }, ...people] : people;
+    }
+    const list: MentionCandidate[] = other ? [{ u: other.id, name: other.name, handle: other.handle, avatarUrl: other.avatarUrl }] : [];
+    for (const p of directory.data?.people ?? []) if (p.user_id !== me && p.user_id !== other?.id) list.push({ u: p.user_id, name: p.full_name, handle: p.handle, avatarUrl: p.avatarUrl, hint: p.department });
+    return list;
+  }, [group, me, other, directory.data]);
+  const mention = useMentions({ value: body, setValue: onType, input: composer, candidates: mentionCandidates });
+  useEffect(() => setMentionTyping(mention.typing), [mention.typing]);
+  const onEditChange = useCallback((v: string, mentions: Mention[]) => setEditing((e) => (e ? { ...e, body: v, mentions } : e)), []);
+
   async function deliver(p: Pending) {
     setPending((list) => list.map((x) => (x.clientId === p.clientId ? { ...x, failed: undefined } : x)));
-    const r = await sendChatAction(conversationId, p.body, p.clientId, p.replyTo?.id).catch(() => null);
+    const r = await sendChatAction(conversationId, p.body, p.clientId, p.replyTo?.id, p.mentions.map((x) => x.u)).catch(() => null);
     if (!r?.ok) {
       const error = r && !r.ok ? r.error : "Not sent: check your connection.";
       setPending((list) => list.map((x) => (x.clientId === p.clientId ? { ...x, failed: error } : x)));
@@ -368,7 +402,7 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
     }
     const sent: Message = {
       id: r.data!.id, mine: true, kind: "TEXT", sender: group ? { id: me, name: "You", avatarUrl: null } : null, body: p.body, deleted: false, edited: false, at: r.data!.at,
-      editable: true, reported: false, reactions: [], replyTo: p.replyTo, context: null,
+      editable: true, reported: false, reactions: [], replyTo: p.replyTo, context: null, mentions: r.data!.mentions ?? p.mentions,
     };
     setT((cur) => (cur.messages.some((m) => m.id === sent.id) ? cur : { ...cur, messages: merge(cur.messages, [sent]) }));
     setPending((list) => list.filter((x) => x.clientId !== p.clientId));
@@ -382,8 +416,10 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
     const text = body.trim();
     if (!text) return;
     if (text.length > MAX) return say(`Keep messages under ${MAX.toLocaleString()} characters.`, true);
-    const p: Pending = { clientId: newClientId(), body: text, at: new Date().toISOString(), replyTo: replyTo ? { id: replyTo.id, name: replyTo.mine ? "You" : replyTo.sender?.name ?? other?.name ?? "Them", body: replyTo.body } : null };
+    const p: Pending = { clientId: newClientId(), body: text, at: new Date().toISOString(), mentions: mention.mentions,
+      replyTo: replyTo ? { id: replyTo.id, name: replyTo.mine ? "You" : replyTo.sender?.name ?? other?.name ?? "Them", body: replyTo.body } : null };
     setBody("");
+    mention.reset();
     setReplyTo(null);
     setEmoji(false);
     setPending((list) => [...list, p]);
@@ -454,6 +490,29 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
     window.setTimeout(() => setHighlight(null), 1600);
   }, [say]);
 
+  /**
+   * Go to a search result. A message not loaded yet is reached by loading older pages (40 each,
+   * at most 15) until it is there, so the conversation stays continuous above and below it.
+   */
+  const jumpToHit = useCallback(async (hit: SearchHit) => {
+    if (document.getElementById(`msg-${hit.id}`)) return jump(hit.id);
+    let earliest = messages[0]?.at ?? null;
+    let more = moreOlder;
+    const found: Message[] = [];
+    setLoadingOlder(true);
+    for (let page = 0; earliest && more && earliest > hit.at && page < 15; page++) {
+      const r = await loadThreadAction(conversationId, earliest).catch(() => null);
+      if (!r?.ok) break;
+      found.push(...r.data.messages);
+      earliest = r.data.messages[0]?.at ?? null;
+      more = r.data.more;
+    }
+    setLoadingOlder(false);
+    setOlder((prev) => merge(found, prev));
+    setMoreOlder(more);
+    requestAnimationFrame(() => requestAnimationFrame(() => jump(hit.id)));
+  }, [jump, messages, moreOlder, conversationId]);
+
   const startReply = useCallback((m: Message) => {
     setReplyTo(m);
     composer.current?.focus();
@@ -463,10 +522,10 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
     if (!editing) return;
     const b = editing.body.trim();
     if (!b) return;
-    const id = editing.id;
+    const { id, mentions } = editing;
     setEditing(null);
-    patch(id, (x) => ({ ...x, body: b, edited: true }));
-    void act(() => editChatAction(id, b), false);
+    patch(id, (x) => ({ ...x, body: b, edited: true, mentions }));
+    void act(() => editChatAction(id, b, mentions.map((x) => x.u)), false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing, patch]);
 
@@ -513,6 +572,15 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
       <ReportDialog messageId={reporting} personName={messages.find((m) => m.id === reporting)?.sender?.name ?? other?.name ?? "This person"} open={Boolean(reporting)} onOpenChange={(o) => !o && setReporting(null)}
         onDone={({ message }) => { say(message); void refresh().catch(() => undefined); }} />
       {group && <GroupSettings conversationId={conversationId} group={group} me={me} open={settings} onOpenChange={setSettings} onChanged={() => void refresh().catch(() => undefined)} say={say} />}
+      {group && <SearchSheet open={searching} onOpenChange={setSearching} conversationId={conversationId} onPick={(h) => void jumpToHit(h)} />}
+      {other && (
+        <ConversationInfo open={info} onOpenChange={setInfo} conversationId={conversationId} person={other} presence={presence} muted={t.muted} archived={t.archived}
+          canReport={Boolean(theirLatest)} onPick={(h) => void jumpToHit(h)}
+          onMute={() => void act(() => chatStateAction(conversationId, { muted: !t.muted }))}
+          onArchive={() => void act(() => chatStateAction(conversationId, { archived: !t.archived }))}
+          onBlock={() => void toggleBlock()}
+          onReport={() => theirLatest && setReporting(theirLatest.id)} />
+      )}
 
       <header className="flex items-center justify-between gap-2 border-b bg-card/95 px-2 py-2 backdrop-blur pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-3 lg:pt-2">
         <div className="flex min-w-0 items-center gap-2">
@@ -530,31 +598,39 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
             </button>
           ) : (
             <>
-              <PersonAvatar name={other?.name} url={other?.avatarUrl} size="md" href={other?.handle ? `/members/${other.handle}` : null} online={other ? online(other.id) : undefined} />
-              <div className="min-w-0">
-                <p className="flex min-w-0 items-center gap-1.5">
-                  <span className="truncate font-medium">{other?.handle ? <Link prefetch={false} href={`/members/${other.handle}`} className="hover:underline">{other.name}</Link> : other?.name ?? "Conversation"}</span>
+              <button type="button" onClick={() => other && setInfo(true)} disabled={!other} aria-label={other ? `Chat info: ${other.name}` : undefined}
+                className="flex min-w-0 items-center gap-2 rounded-md p-1 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:hover:bg-transparent">
+              <PersonAvatar name={other?.name} url={other?.avatarUrl} size="md" online={other ? online(other.id) : undefined} />
+              <span className="min-w-0">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate font-medium">{other?.name ?? "Conversation"}</span>
                   {other && <BadgePill badge={other.badge} />}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
                   {typers.length ? <span className="text-primary">typing…</span> : (
                     <>
                       <ActiveStatus label={presence} />
                       {[presence ? "" : status1, t.muted ? "muted" : null, t.archived ? "archived" : null].filter(Boolean).map((x, i) => <span key={i}>{presence || i ? " · " : ""}{x}</span>)}
                     </>
                   )}
-                </p>
-              </div>
+                </span>
+              </span>
+              </button>
             </>
           )}
         </div>
         <div className="flex items-center">
           {group && <button type="button" className={iconButton} aria-label="Group details" onClick={() => setSettings(true)}><Info className="h-5 w-5" /></button>}
+          {other && <button type="button" className={iconButton} aria-label="Chat info" onClick={() => setInfo(true)}><Info className="h-5 w-5" /></button>}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className={iconButton} aria-label="Conversation options"><MoreVertical className="h-5 w-5" /></button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60">
+              {other?.handle && (
+                <DropdownMenuItem asChild className="min-h-11 gap-2"><Link prefetch={false} href={`/members/${encodeURIComponent(other.handle)}`}><UserRound className="h-4 w-4" />View profile</Link></DropdownMenuItem>
+              )}
+              <DropdownMenuItem className="min-h-11 gap-2" onSelect={() => (other ? setInfo(true) : setSearching(true))}><Search className="h-4 w-4" />Search in conversation</DropdownMenuItem>
               <DropdownMenuItem className="min-h-11 gap-2" onSelect={() => act(() => chatStateAction(conversationId, { muted: !t.muted }))}>
                 {t.muted ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}{t.muted ? "Unmute notifications" : "Mute notifications"}
               </DropdownMenuItem>
@@ -626,9 +702,10 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
               )}
               <MessageRow m={m} me={me} joinsPrev={joinsPrev} endsGroup={endsGroup} showSender={Boolean(group) && !joinsPrev} avatar={avatar} names={names}
                 senderInfo={m.sender ? memberInfo.get(m.sender.id) ?? null : null}
-                canAct={Boolean(composerOpen)} reacting={reacting === m.id} editing={editing?.id ?? null} highlight={highlight === m.id}
-                onReacting={setReacting} onReact={react} onReply={startReply} onEdit={(x) => setEditing({ id: x.id, body: x.body ?? "" })}
-                onEditChange={(v) => setEditing((e) => (e ? { ...e, body: v } : e))} onEditSave={saveEdit} onEditCancel={() => setEditing(null)}
+                profileHref={m.mine ? null : profileOf.get(m.sender?.id ?? other?.id ?? "") ?? null}
+                canAct={Boolean(composerOpen)} reacting={reacting === m.id} editing={editing?.id ?? null} highlight={highlight === m.id} mentionCandidates={mentionCandidates}
+                onReacting={setReacting} onReact={react} onReply={startReply} onEdit={(x) => setEditing({ id: x.id, body: x.body ?? "", mentions: x.mentions ?? [] })}
+                onEditChange={onEditChange} onEditSave={saveEdit} onEditCancel={() => setEditing(null)}
                 onDelete={removeMessage} onReport={(x) => setReporting(x.id)} onCopy={copy} onJump={jump} onShowReactions={showReactions}
                 onMessagePrivately={group ? messagePrivately : undefined} />
             </Fragment>
@@ -638,7 +715,7 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
           <div key={p.clientId} className="mt-1 flex justify-end">
             <div className={cn("max-w-[85%] rounded-2xl rounded-br-md px-3 py-2 text-sm shadow-sm sm:max-w-[70%]", p.failed ? "border border-destructive/60 bg-destructive/10" : "bg-primary/70 text-primary-foreground")}>
               {p.replyTo && <p className="mb-1 line-clamp-1 border-l-4 border-primary-foreground/50 pl-2 text-xs opacity-80">{p.replyTo.name}: {p.replyTo.body}</p>}
-              <p className="whitespace-pre-wrap wrap-anywhere">{p.body}</p>
+              <p className="whitespace-pre-wrap wrap-anywhere"><RichText text={p.body} mentions={p.mentions} me={me} mine /></p>
               {p.failed ? (
                 <p className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-destructive">
                   {p.failed}
@@ -721,19 +798,24 @@ export function ThreadView({ conversationId, initial, canSend, restrictedUntil }
               <button type="button" onClick={() => setEmoji((v) => !v)} aria-pressed={emoji} aria-label="Emoji" className={cn(iconButton, "h-11 w-11 shrink-0 text-muted-foreground", emoji && "bg-muted text-foreground")}><Smile className="h-5 w-5" /></button>
               <label className="sr-only" htmlFor="chat-body">Message to {group?.name ?? other?.name}</label>
               <div className="relative flex-1">
-                <Textarea ref={composer} id="chat-body" value={body} rows={1} maxLength={MAX} placeholder="Write a message" enterKeyHint="send"
+                <MentionList id={mention.listId} matches={mention.matches} active={mention.active} onHover={mention.setActive} onChoose={mention.choose} className="-left-12 sm:left-0" />
+                <Textarea ref={composer} id="chat-body" value={body} rows={1} maxLength={MAX} placeholder={group ? "Write a message (@ to mention)" : "Write a message"} enterKeyHint="send"
+                  {...mention.inputProps}
+                  onSelect={(e) => mention.track(e.currentTarget.value, e.currentTarget.selectionStart)}
                   onChange={(e) => {
                     onType(e.target.value);
+                    mention.track(e.target.value, e.target.selectionStart);
                     const el = e.currentTarget;
                     el.style.height = "auto";
                     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
                   }}
                   onKeyDown={(e) => {
+                    if (mention.onKeyDown(e)) return;
                     // Enter sends on computers; on phones the keyboard's return adds a line and the button sends.
                     const touch = typeof window !== "undefined" && window.matchMedia?.("(hover: none)").matches;
                     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && !touch) { e.preventDefault(); send(); }
                     if (e.key === "Escape") { setReplyTo(null); setEmoji(false); }
-                    if (e.key === "ArrowUp" && !body && lastMine?.editable) { e.preventDefault(); setEditing({ id: lastMine.id, body: lastMine.body ?? "" }); }
+                    if (e.key === "ArrowUp" && !body && lastMine?.editable) { e.preventDefault(); setEditing({ id: lastMine.id, body: lastMine.body ?? "", mentions: lastMine.mentions ?? [] }); }
                   }}
                   className="max-h-40 min-h-11 resize-none rounded-2xl pr-12 text-base md:text-sm" />
                 {body.length > MAX - 200 && <span className="pointer-events-none absolute bottom-1.5 right-3 text-[10px] text-muted-foreground" aria-live="polite">{MAX - body.length}</span>}

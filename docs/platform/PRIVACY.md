@@ -81,6 +81,19 @@ Dashboard → Security → _Delete my account_ (password and typing DELETE). Imm
 
 The last Moderator can't delete their account before appointing another.
 
+## Certificates and announcement emails (round 9)
+
+- A certificate keeps the name printed on it, its role line, the issue it belongs to and, when it
+  was issued by email, the address used. The address is never shown: the verification page
+  (`/c/<code>`) shows the certificate and, only for people who served on a committee or made their
+  profile public, a link to their profile. The holder can hide a certificate from their profile
+  (its link still verifies). Deleting an account removes the link to the account and the address;
+  the certificate stays as the club's record.
+- Announcement emails go to members who haven't turned off "Club announcements" (on by default),
+  and to event guests only when a leader ticks that box for one email. Every email has a one-click
+  unsubscribe; a member's choice is saved on their account, a guest's as a hash of their address
+  (`email_suppressions`), never the address itself.
+
 ## Services that process data
 
 | Service                                           | What it receives                                                                                       |

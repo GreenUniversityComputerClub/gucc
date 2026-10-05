@@ -9,6 +9,8 @@ export const TAGS = {
   settings: "settings",
   forms: "forms",
   sponsorships: "sponsorships",
+  certificates: "certificates",
+  certificate: (code: string) => `cert:${code}`,
 };
 
 export function tagsForPost(type: string, ...slugs: string[]): string[] {

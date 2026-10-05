@@ -101,7 +101,7 @@ export async function getPerson(ctx: Ctx, id: string) {
   requirePeopleAccess(ctx);
   const p = await ctx.db.first<Record<string, unknown>>(
     `SELECT pr.id, pr.full_name, pr.slug, pr.person_type, pr.student_id, pr.department, pr.batch, pr.designation, pr.bio, pr.avatar_media_id,
-            pr.public_email, pr.linkedin_url, pr.github_url, pr.twitter_url, pr.facebook_url, pr.website_url, pr.user_id, pr.updated_at,
+            pr.public_email, pr.email_display, pr.linkedin_url, pr.github_url, pr.twitter_url, pr.facebook_url, pr.website_url, pr.user_id, pr.updated_at,
             u.email, u.status AS account_status, u.last_login_at,
             m.storage AS avatar_storage, m.object_key AS avatar_object_key, m.legacy_path AS avatar_legacy_path, m.external_url AS avatar_external_url,
             EXISTS (SELECT 1 FROM auth_tokens t WHERE t.user_id = pr.user_id AND t.purpose = 'INVITE' AND t.used_at IS NULL AND t.expires_at > ?2) AS invite_pending
@@ -188,6 +188,9 @@ export async function createPerson(ctx: Ctx, input: Record<string, unknown>): Pr
   return { id };
 }
 
+/** Which email the site shows for a person (AUTO, PROFILE or HIDDEN); null leaves it as it is. */
+const emailDisplayOf = (raw: unknown) => (raw === "AUTO" || raw === "PROFILE" || raw === "HIDDEN" ? raw : null);
+
 export async function updatePerson(ctx: Ctx, id: string, input: Record<string, unknown>): Promise<void> {
   const actor = requireActor(ctx);
   const { decision, target } = await assertMayEditPerson(ctx, id);
@@ -205,10 +208,11 @@ export async function updatePerson(ctx: Ctx, id: string, input: Record<string, u
     profileEditedStmt(ctx, id, d, now),
     ctx.db.stmt(
       `UPDATE profiles SET ${keepFramingIfSame("?15")}, ${keepCutoutIfSame("?15")}, full_name = ?2, person_type = ?3, student_id = ?4, department = ?5, batch = ?6, designation = ?7, bio = ?8, public_email = ?9,
-              linkedin_url = ?10, github_url = ?11, twitter_url = ?12, facebook_url = ?13, website_url = ?14, avatar_media_id = ?15, updated_at = ?16, updated_by = ?17
+              linkedin_url = ?10, github_url = ?11, twitter_url = ?12, facebook_url = ?13, website_url = ?14, avatar_media_id = ?15, updated_at = ?16, updated_by = ?17,
+              email_display = COALESCE(?18, email_display)
        WHERE id = ?1`,
       id, d.full_name, d.person_type, d.student_id, d.department, d.batch, d.designation, d.bio, d.public_email, d.linkedin_url, d.github_url, d.twitter_url,
-      d.facebook_url, d.website_url, d.avatar_media_id, now, actor.user.id,
+      d.facebook_url, d.website_url, d.avatar_media_id, now, actor.user.id, emailDisplayOf(input.emailDisplay),
     ),
     auditStmt(ctx, { action: "profile.update", resourceType: "profile", resourceId: id, before, after: d, decision }),
   ], () => staleAnswer(ctx, "profiles", id));
@@ -382,7 +386,7 @@ export async function deletePerson(ctx: Ctx, id: string, reasonRaw: unknown): Pr
   // An account that was only invited (never signed in) goes with the mistaken entry; a real
   // account is closed from the member list.
   const inviteOnly = Boolean(p.user_id) && !p.last_login_at && p.account_status !== "ACTIVE";
-  if (p.user_id && p.account_status && !inviteOnly) throw new ConflictError("This person has a sign-in account. Accounts are closed from the member list, not deleted here.");
+  if (p.user_id && p.account_status && !inviteOnly) throw new ConflictError("This person has a sign-in account. Delete the account first (Account → Delete account), then this profile if it's still a mistake.");
   if (p.listings || p.posts || p.people) throw new ConflictError(`${p.full_name} appears in ${p.listings} listing(s), ${p.people} event role(s) and ${p.posts} post(s). Merge them into the right person instead.`);
   const reason = String(reasonRaw ?? "").trim();
   if (reason.length < 3) throw new AppError(400, "REASON_REQUIRED", "Say why (kept in the activity log).");

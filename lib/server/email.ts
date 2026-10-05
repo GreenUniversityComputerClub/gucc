@@ -29,6 +29,8 @@ export interface EmailMessage {
   text: string;
   html?: string;
   replyTo?: string;
+  /** Extra headers (List-Unsubscribe on announcement emails). Names and values are one line each. */
+  headers?: Record<string, string>;
 }
 
 export interface SendResult {
@@ -63,7 +65,12 @@ const smtp2goBody = (ctx: Ctx, m: EmailMessage) => ({
   subject: oneLine(m.subject),
   text_body: m.text,
   ...(m.html ? { html_body: m.html } : {}),
-  ...(m.replyTo ? { custom_headers: [{ header: "Reply-To", value: oneLine(m.replyTo) }] } : {}),
+  ...(m.replyTo || m.headers ? {
+    custom_headers: [
+      ...(m.replyTo ? [{ header: "Reply-To", value: oneLine(m.replyTo) }] : []),
+      ...Object.entries(m.headers ?? {}).filter(([k]) => /^[A-Za-z0-9-]{1,60}$/.test(k)).map(([header, value]) => ({ header, value: value.replace(/[\r\n]+/g, " ").slice(0, 900) })),
+    ],
+  } : {}),
 });
 
 interface Smtp2goAnswer {

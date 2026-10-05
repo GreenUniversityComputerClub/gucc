@@ -1,15 +1,13 @@
-import { getCommittees } from "@/lib/public/data";
-import { CertsClient } from "./certs-client";
+import { permanentRedirect, redirect } from "next/navigation";
+import { getCertificateByStudent } from "@/lib/public/data";
 
-export const revalidate = 21600;
-
-/** Rendered on the first visit, then cached (edits refresh it through the committees tag). */
-export async function generateStaticParams() {
-  return [];
-}
-
-/** Service certificates for the 2023–24 and reformed 2024 committees, from D1. */
-export default async function ExecutiveCertificatesPage() {
-  const committees = (await getCommittees()).filter((c) => c.year === "2023" || c.year === "2024");
-  return <CertsClient executivesData={committees} />;
+/**
+ * Old certificate links (/executives/certs/<student ID>): to the person's verifiable certificate
+ * when one is issued, otherwise to their executive page.
+ */
+export default async function OldCertificateLink({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const cert = /^\d{6,12}$/.test(id) ? await getCertificateByStudent(id).catch(() => null) : null;
+  if (cert) permanentRedirect(`/c/${cert.code}`);
+  redirect(`/executives/${encodeURIComponent(id)}`);
 }

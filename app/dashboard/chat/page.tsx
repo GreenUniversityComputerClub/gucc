@@ -26,7 +26,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
       <ChatFrame className="min-h-[60dvh] min-w-0 lg:h-[calc(100dvh-8rem)]">
-        <ChatShell home={home} meId={session.user.id} archived={archived} startOpen={canSend && Boolean(home.to)} context={context} />
+        <ChatShell home={home} meId={session.user.id} archived={archived} startOpen={canSend && (Boolean(home.to) || sp.new === "1")} context={context} />
       </ChatFrame>
       <div className="space-y-4">
         {home.restrictedUntil && (

@@ -8,6 +8,8 @@ import "server-only";
  * within one render. Only published, public data is ever returned.
  */
 import { cache } from "react";
+import type { PublicForm } from "@/lib/forms/types";
+import type { PublicCertificate } from "@/lib/public/read";
 import { ApiUnavailableError, publicGet } from "@/lib/api/client";
 import { TAGS } from "@/lib/server/services/cache-tags";
 import type { PublicPost, PublicSponsorship, RegistrationFieldPublic } from "./read";
@@ -123,7 +125,24 @@ export const getSponsorship = cache(async (slug: string): Promise<PublicSponsors
 });
 
 export const getPublicForm = cache(async (slug: string) =>
-  publicGet<{ slug: string; title: string; url: string }>(`forms/${encodeURIComponent(slug)}`, { tags: [TAGS.forms], revalidate: 6 * HOUR, fallback: null }));
+  publicGet<PublicForm>(`forms/${encodeURIComponent(slug)}`, { tags: [TAGS.forms], revalidate: 6 * HOUR, fallback: null }));
+
+/** Forms listed at /forms (an API older than round 9 has no list: empty). */
+export const getPublicForms = cache(async () =>
+  (await publicGet<PublicForm[]>("forms", { tags: [TAGS.forms], revalidate: 6 * HOUR, fallback: [] })) ?? []);
+
+/** A certificate for its verification page (never the recipient's email). */
+export const getCertificate = cache(async (code: string) =>
+  publicGet<PublicCertificate>(`certificates/${encodeURIComponent(code)}`, { tags: [TAGS.certificates, TAGS.certificate(code)], revalidate: 6 * HOUR, fallback: null }));
+
+/** The executive certificate of a student ID (old /executives/certs/<id> links), or null. */
+export const getCertificateByStudent = cache(async (studentId: string) =>
+  publicGet<{ code: string }>(`certificates/by-student/${encodeURIComponent(studentId)}`, { tags: [TAGS.certificates], revalidate: 6 * HOUR, fallback: null }));
+
+/** A member's certificates they show on their profile (an API older than round 9 has none). */
+export const getProfileCertificates = cache(async (handle: string) =>
+  (await publicGet<Array<{ code: string; name: string; kind: string; issuedOn: string; roleLine: string | null }>>(`certificates/of/${encodeURIComponent(handle)}`,
+    { tags: [TAGS.certificates], revalidate: 6 * HOUR, fallback: [] }).catch(() => [])) ?? []);
 
 export interface SitemapData {
   events: Array<{ slug: string; updated_at: string; start_at: string | null }>;
@@ -133,10 +152,12 @@ export interface SitemapData {
   people: Array<{ student_id: string; updated_at: string }>;
   /** Public member pages (missing from an older API). */
   members?: Array<{ handle: string; updated_at: string; avatar: string | null }>;
+  /** Listed forms taking answers (missing from an API older than round 9). */
+  forms?: Array<{ slug: string; updated_at: string }>;
 }
 
 export const getSitemapData = cache(async (): Promise<SitemapData> =>
-  (await publicGet<SitemapData>("sitemap", { tags: [TAGS.events, TAGS.posts, TAGS.committees, TAGS.contests], revalidate: 6 * HOUR, fallback: { events: [], posts: [], committees: [], contests: [], people: [] } })) ?? { events: [], posts: [], committees: [], contests: [], people: [] });
+  (await publicGet<SitemapData>("sitemap", { tags: [TAGS.events, TAGS.posts, TAGS.committees, TAGS.contests, TAGS.forms], revalidate: 6 * HOUR, fallback: { events: [], posts: [], committees: [], contests: [], people: [] } })) ?? { events: [], posts: [], committees: [], contests: [], people: [] });
 
 export interface PublicCampaign {
   open: { id: string; title: string; description: string | null; circularUrl: string | null; opensAt: string | null; closesAt: string | null; positions: Array<{ id: string; name: string }> } | null;

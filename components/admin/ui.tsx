@@ -18,6 +18,11 @@ type ServerAction = (fd: FormData) => Promise<Result>;
 
 const FieldErrors = createContext<Record<string, string>>({});
 
+/** The error the last submit gave a field, for inputs built without <Field>. */
+export function useFieldError(name: string): string | undefined {
+  return useContext(FieldErrors)[name];
+}
+
 /**
  * Forms with unsaved changes on this page. Leaving the page (or submitting another form, such
  * as "Publish" next to an edited post) warns first, so typed work is never lost silently.
@@ -403,18 +408,5 @@ export function Section({ title, description, children, className, actions, id }
   );
 }
 
-const pagerLink = "inline-flex min-h-10 items-center rounded-md border px-3 font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
-export function Pager({ page, hasMore, base, params }: { page: number; hasMore: boolean; base: string; params?: Record<string, string | undefined> }) {
-  const q = (p: number) => {
-    const s = new URLSearchParams(Object.entries({ ...params, page: String(p) }).filter(([, v]) => v) as Array<[string, string]>);
-    return `${base}?${s.toString()}`;
-  };
-  return (
-    <nav aria-label="Pages" className="mt-4 flex items-center justify-between gap-2 text-sm">
-      {page > 1 ? <Link prefetch={false} href={q(page - 1)} className={pagerLink}>← Previous</Link> : <span />}
-      {(page > 1 || hasMore) && <span className="text-muted-foreground">Page {page}</span>}
-      {hasMore ? <Link prefetch={false} href={q(page + 1)} className={pagerLink}>Next →</Link> : <span />}
-    </nav>
-  );
-}
+/** Pages of a list: numbered with a total, otherwise Previous / Next (see ./pagination). */
+export { Pager } from "./pagination";

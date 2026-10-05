@@ -10,6 +10,7 @@
  *   watch   whose active status a tab may follow: people the viewer may message, never someone
  *           who blocked them
  */
+import type { Mention } from "../chat/mentions";
 import type { Ctx } from "./context";
 import { AuthRequiredError } from "./errors";
 import { b64url, fromB64url } from "./crypto";
@@ -26,12 +27,14 @@ export interface LiveMessage {
   replyTo: { id: string; name: string; body: string } | null;
   /** The sender's own id for it, so the tab that sent it replaces its "Sending…" copy. */
   clientId?: string | null;
+  /** Who it mentions. */
+  mentions?: Mention[];
 }
 
 export type LiveEvent =
   /** A new message; `from` gets a "delivered" tick when any recipient tab received it. */
   | { t: "msg"; c: string; m: LiveMessage; from: string; group?: string | null }
-  | { t: "edit"; c: string; id: string; body: string }
+  | { t: "edit"; c: string; id: string; body: string; mentions?: Mention[] }
   | { t: "del"; c: string; id: string; removed?: boolean }
   /** Someone read a conversation up to `at` (only sent when both share read receipts). */
   | { t: "read"; c: string; u: string; at: string }

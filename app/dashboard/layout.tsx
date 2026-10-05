@@ -4,7 +4,6 @@ import { Suspense } from "react";
 import { requireSignedIn } from "@/lib/api/session";
 import { AdminNav, AdminNavMobile } from "./nav";
 import { SeenOnOpen } from "@/components/dashboard/seen-on-open";
-import { LiveToaster } from "@/components/dashboard/live-toaster";
 import { FlashMessage } from "@/components/admin/flash";
 import { API_VERSION } from "@/lib/version";
 
@@ -32,6 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       { href: "/dashboard/notifications", label: "Notifications", show: true, badge: session.unread || undefined },
       { href: "/dashboard/chat", label: "Messages", show: true, badge: session.unreadMessages || undefined },
       { href: "/dashboard/profile", label: "My profile", show: true },
+      { href: "/dashboard/certificates", label: "Certificates", show: true },
       { href: "/dashboard/security", label: "Security", show: true },
     ] },
     { label: "People", items: [
@@ -44,6 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       // Members write blog posts only; news and announcements are the committee's.
       { href: "/dashboard/posts?type=NEWS", label: "News", show: c("posts.read") && session.adminAccess },
       { href: "/dashboard/posts?type=ANNOUNCEMENT", label: "Announcements", show: c("posts.read") && session.adminAccess },
+      { href: "/dashboard/email", label: "Email", show: c("email.campaigns") },
       { href: "/dashboard/media", label: "Media", show: c("media.read") },
       { href: "/dashboard/sponsorships", label: "Sponsorship pages", show: c("settings.manage") },
     ] },
@@ -124,7 +125,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <FlashMessage />
         <Suspense fallback={null}>
           <SeenOnOpen seed={counts} />
-          <LiveToaster meId={session.user.id} />
         </Suspense>
       </div>
     </div>

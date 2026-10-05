@@ -75,6 +75,7 @@ test("the editor edits sections without JSON and the preview follows unsaved edi
   await preview.goto("/sponsors/preview/spn_gucc_partnership");
   await expect(preview.getByRole("status").first()).toContainText("showing the saved page");
 
+  await page.getByRole("tab", { name: /^Hero/ }).click();
   await page.getByLabel("Short name (badge)").fill("E2E PARTNERS");
   await expect(preview.getByText("E2E PARTNERS").first()).toBeVisible({ timeout: 10_000 });
   await expect(preview.getByRole("status").first()).toContainText("showing unsaved edits");
@@ -87,4 +88,38 @@ test("the editor edits sections without JSON and the preview follows unsaved edi
   // Leaving without saving: nothing changed on the site.
   await page.goto("/sponsors/partner-with-gucc");
   await expect(page.getByText("E2E PARTNERS")).toHaveCount(0);
+});
+
+test("the layout: a new block shows in the preview at once, and a hidden section disappears", async ({ page, context }) => {
+  test.setTimeout(180_000);
+  await login(page, MODERATOR.email, MODERATOR.password, "/dashboard/sponsorships/spn_gucc_partnership");
+  const preview = await context.newPage();
+  await preview.goto("/sponsors/preview/spn_gucc_partnership");
+  await page.getByRole("tab", { name: /^Layout/ }).click();
+  await page.getByRole("button", { name: /^Questions/ }).click();
+  await page.getByRole("textbox", { name: "Question" }).first().fill("Can we sponsor one contest only?");
+  await expect(preview.getByText("Can we sponsor one contest only?")).toBeVisible({ timeout: 10_000 });
+  await page.getByRole("button", { name: "Hide Event photos" }).click();
+  await expect(preview.locator("#gallery")).toHaveCount(0, { timeout: 10_000 });
+  // Phone width, in a frame of the preview.
+  await preview.getByRole("button", { name: "Phone" }).click();
+  await expect(preview.locator('iframe[title$="390 pixels"]')).toBeVisible();
+});
+
+test("on a phone: everything readable without JavaScript, swipeable packages and an action bar that covers nothing", async ({ browser }) => {
+  const slug = defaultSlug()!;
+  const noJs = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await noJs.newPage();
+  await page.goto(`/sponsors/${slug}`);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  // Content isn't waiting for a script to fade it in.
+  const packages = page.locator("#packages");
+  if (await packages.count()) await expect(packages.getByRole("heading", { level: 3 }).first()).toBeVisible();
+  // Nothing wider than the phone.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  // The action bar is at the bottom; the page leaves room for it.
+  const bar = page.getByRole("link", { name: /Become a sponsor/i }).last();
+  const box = (await bar.boundingBox())!;
+  expect(box.y + box.height).toBeLessThanOrEqual(844);
+  await noJs.close();
 });

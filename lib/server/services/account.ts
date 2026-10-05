@@ -18,6 +18,7 @@ import { AppError, ConflictError, NotFoundError, ValidationError } from "../erro
 import { notifyStmts } from "../notifications";
 import { deliverEmail, getSetting } from "../security";
 import { profileTags } from "../people-sync";
+import { erasureStatements } from "./account-erasure";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -151,9 +152,9 @@ export async function confirmEmailChange(ctx: Ctx, token: string): Promise<{ ema
 }
 
 /**
- * Delete my account: the sign-in, roles, grants and private details go. A committee listing
- * stays as part of the club's record, unlinked from the account; a profile with no listings is
- * removed.
+ * Delete my account: the sign-in, roles, grants and private details go (lib/server/services/
+ * account-erasure.ts). A committee listing stays as part of the club's record, unlinked from the
+ * account; a profile with no listings is removed.
  */
 export async function deleteOwnAccount(ctx: Ctx, input: { password?: unknown; confirm?: unknown }): Promise<void> {
   const actor = await checkPassword(ctx, input.password);
@@ -170,42 +171,7 @@ export async function deleteOwnAccount(ctx: Ctx, input: { password?: unknown; co
   const tags = await profileTags(ctx, actor.profile?.id);
   await ctx.db.batch([
     auditStmt(ctx, { action: "account.delete", resourceType: "user", resourceId: id, reason: "Deleted by the account holder" }),
-    ctx.db.stmt("UPDATE sessions SET revoked_at = ?2 WHERE user_id = ?1 AND revoked_at IS NULL", id, now),
-    ctx.db.stmt("DELETE FROM auth_tokens WHERE user_id = ?1", id),
-    ctx.db.stmt("UPDATE user_roles SET revoked_at = ?2, reason = 'Account deleted' WHERE user_id = ?1 AND revoked_at IS NULL", id, now),
-    ctx.db.stmt("UPDATE user_permissions SET revoked_at = ?2 WHERE user_id = ?1 AND revoked_at IS NULL", id, now),
-    ctx.db.stmt("UPDATE event_registrations SET user_id = NULL WHERE user_id = ?1", id),
-    ctx.db.stmt("UPDATE lost_found_posts SET deleted_at = ?2 WHERE user_id = ?1 AND deleted_at IS NULL", id, now),
-    // Direct conversations are archived; groups are left (their messages stay, as "Former member").
-    ctx.db.stmt(`UPDATE conversation_members SET archived_at = COALESCE(archived_at, ?2),
-                   left_at = CASE WHEN conversation_id IN (SELECT conversation_id FROM chat_groups) THEN COALESCE(left_at, ?2) ELSE left_at END
-                 WHERE user_id = ?1`, id, now),
-    // Personal records with no history value go; logs keep the event but not the address.
-    ctx.db.stmt("DELETE FROM user_mfa WHERE user_id = ?1", id),
-    ctx.db.stmt("DELETE FROM notification_preferences WHERE user_id = ?1", id),
-    ctx.db.stmt("DELETE FROM notifications WHERE user_id = ?1", id),
-    ctx.db.stmt("UPDATE email_log SET recipient = 'deleted' WHERE user_id = ?1", id),
-    ctx.db.stmt("UPDATE authentication_events SET email = NULL, user_agent = NULL WHERE user_id = ?1", id),
-    // Open tasks for this person are cancelled (nobody can do them now, and reminders would go nowhere).
-    ctx.db.stmt("UPDATE tasks SET status = 'CANCELLED', updated_at = ?2 WHERE assignee_user_id = ?1 AND status IN ('OPEN', 'IN_PROGRESS') AND deleted_at IS NULL", id, now),
-    // Executives stay in the club's history by name and position only: their photo, bio, links
-    // and public email go from every listing too.
-    ctx.db.stmt(
-      `UPDATE committee_members SET avatar_media_id = NULL, avatar_position_x = NULL, avatar_position_y = NULL, avatar_scale = NULL, bio = NULL,
-              legacy_json = CASE WHEN legacy_json IS NULL THEN NULL ELSE json_remove(legacy_json, '$.linkedin', '$.github', '$.twitter', '$.facebook', '$.mail') END, updated_at = ?2
-       WHERE profile_id IN (SELECT id FROM profiles WHERE user_id = ?1)`, id, now),
-    // Profiles without committee history are personal only: remove them.
-    ctx.db.stmt(
-      `UPDATE profiles SET deleted_at = ?2, full_name = 'Former member', student_id = NULL, phone = NULL, bio = NULL, public_email = NULL, skills_json = NULL,
-              linkedin_url = NULL, github_url = NULL, twitter_url = NULL, facebook_url = NULL, website_url = NULL, avatar_media_id = NULL, cutout_media_id = NULL, user_id = NULL
-       WHERE user_id = ?1 AND NOT EXISTS (SELECT 1 FROM committee_members cm WHERE cm.profile_id = profiles.id AND cm.deleted_at IS NULL)`, id, now),
-    ctx.db.stmt(
-      `UPDATE profiles SET user_id = NULL, phone = NULL, bio = NULL, public_email = NULL, skills_json = NULL, linkedin_url = NULL, github_url = NULL, twitter_url = NULL,
-              facebook_url = NULL, website_url = NULL, avatar_media_id = NULL, cutout_media_id = NULL, avatar_position_x = NULL, avatar_position_y = NULL, avatar_scale = NULL, updated_at = ?2
-       WHERE user_id = ?1`, id, now),
-    ctx.db.stmt(
-      `UPDATE users SET email = 'deleted+' || id || '@invalid', password_hash = NULL, status = 'ARCHIVED', deleted_at = ?2, updated_at = ?2,
-              correction_note = NULL, review_note = NULL, rejected_reason = NULL, suspended_reason = NULL WHERE id = ?1`, id, now),
+    ...erasureStatements(ctx, [id], now),
   ]);
   if (tags.length) ctx.revalidate?.(tags);
   emit(ctx, [id], { t: "bye" });

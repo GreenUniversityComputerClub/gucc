@@ -13,7 +13,7 @@ export async function setAvatarAction(mediaId: string | null, cutoutId: string |
 
 export async function saveEmailPreferencesAction(fd: FormData) {
   const choices: Record<string, boolean> = {};
-  for (const key of ["security", "approvals", "roles", "work", "events", "messages"]) choices[key] = fd.get(key) === "on";
+  for (const key of ["security", "approvals", "roles", "work", "events", "messages", "announcements"]) choices[key] = fd.get(key) === "on";
   return runAction("email.savePreferences", { choices });
 }
 

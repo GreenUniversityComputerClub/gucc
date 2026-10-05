@@ -308,11 +308,11 @@ describe("switching email on", () => {
     await expect(setSwitch(await w.ctx(pres), "settings.anything", false)).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
-  it("start with every email off (security alerts too), and keep each person's own choices", async () => {
+  it("start with every notification email off (security alerts too), club announcements on, and keep each person's own choices", async () => {
     const m = await w.user({ email: "m@x.bd", roles: ["member"] });
     const before = await emailPreferences(await w.ctx(m));
-    expect(before.choices.map((c) => c.key)).toEqual(["security", "approvals", "roles", "work", "events", "messages"]);
-    expect(before.choices.every((c) => !c.email)).toBe(true);
+    expect(before.choices.map((c) => c.key)).toEqual(["security", "approvals", "roles", "work", "events", "messages", "announcements"]);
+    expect(before.choices.filter((c) => c.email).map((c) => c.key)).toEqual(["announcements"]);
     expect((await saveEmailPreferences(await w.ctx(m), { security: true, messages: true })).message).toMatch(/2 kinds of notification will also come by email/);
     const after = await emailPreferences(await w.ctx(m));
     expect(after.choices.filter((c) => c.email).map((c) => c.key)).toEqual(["security", "messages"]);

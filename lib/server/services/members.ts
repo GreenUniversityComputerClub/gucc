@@ -46,9 +46,21 @@ export interface MemberListRow {
   avatarUrl: string | null;
 }
 
-export async function listMembers(ctx: Ctx, opts: { status?: string; q?: string; page?: number; batch?: string; department?: string }) {
+/** How the members list can be ordered (`?sort=`). Waiting applications always come first. */
+const MEMBER_SORTS = {
+  newest: "u.created_at DESC",
+  oldest: "u.created_at ASC",
+  name: "COALESCE(p.full_name, u.email) COLLATE NOCASE ASC",
+  login: "u.last_login_at IS NULL, u.last_login_at DESC",
+  batch: "p.batch IS NULL, p.batch DESC, COALESCE(p.full_name, u.email) COLLATE NOCASE ASC",
+} as const;
+export type MemberSort = keyof typeof MEMBER_SORTS;
+
+export async function listMembers(ctx: Ctx, opts: { status?: string; q?: string; page?: number; size?: number; sort?: string; batch?: string; department?: string }) {
   requirePermission(ctx, "members.read");
   const page = Math.max(1, opts.page ?? 1);
+  const size = [10, 25, 50, 100].includes(Number(opts.size)) ? Number(opts.size) : 50;
+  const sort = MEMBER_SORTS[(opts.sort ?? "newest") as MemberSort] ?? MEMBER_SORTS.newest;
   const q = opts.q ? `%${opts.q.replace(/[%_]/g, "")}%` : null;
   // Phone numbers are private: only people who manage members see them.
   const showPhone = authorize(ctx, "members.manage").outcome === "ALLOW" ? 1 : 0;
@@ -71,9 +83,9 @@ export async function listMembers(ctx: Ctx, opts: { status?: string; q?: string;
      WHERE u.deleted_at IS NULL AND (?1 IS NULL OR u.status = ?1)
        AND (?2 IS NULL OR u.email LIKE ?2 OR p.full_name LIKE ?2 OR p.student_id LIKE ?2 OR json_extract(p.legacy_json, '$.claimStudentId') LIKE ?2)
        AND (?5 IS NULL OR p.batch = ?5) AND (?6 IS NULL OR p.department LIKE ?6)
-     ORDER BY CASE u.status WHEN 'PENDING_APPROVAL' THEN 0 ELSE 1 END, u.created_at DESC
-     LIMIT 50 OFFSET ?3`,
-    opts.status ?? null, q, (page - 1) * 50, showPhone, batch, department ? `%${department.replace(/[%_]/g, "")}%` : null,
+     ORDER BY CASE u.status WHEN 'PENDING_APPROVAL' THEN 0 ELSE 1 END, ${sort}
+     LIMIT ?7 OFFSET ?3`,
+    opts.status ?? null, q, (page - 1) * size, showPhone, batch, department ? `%${department.replace(/[%_]/g, "")}%` : null, size,
   )) as MemberListRow[];
   const total = await ctx.db.value<number>(
     `SELECT COUNT(*) FROM users u LEFT JOIN profiles p ON p.user_id = u.id AND p.deleted_at IS NULL WHERE u.deleted_at IS NULL AND (?1 IS NULL OR u.status = ?1)
@@ -81,7 +93,19 @@ export async function listMembers(ctx: Ctx, opts: { status?: string; q?: string;
        AND (?3 IS NULL OR p.batch = ?3) AND (?4 IS NULL OR p.department LIKE ?4)`,
     opts.status ?? null, q, batch, department ? `%${department.replace(/[%_]/g, "")}%` : null,
   );
-  return { rows, total: total ?? 0, page };
+  return { rows, total: total ?? 0, page, size };
+}
+
+/** The batches and departments members have, for the list's filters (most common first). */
+export async function memberFilterOptions(ctx: Ctx): Promise<{ batches: string[]; departments: string[] }> {
+  requirePermission(ctx, "members.read");
+  const rows = await ctx.db.all<{ kind: string; value: string }>(
+    `SELECT 'batch' AS kind, p.batch AS value FROM profiles p JOIN users u ON u.id = p.user_id AND u.deleted_at IS NULL
+     WHERE p.deleted_at IS NULL AND p.batch IS NOT NULL AND trim(p.batch) <> '' GROUP BY p.batch ORDER BY p.batch DESC LIMIT 200`);
+  const deps = await ctx.db.all<{ value: string }>(
+    `SELECT p.department AS value FROM profiles p JOIN users u ON u.id = p.user_id AND u.deleted_at IS NULL
+     WHERE p.deleted_at IS NULL AND p.department IS NOT NULL AND trim(p.department) <> '' GROUP BY lower(p.department) ORDER BY COUNT(*) DESC LIMIT 60`);
+  return { batches: rows.map((r) => r.value), departments: deps.map((r) => r.value) };
 }
 
 async function loadTarget(ctx: Ctx, userId: string) {
@@ -277,6 +301,8 @@ export async function updateOwnProfile(ctx: Ctx, input: Record<string, unknown>)
     : null;
   // Who sees my profile page; left as it is when the form doesn't send it.
   const visibility = input.visibility === undefined ? null : v.oneOf("visibility", ["PUBLIC", "MEMBERS", "PRIVATE"] as const, { label: "Who can see my profile" });
+  // Which email my profile and the executives pages show (for every year I served).
+  const emailDisplay = input.emailDisplay === undefined ? null : v.oneOf("emailDisplay", ["AUTO", "PROFILE", "HIDDEN"] as const, { label: "Email shown on the site" });
   const skills = typeof input.skills === "string" || Array.isArray(input.skills)
     ? [...new Set((Array.isArray(input.skills) ? input.skills.map(String) : String(input.skills).split(",")).map((x) => x.trim()).filter(Boolean))]
     : null;
@@ -290,9 +316,9 @@ export async function updateOwnProfile(ctx: Ctx, input: Record<string, unknown>)
     ctx.db.stmt(
       `UPDATE profiles SET full_name = ?2, department = ?3, batch = ?4, bio = ?5, linkedin_url = ?6, github_url = ?7, facebook_url = ?8, website_url = ?9, phone = ?10,
               twitter_url = ?13, public_email = ?14, skills_json = CASE WHEN ?15 IS NULL THEN skills_json ELSE ?15 END,
-              visibility = COALESCE(?16, visibility), updated_at = ?11, updated_by = ?12 WHERE id = ?1`,
+              visibility = COALESCE(?16, visibility), email_display = COALESCE(?17, email_display), updated_at = ?11, updated_by = ?12 WHERE id = ?1`,
       actor.profile.id, data.full_name, data.department, data.batch, data.bio, data.linkedin_url, data.github_url, data.facebook_url, data.website_url, data.phone, now, actor.user.id,
-      data.twitter_url, data.public_email, skills ? JSON.stringify(skills) : null, visibility ?? null,
+      data.twitter_url, data.public_email, skills ? JSON.stringify(skills) : null, visibility ?? null, emailDisplay ?? null,
     ),
     auditStmt(ctx, { action: "profile.update", resourceType: "profile", resourceId: actor.profile.id, after: { ...data, phone: undefined } }),
   ]);
@@ -341,7 +367,7 @@ export async function exportMembersCsv(ctx: Ctx, opts: { status?: string; q?: st
      FROM users u LEFT JOIN profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
      WHERE u.deleted_at IS NULL AND (?1 IS NULL OR u.status = ?1)
        AND (?2 IS NULL OR u.email LIKE ?2 OR p.full_name LIKE ?2 OR p.student_id LIKE ?2) AND (?3 IS NULL OR p.batch = ?3) AND (?4 IS NULL OR p.department LIKE ?4)
-     ORDER BY p.full_name, u.email LIMIT 20000`, status, q, batch, department ? `%${department}%` : null);
+     ORDER BY p.full_name, u.email LIMIT 20000`, status, q, batch, department ? `%${department.replace(/[%_]/g, "")}%` : null);
   const head = ["Name", "Email", "Student ID", "Department", "Batch", "Phone", "Status", "Current positions", "Roles", "Joined", "Approved", "Last sign-in"];
   const lines = [head.map(csvCell).join(","), ...rows.map((r) => [r.full_name, r.email, r.student_id, r.department, r.batch, r.phone, r.status, r.positions, r.roles, r.created_at, r.approved_at, r.last_login_at].map(csvCell).join(","))];
   await auditStmt(ctx, { action: "members.export", resourceType: "user", after: { rows: rows.length, status: status ?? "all" }, decision }).run();

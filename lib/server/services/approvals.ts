@@ -117,6 +117,21 @@ export interface StartApprovalInput {
   ruleId?: string | null;
   /** Statements committed together with opening the request (e.g. set status PENDING_APPROVAL). */
   alongside?: D1StatementLike[];
+  /**
+   * People who may not decide it although the policy names them: the person a change to an account
+   * is about (a leader can't approve deleting their own account). Kept with the request.
+   */
+  excludeUserIds?: string[];
+}
+
+/** Who may not decide a request (see StartApprovalInput.excludeUserIds), from its stored payload. */
+function excludedOf(payloadJson: string | null): string[] {
+  try {
+    const p = payloadJson ? (JSON.parse(payloadJson) as { excludeUserIds?: unknown }) : null;
+    return Array.isArray(p?.excludeUserIds) ? p.excludeUserIds.map(String) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function startApproval(ctx: Ctx, input: StartApprovalInput): Promise<{ requestId: string; created: boolean }> {
@@ -135,20 +150,23 @@ export async function startApproval(ctx: Ctx, input: StartApprovalInput): Promis
     return { requestId: existing.id, created: false };
   }
 
+  const excluded = new Set(input.excludeUserIds ?? []);
+  const payloadValue = excluded.size ? { ...(input.payload as Record<string, unknown> ?? {}), excludeUserIds: [...excluded] } : input.payload;
   let { id: policyId, policy } = await loadPolicy(ctx, input.policyKey);
   // A request nobody else can decide would wait forever. Content moves to club leadership; when
   // the requester's own position is what's missing (e.g. the President asking "President and
   // General Secretary"), it's refused with the reason. An empty position is fine: whoever is
   // appointed to it later can decide.
-  if (!coverable(policy, await groupCandidates(ctx, policy, actor.user.id))) {
+  const candidates = async (p: ApprovalPolicy, requester: string) => (await groupCandidates(ctx, p, requester)).map((g) => g.filter((id) => !excluded.has(id)));
+  if (!coverable(policy, await candidates(policy, actor.user.id))) {
     const fallback = input.resourceType !== "governance" && policy.key !== FALLBACK_POLICY ? await loadPolicy(ctx, FALLBACK_POLICY).catch(() => null) : null;
-    if (fallback && coverable(fallback.policy, await groupCandidates(ctx, fallback.policy, actor.user.id))) {
+    if (fallback && coverable(fallback.policy, await candidates(fallback.policy, actor.user.id))) {
       ({ id: policyId, policy } = fallback);
-    } else if (coverable(policy, await groupCandidates(ctx, { ...policy, allowSelfApproval: true }, actor.user.id))) {
+    } else if (coverable(policy, await candidates({ ...policy, allowSelfApproval: true }, actor.user.id))) {
       throw new AppError(409, "NO_APPROVER", `Under "${policy.name}" you would have to approve your own request, which isn't allowed. Ask a Moderator to decide it another way or change the approval policy.`);
     }
   }
-  const approvers = await eligibleApprovers(ctx, policy, actor.user.id);
+  const approvers = (await eligibleApprovers(ctx, policy, actor.user.id)).filter((id) => !excluded.has(id));
   const requestId = newId("apr");
   const now = nowIso();
   await ctx.db.batch([
@@ -157,7 +175,7 @@ export async function startApproval(ctx: Ctx, input: StartApprovalInput): Promis
       `INSERT INTO approval_requests (id, policy_id, policy_snapshot, rule_id, resource_type, resource_id, action, title, payload_json, status, requested_by, created_at, updated_at)
        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'PENDING', ?10, ?11, ?11)`,
       requestId, policyId, JSON.stringify(policy), input.ruleId ?? null, input.resourceType, input.resourceId, input.action, input.title.slice(0, 200),
-      input.payload === undefined ? null : JSON.stringify(input.payload), actor.user.id, now,
+      payloadValue === undefined ? null : JSON.stringify(payloadValue), actor.user.id, now,
     ),
     auditStmt(ctx, { action: "approval.requested", resourceType: input.resourceType, resourceId: input.resourceId, after: { requestId, policy: policy.key, action: input.action } }),
     ...notifyStmts(ctx, approvers, {
@@ -206,6 +224,7 @@ export async function decideApproval(ctx: Ctx, requestId: string, decision: "APP
     const reason = actor.user.id === req.requested_by && !policy.allowSelfApproval ? "You cannot approve your own request." : `You are not an approver under "${policy.name}".`;
     throw new ForbiddenError(reason);
   }
+  if (excludedOf(req.payload_json).includes(actor.user.id)) throw new ForbiddenError("This change is about your own account, so another leader decides it.");
   if (decision === "REJECT" && !comment?.trim()) throw new AppError(400, "REASON_REQUIRED", "Give a reason so the author knows what to change.");
 
   const steps = [...(await loadSteps(ctx, requestId)).filter((s) => s.actorId !== actor.user.id), { actorId: actor.user.id, decision, matchedGroups: groups }];

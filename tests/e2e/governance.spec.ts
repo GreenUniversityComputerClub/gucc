@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { d1, login, MODERATOR, settle, acceptConfirms } from "./helpers";
+import { d1, login, MODERATOR, openMemberSheet, settle, acceptConfirms } from "./helpers";
 
 /**
  * Leadership tools end to end: importing executives from a file (preview, resolve, import,
@@ -69,7 +69,8 @@ test("an administrator's one-time reset link lets a member set a new password", 
   d1(`INSERT INTO users (id, email, status) VALUES ('usr_reset_${run}', '${email}', 'ACTIVE')`);
   d1(`INSERT INTO profiles (id, user_id, full_name) VALUES ('prf_reset_${run}', 'usr_reset_${run}', 'Reset Member ${run}')`);
   await login(page, MODERATOR.email, MODERATOR.password, `/dashboard/members?status=ACTIVE&q=${encodeURIComponent(email)}`);
-  await page.getByRole("button", { name: "Password reset link" }).click();
+  const sheet = await openMemberSheet(page, email);
+  await sheet.getByRole("button", { name: "Password reset link" }).click();
   const link = await page.locator("code").filter({ hasText: "/auth/update-password?token=" }).innerText();
   const url = new URL(link);
 

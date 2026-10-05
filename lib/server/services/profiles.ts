@@ -58,7 +58,7 @@ export async function ensureProfileHandle(ctx: Ctx, profileId: string, name: str
 
 interface ProfileRow {
   id: string; slug: string | null; user_id: string | null; full_name: string; person_type: string; department: string | null; batch: string | null; designation: string | null;
-  bio: string | null; skills_json: string | null; public_email: string | null; linkedin_url: string | null; github_url: string | null; twitter_url: string | null; facebook_url: string | null;
+  bio: string | null; skills_json: string | null; public_email: string | null; email_display?: string | null; linkedin_url: string | null; github_url: string | null; twitter_url: string | null; facebook_url: string | null;
   website_url: string | null; visibility: ProfileVisibility; avatar_json: string | null; account_status: string | null; member_since: string | null;
   message_privacy: string | null; served: number; student_id: string | null; updated_at: string | null;
 }
@@ -71,7 +71,7 @@ export async function getProfile(ctx: Ctx, rawHandle: unknown) {
   const handle = String(rawHandle ?? "").trim().toLowerCase().slice(0, 80);
   if (!handle) throw new NotFoundError("Profile");
   const p = await ctx.db.first<ProfileRow>(
-    `SELECT pr.id, pr.slug, pr.user_id, pr.full_name, pr.person_type, pr.department, pr.batch, pr.designation, pr.bio, pr.skills_json, pr.public_email,
+    `SELECT pr.id, pr.slug, pr.user_id, pr.full_name, pr.person_type, pr.department, pr.batch, pr.designation, pr.bio, pr.skills_json, pr.public_email, pr.email_display,
             pr.linkedin_url, pr.github_url, pr.twitter_url, pr.facebook_url, pr.website_url, pr.visibility, ${avatarOfProfileSql("pr")} AS avatar_json,
             pr.student_id, pr.updated_at,
             u.status AS account_status, COALESCE(u.approved_at, u.created_at) AS member_since, u.message_privacy,
@@ -139,7 +139,7 @@ export async function getProfile(ctx: Ctx, rawHandle: unknown) {
     skills: full ? skills : [],
     links: {
       linkedin: p.linkedin_url, github: p.github_url, twitter: p.twitter_url, facebook: p.facebook_url,
-      website: full ? p.website_url : null, email: p.public_email,
+      website: full ? p.website_url : null, email: p.email_display === "HIDDEN" ? null : p.public_email,
     },
     memberSince: p.account_status === "ACTIVE" ? p.member_since : null,
     current: current.map((h) => ({ title: h.title, committee: h.committee, year: h.year, campus: h.campus })),

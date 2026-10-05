@@ -8,6 +8,7 @@
  * picking another default first. Managed by people who can manage settings (settings.manage), as
  * the single sponsorship page was before. Every change refreshes the public pages.
  */
+import { cleanSections, type SectionedContent } from "../../sponsorship/sections";
 import { auditStmt } from "../audit";
 import { requireActor, requirePermission } from "../authz";
 import type { Ctx } from "../context";
@@ -93,7 +94,11 @@ function parseContent(raw: unknown): Record<string, unknown> {
     const part = (value as Record<string, unknown>)[key];
     if (part !== undefined && !Array.isArray(part)) throw new ValidationError(`"${key}" must be a list ([ … ]).`, { content: `${key} must be a list.` });
   }
-  return value as Record<string, unknown>;
+  // The page's sections, theme and SEO: known blocks only, texts within their limits, links to
+  // this site, https or the page itself.
+  const { content, errors } = cleanSections(value as SectionedContent);
+  if (errors.length) throw new ValidationError(errors[0]!, { content: errors[0]! });
+  return content as Record<string, unknown>;
 }
 
 async function freeSlug(ctx: Ctx, base: string, exceptId: string | null): Promise<string> {

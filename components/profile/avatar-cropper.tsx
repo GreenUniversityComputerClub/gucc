@@ -8,6 +8,35 @@ import { cn } from "@/lib/utils";
 
 const VIEW = 280; // on-screen frame, px
 const OUT = 800; // saved square, px
+/** Formats that can carry transparency (a cut-out made elsewhere). */
+const MAY_HAVE_ALPHA = /^image\/(png|webp|gif|avif)$/;
+
+/** A copy on white: JPEG has no transparency, and an unfilled canvas would turn it black. */
+function onWhite(src: HTMLCanvasElement): HTMLCanvasElement {
+  const out = document.createElement("canvas");
+  out.width = src.width;
+  out.height = src.height;
+  const g = out.getContext("2d")!;
+  g.fillStyle = "#ffffff";
+  g.fillRect(0, 0, out.width, out.height);
+  g.drawImage(src, 0, 0);
+  return out;
+}
+
+/** Share of a canvas that is opaque (0–1), measured on a small copy. */
+function opaqueShare(src: HTMLCanvasElement): number {
+  const S = 64;
+  const c = document.createElement("canvas");
+  c.width = S;
+  c.height = S;
+  const g = c.getContext("2d", { willReadFrequently: true });
+  if (!g) return 1;
+  g.drawImage(src, 0, 0, S, S);
+  const d = g.getImageData(0, 0, S, S).data;
+  let solid = 0;
+  for (let i = 3; i < d.length; i += 4) if (d[i]! >= 16) solid++;
+  return solid / (S * S);
+}
 
 type BgState = { status: "working" } | { status: "ready"; cut: PersonCutout } | { status: "none"; reason: string };
 
@@ -75,7 +104,7 @@ export function AvatarCropper({ file, onCancel, onCropped, title = "Frame your p
         made = URL.createObjectURL(b);
         setNatural(null);
         setUrl(made);
-      }, "image/jpeg", 0.95);
+      }, MAY_HAVE_ALPHA.test(file.type) ? "image/png" : "image/jpeg", 0.95);
     };
     img.src = original;
     return () => {
@@ -115,8 +144,9 @@ export function AvatarCropper({ file, onCancel, onCropped, title = "Frame your p
   async function finish(canvas: HTMLCanvasElement, person?: HTMLCanvasElement) {
     setBusy(true);
     const stem = file.name.replace(/\.[^.]+$/, "") || "photo";
+    const flat = onWhite(canvas);
     const [blob, cut] = await Promise.all([
-      new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92)),
+      new Promise<Blob | null>((resolve) => flat.toBlob(resolve, "image/jpeg", 0.92)),
       person ? new Promise<Blob | null>((resolve) => person.toBlob(resolve, "image/png")) : Promise.resolve(null),
     ]);
     setBusy(false);
@@ -127,29 +157,31 @@ export function AvatarCropper({ file, onCancel, onCropped, title = "Frame your p
     const canvas = framed();
     if (!canvas) return;
     if (!backgrounds) return finish(canvas);
-    originalRef.current = canvas;
+    originalRef.current = onWhite(canvas);
     setStep("background");
     setBg({ status: "working" });
+    // A picture that already has its background removed: its own transparency is the cut-out.
+    const coverage = MAY_HAVE_ALPHA.test(file.type) ? opaqueShare(canvas) : 1;
+    if (coverage < 0.95 && coverage > 0.05) {
+      setBg({ status: "ready", cut: { photo: originalRef.current, person: canvas, coverage } });
+      setBackdrop("soft");
+      return;
+    }
     try {
-      const cut = await cutOutPerson(canvas);
+      const cut = await cutOutPerson(originalRef.current);
       if (cut) setBg({ status: "ready", cut });
       else {
         setBg({ status: "none", reason: "No person found in the framed part, so the background stays as it is." });
         setBackdrop("original");
-        paintOriginal(canvas);
       }
     } catch {
       setBg({ status: "none", reason: "The background remover couldn't start on this device, so the background stays as it is." });
       setBackdrop("original");
-      paintOriginal(canvas);
     }
   }
 
-  // The framed square, kept for when the background stays as it is.
+  // The framed square on white, kept for when the background stays as it is.
   const originalRef = useRef<HTMLCanvasElement | null>(null);
-  function paintOriginal(canvas: HTMLCanvasElement) {
-    originalRef.current = canvas;
-  }
 
   // The preview follows the chosen backdrop at once (no new segmentation).
   useEffect(() => {

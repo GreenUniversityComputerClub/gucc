@@ -22,10 +22,10 @@ function rng(seed: number) {
   return () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
 }
 
-const verdict = (px: Px, extra: Partial<PhotoCheck["metrics"]> = {}, kind?: "profile" | "group") => {
+const verdict = (px: Px, extra: Partial<PhotoCheck["metrics"]> = {}, kind?: "profile" | "group", person?: number) => {
   const data = image(S, px);
   const big = image(128, (x, y) => px(Math.floor(x / 2), Math.floor(y / 2)));
-  return judge({ width: 800, height: 800, faces: null, ...measure(data, S, S), sharpness: sharpnessOf(big, 128, 128), ...extra }, { kind });
+  return judge({ width: 800, height: 800, faces: null, ...measure(data, S, S), sharpness: sharpnessOf(big, 128, 128), ...extra }, { kind, person });
 };
 
 /** Something like a portrait: a warm oval "face" with shading on a textured background. */
@@ -50,8 +50,12 @@ describe("blank and placeholder pictures", () => {
     expect(verdict(() => { const v = 245 + Math.floor(r() * 6); return [v, v, v]; }).verdict).toBe("block");
   });
 
-  it("refuses a mostly transparent picture", () => {
+  it("refuses a mostly transparent picture whose visible part is flat (a coloured strip)", () => {
     expect(verdict((x) => (x < 10 ? [20, 90, 200, 255] : [0, 0, 0, 0])).reasons).toContain("transparent");
+  });
+
+  it("refuses an empty, fully transparent picture", () => {
+    expect(verdict(() => [0, 0, 0, 0]).verdict).toBe("block");
   });
 
   it("refuses a default person silhouette (two flat colours)", () => {
@@ -67,6 +71,33 @@ describe("blank and placeholder pictures", () => {
 
   it("accepts a photo-like picture", () => {
     expect(verdict(photo)).toEqual({ verdict: "ok", reasons: [], message: null });
+  });
+
+  it("accepts a cut-out portrait (the person on a transparent background)", () => {
+    // The photo's person: a shaded face and shoulders; everything else is transparent.
+    const cutout: Px = (x, y) => {
+      const face = ((x - 32) / 13) ** 2 + ((y - 24) / 16) ** 2 < 1;
+      const shoulders = y > 40 && Math.abs(x - 32) < 10 + (y - 40);
+      return face || shoulders ? photo(x, y) : [0, 0, 0, 0];
+    };
+    const v = verdict(cutout);
+    expect(v.reasons).not.toContain("transparent");
+    expect(v.verdict).not.toBe("block");
+  });
+
+  it("accepts a portrait against a plain white wall", () => {
+    const onWhite: Px = (x, y) => {
+      const face = ((x - 32) / 12) ** 2 + ((y - 26) / 15) ** 2 < 1;
+      const shoulders = y > 44 && Math.abs(x - 32) < 8 + (y - 44);
+      return face || shoulders ? photo(x, y) : [255, 255, 255];
+    };
+    expect(verdict(onWhite).verdict).not.toBe("block");
+  });
+
+  it("a person found by the person-finder overrides the colour heuristics", () => {
+    const silhouette: Px = (x, y) => ((x - 32) ** 2 + (y - 22) ** 2 < 100 ? [255, 255, 255] : [200, 200, 205]);
+    expect(verdict(silhouette).verdict).toBe("block");
+    expect(verdict(silhouette, {}, "profile", 0.3).verdict).not.toBe("block");
   });
 
   it("says when a picture is too small, however detailed", () => {

@@ -3,6 +3,7 @@
 import { buttonVariants } from "@/components/ui/button";
 import type { ClubEvent } from "@/lib/events";
 import { cn } from "@/lib/utils";
+import { pageItems } from "@/lib/pagination";
 import { CalendarDays, ChevronLeftIcon, ChevronRightIcon, SearchIcon, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -36,17 +37,6 @@ function hrefFor(p: number, q: string, when: When, category = "") {
   return s ? `/events?${s}` : "/events";
 }
 
-/** 1 … 4 5 6 … 9: the first, last and neighbours of the current page. */
-function pageItems(current: number, total: number): Array<number | "gap"> {
-  const pages = new Set([1, total, current - 1, current, current + 1].filter((p) => p >= 1 && p <= total));
-  const sorted = [...pages].sort((a, b) => a - b);
-  const out: Array<number | "gap"> = [];
-  sorted.forEach((p, i) => {
-    if (i > 0 && p - sorted[i - 1]! > 1) out.push("gap");
-    out.push(p);
-  });
-  return out;
-}
 
 /**
  * The events page: the next event up front, search, category and time filters, and numbered

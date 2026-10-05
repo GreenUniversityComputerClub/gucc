@@ -1,15 +1,15 @@
 # Legacy data migration report
 
-Run `run_2026-09-29T17-53-00-300Z_e1133b2d` · 2026-09-29T17:53:00.300Z · target **local** · mode insert-missing
+Run `run_2026-10-04T23-20-28-064Z_c5650c62` · 2026-10-04T23:20:28.064Z · target **local** · mode insert-missing
 
 Private values (phone numbers, participant emails) are masked in this report. The generated SQL and the source backup
-(`migration/backup/2026-09-29T17-53-00-300Z`) contain them and are git-ignored.
+(`migration/backup/2026-10-04T23-20-28-064Z`) contain them and are git-ignored.
 
 ## Summary
 
 | Entity                 | Source | Migrated | Merged | Skipped | Failed | Duplicates | Conflicts |
 | ---------------------- | ------ | -------- | ------ | ------- | ------ | ---------- | --------- |
-| media                  | 268    | 268      | 0      | 0       | 0      | 0          | 0         |
+| media                  | 275    | 275      | 0      | 0       | 0      | 0          | 0         |
 | profiles               | 224    | 224      | 0      | 0       | 0      | 0          | 57        |
 | executive_assignments  | 334    | 334      | 0      | 0       | 0      | 0          | 0         |
 | committees             | 10     | 10       | 0      | 0       | 0      | 0          | 0         |
@@ -36,7 +36,7 @@ source = migrated + merged + skipped + failed.
 | data/hacktheaiteam.json                                                                                   | 50 teams             |
 | app/blog custom posts                                                                                     | 1 post               |
 | data/sponsors.json, data/predefined.json, data/collaborations.ts, lib/lost-found/config.ts, partner clubs | 5 settings documents |
-| public/ media                                                                                             | 268 files, 42.7 MB   |
+| public/ media                                                                                             | 275 files, 43.5 MB   |
 
 ### Sources not migrated automatically
 

@@ -41,7 +41,8 @@ export function EventCard({
             alt={`${event.name} — GUCC event at Green University of Bangladesh`}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            // An event without its own banner shows the club's wide logo: whole, on a light panel, never cropped.
+            className={event.image === "/gucc-logo.png" ? "bg-white object-contain p-6" : "object-cover transition-transform duration-300 group-hover:scale-105"}
             priority={priority}
           />
           {/* Gradient Overlay */}
@@ -57,7 +58,7 @@ export function EventCard({
               {isUpcoming ? 'Upcoming' : 'Past'}
             </span>
             {event.registrationOpen && (
-              <span className="ml-1.5 inline-flex items-center rounded-full bg-emerald-600 px-2 py-1 text-xs font-medium text-white">
+              <span className="ml-1.5 inline-flex items-center rounded-full bg-emerald-700 px-2 py-1 text-xs font-medium text-white">
                 Registration open
               </span>
             )}

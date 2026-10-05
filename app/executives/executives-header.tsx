@@ -47,7 +47,7 @@ export function ExecutivesHeader({
           <nav aria-label="Breadcrumb" className="mb-3">
             <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
               <li className="flex items-center gap-1">
-                <Link href="/" className="hover:text-primary transition-colors">
+                <Link href="/" className="-my-2.5 inline-block py-2.5 hover:text-primary transition-colors">
                   Home
                 </Link>
                 <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -59,7 +59,7 @@ export function ExecutivesHeader({
                   <>
                     <Link
                       href="/executives"
-                      className="hover:text-primary transition-colors"
+                      className="-my-2.5 inline-block py-2.5 hover:text-primary transition-colors"
                     >
                       Executives
                     </Link>
@@ -74,7 +74,7 @@ export function ExecutivesHeader({
                 <li className="flex items-center gap-1">
                   <Link
                     href={`/executives/${profileRole.year}`}
-                    className="hover:text-primary transition-colors"
+                    className="-my-2.5 inline-block py-2.5 hover:text-primary transition-colors"
                   >
                     {profileRole.year}
                   </Link>

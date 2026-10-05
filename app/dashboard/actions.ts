@@ -372,18 +372,15 @@ export async function purgeMediaAction(id: string, fd: Fd) {
 }
 
 // ── forms, contests, notifications ────────────────────────
-export async function saveFormAction(id: string | null, fd: Fd) {
-  return runAction("forms.save", { id, input: obj(fd) });
-}
-export async function archiveFormAction(id: string, _fd: Fd) {
-  return runAction("forms.archive", { id });
-}
 export async function saveContestAction(id: string | null, fd: Fd) {
   return runAction("contests.save", { id, input: obj(fd) });
 }
 export async function broadcastAction(fd: Fd) {
-  const r = await runAction<{ sent: number }>("notifications.broadcast", { title: s(fd, "title"), body: s(fd, "body"), link: s(fd, "link") || undefined, audience: s(fd, "audience") });
-  return r.ok ? { ...r, data: { message: `Sent to ${r.data?.sent ?? 0} people.` } } : r;
+  const email = s(fd, "email") === "on";
+  const r = await runAction<{ sent: number; emailed?: number }>("notifications.broadcast", { title: s(fd, "title"), body: s(fd, "body"), link: s(fd, "link") || undefined, audience: s(fd, "audience"), email });
+  if (!r.ok) return r;
+  const emailed = r.data?.emailed ?? 0;
+  return { ...r, data: { message: `Sent to ${r.data?.sent ?? 0} people.${email ? emailed ? ` Emailing ${emailed} of them, a few at a time (see Email).` : " Nobody could be emailed (no confirmed addresses, or everyone opted out)." : ""}` } };
 }
 
 // ── contact inbox ─────────────────────────────────────────
@@ -446,4 +443,23 @@ export async function deleteSponsorshipAction(id: string, _fd: Fd) {
 }
 export async function moveSponsorshipAction(id: string, direction: "up" | "down", _fd: Fd) {
   return runAction("sponsorships.move", { id, direction }, { message: direction === "up" ? "Moved up." : "Moved down." });
+}
+
+// ── The club's leadership looking after accounts (accounts.manage / accounts.email) ──
+
+/** Delete someone's account (or send it for another leader's approval). */
+export async function deleteAccountByLeaderAction(userId: string, fd: Fd) {
+  const r = await runAction<{ deleted: boolean; message: string }>("accounts.delete", { userId, reason: s(fd, "reason"), confirmName: s(fd, "confirmName") });
+  return r.ok ? { ...r, data: { message: r.data?.message ?? "Done." } } : r;
+}
+
+/** Change someone's sign-in email (or send it for another leader's approval). */
+export async function changeMemberEmailAction(userId: string, fd: Fd) {
+  const r = await runAction<{ changed: boolean; message: string }>("accounts.changeEmail", { userId, email: s(fd, "email"), reason: s(fd, "reason") });
+  return r.ok ? { ...r, data: { message: r.data?.message ?? "Done." } } : r;
+}
+
+/** Remove applications that never became members (spam, rejected, unverified). */
+export async function bulkDeleteApplicationsAction(userIds: string[], reason: string) {
+  return runAction<{ deleted: number; skipped: Array<{ id: string; name: string; why: string }> }>("accounts.bulkDelete", { userIds, reason });
 }

@@ -7,7 +7,7 @@
 import { ensureProfileHandle } from "../services/profiles";
 import { API_VERSION } from "../../version";
 import { holdsProtectedRole } from "../../governance/engine";
-import { PERMISSIONS, PERMISSIONS_V2, PERMISSIONS_V3, PERMISSIONS_V4 } from "../../governance/catalog";
+import { PERMISSIONS, PERMISSIONS_V2, PERMISSIONS_V3, PERMISSIONS_V4, PERMISSIONS_V5 } from "../../governance/catalog";
 import { mediaUrl, type MediaRow } from "../../public/shapes";
 import { listingAvatarIdSql } from "../../public/queries";
 import { authorize, can, eventResource, requireActor, requirePermission, scopesFor } from "../authz";
@@ -20,7 +20,7 @@ import { listPermissions, listPolicies, listPositions, listRules } from "../serv
 import { getPostForEdit } from "../services/posts";
 import { TRIGGER_EVENTS } from "../triggers";
 
-const ALL_PERMISSION_KEYS = [...PERMISSIONS, ...PERMISSIONS_V2, ...PERMISSIONS_V3, ...PERMISSIONS_V4].map((p) => p.key).filter((k) => k !== "*");
+const ALL_PERMISSION_KEYS = [...PERMISSIONS, ...PERMISSIONS_V2, ...PERMISSIONS_V3, ...PERMISSIONS_V4, ...PERMISSIONS_V5].map((p) => p.key).filter((k) => k !== "*");
 
 /** Permissions that open some part of the admin. */
 const ADMIN_ENTRY = ["events.read", "posts.read", "members.read", "media.upload", "approvals.read", "recruitment.manage", "messages.read", "executives.assign", "contests.manage", "forms.manage"];
@@ -210,7 +210,7 @@ export async function accountView(ctx: Ctx) {
   const actor = requireActor(ctx);
   const profile = await ctx.db.first<Record<string, string | null>>(
     `SELECT p.id, p.full_name, p.student_id, p.department, p.batch, p.bio, p.linkedin_url, p.github_url, p.facebook_url, p.website_url, p.twitter_url, p.public_email, p.skills_json, p.phone, p.avatar_media_id,
-            p.visibility, p.slug AS handle,
+            p.visibility, p.slug AS handle, p.email_display,
             m.storage, m.object_key, m.legacy_path, m.external_url, m.variants_json
      FROM profiles p LEFT JOIN media m ON m.id = p.avatar_media_id AND m.deleted_at IS NULL WHERE p.user_id = ?1 AND p.deleted_at IS NULL`, actor.user.id);
   const { rows: notifications, unread } = await myNotifications(ctx, 20);
@@ -222,8 +222,12 @@ export async function accountView(ctx: Ctx) {
         `SELECT c.name AS committee_name, c.slug AS committee_slug, cm.position_title, cm.is_active FROM committee_members cm JOIN committees c ON c.id = cm.committee_id AND c.deleted_at IS NULL
          WHERE cm.profile_id = ?1 AND cm.deleted_at IS NULL ORDER BY c.slug DESC`, profile.id)
     : [];
-  const account = await ctx.db.first<{ status: string; correction_note: string | null; rejected_reason: string | null; suspended_reason: string | null; email_verified_at: string | null; created_at: string }>(
-    "SELECT status, correction_note, rejected_reason, suspended_reason, email_verified_at, created_at FROM users WHERE id = ?1", actor.user.id);
+  const account = await ctx.db.first<{ status: string; correction_note: string | null; rejected_reason: string | null; suspended_reason: string | null; email_verified_at: string | null; created_at: string; pending_email: string | null }>(
+    `SELECT status, correction_note, rejected_reason, suspended_reason, email_verified_at, created_at,
+            -- A sign-in email change waiting for its confirmation link.
+            (SELECT r.new_email FROM email_change_requests r WHERE r.user_id = users.id AND r.used_at IS NULL AND r.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now')
+              ORDER BY r.created_at DESC LIMIT 1) AS pending_email
+     FROM users WHERE id = ?1`, actor.user.id);
   // An approved member's page address, made from their name the first time it's needed.
   if (profile && !profile.handle && account?.status === "ACTIVE") profile.handle = await ensureProfileHandle(ctx, String(profile.id), profile.full_name ?? "member");
   const avatarUrl = profile?.storage ? mediaUrl({ id: String(profile.avatar_media_id), storage: profile.storage as MediaRow["storage"], object_key: profile.object_key, legacy_path: profile.legacy_path, external_url: profile.external_url, variants_json: profile.variants_json }, "sm") ?? null : null;

@@ -1,5 +1,5 @@
 /**
- * A sponsorship page's content: the shape the public page (app/sponsors/sponsors-client.tsx)
+ * A sponsorship page's content: the shape the public page (components/sponsorship/sponsorship-view.tsx)
  * renders and the dashboard editor writes. Every list is optional; a section shows only when its
  * list has something. Keys the editor doesn't know are kept as they are.
  */
@@ -21,7 +21,8 @@ export interface SponsorProgram {
   components?: string[]; sponsorValue?: string[]; eventSlug?: string; facts?: { value: string; label: string }[];
 }
 export interface SponsorPackage { tier: string; slots: number; price: number; currency: string; period?: string; highlight: boolean; benefits: string[] }
-export interface SponsorComparison { feature: string; gold: boolean; silver: boolean; bronze: boolean }
+/** A row of the comparison table: by tier name (`values`), or the classic gold/silver/bronze columns. */
+export interface SponsorComparison { feature: string; gold: boolean; silver: boolean; bronze: boolean; values?: Record<string, boolean> }
 export interface SponsorReason { title: string; description: string; icon?: string }
 export interface SponsorAchievement { title: string; description: string; eventSlug?: string }
 export interface SponsorPartner { name: string; logo: string }
@@ -106,6 +107,61 @@ export const SPONSORSHIP_TEMPLATES = {
     hint: "A year-round partnership, named after no event.",
     title: "Partner with GUCC",
     content: GENERAL_SPONSORSHIP.content as unknown as SponsorshipContent,
+  },
+  hackathon: {
+    label: "A hackathon",
+    hint: "Prizes, judges and a timeline; questions sponsors ask.",
+    title: "",
+    content: {
+      event: { name: "HACKATHON 2027", fullName: "GUCC Hackathon 2027", organizer: "Green University Computer Club (GUCC)", university: "Green University of Bangladesh", website: "gucc.green.edu.bd", email: "gucc@green.edu.bd" },
+      heroTitle: "Power the Next Big Idea",
+      typingPhrases: ["36 hours of building", "Mentors and judges from industry", "Prizes for the best teams"],
+      programs: [{
+        id: "hackathon", name: "GUCC Hackathon 2027", shortName: "Hackathon", category: "Flagship", featured: true,
+        description: "Teams of students build working products in a weekend, guided by mentors and judged by engineers and founders.",
+        components: ["Hackathons", "Workshops", "Networking", "Awards"],
+        sponsorValue: ["Your challenge track and API in front of every team", "Meet the strongest builders before they graduate", "Logo on stage, T-shirts and the live stream"],
+        facts: [{ value: "300+", label: "Participants" }, { value: "36 h", label: "Of building" }, { value: "20+", label: "Mentors" }, { value: "৳1 lakh+", label: "In prizes" }],
+        eventSlug: "",
+      }],
+      packages: [
+        { tier: "Title Sponsor", slots: 1, price: 0, currency: "BDT", highlight: true, benefits: ["Named in the event title", "A challenge track of your own", "Keynote and judging seat"] },
+        { tier: "Gold Sponsor", slots: 2, price: 50000, currency: "BDT", highlight: false, benefits: ["Logo on every banner and T-shirt", "Booth at the venue", "Mentors on the floor"] },
+        { tier: "Silver Sponsor", slots: 3, price: 25000, currency: "BDT", highlight: false, benefits: ["Logo on banners and the live stream", "Prize named after you"] },
+      ],
+      sections: [
+        { id: "programs", type: "programs", visible: true }, { id: "why", type: "why", visible: true },
+        { id: "timeline", type: "timeline", visible: true, data: { items: [{ date: "1 February", title: "Sponsorship deadline" }, { date: "15 February", title: "Registration closes" }, { date: "1–2 March", title: "The hackathon" }] } },
+        { id: "packages", type: "packages", visible: true }, { id: "partners", type: "partners", visible: true }, { id: "gallery", type: "gallery", visible: true },
+        { id: "faq", type: "faq", visible: true, data: { items: [{ q: "Can we set our own challenge?", a: "Yes: Title and Gold sponsors get a challenge track judged with their engineers." }, { q: "Can our team mentor?", a: "Yes, mentors are welcome for the whole event." }] } },
+        { id: "contact", type: "contact", visible: true },
+      ],
+    } as SponsorshipContent,
+  },
+  workshops: {
+    label: "A workshop series",
+    hint: "Several sessions over a semester, with a sponsor per series.",
+    title: "",
+    content: {
+      event: { name: "WORKSHOP SERIES 2027", fullName: "GUCC Workshop Series 2027", organizer: "Green University Computer Club (GUCC)", university: "Green University of Bangladesh", website: "gucc.green.edu.bd", email: "gucc@green.edu.bd" },
+      heroTitle: "Teach the Skills You Hire For",
+      programs: [{
+        id: "workshops", name: "GUCC Workshop Series 2027", shortName: "Workshops", category: "Series", featured: true,
+        description: "Hands-on sessions through the semester: web, cloud, AI and competitive programming, led by club members and industry guests.",
+        components: ["Workshops", "Industry Sessions", "Tech Talks"],
+        sponsorValue: ["Your tools in the hands of hundreds of students", "A session led by your engineers", "Your name on every session and certificate"],
+        facts: [{ value: "8", label: "Sessions" }, { value: "400+", label: "Learners" }, { value: "1 semester", label: "Long" }, { value: "Certificates", label: "For everyone" }],
+        eventSlug: "",
+      }],
+      packages: [
+        { tier: "Series Sponsor", slots: 1, price: 40000, currency: "BDT", period: "per semester", highlight: true, benefits: ["Named on every session and certificate", "Two sessions led by your team", "Your hiring post to every participant"] },
+        { tier: "Session Sponsor", slots: 6, price: 8000, currency: "BDT", period: "per session", highlight: false, benefits: ["One session named after you", "Logo on its banner and slides"] },
+      ],
+      sections: [
+        { id: "programs", type: "programs", visible: true }, { id: "stats", type: "stats", visible: true, data: { items: [{ value: "8", label: "Sessions" }, { value: "400+", label: "Learners" }, { value: "95%", label: "Would recommend" }] } },
+        { id: "packages", type: "packages", visible: true }, { id: "why", type: "why", visible: true }, { id: "partners", type: "partners", visible: true }, { id: "contact", type: "contact", visible: true },
+      ],
+    } as SponsorshipContent,
   },
   blank: {
     label: "Blank",

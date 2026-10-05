@@ -17,7 +17,8 @@ function FloatingChatbot() {
   const [isOpen, setIsOpen] = useExclusiveOverlay("chatbot")
   const pathname = usePathname()
   // Members' own conversations (and the dashboard's sticky bars on phones) need that corner.
-  const hidden = pathname.startsWith("/dashboard/chat") || pathname.startsWith("/dashboard/notifications")
+  // A form page needs that corner too: the bubble covered the embedded form's Next and Submit buttons.
+  const hidden = pathname.startsWith("/dashboard/chat") || pathname.startsWith("/dashboard/notifications") || pathname.startsWith("/forms/")
   const dashboard = pathname.startsWith("/dashboard")
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -75,6 +76,8 @@ function FloatingChatbot() {
           "bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 w-12 h-12 gap-1 sm:bottom-6 sm:right-6 sm:w-14 sm:h-14 sm:gap-1.5 lg:bottom-8 lg:right-8 lg:w-16 lg:h-16 lg:gap-2",
           // On the dashboard the assistant waits for larger screens, where it doesn't cover forms.
           dashboard && "hidden lg:flex",
+          // Sponsorship pages keep an action bar at the bottom of phones: sit above it.
+          pathname.startsWith("/sponsors/") && "max-md:bottom-[calc(5.5rem+env(safe-area-inset-bottom))]",
           isOpen ? "scale-0 opacity-0 pointer-events-none" : "scale-100 opacity-100",
         )}
         aria-label="Open chat"

@@ -1,11 +1,87 @@
 # GUCC platform — implementation report
 
-Date: 2026-09-30 · Branch: `database` (round 8 uncommitted)
+Date: 2026-10-05 · Branch: `database` (round 9 uncommitted)
 
 The website is a Next.js frontend on Vercel's free plan, backed by one Cloudflare Worker (free plan)
 with D1 and R2. **The production backend is live** at `https://gucc-api.gucc.workers.dev`, with all club
 data imported and verified and migrations `0001`–`0009` applied (0009 on 2026-09-29). Once set up, a push to `main` deploys
 the database migrations, the API and the website in order (see "Workers"). No DNS change is needed.
+
+## Round 9 (2026-10-05): forms, certificates, announcement emails, notifications, mentions, accounts, sponsors
+
+Everything below is in the working tree and **not released**. All schema is in
+`migrations/0017_round9.sql` (additive; production is at `0016`). Releasing needs the migration, the
+Worker and the website, in that order (`bun run release:api:production`, then the Vercel deploy).
+
+**Forms** (`/forms`, `/forms/<address>`, `/dashboard/forms`). Google Forms (and Microsoft, Tally,
+Airtable) shown in a page built for them: a 48 px bar on phones with the form filling the visible
+screen (long dropdowns such as "Batch" fit), a side column on computers, a card that opens the form
+at Google for forms needing a Google account on phones and in-app browsers. The dashboard checks a
+link (where `forms.gle` leads, sign-in, question count, closed), schedules forms (opens/closes,
+closed message), lists them at `/forms`, keeps every old address (`external_form_slugs`, any
+spelling), archives/restores/duplicates and gives a QR code. Open/close times refresh the pages
+from the hourly job.
+
+**Certificates** (`/dashboard/certificates`, `/c/<code>`, `/c`). Seven designs drawn as SVG in the
+browser (`lib/certificates/render.tsx`): Heritage, Laurel Crest, Emerald Prestige, Royal Navy,
+Circuit Tech, Modern Minimal, Diamond Line. Each design's wording, signatories (uploaded signature
+or the name in a script hand), corner logos, seal, background picture, colours, background mark and
+up to six partner logos can be changed and saved. Issue to members (all, a batch, a department), an
+event's registrants or speakers, committees (one line per person across terms), a Google Form
+export (CSV/Excel, matched by email or student ID) or typed names; up to 300 at a time. Each
+certificate has an 80-bit code and a verification page (Verified or Revoked, the certificate, the
+holder's card when they're public, PDF/PNG download, print, share, Add to LinkedIn). The design is
+frozen per issue. PDFs are vector with the OFL fonts embedded (`public/fonts/certificates`).
+`/executives/certs/<id>` now redirects to the person's certificate (or executive page); the old
+500 KB certificate component is gone. Review designs with `bun scripts/certificates/preview.tsx`
+and the real PDF export with `bun scripts/certificates/pdf-preview.ts`.
+
+**Announcement emails** (`/dashboard/email`). "Club announcements" is the one email choice on by
+default. Leaders with `email.campaigns` email an audience (members, committee, batch, department,
+event registrants with or without guests), or tick "Also email it" on a broadcast or an
+announcement post (sent when it's published). Emails go a few at a time: never into the reserves
+kept for account mail (10 a day, 60 a month), at most 20 an hour, within the shared outgoing-request
+budget of the hourly job (and right after queuing). Each has List-Unsubscribe headers and a link to
+`/email/unsubscribe` (a confirm button; mail apps POST to `/api/email/unsubscribe`).
+
+**Notifications and messages.** A bell and a messages button in the site header with live counts,
+"(N)" in the tab title and a badge on the favicon on every page for signed-in members. Chat links
+to profiles from avatars, names and menus, has Chat info and search in a conversation, and
+@mentions (group members are told even in a muted group; "@everyone" for the group's owner and
+admins, five a day).
+
+**Accounts.** Moderators, the President and the General Secretary (equal power) delete accounts
+(erasure shared with self-deletion), bulk-delete applications and change someone's sign-in email;
+changes to one of them need another of them to approve. Members change their own sign-in email from
+the profile page and choose which email their executive listings show. The members list has
+numbered pages, page sizes, sorting and filters.
+
+**Sponsorship pages.** Rendered on the server with theme colours (readable in light and dark),
+no content hidden until scrolled, packages swiped on phones, the comparison as an accordion on
+phones, an action bar at the bottom of phones. The editor gains Layout (order, hide, headings, nine
+block types: text, figures, questions, quotes, timeline, video, call to action, pictures,
+download) and Look & SEO (accent, hero, search title and description, preview picture). The preview
+shows phone, tablet and computer widths. A page's accent colour now really applies (it used to
+fall back to the club green) and is shaded for text so it stays readable in both themes.
+
+**Accessibility and speed.** Every public page passes axe colour contrast in light and dark at
+390 and 1280 px. To get there the light theme's green (`--primary`) is a shade deeper (142 72% 28%,
+was 36%; white on it and it on white both pass 4.5:1), the light muted text slightly darker, the
+socials tiles a shade deeper, the lost & found board stays in its dark palette in light mode
+(`dark dark-surface`), and a few white-on-green badges use green 700. `/c` is static (the form checks
+the code in the browser; `/c/go` is the no-JavaScript path). Lighthouse mobile on a local production
+build: performance 89–96, accessibility, best practices and SEO 100 on the home page, events, blog,
+executives, a member, sponsors, `/become-a-sponsor`, `/c`, contact, join, socials and lost & found
+(`/forms` is `noindex` while nothing is listed). `scripts/qa/responsive-audit.mjs` now checks phone
+widths as a touch screen and finds nothing at 320–1536 px.
+
+**Release checklist.**
+
+1. `bunx wrangler d1 migrations list DB --remote --env production` shows only `0017_round9.sql` pending.
+2. `bun run release:api:production` (backup, migration, Worker).
+3. Deploy the website on Vercel.
+4. Check `/forms`, a form page, `/c`, `/dashboard/certificates/new` (issue one to yourself, open it,
+   download the PDF), `/dashboard/email` (send yourself a test), the bell, and a sponsorship page on a phone.
 
 ## Round 8 (2026-09-30): live everything, groups and reactions, lean database, blog/events/tasks/meetings
 

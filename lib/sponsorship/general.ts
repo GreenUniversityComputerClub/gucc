@@ -4,7 +4,7 @@
  * partners, contacts) come from the CSE Carnival page's content when it's created, so they match
  * what the club already shows. Packages are "on request" (price 0): agreed with each partner.
  *
- * Created by migration 0015 and by the legacy import, both from generalSponsorshipSql();
+ * Created by migration 0016 and by the legacy import, both from generalSponsorshipSql();
  * tests/unit/general-sponsorship.test.ts checks the migration still matches this file.
  */
 export const GENERAL_SPONSORSHIP = {

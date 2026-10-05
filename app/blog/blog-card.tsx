@@ -52,7 +52,7 @@ export function BlogPostCard({ p, featured, eager, headingLevel = 2 }: { p: Blog
       )}
       <div className={cn("flex flex-1 flex-col gap-3 p-5", featured && "md:p-8")}>
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          {featured && <span className="rounded-full bg-emerald-600 px-2.5 py-0.5 font-semibold text-white">Latest</span>}
+          {featured && <span className="rounded-full bg-emerald-700 px-2.5 py-0.5 font-semibold text-white">Latest</span>}
           {p.category && <span className="font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">{p.category}</span>}
         </div>
         <Heading className={cn("font-bold leading-snug tracking-tight", featured ? "text-2xl md:text-3xl" : "text-lg")}>

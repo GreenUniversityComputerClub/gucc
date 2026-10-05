@@ -1,18 +1,20 @@
 import Link from "next/link";
-import { rpc, view } from "@/lib/api/session";
+import { getSession, rpc, view } from "@/lib/api/session";
 import type { postView } from "@/lib/server/views/admin";
 import { ActionForm, PageHeader, Section, StatusBadge } from "@/components/admin/ui";
 import { archivePostAction, publishPostAction, restoreRevisionAction, unpublishPostAction, updatePostAction } from "../../actions";
 import { PostFields } from "../post-form";
 import { dhakaDateTime } from "@/lib/time";
+import { postEmailAction } from "../../email/actions";
 
 const PUBLIC_PATH: Record<string, string> = { BLOG: "/blog", NEWS: "/news", ANNOUNCEMENT: "/announcements" };
 
 export default async function PostDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [data, cats] = await Promise.all([
+  const [data, cats, session] = await Promise.all([
     view<Awaited<ReturnType<typeof postView>>>("views.post", { id }, `/dashboard/posts/${id}`),
     rpc<Array<{ slug: string; name: string }>>("categories.list", { kind: "POST" }),
+    getSession(),
   ]);
   const { post: p, revisions, pendingApprovalId, capabilities: cap, coverUrl, sentBack } = data;
   // The save button says what saving does here.
@@ -53,6 +55,34 @@ export default async function PostDetail({ params }: { params: Promise<{ id: str
         </div>
         {cap.publish !== "ALLOW" && <p className="mt-2 text-xs text-muted-foreground">{cap.publishExplanation}</p>}
       </Section>
+
+      {session?.caps["email.campaigns"] && (p.type === "ANNOUNCEMENT" || p.type === "NEWS") && (
+        <Section title="Email" className="mt-6" description="Send it to members by email too: everyone who hasn't turned off club announcements, a few at a time within the email allowance.">
+          {p.email_campaign_id ? (
+            <p className="text-sm">It&apos;s being emailed. <Link prefetch={false} href={`/dashboard/email/${p.email_campaign_id}`} className="font-medium text-primary underline-offset-4 hover:underline">See the progress</Link></p>
+          ) : (() => {
+            const live = p.status === "PUBLISHED" && !scheduledFor;
+            const planned = p.email_intent_json ? (JSON.parse(p.email_intent_json) as { audience?: { kind?: string } }).audience?.kind ?? "members" : null;
+            return (
+              <ActionForm action={postEmailAction.bind(null, id)} submitLabel={live ? "Email it now" : "Save"} inline={!live}
+                confirm={live ? "Email this to members now? It can't be unsent, but you can pause or cancel it while it's sending." : undefined}>
+                {live ? <input type="hidden" name="on" value="on" /> : (
+                  <label className="flex min-h-10 items-center gap-2 text-sm">
+                    <input type="checkbox" name="on" defaultChecked={Boolean(planned)} className="h-4 w-4" />Email it when it&apos;s published
+                  </label>
+                )}
+                <label className="flex min-h-10 items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">To</span>
+                  <select name="audienceKind" defaultValue={planned ?? "members"} className="h-10 rounded-md border bg-background px-2 text-base md:h-9 md:text-sm">
+                    <option value="members">All members</option>
+                    <option value="executives">The current committee</option>
+                  </select>
+                </label>
+              </ActionForm>
+            );
+          })()}
+        </Section>
+      )}
 
       {cap.edit ? (
         <section className="mt-8" aria-labelledby="content-h">

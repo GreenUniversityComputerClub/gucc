@@ -13,6 +13,9 @@ import { assistantChat } from "../../../lib/server/services/assistant";
 import * as auth from "../../../lib/server/services/auth";
 import * as committees from "../../../lib/server/services/committees";
 import * as community from "../../../lib/server/services/community";
+import * as forms from "../../../lib/server/services/forms";
+import * as campaigns from "../../../lib/server/services/campaigns";
+import * as certificates from "../../../lib/server/services/certificates";
 import * as sponsorships from "../../../lib/server/services/sponsorships";
 import * as contact from "../../../lib/server/services/contact";
 import * as events from "../../../lib/server/services/events";
@@ -23,6 +26,7 @@ import * as access from "../../../lib/server/services/access";
 import * as governanceViews from "../../../lib/server/views/governance";
 import * as homeViews from "../../../lib/server/views/home";
 import * as account from "../../../lib/server/services/account";
+import * as accountsAdmin from "../../../lib/server/services/accounts-admin";
 import * as activity from "../../../lib/server/services/activity";
 import * as messaging from "../../../lib/server/services/messaging";
 import * as live from "../../../lib/server/live";
@@ -129,6 +133,7 @@ export const STEP_UP = new Set([
   "positions.save", "positions.archive", "positions.setGrant",
   "rules.create", "rules.update", "rules.setStatus", "rules.createNotify", "policies.save",
   "members.suspend", "members.reactivate", "committees.delete", "people.delete", "people.merge", "media.purge", "grants.copy",
+  "accounts.delete", "accounts.bulkDelete", "accounts.changeEmail",
 ]);
 
 export const procedures: Record<string, Handler> = {
@@ -177,6 +182,10 @@ export const procedures: Record<string, Handler> = {
   "account.revokeSession": ({ ctx, input }) => account.revokeMySession(ctx, s(input, "ref")),
   "account.revokeOthers": ({ ctx, sessionToken }) => account.revokeOtherSessions(ctx, sessionToken),
   "account.changeEmail": ({ ctx, input }) => account.changeEmail(ctx, input),
+  // The club's leadership looking after someone else's account (accounts.manage / accounts.email).
+  "accounts.delete": ({ ctx, input }) => accountsAdmin.deleteMemberAccount(ctx, s(input, "userId"), { reason: input.reason, confirmName: input.confirmName }),
+  "accounts.bulkDelete": ({ ctx, input }) => accountsAdmin.bulkDeleteApplications(ctx, input.userIds, input.reason),
+  "accounts.changeEmail": ({ ctx, input }) => accountsAdmin.changeMemberEmail(ctx, s(input, "userId"), { email: input.email, reason: input.reason }),
   "account.delete": ({ ctx, input }) => account.deleteOwnAccount(ctx, input),
   "account.reauth": ({ ctx, input }) => mfa.reauthenticate(ctx, input),
   "account.mfaStatus": ({ ctx }) => mfa.mfaStatus(ctx),
@@ -198,7 +207,8 @@ export const procedures: Record<string, Handler> = {
   "categories.list": ({ ctx, input }) => views.listCategories(ctx, s(input, "kind")),
 
   // ── members ──
-  "members.list": ({ ctx, input }) => members.listMembers(ctx, { status: opt(input, "status"), q: opt(input, "q"), page: n(input, "page"), batch: opt(input, "batch"), department: opt(input, "department") }),
+  "members.list": ({ ctx, input }) => members.listMembers(ctx, { status: opt(input, "status"), q: opt(input, "q"), page: n(input, "page"), size: n(input, "size"), sort: opt(input, "sort"), batch: opt(input, "batch"), department: opt(input, "department") }),
+  "members.options": ({ ctx }) => members.memberFilterOptions(ctx),
   "members.approve": ({ ctx, input }) => members.approveMember(ctx, s(input, "userId"), { linkProfileId: opt(input, "linkProfileId") ?? null }),
   "members.reviewNote": ({ ctx, input }) => members.setReviewNote(ctx, s(input, "userId"), opt(input, "note") ?? null),
   "members.reject": ({ ctx, input }) => members.rejectMember(ctx, s(input, "userId"), s(input, "reason")),
@@ -338,15 +348,45 @@ export const procedures: Record<string, Handler> = {
   "sponsorships.duplicate": ({ ctx, input }) => sponsorships.duplicateSponsorship(ctx, s(input, "id")),
   "sponsorships.delete": ({ ctx, input }) => sponsorships.deleteSponsorship(ctx, s(input, "id")),
   "sponsorships.move": ({ ctx, input }) => sponsorships.moveSponsorship(ctx, s(input, "id"), oneOf(input, "direction", ["up", "down"] as const)),
-  "forms.list": ({ ctx }) => community.listForms(ctx),
-  "forms.save": ({ ctx, input }) => community.saveForm(ctx, opt(input, "id") ?? null, o(input, "input")),
-  "forms.archive": ({ ctx, input }) => community.archiveForm(ctx, s(input, "id")),
+  "certificateDesigns.list": ({ ctx }) => certificates.listDesigns(ctx),
+  "certificateDesigns.save": ({ ctx, input }) => certificates.saveDesign(ctx, opt(input, "id") ?? null, o(input, "input")),
+  "certificateDesigns.delete": ({ ctx, input }) => certificates.deleteDesign(ctx, s(input, "id")),
+  "certificates.options": ({ ctx }) => certificates.certificateOptions(ctx),
+  "certificates.importPreview": ({ ctx, input }) => certificates.importPreview(ctx, o(input, "source")),
+  "certificates.issue": ({ ctx, input }) => certificates.issueBatch(ctx, o(input, "input")),
+  "certificateBatches.list": ({ ctx, input }) => certificates.listBatches(ctx, { page: Number(input.page) || 1 }),
+  "certificateBatches.get": ({ ctx, input }) => certificates.getBatch(ctx, s(input, "id"), { q: opt(input, "q") ?? undefined, page: Number(input.page) || 1 }),
+  "certificates.add": ({ ctx, input }) => certificates.addRecipients(ctx, s(input, "batchId"), input.recipients),
+  "certificates.update": ({ ctx, input }) => certificates.updateCertificate(ctx, s(input, "id"), o(input, "input")),
+  "certificates.revoke": ({ ctx, input }) => certificates.setCertificateStatus(ctx, s(input, "id"), true, input.reason),
+  "certificates.restore": ({ ctx, input }) => certificates.setCertificateStatus(ctx, s(input, "id"), false),
+  "certificates.list": ({ ctx }) => certificates.myCertificates(ctx),
+  "certificates.visibility": ({ ctx, input }) => certificates.setCertificateVisibility(ctx, s(input, "id"), input.visibility === "PRIVATE" ? "PRIVATE" : "PUBLIC"),
+  "campaigns.list": ({ ctx, input }) => campaigns.listCampaigns(ctx, { page: Number(input.page) || 1 }),
+  "campaigns.get": ({ ctx, input }) => campaigns.getCampaign(ctx, s(input, "id")),
+  "campaigns.options": ({ ctx }) => campaigns.campaignOptions(ctx),
+  "campaigns.recipients": ({ ctx, input }) => campaigns.audienceCount(ctx, input.audience),
+  "campaigns.create": ({ ctx, input }) => campaigns.createCampaign(ctx, o(input, "input")),
+  "campaigns.setStatus": ({ ctx, input }) => campaigns.setCampaignStatus(ctx, s(input, "id"), oneOf(input, "action", ["pause", "resume", "cancel"] as const)),
+  "campaigns.sendTest": ({ ctx, input }) => campaigns.sendTestCampaign(ctx, o(input, "input")),
+  "posts.email": ({ ctx, input }) => campaigns.setPostEmail(ctx, s(input, "id"), { on: input.on, audience: input.audience }),
+  "email.unsubscribe": ({ ctx, input }) => campaigns.unsubscribe(ctx, input.token, false),
+  "email.resubscribe": ({ ctx, input }) => campaigns.unsubscribe(ctx, input.token, true),
+  "forms.list": ({ ctx }) => forms.listForms(ctx),
+  "forms.get": ({ ctx, input }) => forms.getForm(ctx, s(input, "id")),
+  "forms.options": ({ ctx }) => forms.formOptions(ctx),
+  "forms.save": ({ ctx, input }) => forms.saveForm(ctx, opt(input, "id") ?? null, o(input, "input")),
+  "forms.recheck": ({ ctx, input }) => forms.recordInspection(ctx, s(input, "id"), o(input, "input")),
+  "forms.archive": ({ ctx, input }) => forms.setFormArchived(ctx, s(input, "id"), true),
+  "forms.restore": ({ ctx, input }) => forms.setFormArchived(ctx, s(input, "id"), false),
+  "forms.duplicate": ({ ctx, input }) => forms.duplicateForm(ctx, s(input, "id"), input.input && typeof input.input === "object" ? o(input, "input") : {}),
+  "forms.delete": ({ ctx, input }) => forms.deleteForm(ctx, s(input, "id")),
   "contests.save": ({ ctx, input }) => community.saveContest(ctx, opt(input, "id") ?? null, o(input, "input")),
   "notifications.audiences": ({ ctx }) => community.broadcastAudiences(ctx),
-  "notifications.broadcast": ({ ctx, input }) => community.broadcast(ctx, { title: s(input, "title"), body: s(input, "body"), link: opt(input, "link"), audience: input.audience === "executives" ? "executives" : "members" }),
+  "notifications.broadcast": ({ ctx, input }) => community.broadcast(ctx, { title: s(input, "title"), body: s(input, "body"), link: opt(input, "link"), audience: input.audience === "executives" ? "executives" : "members", email: input.email === true }),
   "chat.start": ({ ctx, input }) => messaging.sendToPerson(ctx, input),
   "chat.recipients": ({ ctx, input }) => messaging.searchRecipients(ctx, input.q),
-  "chat.send": ({ ctx, input }) => messaging.sendInThread(ctx, s(input, "conversationId"), input.body, input.clientId, input.replyTo),
+  "chat.send": ({ ctx, input }) => messaging.sendInThread(ctx, s(input, "conversationId"), input.body, input.clientId, input.replyTo, input.mentions),
   "chat.directory": ({ ctx }) => messaging.chatDirectory(ctx),
   "chat.read": ({ ctx, input }) => messaging.markConversationRead(ctx, s(input, "conversationId")),
   "chat.unread": ({ ctx, input }) => messaging.markConversationUnread(ctx, s(input, "conversationId")),
@@ -359,12 +399,13 @@ export const procedures: Record<string, Handler> = {
   "chat.groupRemove": ({ ctx, input }) => groups.removeGroupMember(ctx, s(input, "conversationId"), s(input, "userId")),
   "chat.groupLeave": ({ ctx, input }) => groups.leaveGroup(ctx, s(input, "conversationId")),
   "chat.groupDelete": ({ ctx, input }) => groups.deleteGroup(ctx, s(input, "conversationId")),
-  "chat.list": ({ ctx, input }) => messaging.myConversations(ctx, { archived: input.archived === true, before: opt(input, "before") ?? null }),
+  "chat.list": ({ ctx, input }) => messaging.myConversations(ctx, { archived: input.archived === true, before: opt(input, "before") ?? null, limit: n(input, "limit") }),
   "chat.home": ({ ctx, input }) => messaging.chatHome(ctx, { archived: input.archived === true, to: opt(input, "to") ?? null }),
   "chat.blocks": ({ ctx }) => messaging.myBlocks(ctx),
   "chat.pulse": ({ ctx, input }) => messaging.pulse(ctx, s(input, "conversationId")),
   "chat.thread": ({ ctx, input }) => messaging.thread(ctx, s(input, "conversationId"), { before: opt(input, "before") }),
-  "chat.edit": ({ ctx, input }) => messaging.editMessage(ctx, s(input, "id"), input.body),
+  "chat.search": ({ ctx, input }) => messaging.searchConversation(ctx, s(input, "conversationId"), input.q),
+  "chat.edit": ({ ctx, input }) => messaging.editMessage(ctx, s(input, "id"), input.body, input.mentions),
   "chat.delete": ({ ctx, input }) => messaging.deleteMessage(ctx, s(input, "id")),
   "chat.state": ({ ctx, input }) => messaging.setConversationState(ctx, s(input, "conversationId"), { muted: typeof input.muted === "boolean" ? input.muted : undefined, archived: typeof input.archived === "boolean" ? input.archived : undefined }),
   "chat.block": ({ ctx, input }) => messaging.setBlock(ctx, s(input, "userId"), input.block === true),

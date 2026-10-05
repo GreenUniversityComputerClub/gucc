@@ -114,7 +114,7 @@ const TEAL = {
   progressBar: "bg-[#006380] dark:bg-[#5ec4db]",
   spinner: "text-[#006380] dark:text-[#5ec4db]",
   link: "text-[#006380] dark:text-[#5ec4db] decoration-[#006380]/30 dark:decoration-[#5ec4db]/30 hover:text-[#007a99] dark:hover:text-[#7dd3e8]",
-  btnBg: "bg-[#006380] hover:bg-[#005566] dark:bg-[#1a8fa8] dark:hover:bg-[#157d94]",
+  btnBg: "bg-[#006380] hover:bg-[#005566] dark:bg-[#157d94] dark:hover:bg-[#116a7e]",
   uploadHover: "hover:border-[#006380]/50 dark:hover:border-[#5ec4db]/40 hover:bg-[#006380]/5 dark:hover:bg-[#5ec4db]/10 active:bg-[#006380]/10 dark:active:bg-[#5ec4db]/15",
   deadlineBg: "bg-[#006380]/5 dark:bg-[#5ec4db]/10 border-[#006380]/20 dark:border-[#5ec4db]/20",
   deadlineIcon: "text-[#006380] dark:text-[#5ec4db]",

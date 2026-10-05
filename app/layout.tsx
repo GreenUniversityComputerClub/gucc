@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import FloatingChatbot from "@/components/chatbot/floating-chatbot";
+import { SignedInChrome } from "@/components/notifications/signed-in-chrome";
 import { ThemeProvider } from "@/components/theme-provider";
 import { JsonLd } from "@/components/seo/json-ld";
 import { SITE, SITE_KEYWORDS, SITE_URL } from "@/lib/seo/site";
@@ -128,6 +129,7 @@ export default async function RootLayout({
             <main id="main-content" className="flex-1">{children}</main>
             <Footer />
             <FloatingChatbot />
+            <SignedInChrome />
           </div>
         </ThemeProvider>
       </body>

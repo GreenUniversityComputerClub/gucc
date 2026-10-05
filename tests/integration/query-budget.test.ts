@@ -21,6 +21,13 @@ import { simulateAccess } from "@/lib/server/services/access";
 import { flushOutbox, sendDigests } from "@/lib/server/email-outbox";
 import { notifyStmts } from "@/lib/server/notifications";
 import { forgetEmailSettings } from "@/lib/server/email";
+import { bulkDeleteApplications, changeMemberEmail, deleteMemberAccount } from "@/lib/server/services/accounts-admin";
+import { myNotifications, markNotificationsRead } from "@/lib/server/services/community";
+import { duplicateForm, listForms, saveForm } from "@/lib/server/services/forms";
+import { createCampaign, runCampaignTick } from "@/lib/server/services/campaigns";
+import { getBatch, importPreview, issueBatch } from "@/lib/server/services/certificates";
+import { defaultConfig } from "@/lib/certificates/config";
+import { readForm } from "@/lib/public/read";
 import { createWorld, type TestWorld } from "../support/d1";
 
 /**
@@ -113,6 +120,8 @@ describe("every request stays within the free plan's 50 D1 statements", () => {
     // Groups at the size limit (50 people): creating, writing, reading, reacting, adding.
     ["start a 50-person group", (c: Ctx) => createGroup(c, { name: "Everyone", memberIds: Array.from({ length: 49 }, (_, i) => `usr_bulk_${i}`) })],
     ["write in a 50-person group", async (c: Ctx) => sendInThread(c, await bigGroup(), "Meeting at 3 in room 402")],
+    ["mention 3 people in a 50-person group", async (c: Ctx) => sendInThread(c, await bigGroup(), "@Member 10 @Member 11 @Member 12 bring the banner", undefined, undefined, ["usr_bulk_10", "usr_bulk_11", "usr_bulk_12"])],
+    ["@everyone in a 50-person group", async (c: Ctx) => sendInThread(c, await bigGroup(), "@everyone meeting now", undefined, undefined, ["*"])],
     ["open a 50-person group", async (c: Ctx) => thread(c, await bigGroup())],
     ["react in a 50-person group", async (c: Ctx) => {
       const id = (w.sqlite.prepare("SELECT id FROM messages WHERE conversation_id = ? AND kind = 'TEXT' LIMIT 1").get(await bigGroup()) as { id: string }).id;
@@ -140,6 +149,33 @@ describe("every request stays within the free plan's 50 D1 statements", () => {
       await ctx.db.batch(notifyStmts(ctx, Array.from({ length: 60 }, (_, i) => `usr_bulk_${i}`), { type: "task.assigned", title: "New task" }));
       await flushOutbox(ctx);
     }],
+    // Round 9: the club's leadership looking after accounts.
+    ["delete a member's account", (c: Ctx) => deleteMemberAccount(c, "usr_bulk_110", { reason: "Asked to leave", confirmName: "Member 110" })],
+    ["bulk-delete 100 applications", (c: Ctx) => {
+      const ids = Array.from({ length: 100 }, (_, i) => `usr_app_${i}`);
+      const insert = w.sqlite.prepare("INSERT INTO users (id, email, status) VALUES (?, ?, 'REJECTED') ON CONFLICT DO NOTHING");
+      ids.forEach((id, i) => insert.run(id, `app${i}@x.bd`));
+      return bulkDeleteApplications(c, ids, "Spam sign-ups");
+    }],
+    ["change a member's sign-in email", (c: Ctx) => changeMemberEmail(c, "usr_bulk_111", { email: "new111@x.bd", reason: "Lost the old mailbox" })],
+    ["save a form (rename, checked, cover, event)", async (c: Ctx) => {
+      const { id } = await saveForm({ ...c, db: w.db }, null, { title: "CR form", url: "https://forms.gle/Budget1", slug: "cr-budget" });
+      return saveForm(c, id, { title: "CR form", url: "https://forms.gle/Budget1", slug: "cr-budget-2", eventId, inspected: "1", openUrl: "https://docs.google.com/forms/d/e/x/viewform", requiresSignIn: "1", questionCount: "9", listed: "1" });
+    }],
+    ["duplicate a form", async (c: Ctx) => duplicateForm(c, (await saveForm({ ...c, db: w.db }, null, { title: "Survey", url: "https://forms.gle/Budget2" })).id)],
+    ["forms list", (c: Ctx) => listForms(c)],
+    ["queue an announcement email to 120 members", (c: Ctx) => createCampaign(c, { subject: "Fair", body: "Saturday.", audience: { kind: "members" } })],
+    ["issue 300 certificates with notices and emails", async (c: Ctx) => {
+      const members = (await importPreview({ ...c, db: w.db }, { kind: "members" })).rows.slice(0, 100);
+      const guests = Array.from({ length: 200 }, (_, i) => ({ name: `Guest ${i}`, email: `guest${i}@mail.com` }));
+      return issueBatch(c, { name: "Fair 2026", kind: "PARTICIPATION", source: "MANUAL", template: "emerald", config: defaultConfig(), issuedOn: "2026-10-12", recipients: [...members, ...guests], email: true, emailGuests: true });
+    }],
+    ["load a committee's certificate lines", (c: Ctx) => importPreview(c, { kind: "committee", committeeIds: [w.committeeId] })],
+    ["open an issue of 300 certificates", async (c: Ctx) => {
+      const { id } = await issueBatch({ ...c, db: w.db }, { name: "Open me", kind: "PARTICIPATION", source: "MANUAL", template: "heritage", config: defaultConfig(), issuedOn: "2026-10-12",
+        recipients: Array.from({ length: 300 }, (_, i) => ({ name: `Person ${i}` })) });
+      return getBatch(c, id, { q: "Person 1" });
+    }],
   ])("%s", async (_name, op) => {
     const n = await measure(pres, op);
     expect(n, `ran ${n} statements`).toBeLessThanOrEqual(HEADROOM);
@@ -157,15 +193,27 @@ describe("every request stays within the free plan's 50 D1 statements", () => {
       w.sqlite.prepare("UPDATE posts SET created_by = ? WHERE id = ?").run(writer, id);
       await publishPost(await w.ctx(writer), id).catch(() => undefined);
     }
-    const db = new Db(w.db.raw);
-    const ctx: Ctx = { ...(await w.ctx(null)), db, outbox: [] };
-    await runMaintenance(ctx);
-    await remindStaleApprovals(ctx, new Date(Date.now() + 3 * 86_400_000));
-    await guardFreeTier(ctx);
-    await sealAuditLog(ctx);
-    await flushOutbox(ctx);
-    await sendDigests(ctx, new Date(Date.now() + 3600_000));
-    expect(db.queries + 1, `ran ${db.queries + 1} statements`).toBeLessThanOrEqual(HEADROOM);
+    // With email on and an announcement email waiting, so every email step really runs.
+    const setEmail = (on: boolean) => {
+      w.sqlite.prepare("INSERT INTO system_settings (key, value_json) VALUES ('email.enabled', ?) ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json").run(on ? "true" : "false");
+      forgetEmailSettings({ db: w.db } as Ctx);
+    };
+    setEmail(true);
+    await createCampaign(await w.ctx(pres), { subject: "General meeting", body: "Friday at 3 PM.", audience: { kind: "members" } });
+    try {
+      const db = new Db(w.db.raw);
+      const ctx: Ctx = { ...(await w.ctx(null)), db, outbox: [], fetchBudget: { left: 45 } };
+      await runMaintenance(ctx);
+      await remindStaleApprovals(ctx, new Date(Date.now() + 3 * 86_400_000));
+      await guardFreeTier(ctx);
+      await sealAuditLog(ctx);
+      await flushOutbox(ctx);
+      await sendDigests(ctx, new Date(Date.now() + 3600_000));
+      expect((await runCampaignTick(ctx))?.sent).toBeGreaterThan(0);
+      expect(db.queries + 1, `ran ${db.queries + 1} statements`).toBeLessThanOrEqual(HEADROOM);
+    } finally {
+      setEmail(false);
+    }
   });
 
   // Frequent checks answered from the session alone (no permission load): the session lookup
@@ -174,12 +222,23 @@ describe("every request stays within the free plan's 50 D1 statements", () => {
     const other = await w.user({ email: "chat@x.bd", roles: ["member"] });
     const me = await w.user({ email: "me@x.bd", roles: ["member"] });
     const { conversationId } = await sendToPerson(await w.ctx(other), { userId: me, body: "hi" });
-    for (const op of [(c: Ctx) => sessionCounts(c), (c: Ctx) => pulse(c, conversationId), (c: Ctx) => markSeenAtPath(c, `/dashboard/chat/${conversationId}`)]) {
+    for (const op of [(c: Ctx) => sessionCounts(c), (c: Ctx) => pulse(c, conversationId), (c: Ctx) => markSeenAtPath(c, `/dashboard/chat/${conversationId}`),
+      // The header's bell: the newest notifications, and "mark all as read".
+      (c: Ctx) => myNotifications(c, 10), (c: Ctx) => markNotificationsRead(c, "all")]) {
       const db = new Db(w.db.raw);
       const ctx: Ctx = { ...(await w.ctx(null)), db, session: { id: "s", userId: me, createdAt: "", lastSeenAt: null, reauthAt: null, idleHoursSensitive: 12 } };
       await op(ctx);
       expect(db.queries).toBe(1);
     }
+  });
+
+  it("a public form page reads one statement, by any address it has had", async () => {
+    const ctx = await w.ctx(pres);
+    const { id } = await saveForm(ctx, null, { title: "Read once", url: "https://forms.gle/Budget3", slug: "read-once" });
+    await saveForm(ctx, id, { title: "Read once", url: "https://forms.gle/Budget3", slug: "read-once-2" });
+    const db = new Db(w.db.raw);
+    expect((await readForm(db, "READ-ONCE"))?.slug).toBe("read-once-2");
+    expect(db.queries).toBe(1);
   });
 
   it("the daily clean-up", async () => {

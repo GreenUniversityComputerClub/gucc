@@ -2,15 +2,15 @@
 
 /**
  * Start a new sponsorship page from a template: one event, the whole club (named after no event,
- * to send to any company) or blank. It starts hidden; the editor opens next.
+ * to send to any company), a hackathon, a workshop series, or blank. It starts hidden; the editor opens next.
  */
 import { useState } from "react";
-import { CalendarDays, FileText, Handshake } from "lucide-react";
+import { CalendarDays, Code2, FileText, GraduationCap, Handshake } from "lucide-react";
 import { ActionForm, Field, type Result } from "@/components/admin/ui";
 import { cn } from "@/lib/utils";
 import { SPONSORSHIP_TEMPLATES, type SponsorshipContent, type SponsorshipTemplate } from "@/lib/sponsorship/content";
 
-const ICONS = { event: CalendarDays, partnership: Handshake, blank: FileText } as const;
+const ICONS = { event: CalendarDays, partnership: Handshake, hackathon: Code2, workshops: GraduationCap, blank: FileText } as const;
 
 /** The club's own parts (contacts, partner logos, achievements), from the default page. */
 export type ClubParts = Pick<SponsorshipContent, "contacts" | "previousPartners" | "achievements">;
@@ -45,7 +45,7 @@ export function NewSponsorshipForm({ action, club }: { action: (fd: FormData) =>
       <input type="hidden" name="content" value={JSON.stringify(content)} />
       <div className="grid gap-3 md:grid-cols-2">
         {/* Remounted per template so its suggested title fills in. */}
-        <Field key={template} name="title" label="Title" required defaultValue={t.title} placeholder={template === "event" ? "e.g. Hackathon 2027" : "e.g. Partner with GUCC 2027"} />
+        <Field key={template} name="title" label="Title" required defaultValue={t.title} placeholder={template === "partnership" ? "e.g. Partner with GUCC 2027" : "e.g. Hackathon 2027"} />
         <Field name="slug" label="Address" hint="/sponsors/<address>. Empty: made from the title." />
       </div>
       <Field name="summary" label="Summary" type="textarea" rows={2} hint="One or two sentences for /become-a-sponsor, search results and link previews." />

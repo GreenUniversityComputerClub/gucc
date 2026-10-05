@@ -99,6 +99,8 @@ export interface MemberRow {
   department: string | null;
   profile_designation: string | null;
   public_email: string | null;
+  /** AUTO (profile email, else the listing's old one), PROFILE (only the profile's) or HIDDEN. */
+  email_display?: string | null;
   linkedin_url: string | null;
   github_url: string | null;
   twitter_url: string | null;
@@ -137,6 +139,17 @@ const LINK_FIELDS = ["linkedin", "github", "twitter", "facebook", "mail"] as con
  * admin, follow the live profile.
  */
 function termLinks(r: MemberRow, historic: boolean): Partial<Record<(typeof LINK_FIELDS)[number], string>> {
+  const links = listingLinks(r, historic);
+  // The member decides which email the executives pages show, for every year they served.
+  if (r.email_display === "HIDDEN") delete links.mail;
+  else if (r.email_display === "PROFILE") {
+    if (r.public_email) links.mail = r.public_email;
+    else delete links.mail;
+  }
+  return links;
+}
+
+function listingLinks(r: MemberRow, historic: boolean): Partial<Record<(typeof LINK_FIELDS)[number], string>> {
   if (historic && r.cm_legacy_json) {
     try {
       // Exactly what that year's listing had: a year that listed no links shows none.

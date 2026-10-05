@@ -75,6 +75,38 @@ export function dimensions(b: Uint8Array, type: SniffedType): { width: number; h
   return null;
 }
 
+/**
+ * Whether an image can have see-through pixels: a WebP with the VP8X alpha flag or a lossless
+ * VP8L alpha bit, or a PNG whose colour type has alpha (or a tRNS chunk). A cut-out portrait (the
+ * background removed) is mostly transparent and compresses to very little, so the blank-photo
+ * size check must not apply to it.
+ */
+export function hasAlpha(b: Uint8Array, type: SniffedType): boolean {
+  try {
+    if (type === "image/webp") {
+      const chunk = ascii(b, 12, 4);
+      if (chunk === "VP8X") return (b[20]! & 0x10) !== 0;
+      if (chunk === "VP8L") return ((u32le(b, 21) >>> 28) & 1) === 1;
+      return false;
+    }
+    if (type === "image/png") {
+      const colourType = b[25];
+      if (colourType === 4 || colourType === 6) return true;
+      // A palette or grey image can still carry transparency in a tRNS chunk before the image data.
+      for (let o = 8; o + 8 < b.length && o < 65536;) {
+        const len = u32be(b, o);
+        const name = ascii(b, o + 4, 4);
+        if (name === "tRNS") return true;
+        if (name === "IDAT") return false;
+        o += 12 + len;
+      }
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 /** JPEG: drop APP1 (EXIF/XMP), APP3–APP15 and COM; keep APP0 (JFIF), APP2 (ICC colour) and image data. */
 function stripJpeg(b: Uint8Array): Uint8Array {
   const out: Uint8Array[] = [b.subarray(0, 2)];

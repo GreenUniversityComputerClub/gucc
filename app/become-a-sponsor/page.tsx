@@ -60,7 +60,7 @@ export default async function BecomeASponsor() {
               <section aria-label="More sponsorship opportunities">
                 {featured && <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">More opportunities</h2>}
                 <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {others.map((p) => <li key={p.slug} className="h-full"><OpportunityCard page={p} /></li>)}
+                  {others.map((p) => <li key={p.slug} className="h-full"><OpportunityCard page={p} level={featured ? "h3" : "h2"} /></li>)}
                 </ul>
               </section>
             )}
@@ -79,13 +79,15 @@ export default async function BecomeASponsor() {
   );
 }
 
-function OpportunityCard({ page, featured = false }: { page: Awaited<ReturnType<typeof getSponsorships>>[number]; featured?: boolean }) {
+function OpportunityCard({ page, featured = false, level = "h2" }: { page: Awaited<ReturnType<typeof getSponsorships>>[number]; featured?: boolean; level?: "h2" | "h3" }) {
   const name = page.event?.fullName ?? page.event?.name ?? page.title;
+  const Heading = level;
   return (
     <Link href={`/sponsors/${page.slug}`} prefetch={false}
       className={cn("group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         featured && "border-primary/40 bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8")}>
-      {featured && <span className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/15 blur-3xl" aria-hidden />}
+      {/* The glow stays inside its own clipped layer, so the card itself never overflows. */}
+      {featured && <span className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden><span className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/15 blur-3xl" /></span>}
       <div className="relative flex flex-wrap items-center gap-2">
         {featured ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary-foreground"><Star className="h-3 w-3" aria-hidden />Featured</span>
@@ -93,8 +95,9 @@ function OpportunityCard({ page, featured = false }: { page: Awaited<ReturnType<
           <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"><Sparkles className="h-3 w-3" aria-hidden />Open</span>
         )}
         {page.packages > 0 && <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Package className="h-3.5 w-3.5" aria-hidden />{page.packages} package{page.packages === 1 ? "" : "s"}</span>}
+        {page.priceFrom && <span className="text-xs font-medium text-foreground">from {page.priceFrom.currency === "BDT" ? "৳" : `${page.priceFrom.currency} `}{page.priceFrom.amount.toLocaleString("en-US")}</span>}
       </div>
-      <h3 className={cn("relative mt-3 font-bold tracking-tight group-hover:text-primary", featured ? "text-2xl sm:text-3xl" : "text-lg")}>{name}</h3>
+      <Heading className={cn("relative mt-3 font-bold tracking-tight group-hover:text-primary", featured ? "text-2xl sm:text-3xl" : "text-lg")}>{name}</Heading>
       {page.title !== name && <p className="relative text-sm font-medium text-muted-foreground">{page.title}</p>}
       {page.summary && <p className={cn("relative mt-2 text-muted-foreground", featured ? "max-w-2xl" : "line-clamp-3 text-sm")}>{page.summary}</p>}
       <span className={cn("relative mt-auto inline-flex items-center gap-1.5 pt-5 text-sm font-semibold text-primary")}>

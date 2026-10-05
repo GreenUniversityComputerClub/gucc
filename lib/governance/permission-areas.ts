@@ -3,14 +3,14 @@
  * keys and their meaning live in the database (seeded from lib/governance/catalog.ts).
  */
 export const PERMISSION_AREAS: Array<{ area: string; resources: string[] }> = [
-  { area: "Members & accounts", resources: ["members", "users", "profile"] },
+  { area: "Members & accounts", resources: ["members", "users", "profile", "accounts"] },
   { area: "Executives & committees", resources: ["executives", "committees", "positions"] },
   { area: "Events", resources: ["events"] },
   { area: "Posts, news & announcements", resources: ["posts"] },
   { area: "Media library", resources: ["media"] },
   { area: "Recruitment", resources: ["recruitment"] },
   { area: "Tasks & meetings", resources: ["tasks", "meetings"] },
-  { area: "Messages & notifications", resources: ["messages", "chat", "notifications"] },
+  { area: "Messages & notifications", resources: ["messages", "chat", "notifications", "email"] },
   { area: "Services", resources: ["lostfound", "contests", "forms", "certificates"] },
   { area: "Governance", resources: ["roles", "permissions", "rules", "approvals", "settings", "audit", "governance"] },
 ];

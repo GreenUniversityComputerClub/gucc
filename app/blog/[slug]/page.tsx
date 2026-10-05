@@ -196,7 +196,7 @@ export default async function BlogPost({
           href={customPost.url}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center rounded-full bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-500"
+          className="inline-flex items-center rounded-full bg-emerald-700 px-5 py-3 font-semibold text-white transition hover:bg-emerald-600"
         >
           Read Full Article
         </a>

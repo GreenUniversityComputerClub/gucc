@@ -494,6 +494,19 @@ export const PERMISSIONS_V4: PermissionDef[] = [
   P("system.health", "View system health: usage against the free limits, recent errors and email delivery"),
 ];
 
+/**
+ * Round 9. The chat group permissions were added by migration 0011; the rest by 0017. Declared
+ * here too, so session capabilities and the access screens know them. Moderators hold every
+ * permission, and the President and the General Secretary hold the Moderator role while in office.
+ */
+export const PERMISSIONS_V5: PermissionDef[] = [
+  P("chat.groups.create", "Create group conversations with other members"),
+  P("chat.groups.manage", "Rename any group conversation and change its photo and description"),
+  P("accounts.manage", "Delete members' accounts (their personal data is erased; committee history stays)", true),
+  P("accounts.email", "Change a member's sign-in email", true),
+  P("email.campaigns", "Email announcements to members (uses the club's monthly email allowance)"),
+];
+
 /** Governance powers the President and General Secretary now use day to day. */
 export const LEADERSHIP_GOVERNANCE_V4 = ["roles.create", "roles.update", "roles.delete", "roles.assign", "permissions.assign", "positions.permissions", "positions.delete"] as const;
 

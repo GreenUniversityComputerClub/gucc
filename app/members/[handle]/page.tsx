@@ -1,10 +1,11 @@
+import { getProfileCertificates } from "@/lib/public/data";
+import { formatIssued, KIND_LABEL, type CertificateKind } from "@/lib/certificates/config";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import {
-  ArrowUpRight, BadgeCheck, BookOpen, CalendarDays, Eye, Facebook, Github, Globe, GraduationCap, Linkedin, Lock, Mail, MessageSquare, Pencil, Sparkles, Twitter, Users,
-} from "lucide-react";
+  ArrowUpRight, BadgeCheck, BookOpen, CalendarDays, Eye, Facebook, Github, Globe, GraduationCap, Linkedin, Lock, Mail, MessageSquare, Pencil, Sparkles, Twitter, Users, Award } from "lucide-react";
 import { rpc } from "@/lib/api/session";
 import { JsonLd } from "@/components/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -90,6 +91,8 @@ export default async function MemberProfile({ params }: { params: Promise<{ hand
   if (decodeURIComponent(handle) !== p.handle) permanentRedirect(`/members/${p.handle}`);
   const path = `/members/${p.handle}`;
   const first = p.name.split(" ")[0];
+  // Certificates the club issued them that they show on their profile.
+  const certificates = await getProfileCertificates(p.handle);
   // Structured data for search engines, for the profiles that are indexed.
   const schema = p.visibility === "PUBLIC" || p.served ? graph(
     breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Members", path: "/members" }, { name: p.name, path }]),
@@ -264,13 +267,13 @@ export default async function MemberProfile({ params }: { params: Promise<{ hand
         <div className="min-w-0 space-y-6">
           {byYear.length > 0 && (
             <Card title="Club journey" icon={GraduationCap}>
-              <ol className="relative space-y-5 before:absolute before:bottom-2 before:left-[1.1rem] before:top-2 before:w-px before:bg-border">
+              <ol className="relative space-y-5 before:absolute before:bottom-2 before:left-[1.25rem] before:top-2 before:w-px before:bg-border">
                 {byYear.map((y) => {
                   const now = y.roles.some((r) => r.current);
                   return (
                     <li key={y.year} className="relative flex gap-4">
                       <Link prefetch={false} href={`/executives/${y.year}`} aria-label={`GUCC ${y.year} committee`}
-                        className={cn("relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        className={cn("relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                           now ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-primary")}>
                         {y.year.slice(-2)}
                       </Link>
@@ -292,6 +295,24 @@ export default async function MemberProfile({ params }: { params: Promise<{ hand
               {p.executivePage && (
                 <Link prefetch={false} href={p.executivePage} className="mt-4 inline-flex min-h-10 items-center gap-1 text-sm font-medium text-primary hover:underline">Executive page<ArrowUpRight className="h-4 w-4" aria-hidden /></Link>
               )}
+            </Card>
+          )}
+
+          {certificates.length > 0 && (
+            <Card title="Certificates" icon={Award}>
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {certificates.map((c) => (
+                  <li key={c.code}>
+                    <Link prefetch={false} href={`/c/${c.code}`} className="group flex h-full min-h-14 items-start gap-3 rounded-xl border p-3 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Award className="h-4 w-4" aria-hidden /></span>
+                      <span className="min-w-0">
+                        <span className="block font-medium group-hover:text-primary">{c.name}</span>
+                        <span className="block text-xs text-muted-foreground">{KIND_LABEL[c.kind as CertificateKind] ?? "Certificate"} · {formatIssued(c.issuedOn)}{c.roleLine ? ` · ${c.roleLine}` : ""}</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </Card>
           )}
 

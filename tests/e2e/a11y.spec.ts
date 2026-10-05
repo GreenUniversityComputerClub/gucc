@@ -19,7 +19,7 @@ async function audit(page: Page, opts: { contrast: boolean }) {
   return serious.map((v) => `${v.id} (${v.impact}): ${v.help} — ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(" | ")}`);
 }
 
-for (const path of ["/", "/events", "/executives", "/contact", "/join", "/auth/login", "/auth/sign-up", "/lost-found", "/become-a-sponsor", "/sponsors/partner-with-gucc"]) {
+for (const path of ["/", "/events", "/executives", "/contact", "/join", "/auth/login", "/auth/sign-up", "/lost-found", "/become-a-sponsor", "/sponsors/partner-with-gucc", "/forms", "/c", "/email/unsubscribe"]) {
   test(`public page ${path} has no serious accessibility problems`, async ({ page }) => {
     await page.goto(path);
     expect(await audit(page, { contrast: false })).toEqual([]);
@@ -27,7 +27,8 @@ for (const path of ["/", "/events", "/executives", "/contact", "/join", "/auth/l
 }
 
 // One test per page: axe on a long dashboard list takes a while.
-for (const path of ["/dashboard", "/dashboard/profile", "/dashboard/security", "/dashboard/members", "/dashboard/health", "/dashboard/access/simulator", "/dashboard/notifications", "/dashboard/media"]) {
+for (const path of ["/dashboard", "/dashboard/profile", "/dashboard/security", "/dashboard/members", "/dashboard/health", "/dashboard/access/simulator", "/dashboard/notifications", "/dashboard/media",
+  "/dashboard/forms", "/dashboard/forms/new", "/dashboard/email", "/dashboard/email/new", "/dashboard/certificates", "/dashboard/certificates/new", "/dashboard/chat"]) {
   test(`dashboard page ${path} has no serious accessibility problems`, async ({ page }) => {
     test.setTimeout(180_000);
     await login(page, MODERATOR.email, MODERATOR.password, path);

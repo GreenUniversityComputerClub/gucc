@@ -65,6 +65,32 @@ export function ExecutivesEditorProvider({ year, children }: { year: string; chi
 }
 import { mailtoHref } from "@/lib/utils";
 
+/** An executive's links (LinkedIn, GitHub, Facebook, X, email); `touch` gives each a 44 px target. */
+function SocialLinks({ executive, size }: { executive: Executive; size: "sm" | "touch" }) {
+  const box = size === "touch"
+    ? "inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group/link"
+    : "rounded-full p-1.5 transition-all duration-200 hover:scale-110 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group/link";
+  const icon = size === "touch" ? "h-4 w-4" : "h-3.5 w-3.5";
+  const mail = mailtoHref(executive.mail);
+  const links: Array<{ href: string; label: string; Icon: typeof Linkedin; hover: string; external: boolean }> = [
+    ...(executive.linkedin ? [{ href: executive.linkedin, label: `${executive.name}'s LinkedIn profile`, Icon: Linkedin, hover: "group-hover/link:text-[#0077b5]", external: true }] : []),
+    ...(executive.github ? [{ href: executive.github, label: `${executive.name}'s GitHub profile`, Icon: Github, hover: "group-hover/link:text-[#333] dark:group-hover/link:text-[#f0f6fc]", external: true }] : []),
+    ...(executive.facebook ? [{ href: executive.facebook, label: `${executive.name}'s Facebook profile`, Icon: Facebook, hover: "group-hover/link:text-[#1877f2]", external: true }] : []),
+    ...(executive.twitter ? [{ href: executive.twitter, label: `${executive.name}'s X profile`, Icon: Twitter, hover: "group-hover/link:text-[#1da1f2]", external: true }] : []),
+    // Email opens the mail app, never a new browser tab.
+    ...(mail ? [{ href: mail, label: `Send email to ${executive.name}`, Icon: Mail, hover: "group-hover/link:text-primary", external: false }] : []),
+  ];
+  return (
+    <div className="flex items-center gap-1">
+      {links.map(({ href, label, Icon, hover, external }) => (
+        <a key={label} href={href} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className={box} title={label} aria-label={label}>
+          <Icon className={`${icon} text-muted-foreground transition-colors ${hover}`} />
+        </a>
+      ))}
+    </div>
+  );
+}
+
 export function ExecutiveCard({
   executive,
   isResizeMode,
@@ -103,10 +129,6 @@ export function ExecutiveCard({
     setStartPos({ x: e.clientX, y: e.clientY });
   };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
   const handleCardClick = (e: React.MouseEvent) => {
     // Only navigate if not in resize mode and executive has a student ID
     if (!isResizeMode && executive.studentId && executive.studentId.length === 9) {
@@ -129,17 +151,20 @@ export function ExecutiveCard({
     setSaveState(res.ok ? "Saved" : res.error);
   };
 
+  // The newest handlers, so the window listeners never use a stale drag position.
+  const moveRef = useRef(handleMouseMove);
+  moveRef.current = handleMouseMove;
   useEffect(() => {
-    if (isResizeMode) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
-
-      return () => {
-        window.removeEventListener("mousemove", handleMouseMove);
-        window.removeEventListener("mouseup", handleMouseUp);
-      };
-    }
-  }, [isDragging, startPos, isResizeMode]);
+    if (!isResizeMode) return;
+    const move = (e: MouseEvent) => moveRef.current(e);
+    const up = () => setIsDragging(false);
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    return () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+    };
+  }, [isResizeMode]);
 
   // Card Hover Effect for Social Media Icons
   const hasSocialLinks = executive.linkedin || executive.github || executive.facebook || executive.twitter || mailtoHref(executive.mail);
@@ -207,75 +232,22 @@ export function ExecutiveCard({
               <CardDescription className="line-clamp-2 overflow-hidden text-ellipsis" title={getRoleName(executive.position)}>
                 {getRoleName(executive.position)}
               </CardDescription>
+              {/* Touch screens: the links sit in the card (a floating bar used to cover the position). */}
+              {hasSocialLinks && (
+                <div className="-ml-2 mt-1 hidden [@media(hover:none)]:flex">
+                  <SocialLinks executive={executive} size="touch" />
+                </div>
+              )}
             </div>
           </CardHeader>
         </div>
         
       </Card>
 
-      {/* Social Media Links - Enhanced for Dark Mode */}
+      {/* Computers: the links appear on hover or focus, below the card. */}
       {hasSocialLinks && (
-        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 bg-card/95 backdrop-blur-sm border border-border/50 px-3 py-2 rounded-full flex space-x-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-all duration-300 shadow-lg hover:shadow-xl transform group-hover:scale-105 z-10">
-          {executive.linkedin && (
-            <a
-              href={executive.linkedin}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1.5 rounded-full hover:bg-accent transition-all duration-200 group/link hover:scale-110"
-              title="LinkedIn Profile"
-              aria-label={`${executive.name}'s LinkedIn Profile`}
-            >
-              <Linkedin className="h-3.5 w-3.5 text-muted-foreground group-hover/link:text-[#0077b5] transition-colors" />
-            </a>
-          )}
-          {executive.github && (
-            <a 
-              href={executive.github} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="p-1.5 rounded-full hover:bg-accent transition-all duration-200 group/link hover:scale-110"
-              title="GitHub Profile"
-              aria-label={`${executive.name}'s GitHub Profile`}
-            >
-              <Github className="h-3.5 w-3.5 text-muted-foreground group-hover/link:text-[#333] dark:group-hover/link:text-[#f0f6fc] transition-colors" />
-            </a>
-          )}
-          {executive.facebook && (
-            <a
-              href={executive.facebook}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1.5 rounded-full hover:bg-accent transition-all duration-200 group/link hover:scale-110"
-              title="Facebook Profile"
-              aria-label={`${executive.name}'s Facebook Profile`}
-            >
-              <Facebook className="h-3.5 w-3.5 text-muted-foreground group-hover/link:text-[#1877f2] transition-colors" />
-            </a>
-          )}
-          {executive.twitter && (
-            <a
-              href={executive.twitter}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1.5 rounded-full hover:bg-accent transition-all duration-200 group/link hover:scale-110"
-              title="Twitter/X Profile"
-              aria-label={`${executive.name}'s Twitter/X Profile`}
-            >
-              <Twitter className="h-3.5 w-3.5 text-muted-foreground group-hover/link:text-[#1da1f2] transition-colors" />
-            </a>
-          )}
-          {mailtoHref(executive.mail) && (
-            <a 
-              href={mailtoHref(executive.mail)} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="p-1.5 rounded-full hover:bg-accent transition-all duration-200 group/link hover:scale-110"
-              title="Send Email"
-              aria-label={`Send email to ${executive.name}`}
-            >
-              <Mail className="h-3.5 w-3.5 text-muted-foreground group-hover/link:text-primary transition-colors" />
-            </a>
-          )}
+        <div className="absolute -bottom-1 left-1/2 z-10 hidden -translate-x-1/2 rounded-full border border-border/50 bg-card/95 px-3 py-2 opacity-0 shadow-lg backdrop-blur-sm transition-all duration-300 group-hover:scale-105 group-hover:opacity-100 focus-within:opacity-100 hover:shadow-xl [@media(hover:hover)]:flex">
+          <SocialLinks executive={executive} size="sm" />
         </div>
       )}
 

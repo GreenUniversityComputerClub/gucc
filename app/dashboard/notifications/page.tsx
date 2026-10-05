@@ -36,7 +36,7 @@ export default async function NotificationsAdmin({ searchParams }: { searchParam
         )}
       </Section>
       {session.caps["notifications.send"] && audiences && (
-        <Section id="send" title="Send an announcement" description="Appears in each person's notifications with your name and photo (and by email for those who chose it). You don't get a copy." className="mt-6">
+        <Section id="send" title="Send an announcement" description="Appears at once in each person's notifications, with your name and photo. You don't get a copy." className="mt-6">
           <ActionForm action={broadcastAction} submitLabel="Send" resetOnSuccess
             confirm={`Send this announcement now? All active members: ${audiences.members} people; current executives: ${audiences.executives} people. It can't be unsent.`}>
             <div className="grid gap-3 md:grid-cols-3">
@@ -45,6 +45,10 @@ export default async function NotificationsAdmin({ searchParams }: { searchParam
             </div>
             <Field name="body" label="Message" type="textarea" rows={3} required />
             <Field name="link" label="Link (optional)" placeholder="/events/…" hint="A page on this site, starting with / (for example /events/workshop-2026)." />
+            {session.caps["email.campaigns"] && (
+              <Field name="email" label="Also email it" type="checkbox"
+                hint="To everyone in the audience who didn't opt out of club announcements, a few at a time within the email allowance (progress in Email). Each email has an unsubscribe link." />
+            )}
           </ActionForm>
         </Section>
       )}

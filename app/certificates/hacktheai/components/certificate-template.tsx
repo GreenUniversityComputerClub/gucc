@@ -31,7 +31,8 @@ export const CertificateTemplate = memo(function CertificateTemplate(props: Cert
       className="relative w-full max-w-5xl mx-auto bg-white"
       style={{ aspectRatio: '1123 / 794', minHeight: '400px' }}
     >
-      {/* SVG Background */}
+      {/* SVG background: html2canvas copies it into the downloaded PNG/PDF, which needs a plain <img>. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/certificates/hacktheai-template.svg"
         alt="Certificate Template"

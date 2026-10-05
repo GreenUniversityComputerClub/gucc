@@ -116,6 +116,38 @@ export async function cutOutPerson(photo: HTMLCanvasElement): Promise<PersonCuto
   }
 }
 
+/**
+ * How much of a picture a person covers (0–1), or null when the person-finder can't run here or
+ * takes too long. Used only to confirm a photo isn't blank before refusing it; nothing is removed.
+ */
+export async function personShare(src: Blob | HTMLCanvasElement, timeoutMs = 4000): Promise<number | null> {
+  const work = (async () => {
+    let canvas: HTMLCanvasElement;
+    if (src instanceof HTMLCanvasElement) canvas = src;
+    else {
+      const bitmap = await createImageBitmap(src);
+      const scale = 256 / Math.max(bitmap.width, bitmap.height);
+      canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * Math.min(1, scale)));
+      canvas.height = Math.max(1, Math.round(bitmap.height * Math.min(1, scale)));
+      const g = canvas.getContext("2d")!;
+      // Transparency is shown on white, as everywhere else on the site.
+      g.fillStyle = "#ffffff";
+      g.fillRect(0, 0, canvas.width, canvas.height);
+      g.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+    }
+    const cut = await cutOutPerson(canvas);
+    return cut ? cut.coverage : 0;
+  })();
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs));
+  try {
+    return await Promise.race([work, timeout]);
+  } catch {
+    return null;
+  }
+}
+
 /** Whether this browser can blur on a canvas (needed for the "Blurred" backdrop). */
 export function canBlur(): boolean {
   if (typeof document === "undefined") return false;

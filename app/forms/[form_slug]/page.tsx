@@ -1,8 +1,13 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getPublicForm } from "@/lib/public/data";
-import { buildMetadata } from "@/lib/seo/metadata";
-import { FormViewer } from "./form-viewer";
+import { buildMetadata, truncate } from "@/lib/seo/metadata";
+import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbSchema, graph, webPageSchema } from "@/lib/seo/schema";
+import { inspectFormCached } from "@/lib/forms/inspect";
+import { embedUrlFor, formState, isShortLink, openUrlFor, PROVIDER_LABEL, providerOf, type FormState } from "@/lib/forms/providers";
+import type { PublicForm } from "@/lib/forms/types";
+import { FormShell, type FormView } from "./form-shell";
 
 export const revalidate = 21600;
 
@@ -11,13 +16,97 @@ export async function generateStaticParams() {
   return [];
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ form_slug: string }> }): Promise<Metadata> {
-  const form = await getPublicForm((await params).form_slug);
-  return buildMetadata({ title: form?.title ?? "Form", description: "A Green University Computer Club form.", path: `/forms/${(await params).form_slug}`, noIndex: !form });
+const OPEN_LABEL = { google: "Open in Google Forms", microsoft: "Open in Microsoft Forms", tally: "Open in Tally", airtable: "Open in Airtable" } as const;
+const dateLabel = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+
+/**
+ * Everything the page shows about a form: what the dashboard stored, and where it hasn't been
+ * checked yet (forms saved before checking existed), what a look at the form itself says.
+ */
+async function viewOf(form: PublicForm): Promise<FormView> {
+  const provider = form.provider ?? providerOf(form.url);
+  let embedUrl = form.embedUrl ?? null;
+  let openUrl = form.openUrl ?? openUrlFor(form.url) ?? form.url;
+  let requiresSignIn = Boolean(form.requiresSignIn);
+  let description = form.description ?? null;
+  let questionCount = form.questionCount ?? null;
+  let providerClosed = false;
+  // Not checked by the dashboard yet: short links must be resolved, and sign-in detected.
+  if (!form.inspectedAt) {
+    const seen = await inspectFormCached(form.url).catch(() => null);
+    if (seen?.ok) {
+      embedUrl = seen.embedUrl;
+      openUrl = seen.openUrl;
+      requiresSignIn = seen.requiresSignIn;
+      description ??= seen.description;
+      questionCount ??= seen.questionCount;
+      providerClosed = seen.closed;
+    } else if (!isShortLink(form.url)) {
+      embedUrl = embedUrlFor(form.url);
+    }
+  }
+  const state: FormState = providerClosed ? "closed" : formState({ opensAt: form.opensAt, closesAt: form.closesAt, accepting: form.accepting });
+  return {
+    slug: form.slug,
+    title: form.title,
+    description,
+    providerLabel: provider ? PROVIDER_LABEL[provider] : "Form",
+    openLabel: provider ? OPEN_LABEL[provider] : "Open the form",
+    openUrl,
+    embedUrl,
+    requiresSignIn,
+    display: form.display ?? "AUTO",
+    state,
+    opensAt: form.opensAt ?? null,
+    closesAt: form.closesAt ?? null,
+    closedMessage: form.closedMessage ?? null,
+    questionCount,
+    event: form.event ?? null,
+  };
 }
 
+function summary(v: FormView): string {
+  if (v.description) return v.description;
+  const when = v.state === "closed" ? "This form is closed." : v.closesAt ? `Open until ${dateLabel(v.closesAt)}.` : "";
+  return `${v.title}: a form from the Green University Computer Club (GUCC), Green University of Bangladesh. ${when}`.trim();
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ form_slug: string }> }): Promise<Metadata> {
+  const { form_slug } = await params;
+  const form = await getPublicForm(form_slug);
+  if (!form) return buildMetadata({ title: "Form not found", description: "This GUCC form doesn't exist or was removed.", path: `/forms/${form_slug}`, noIndex: true });
+  const v = await viewOf(form);
+  const status = v.state === "closed" ? "Closed" : v.state === "scheduled" && v.opensAt ? `Opens ${dateLabel(v.opensAt)}` : v.closesAt ? `Open until ${dateLabel(v.closesAt)}` : "Open now";
+  return buildMetadata({
+    title: form.title,
+    description: summary(v),
+    path: `/forms/${form.slug}`,
+    keywords: [form.title, "GUCC form", "Green University Computer Club"],
+    image: form.coverUrl ? form.coverUrl : { eyebrow: "GUCC form", title: form.title, subtitle: status },
+    // Listed, open forms are found in search; the rest are shared by link only.
+    noIndex: !form.listed || v.state !== "open",
+  });
+}
+
+/**
+ * A form page: a slim header (the title, its state, open/share actions) and the form itself.
+ * On phones the form fills the screen under a 48 px bar, so the provider's own pickers (a long
+ * "Batch" list) always fit; a form that needs a Google account opens at Google there.
+ */
 export default async function FormPage({ params }: { params: Promise<{ form_slug: string }> }) {
-  const form = await getPublicForm((await params).form_slug);
+  const { form_slug } = await params;
+  const form = await getPublicForm(form_slug);
   if (!form) notFound();
-  return <FormViewer form={form} />;
+  // Old links with another spelling (/forms/CR → /forms/cr) land on the form's own address.
+  if (form.slug !== decodeURIComponent(form_slug)) permanentRedirect(`/forms/${encodeURIComponent(form.slug)}`);
+  const v = await viewOf(form);
+  return (
+    <>
+      <JsonLd id={`form-${form.slug}`} data={graph(
+        breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Forms", path: "/forms" }, { name: form.title, path: `/forms/${form.slug}` }]),
+        webPageSchema({ name: form.title, description: truncate(summary(v), 300), path: `/forms/${form.slug}` }),
+      )} />
+      <FormShell form={v} />
+    </>
+  );
 }

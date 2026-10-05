@@ -108,3 +108,16 @@ export async function revalidate(request: import("@playwright/test").APIRequestC
   const r = await request.post("/api/revalidate", { headers: { "x-api-key": secret }, data: { tags } });
   if (r.status() !== 200) throw new Error(`revalidate answered ${r.status()}`);
 }
+
+/** A member's row in the members list (the table on computers, a card on phones). */
+export function memberRow(page: Page, email: string) {
+  return page.locator("tr, li").filter({ hasText: email }).filter({ visible: true }).first();
+}
+
+/** Open the member's action sheet from their row; returns the sheet. */
+export async function openMemberSheet(page: Page, email: string) {
+  await memberRow(page, email).getByRole("button", { name: /^Actions for / }).click();
+  const sheet = page.getByRole("dialog");
+  await expect(sheet).toBeVisible();
+  return sheet;
+}

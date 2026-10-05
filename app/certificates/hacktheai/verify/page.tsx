@@ -25,7 +25,7 @@ export default async function CertificateVerifyPage({ searchParams }: VerifyPage
           </p>
           <a
             href="/certificates/hacktheai"
-            className="inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md transition-colors"
+            className="inline-block px-6 py-3 bg-green-700 hover:bg-green-800 text-white font-semibold rounded-md transition-colors"
           >
             Go Back to Verification
           </a>
@@ -53,7 +53,7 @@ export default async function CertificateVerifyPage({ searchParams }: VerifyPage
           </p>
           <a
             href="/certificates/hacktheai"
-            className="inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md transition-colors"
+            className="inline-block px-6 py-3 bg-green-700 hover:bg-green-800 text-white font-semibold rounded-md transition-colors"
           >
             Go Back to Verification
           </a>

@@ -13,7 +13,7 @@ import { FramedImage } from "@/components/framed-image";
 type Kind = { type: "NEWS" | "ANNOUNCEMENT"; basePath: string; label: string; description: string };
 
 export const NEWS: Kind = { type: "NEWS", basePath: "/news", label: "News", description: "News from the Green University Computer Club: results, achievements and club updates." };
-export const ANNOUNCEMENTS: Kind = { type: "ANNOUNCEMENT", basePath: "/announcements", label: "Announcements", description: "Official announcements from the Green University Computer Club." };
+export const ANNOUNCEMENTS: Kind = { type: "ANNOUNCEMENT", basePath: "/announcements", label: "Announcements", description: "Official announcements from the Green University Computer Club (GUCC): recruitment, events, deadlines, results and notices for members and students." };
 
 const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Dhaka" }) : "");
 

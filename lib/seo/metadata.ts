@@ -36,8 +36,10 @@ export function ogImageUrl(options: OgImageOptions): string {
 
 /** Google shows roughly this much of a title; longer is silently clipped. */
 const MAX_TITLE = 70;
-/** Descriptions past this are clipped too, and read badly when they are. */
+/** Social cards show a longer description than search results. */
 const MAX_DESCRIPTION = 300;
+/** Search results show about this much of the meta description; longer text is cut mid-sentence. */
+const MAX_META_DESCRIPTION = 155;
 
 /**
  * Appends the brand to a page title, keeping the whole thing inside Google's
@@ -100,6 +102,7 @@ export function buildMetadata({
 }: BuildMetadataOptions): Metadata {
   const url = absoluteUrl(path);
   const summary = truncate(description, MAX_DESCRIPTION);
+  const metaDescription = truncate(description, MAX_META_DESCRIPTION);
   const imageUrl =
     typeof image === "string"
       ? absoluteUrl(image)
@@ -112,7 +115,7 @@ export function buildMetadata({
     // nested — a parent layout with a plain string title clears the inherited
     // template for its descendants.
     title: { absolute: brandTitle(title) },
-    description: summary,
+    description: metaDescription,
     keywords: [...(keywords ?? SITE_KEYWORDS)],
     alternates: { canonical: url },
     ...(noIndex

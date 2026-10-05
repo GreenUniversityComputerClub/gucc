@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { rpc, runAction } from "@/lib/api/session";
 import type { chatDirectory, chatHome, myConversations, thread } from "@/lib/server/services/messaging";
 import type { ReactionKey } from "@/lib/chat/reactions";
+import type { Mention } from "@/lib/chat/mentions";
 
 export type Thread = Awaited<ReturnType<typeof thread>>;
 export type Conversations = Awaited<ReturnType<typeof myConversations>>;
@@ -29,9 +30,23 @@ export async function loadThreadAction(conversationId: string, before?: string):
   return r.ok ? { ok: true, data: r.data } : { ok: false, error: r.error, code: r.code };
 }
 
+export type SearchHit = { id: string; at: string; body: string; sender: string; mine: boolean };
+
+/** Messages in one conversation that contain the words (newest first). */
+export async function searchChatAction(conversationId: string, q: string): Promise<Plain<SearchHit[]>> {
+  const r = await rpc<SearchHit[]>("chat.search", { conversationId, q });
+  return r.ok ? { ok: true, data: r.data } : { ok: false, error: r.error, code: r.code };
+}
+
 /** "Anything new?" for an open conversation: a fingerprint that changes when something does. */
 export async function pulseAction(conversationId: string): Promise<Plain<{ sig: string }>> {
   const r = await rpc<{ sig: string }>("chat.pulse", { conversationId });
+  return r.ok ? { ok: true, data: r.data } : { ok: false, error: r.error, code: r.code };
+}
+
+/** The newest few conversations, for the header's Messages menu. */
+export async function recentConversationsAction(limit = 8): Promise<Plain<Conversations>> {
+  const r = await rpc<Conversations>("chat.list", { limit: Math.min(Math.max(limit, 1), 20) });
   return r.ok ? { ok: true, data: r.data } : { ok: false, error: r.error, code: r.code };
 }
 
@@ -41,8 +56,8 @@ export async function loadConversationsAction(archived = false): Promise<Plain<C
 }
 
 /** Send; `clientId` makes a double send or a retry store the message once. */
-export async function sendChatAction(conversationId: string, body: string, clientId: string, replyTo?: string | null) {
-  return runAction<{ id: string; at: string }>("chat.send", { conversationId, body, clientId, replyTo: replyTo ?? undefined });
+export async function sendChatAction(conversationId: string, body: string, clientId: string, replyTo?: string | null, mentions: string[] = []) {
+  return runAction<{ id: string; at: string; mentions?: Mention[] }>("chat.send", { conversationId, body, clientId, replyTo: replyTo ?? undefined, mentions });
 }
 
 /** Read up to the newest message (after messages arrived live while the conversation was open). */
@@ -106,8 +121,8 @@ export async function deleteGroupAction(conversationId: string) {
   return runAction("chat.groupDelete", { conversationId }, { message: "Group deleted." });
 }
 
-export async function editChatAction(id: string, body: string) {
-  return runAction("chat.edit", { id, body }, { message: "Message edited." });
+export async function editChatAction(id: string, body: string, mentions: string[] = []) {
+  return runAction("chat.edit", { id, body, mentions }, { message: "Message edited." });
 }
 
 export async function deleteChatAction(id: string) {

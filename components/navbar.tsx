@@ -24,6 +24,10 @@ import { refreshSession, useSession, type ClientSession } from "@/lib/api/use-se
 import { initials } from "@/lib/initials";
 import { useLiveCounts } from "@/lib/api/live-counts";
 import { useCloseAbove, useExclusiveOverlay } from "@/lib/overlay";
+import { NotificationBell } from "@/components/notifications/notification-bell";
+import { MessagesMenu } from "@/components/notifications/messages-menu";
+
+const seedOf = (s: ClientSession) => ({ unread: s.unread ?? 0, unreadMessages: s.unreadMessages ?? 0, openTasks: s.openTasks ?? 0 });
 import { cn } from "@/lib/utils";
 
 /** Shown only to signed-in people. */
@@ -35,7 +39,7 @@ function AccountMenu({ s: session }: { s: ClientSession }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="relative flex h-10 w-10 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Account menu for ${s.name}${s.unread ? `, ${s.unread} unread notifications` : ""}`}>
+        <button type="button" className="relative flex h-10 w-10 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Account menu for ${s.name}`}>
           {s.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={s.avatarUrl} alt="" width={32} height={32} className="h-8 w-8 rounded-full border object-cover" />
@@ -44,7 +48,6 @@ function AccountMenu({ s: session }: { s: ClientSession }) {
               {initials(s.name)}
             </span>
           )}
-          {s.unread ? <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-rose-500 px-1 text-center text-[10px] leading-4 text-white">{s.unread > 9 ? "9+" : s.unread}</span> : null}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
@@ -168,10 +171,12 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
     )}>
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-popover focus:px-3 focus:py-2 focus:text-popover-foreground">Skip to content</a>
       <div className="container flex h-16 items-center gap-3">
-        <Link href="/" className="flex shrink-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Green University Computer Club, home">
-          <Image src="/android-chrome-192x192.png" alt="GUCC Logo" width={42} height={42} priority className="h-10 w-10 sm:h-[42px] sm:w-[42px]" />
-          {/* The name gives way to the links where they need the room (1024–1279 px). */}
-          <span className="hidden leading-none min-[380px]:block lg:hidden xl:block" aria-hidden>
+        {/* The logo's alt names the link: an aria-label would hide the visible name from voice control. */}
+        <Link href="/" className="flex shrink-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Image src="/android-chrome-192x192.png" alt="Green University Computer Club, home" width={42} height={42} priority className="h-10 w-10 sm:h-[42px] sm:w-[42px]" />
+          {/* The name gives way to the links where they need the room (1024–1279 px), and on phones
+              to the messages and notifications buttons of a signed-in member. */}
+          <span className={cn("hidden leading-none lg:hidden xl:block", signedIn ? "sm:block" : "min-[380px]:block")} aria-hidden>
             <span className="block text-[17px] font-bold tracking-tight text-primary">GREEN UNIVERSITY</span>
             <span className="mt-0.5 block text-[13px] font-semibold tracking-[0.08em] text-foreground">COMPUTER CLUB</span>
           </span>
@@ -215,7 +220,14 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
 
         <div className="ml-auto flex items-center gap-1 sm:gap-1.5 lg:ml-0">
           <SiteSearch />
-          {signedIn && session && <AccountMenu s={session} />}
+          {signedIn && session && (
+            <>
+              {/* As on Facebook: messages and notifications, each with a live count. */}
+              <span className="hidden min-[380px]:inline-flex"><MessagesMenu seed={seedOf(session)} /></span>
+              <NotificationBell seed={seedOf(session)} />
+              <AccountMenu s={session} />
+            </>
+          )}
           <ThemeToggle />
           {!signedIn && (
             <Button asChild variant="ghost" className="hidden rounded-full lg:inline-flex">

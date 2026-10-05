@@ -26,7 +26,7 @@ const MEMBER_COLUMNS = `
   cm.committee_id, cm.section, cm.unit_type, cm.unit_key, cm.display_order, cm.position_title,
   cm.display_name, cm.designation, cm.campus_label, cm.legacy_json AS cm_legacy_json,
   cm.avatar_position_x AS cm_avatar_x, cm.avatar_position_y AS cm_avatar_y, cm.avatar_scale AS cm_avatar_scale,
-  p.full_name, p.student_id, p.department, p.designation AS profile_designation, p.public_email,
+  p.full_name, p.student_id, p.department, p.designation AS profile_designation, p.public_email, p.email_display,
   p.linkedin_url, p.github_url, p.twitter_url, p.facebook_url,
   p.avatar_position_x AS p_avatar_x, p.avatar_position_y AS p_avatar_y, p.avatar_scale AS p_avatar_scale,
   (m.id IS NOT NULL AND m.id IS p.avatar_media_id) AS avatar_is_profile,

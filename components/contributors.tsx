@@ -22,7 +22,8 @@ export function ContributorCard({ contributor }: { contributor: Contributor }) {
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`${contributor.name || contributor.login} - ${contributor.contributions} ${contributor.additions !== undefined ? "commits" : "contributions"}`}
-        className="block"
+        // A 40 px target around the 28 px photo, so it's easy to tap.
+        className="block rounded-full p-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Image
           src={contributor.avatar_url}
@@ -100,7 +101,7 @@ export function ContributorsWrapper({
   return (
     <div className="text-center w-full">
       {contributors.length > 0 ? (
-        <div className="flex flex-wrap justify-center items-center gap-2 max-w-xl mx-auto">
+        <div className="flex flex-wrap justify-center items-center gap-0.5 max-w-xl mx-auto">
           {contributors.map((contributor) => (
             <ContributorCard
               key={contributor.login}
@@ -111,10 +112,11 @@ export function ContributorsWrapper({
             href="https://github.com/GreenUniversityComputerClub/gucc/graphs/contributors"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center w-7 h-7 rounded-full bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors text-xs font-semibold ring-1 ring-border"
+            className="group/all flex h-10 w-10 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             title="View all contributors on GitHub"
+            aria-label="View all contributors on GitHub"
           >
-            <span>+</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground ring-1 ring-border transition-colors group-hover/all:bg-primary/10 group-hover/all:text-primary">+</span>
           </Link>
         </div>
       ) : null}

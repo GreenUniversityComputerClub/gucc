@@ -19,6 +19,7 @@ import { AppError, ForbiddenError, NotFoundError, ValidationError } from "../err
 import { getSetting } from "../security";
 import { toSlug, Validator } from "../validate";
 import { registerApprovalHandler, startApproval, WITHDRAWN } from "./approvals";
+import { postCampaignStatements } from "./campaigns";
 import { tagsForPost } from "./cache-tags";
 import { triggerStmts } from "../triggers";
 import { checkMemberCreate, checkMemberSubmit } from "./member-content";
@@ -54,6 +55,10 @@ export interface PostRow {
   created_at: string;
   updated_at: string;
   author_display?: string | null;
+  /** "Email it when it's published" (round 9): the audience, until the email is queued. */
+  email_intent_json?: string | null;
+  /** The announcement email sent for it. */
+  email_campaign_id?: string | null;
 }
 
 function readTime(markdown: string | null): number | null {
@@ -269,6 +274,8 @@ export async function publishPost(ctx: Ctx, id: string): Promise<PublishResult> 
       assertTransition(ctx, "posts", id, token),
       auditStmt(ctx, { action: "post.publish", resourceType: "post", resourceId: id, decision, after: { publishedAt: scheduled ? post!.scheduled_at : now } }),
       ...(await triggerStmts(ctx, "post.published", resource, { title: post!.title, link: `/dashboard/posts/${id}` })),
+      // "Email it when it's published": the announcement email, from its publishing time.
+      ...(await postCampaignStatements(ctx, id, scheduled ? post!.scheduled_at : null)),
     ], () => alreadyDone(ctx, "posts", id, "This post"));
     ctx.revalidate?.(tagsForPost(post!.type, post!.slug));
     return scheduled
@@ -353,6 +360,7 @@ registerApprovalHandler("posts.publish", {
       ),
       auditStmt(ctx, { action: "post.publish", resourceType: "post", resourceId: req.resource_id, reason: `Approved (request ${req.id})` }),
       ...(await publishedTrigger(ctx, req.resource_id)),
+      ...(await postCampaignStatements(ctx, req.resource_id, await ctx.db.value<string>("SELECT CASE WHEN scheduled_at > ?2 THEN scheduled_at END FROM posts WHERE id = ?1", req.resource_id, now))),
     ];
   },
   async onRejected(ctx, req, note) {

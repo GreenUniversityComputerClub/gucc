@@ -1,73 +1,23 @@
 /**
- * Smaller domains: external forms, lost & found, certificates, contests,
+ * Smaller domains: lost & found, certificates, contests,
  * notifications, the audit log and dashboard figures.
  */
 import { limit } from "../limits";
 import { auditStmt } from "../audit";
 import { authorize, requireActor, requirePermission } from "../authz";
 import type { Ctx } from "../context";
-import { newId, nowIso } from "../db";
-import { AppError, AuthRequiredError, ConflictError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
+import { newId, nowIso, type D1StatementLike } from "../db";
+import { AppError, AuthRequiredError, ForbiddenError, NotFoundError, ValidationError } from "../errors";
 import { avatarOfUserSql, avatarUrl } from "../avatar";
 import { getOrgSetting } from "../security";
 import { notifyStmts, usersWithPermission } from "../notifications";
 import { emit } from "../live";
 import { sendToPerson } from "./messaging";
-import { toSlug, Validator } from "../validate";
+import { Validator } from "../validate";
 import { TAGS } from "./cache-tags";
 import { takeDownIfUnused } from "./media";
 import { safeLocalPath } from "../../safe-path";
-
-// ───────────────────────────── external forms ─────────────────────────────
-
-export async function listForms(ctx: Ctx) {
-  requirePermission(ctx, "forms.manage");
-  return ctx.db.all<{ id: string; slug: string; title: string; url: string; status: string; updated_at: string }>(
-    "SELECT id, slug, title, url, status, updated_at FROM external_forms WHERE deleted_at IS NULL ORDER BY title");
-}
-
-export async function saveForm(ctx: Ctx, id: string | null, input: Record<string, unknown>) {
-  const actor = requireActor(ctx);
-  const decision = requirePermission(ctx, "forms.manage");
-  const v = new Validator(input);
-  const title = v.string("title", { required: true, max: 120, label: "Title" });
-  const url = v.url("url", { required: true, label: "Form URL" });
-  const slug = v.string("slug", { max: 80, label: "Slug", pattern: /^[a-z0-9-]+$/, patternMessage: "Use lowercase letters, digits and hyphens." }) ?? (title ? toSlug(title) : null);
-  if (url) v.check(/^https:\/\/(docs\.google\.com\/forms|forms\.gle|forms\.office\.com|tally\.so|airtable\.com)\//.test(url), "url", "Only Google, Microsoft, Tally or Airtable forms can be embedded.");
-  v.done();
-  const now = nowIso();
-  if (!slug) throw new ValidationError("Give the form a slug (lowercase letters, digits and hyphens).", { slug: "Required." });
-  if (id) {
-    if (!(await ctx.db.first("SELECT id FROM external_forms WHERE id = ?1", id))) throw new NotFoundError("Form");
-    if (await ctx.db.first("SELECT id FROM external_forms WHERE slug = ?1 AND id <> ?2", slug, id)) throw new ConflictError("Another form uses this slug.");
-    await ctx.db.batch([
-      ctx.db.stmt("UPDATE external_forms SET title = ?2, url = ?3, slug = ?4, updated_at = ?5, updated_by = ?6 WHERE id = ?1", id, title, url, slug, now, actor.user.id),
-      auditStmt(ctx, { action: "form.update", resourceType: "form", resourceId: id, after: { title, url, slug }, decision }),
-    ]);
-  } else {
-    if (await ctx.db.first("SELECT id FROM external_forms WHERE slug = ?1", slug)) throw new ConflictError("A form with this slug already exists.");
-    id = newId("form");
-    await ctx.db.batch([
-      ctx.db.stmt("INSERT INTO external_forms (id, slug, title, url, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6)", id, slug, title, url, now, actor.user.id),
-      auditStmt(ctx, { action: "form.create", resourceType: "form", resourceId: id, after: { title, url, slug }, decision }),
-    ]);
-  }
-  ctx.revalidate?.([TAGS.forms]);
-  return { id };
-}
-
-export async function archiveForm(ctx: Ctx, id: string) {
-  const decision = requirePermission(ctx, "forms.manage");
-  await ctx.db.batch([
-    ctx.db.stmt("UPDATE external_forms SET status = 'ARCHIVED', deleted_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1", id, nowIso(), requireActor(ctx).user.id),
-    auditStmt(ctx, { action: "form.archive", resourceType: "form", resourceId: id, decision }),
-  ]);
-  ctx.revalidate?.([TAGS.forms]);
-}
-
-export async function getPublicForm(ctx: Ctx, slug: string) {
-  return ctx.db.first<{ slug: string; title: string; url: string }>("SELECT slug, title, url FROM external_forms WHERE slug = ?1 AND status = 'ACTIVE' AND deleted_at IS NULL", slug);
-}
+import { audiencePeople, campaignStatements, MAX_RECIPIENTS } from "./campaigns";
 
 // ───────────────────────────── lost & found ─────────────────────────────
 
@@ -350,8 +300,9 @@ export async function saveContest(ctx: Ctx, id: string | null, input: Record<str
 // ───────────────────────────── notifications ─────────────────────────────
 
 /** Newest first, with who caused each one (name and photo; none for the club's own notices). `before` is the created_at of the last row already shown (keyset paging). */
+/** My notifications, newest first. Answered from the session alone (no permission load): it's only mine. */
 export async function myNotifications(ctx: Ctx, limit = 30, opts: { unreadOnly?: boolean; before?: string | null } = {}) {
-  const actor = requireActor(ctx);
+  const actor = { user: { id: sessionUserId(ctx) } };
   const before = opts.before && /^\d{4}-\d{2}-\d{2}T/.test(opts.before) ? opts.before : null;
   const rows = await ctx.db.all<{ id: string; type: string; title: string; body: string | null; link: string | null; read_at: string | null; created_at: string; actor_id: string | null; actor_name: string | null; avatar_json: string | null; unread_total: number }>(
     `SELECT n.id, n.type, n.title, n.body, n.link, n.read_at, n.created_at, n.actor_user_id AS actor_id,
@@ -375,7 +326,7 @@ export async function myNotifications(ctx: Ctx, limit = 30, opts: { unreadOnly?:
 }
 
 export async function markNotificationsRead(ctx: Ctx, ids: string[] | "all") {
-  const actor = requireActor(ctx);
+  const actor = { user: { id: sessionUserId(ctx) } };
   const now = nowIso();
   const n = ids === "all"
     ? await ctx.db.run("UPDATE notifications SET read_at = ?2 WHERE user_id = ?1 AND read_at IS NULL", actor.user.id, now)
@@ -386,7 +337,7 @@ export async function markNotificationsRead(ctx: Ctx, ids: string[] | "all") {
 
 /** Undo: back to unread (your own notifications only). */
 export async function markNotificationUnread(ctx: Ctx, id: string): Promise<void> {
-  const actor = requireActor(ctx);
+  const actor = { user: { id: sessionUserId(ctx) } };
   if (await ctx.db.run("UPDATE notifications SET read_at = NULL WHERE id = ?1 AND user_id = ?2", id, actor.user.id)) emit(ctx, [actor.user.id], { t: "sync" });
 }
 
@@ -456,7 +407,7 @@ export async function broadcastAudiences(ctx: Ctx): Promise<{ members: number; e
   return { members: r?.members ?? 0, executives: r?.executives ?? 0 };
 }
 
-export async function broadcast(ctx: Ctx, input: { title: string; body: string; link?: string; audience: "members" | "executives" }) {
+export async function broadcast(ctx: Ctx, input: { title: string; body: string; link?: string; audience: "members" | "executives"; email?: boolean }) {
   const decision = requirePermission(ctx, "notifications.send");
   const v = new Validator(input as unknown as Record<string, unknown>);
   const title = v.string("title", { required: true, max: 120, label: "Title" });
@@ -465,14 +416,32 @@ export async function broadcast(ctx: Ctx, input: { title: string; body: string; 
   const link = input.link?.trim() ? safeLocalPath(input.link.trim(), "") : null;
   if (input.link?.trim() && !link) v.errors.link = "Use a page on this site, starting with / (for example /events/workshop).";
   v.done();
-  const sql = `SELECT id FROM (${audienceSql(input.audience === "executives" ? "executives" : "members")}) WHERE id IS NOT ?5`;
-  // One statement for every recipient: D1 counts statements per Worker invocation.
-  const recipients = await ctx.db.run(
-    `INSERT INTO notifications (id, user_id, type, title, body, link, channel, created_at, actor_user_id)
-     SELECT 'ntf_' || lower(hex(randomblob(16))), a.id, 'broadcast', ?1, ?2, ?3, 'IN_APP', ?4, ?5 FROM (${sql}) AS a`,
-    title, body, link, nowIso(), ctx.actor?.user.id ?? null);
-  await auditStmt(ctx, { action: "notification.broadcast", after: { title, audience: input.audience, recipients }, decision }).run();
-  return { sent: recipients };
+  const audience = input.audience === "executives" ? "executives" : "members";
+  // Everyone it goes to (never back to the sender), then one batch: the notices for all of them in
+  // one statement, and the audit row. Open tabs see it at once (notifyStmts emits it live).
+  const ids = (await ctx.db.all<{ id: string }>(`SELECT id FROM (${audienceSql(audience)}) WHERE id IS NOT ?1`, ctx.actor?.user.id ?? null)).map((r) => r.id);
+  // "Also email it": an announcement email to the same people (those who didn't opt out), sent a
+  // few at a time within the email allowance. The notice itself stays in-app.
+  let emailed: { id: string; total: number } | null = null;
+  const extra: D1StatementLike[] = [];
+  if (input.email) {
+    requirePermission(ctx, "email.campaigns");
+    await limit(ctx, "email.campaign", requireActor(ctx).user.id);
+    const people = await audiencePeople(ctx, { kind: audience });
+    if (people.length) {
+      emailed = { id: newId("cmp"), total: Math.min(people.length, MAX_RECIPIENTS) };
+      extra.push(...campaignStatements(ctx, emailed.id, {
+        kind: "ANNOUNCEMENT", subject: title!, body: body!, buttonLabel: link ? "Open in GUCC" : null, buttonPath: link, audience: { kind: audience }, people,
+      }));
+    }
+  }
+  await ctx.db.batch([
+    ...notifyStmts(ctx, ids, { type: "broadcast", title: title!, body: body!, link: link ?? undefined }),
+    ...extra,
+    auditStmt(ctx, { action: "notification.broadcast", after: { title, audience, recipients: ids.length, emailed: emailed?.total ?? 0 }, decision }),
+  ]);
+  if (emailed) ctx.campaignTick = true;
+  return { sent: ids.length, emailed: emailed?.total ?? 0, campaignId: emailed?.id ?? null };
 }
 
 // ───────────────────────────── audit ─────────────────────────────

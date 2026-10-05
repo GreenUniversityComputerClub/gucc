@@ -105,6 +105,27 @@ export interface Ctx {
   live?: LiveItem[];
   /** The live hub, where the Worker has one. */
   hub?: HubClient;
+  /**
+   * Outgoing requests this invocation may still make (Workers Free allows 50). The hourly job sets
+   * it so its emails (each one a request to SMTP2GO) can't push the run over; absent means no
+   * shared limit (one request's own emails stay far below it).
+   */
+  fetchBudget?: { left: number };
+  /** Announcement emails were queued or resumed: start sending them after the response. */
+  campaignTick?: boolean;
+}
+
+/** Take up to `wanted` outgoing requests from the invocation's budget; how many may be made. */
+export function takeFetches(ctx: Pick<Ctx, "fetchBudget">, wanted: number): number {
+  if (!ctx.fetchBudget) return wanted;
+  const n = Math.max(0, Math.min(wanted, ctx.fetchBudget.left));
+  ctx.fetchBudget.left -= n;
+  return n;
+}
+
+/** Give back requests that weren't made after all. */
+export function returnFetches(ctx: Pick<Ctx, "fetchBudget">, n: number): void {
+  if (ctx.fetchBudget && n > 0) ctx.fetchBudget.left += n;
 }
 
 /**

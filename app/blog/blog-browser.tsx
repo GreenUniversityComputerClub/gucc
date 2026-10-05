@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BlogPostCard as Card, type BlogCard } from "./blog-card";
@@ -52,11 +51,11 @@ export function BlogBrowser({ posts, initialTag }: { posts: BlogCard[]; initialT
             <div className="flex flex-wrap justify-center gap-1.5" role="group" aria-label="Topics">
               {categories.length > 1 && categories.map((c) => (
                 <button key={c} type="button" aria-pressed={category === c} onClick={() => setCategory(category === c ? null : c)}
-                  className={cn("min-h-9 rounded-full border px-3 text-sm transition-colors", category === c ? "border-emerald-600 bg-emerald-600 text-white" : "bg-card hover:bg-muted")}>{c}</button>
+                  className={cn("min-h-9 rounded-full border px-3 text-sm transition-colors", category === c ? "border-emerald-700 bg-emerald-700 text-white" : "bg-card hover:bg-muted")}>{c}</button>
               ))}
               {tags.map((t) => (
                 <button key={t} type="button" aria-pressed={tag === t} onClick={() => setTag(tag === t ? null : t)}
-                  className={cn("min-h-9 rounded-full border px-3 text-sm transition-colors", tag === t ? "border-emerald-600 bg-emerald-600 text-white" : "bg-card text-muted-foreground hover:bg-muted")}>#{t}</button>
+                  className={cn("min-h-9 rounded-full border px-3 text-sm transition-colors", tag === t ? "border-emerald-700 bg-emerald-700 text-white" : "bg-card text-muted-foreground hover:bg-muted")}>#{t}</button>
               ))}
             </div>
           )}

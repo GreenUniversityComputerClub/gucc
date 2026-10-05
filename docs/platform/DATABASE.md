@@ -86,6 +86,19 @@ waiting for approval), `contests` (+ teams and media), `media` (+ `media_referen
 - `migration_runs`, `migration_source_map`, `migration_conflicts`: the one-time import from the
   old JSON files.
 
+### Round 9 (`0017_round9.sql`)
+
+| Table                                                                         | What it holds                                                                                                         |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `external_forms` (+ columns)                                                  | A form's provider, embed and open addresses, sign-in, schedule, listing, cover, event, responses sheet (leaders only) |
+| `external_form_slugs`                                                         | Every address a form has had (`COLLATE NOCASE`), so old links keep working                                            |
+| `email_campaigns`, `email_campaign_recipients`                                | Announcement and certificate emails and each person's state (claimed with `UPDATE … RETURNING`, unique per address)   |
+| `email_suppressions`                                                          | Guests who unsubscribed (a hash of the address)                                                                       |
+| `certificate_designs`                                                         | Saved designs: a template plus wording, signatories, logos, colours                                                   |
+| `certificate_batches`                                                         | One issue, with its design frozen (`design_snapshot_json`)                                                            |
+| `certificates`                                                                | One per person per issue: an unguessable 16-character code, the printed name, status, visibility                      |
+| `messages.mentions_json`, `profiles.email_display`, `posts.email_intent_json` | Mentions, which email listings show, "email it when it's published"                                                   |
+
 ## Relationships (main ones)
 
 ```mermaid

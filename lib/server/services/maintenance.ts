@@ -82,12 +82,16 @@ export async function runMaintenance(ctx: Ctx, now = new Date()): Promise<Mainte
   // Correct the running total of stored bytes from the files themselves.
   report.storedBytes = await reconcileStoredBytes(ctx);
   // Scheduled posts and registration windows change what the (cached) public pages show.
-  const crossed = await ctx.db.first<{ posts: number; events: number }>(
+  const crossed = await ctx.db.first<{ posts: number; events: number; forms: number }>(
     `SELECT EXISTS (SELECT 1 FROM posts WHERE status = 'PUBLISHED' AND deleted_at IS NULL AND published_at > ?1 AND published_at <= ?2) AS posts,
             EXISTS (SELECT 1 FROM events WHERE deleted_at IS NULL AND status IN ('PUBLISHED','ONGOING')
-                      AND ((registration_opens_at > ?1 AND registration_opens_at <= ?2) OR (registration_closes_at > ?1 AND registration_closes_at <= ?2))) AS events`,
+                      AND ((registration_opens_at > ?1 AND registration_opens_at <= ?2) OR (registration_closes_at > ?1 AND registration_closes_at <= ?2))) AS events,
+            -- A form that opened or closed (its page and the /forms list change).
+            EXISTS (SELECT 1 FROM external_forms WHERE deleted_at IS NULL AND status = 'ACTIVE'
+                      AND ((opens_at > ?1 AND opens_at <= ?2) OR (closes_at > ?1 AND closes_at <= ?2))) AS forms`,
     new Date(now.getTime() - 3600_000).toISOString(), iso);
   if (crossed?.posts) ctx.revalidate?.(["posts"]);
+  if (crossed?.forms) ctx.revalidate?.(["forms"]);
   if (report.eventsOngoing || report.eventsCompleted || crossed?.events) ctx.revalidate?.(["events"]);
   return report;
 }

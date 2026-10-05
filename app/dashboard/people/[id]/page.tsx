@@ -10,7 +10,7 @@ import type { activityFeed } from "@/lib/server/services/activity";
 import type { listTasks } from "@/lib/server/services/work";
 import { cn } from "@/lib/utils";
 import { PersonPicker } from "@/components/admin/person-picker";
-import { deletePersonAction, invitePersonAction, mergePeopleAction, updatePersonAction } from "../../actions";
+import { changeMemberEmailAction, deleteAccountByLeaderAction, deletePersonAction, invitePersonAction, mergePeopleAction, updatePersonAction } from "../../actions";
 
 type View = Awaited<ReturnType<typeof getPerson>>;
 
@@ -76,6 +76,8 @@ export default async function PersonPage({ params, searchParams }: { params: Pro
               <Field name="department" label="Department" defaultValue={v("department")} />
               <Field name="batch" label="Batch" defaultValue={v("batch")} />
               <Field name="publicEmail" label="Public email (shown on the site)" type="email" defaultValue={v("public_email")} />
+              <Field name="emailDisplay" label="Email on the executives pages" type="select" defaultValue={v("email_display") || "AUTO"}
+                options={[{ value: "AUTO", label: "This email, else the one listed in past years" }, { value: "PROFILE", label: "Only this email" }, { value: "HIDDEN", label: "Don't show an email" }]} />
               <Field name="linkedin" label="LinkedIn" type="url" defaultValue={v("linkedin_url")} />
               <Field name="github" label="GitHub" type="url" defaultValue={v("github_url")} />
               <Field name="facebook" label="Facebook" type="url" defaultValue={v("facebook_url")} />
@@ -90,7 +92,30 @@ export default async function PersonPage({ params, searchParams }: { params: Pro
         <div className="space-y-6">
           <Section title="Account">
             {hasAccount ? (
-              <p className="text-sm">Signs in as <strong>{v("email")}</strong>{v("last_login_at") ? `; last seen ${String(v("last_login_at")).slice(0, 10)}` : ""}.</p>
+              <div className="space-y-3">
+                <p className="text-sm">Signs in as <strong className="break-all">{v("email")}</strong>{v("last_login_at") ? `; last seen ${String(v("last_login_at")).slice(0, 10)}` : ""}.</p>
+                {session.caps["accounts.email"] && v("user_id") !== session.user.id && (
+                  <details className="rounded-lg border p-3">
+                    <summary className="cursor-pointer text-sm font-medium">Change sign-in email</summary>
+                    <p className="mt-2 text-xs text-muted-foreground">For someone who lost access to their address (e.g. a university mailbox). They&apos;re signed out everywhere, and both addresses are told.</p>
+                    <ActionForm action={changeMemberEmailAction.bind(null, String(v("user_id")))} submitLabel="Change email" className="mt-2 space-y-2">
+                      <Field name="email" label="New sign-in email" type="email" required />
+                      <Field name="reason" label="Reason" required placeholder="e.g. Lost their university mailbox" />
+                    </ActionForm>
+                  </details>
+                )}
+                {session.caps["accounts.manage"] && v("user_id") !== session.user.id && (
+                  <details className="rounded-lg border border-destructive/40 p-3">
+                    <summary className="cursor-pointer text-sm font-medium text-destructive">Delete account</summary>
+                    <p className="mt-2 text-xs text-muted-foreground">The sign-in, roles and private details are erased. Committee listings stay in the club&apos;s history by name and position. They&apos;re told by email. This can&apos;t be undone.</p>
+                    <ActionForm action={deleteAccountByLeaderAction.bind(null, String(v("user_id")))} submitLabel="Delete account" variant="destructive"
+                      confirm={`Delete ${v("full_name") || "this person"}'s account? This can't be undone.`} className="mt-2 space-y-2">
+                      <Field name="reason" label="Reason (told to them)" required />
+                      <Field name="confirmName" label={`Type "${v("full_name") || v("email")}" to confirm`} required />
+                    </ActionForm>
+                  </details>
+                )}
+              </div>
             ) : (
               <>
                 <p className="mb-3 text-sm text-muted-foreground">{p.invite_pending ? "An invitation is waiting to be accepted." : "No account yet. Invite them to set a password; the account is linked to this profile."}</p>

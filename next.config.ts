@@ -18,7 +18,8 @@ const origin = (u: string) => {
  * Content Security Policy for production builds. Scripts are limited to this site and
  * Cloudflare Turnstile ('unsafe-inline' stays because Next.js inlines its bootstrap scripts and
  * pages are statically cached, so per-request nonces aren't possible). Browsers may talk only to
- * this site and the API Worker (uploads), and frame only Google Forms and Turnstile. Plugins,
+ * this site and the API Worker (uploads), and frame only the form services the dashboard accepts
+ * (Google, Microsoft, Tally, Airtable), privacy-friendly YouTube and Vimeo players, and Turnstile. Plugins,
  * <base> changes and cross-site form posts are blocked. Images may come from any https host
  * (older posts link images from many places). Development keeps no CSP for hot reload.
  */
@@ -34,7 +35,7 @@ const CSP = [
   `media-src 'self' blob: https: ${origin(MEDIA_BASE)}`.trim(),
   // The API's ws(s):// origin too: dashboard tabs keep one live connection to it.
   `connect-src 'self' ${[...new Set([origin(API_BASE), origin(MEDIA_BASE), origin(API_BASE).replace(/^http/, "ws")].filter(Boolean))].join(" ")} https://challenges.cloudflare.com`,
-  "frame-src 'self' https://docs.google.com https://forms.gle https://challenges.cloudflare.com",
+  "frame-src 'self' https://docs.google.com https://forms.gle https://forms.office.com https://forms.microsoft.com https://tally.so https://airtable.com https://www.youtube-nocookie.com https://player.vimeo.com https://challenges.cloudflare.com",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "object-src 'none'",

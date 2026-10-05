@@ -78,8 +78,8 @@ export default function ContactPage() {
         {/* Phones: how to reach us, the form, then the rest. Wide screens: two columns, the form on the right. */}
         <div className="mt-10 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-x-12">
           <div className="lg:col-start-1">
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-              <li className="flex items-start gap-4 rounded-2xl border bg-card p-5 shadow-sm">
+            <ul className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)]">
+              <li className="flex min-w-0 items-start gap-4 rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Mail className="h-5 w-5" aria-hidden /></span>
                 <div className="min-w-0 flex-1">
                   <h2 className="font-semibold">Email us</h2>
@@ -90,7 +90,7 @@ export default function ContactPage() {
                   <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground"><Clock className="h-3.5 w-3.5" aria-hidden />We usually reply within a few days.</p>
                 </div>
               </li>
-              <li className="flex items-start gap-4 rounded-2xl border bg-card p-5 shadow-sm">
+              <li className="flex min-w-0 items-start gap-4 rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><MapPin className="h-5 w-5" aria-hidden /></span>
                 <div className="min-w-0 flex-1">
                   <h2 className="font-semibold">Visit us</h2>

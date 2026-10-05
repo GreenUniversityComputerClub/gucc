@@ -9,11 +9,13 @@
  * writes every outcome to email_log. A failed request throws before
  * this runs, so nothing is emailed for work that didn't happen. Nothing here ever throws.
  *
- * Club-wide announcements are in-app only: they would use a whole day's allowance at once.
+ * Club-wide broadcasts are in-app notices; their emails, when a leader asks for them, are an
+ * announcement campaign (services/campaigns.ts), sent a few at a time within the allowance.
  *
  * Every kind of notification email is off until the member turns it on in My profile (email is
- * scarce: SMTP2GO's free plan is 1,000 a month). The only exception is the free-tier alert to the
- * leaders who look after the club's plans ("system"), which protects the club from a bill.
+ * scarce: SMTP2GO's free plan is 1,000 a month). The exceptions are the free-tier alert to the
+ * leaders who look after the club's plans ("system"), which protects the club from a bill, and
+ * club announcements (on by default, one-click unsubscribe).
  *
  * Only what can't wait is emailed at once: security alerts, and requests waiting for someone's
  * decision (unless that person has the dashboard open right now). Everything else (roles, tasks
@@ -22,7 +24,7 @@
  * means no email at all.
  */
 import { renderEmail } from "./email-template";
-import { siteUrl, type Ctx } from "./context";
+import { returnFetches, siteUrl, takeFetches, type Ctx } from "./context";
 import { emailAllowanceLeft, emailState, logEmails, MAX_SENDS_PER_RUN, reserveEmail, type EmailLogRow, type EmailMessage, type EmailProvider, type SendResult } from "./email";
 import { release } from "./usage";
 import { EMAIL_SENDER } from "../email-hint";
@@ -36,6 +38,8 @@ export const EMAIL_CATEGORIES = {
   work: { label: "Tasks and meetings", hint: "Tasks given to you, comments, meeting invitations and changes. In the hourly summary.", default: false },
   events: { label: "Events I registered for", hint: "Registration confirmed, waiting list, reminders, changes. In the hourly summary.", default: false },
   messages: { label: "New messages", hint: "In the hourly summary, only for messages you haven't read in the dashboard by then.", default: false },
+  // The one choice on by default: what the club announces to everyone (each email can unsubscribe).
+  announcements: { label: "Club announcements", hint: "News and announcements the club emails to members, a few times a month at most. Every one has an unsubscribe link.", default: true },
 } as const;
 export type EmailCategory = keyof typeof EMAIL_CATEGORIES;
 
@@ -51,7 +55,7 @@ export function emailCategory(type: string): EmailCategory | "system" | null {
   if (type.startsWith("role.") || type.startsWith("permission.") || type === "executive.assigned") return "roles";
   if (type.startsWith("task.") || type.startsWith("meeting.") || type === "recruitment.assigned" || type === "event.assigned") return "work";
   if (type.startsWith("event.")) return "events";
-  if (type === "message.received") return "messages";
+  if (type === "message.received" || type === "message.mention") return "messages";
   return null;
 }
 
@@ -61,7 +65,7 @@ const IMMEDIATE = new Set<EmailCategory | "system">(["system", "security", "appr
 /** Notice types emailed at most once a day per person. */
 const ONCE_A_DAY = new Set(["security.locked"]);
 
-const PRIORITY: Record<EmailCategory | "system", number> = { system: 0, security: 0, approvals: 1, roles: 2, work: 3, events: 4, messages: 5 };
+const PRIORITY: Record<EmailCategory | "system", number> = { system: 0, security: 0, approvals: 1, roles: 2, work: 3, events: 4, messages: 5, announcements: 6 };
 
 interface Row {
   id: string;
@@ -103,7 +107,7 @@ export interface FlushReport {
 }
 
 /** Send each message (a few at a time, in order); a throw becomes that message's failure. */
-async function sendAll(ctx: Ctx, provider: EmailProvider, msgs: EmailMessage[]): Promise<SendResult[]> {
+export async function sendAll(ctx: Ctx, provider: EmailProvider, msgs: EmailMessage[]): Promise<SendResult[]> {
   const results: SendResult[] = new Array(msgs.length);
   let next = 0;
   const worker = async () => {
@@ -174,12 +178,15 @@ export async function flushOutbox(ctx: Ctx): Promise<FlushReport | null> {
     wanted.splice(0, wanted.length, ...wanted.filter((x) => !laterIds.has(x.row.id)));
     wanted.sort((a, b) => PRIORITY[a.category] - PRIORITY[b.category]);
 
-    // Take as much of the allowance as there is (and at most one run's worth), most important first.
-    let allowed = Math.min(wanted.length, MAX_SENDS_PER_RUN);
+    // Take as much of the allowance as there is (and at most one run's worth, within the
+    // invocation's outgoing-request budget), most important first.
+    const budget = takeFetches(ctx, Math.min(wanted.length, MAX_SENDS_PER_RUN));
+    let allowed = budget;
     if (allowed && !(await reserveEmail(ctx, allowed, state))) {
       allowed = Math.min(allowed, (await emailAllowanceLeft(ctx, state)).left);
       if (allowed && !(await reserveEmail(ctx, allowed, state))) allowed = 0;
     }
+    returnFetches(ctx, budget - allowed);
     for (const { row } of wanted.slice(allowed)) log.push({ userId: row.user_id, recipient: row.email, type: row.type, status: "skipped_limit" });
 
     const sending = wanted.slice(0, allowed);
@@ -267,11 +274,13 @@ export async function sendDigests(ctx: Ctx, now = new Date()): Promise<FlushRepo
     if (!rows.length) return { sent: 0, failed: 0, skipped: 0 };
     const people = new Map<string, DigestRow[]>();
     for (const r of rows) people.set(r.user_id, [...(people.get(r.user_id) ?? []), r]);
-    let allowed = Math.min(people.size, MAX_SENDS_PER_RUN);
+    const budget = takeFetches(ctx, Math.min(people.size, MAX_SENDS_PER_RUN));
+    let allowed = budget;
     if (allowed && !(await reserveEmail(ctx, allowed, state))) {
       allowed = Math.min(allowed, (await emailAllowanceLeft(ctx, state)).left);
       if (allowed && !(await reserveEmail(ctx, allowed, state))) allowed = 0;
     }
+    returnFetches(ctx, budget - allowed);
     // People waiting longest first (Map keeps the order of their oldest notice).
     const batch = [...people.values()].slice(0, allowed);
     const results = await sendAll(ctx, state.provider, batch.map((list) => digestEmail(ctx, list[0]!.email, [...list].reverse())));

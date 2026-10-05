@@ -5,7 +5,7 @@ import { requireSignedIn, rpc, view } from "@/lib/api/session";
 import type { accountView } from "@/lib/server/views/admin";
 import type { emailPreferences } from "@/lib/server/services/system-controls";
 import { Badge } from "@/components/ui/badge";
-import { AvatarUploader, EmailPreferences, ProfileEditor } from "./forms";
+import { AvatarUploader, EmailPreferences, ProfileEditor, SignInEmail } from "./forms";
 import { SPAM_HINT } from "@/lib/email-hint";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +58,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <div className="min-w-0 flex-1 space-y-2">
           <div>
             <h1 className="truncate text-2xl font-bold tracking-tight">{name}</h1>
-            <p className="truncate text-sm text-muted-foreground">{session.user.email}</p>
+            <SignInEmail email={session.user.email} pending={data.account?.pending_email ?? null} />
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <Badge variant={status === "ACTIVE" ? "default" : "secondary"}>{st.title}</Badge>

@@ -13,10 +13,12 @@ const DASHBOARD_PAGES = [
   "/dashboard/approvals", "/dashboard/posts?type=BLOG", "/dashboard/registrations", "/dashboard/tasks", "/dashboard/meetings", "/dashboard/chat",
   "/dashboard/notifications", "/dashboard/profile", "/dashboard/security", "/dashboard/access", "/dashboard/positions", "/dashboard/rules",
   "/dashboard/activity", "/dashboard/health", "/dashboard/settings", "/dashboard/reports", "/dashboard/lost-found", "/dashboard/forms", "/dashboard/contests",
+  "/dashboard/forms/new", "/dashboard/email", "/dashboard/email/new", "/dashboard/certificates", "/dashboard/certificates/new", "/dashboard/sponsorships",
 ];
 
 test("public pages fit a phone screen and the menu works", async ({ page }) => {
-  for (const p of ["/", "/executives/2026", "/events", "/events?page=2", "/blog", "/contests", "/recruitment", "/contact", "/join", "/auth/login", "/auth/sign-up"]) await noHorizontalOverflow(page, p);
+  for (const p of ["/", "/executives/2026", "/events", "/events?page=2", "/blog", "/contests", "/recruitment", "/contact", "/join", "/auth/login", "/auth/sign-up",
+    "/forms", "/c", "/become-a-sponsor", "/sponsors/partner-with-gucc", "/email/unsubscribe"]) await noHorizontalOverflow(page, p);
   await page.goto("/");
   await page.getByRole("button", { name: "Open menu" }).click();
   await page.locator("#mobile-nav").getByRole("link", { name: "Executives" }).click();

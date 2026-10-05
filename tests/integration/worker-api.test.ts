@@ -57,6 +57,12 @@ describe("gatekeeping", () => {
     expect((await call("/v1/rpc/session.me", { method: "POST" })).status).toBe(401);
   });
 
+  it("every procedure has a name the route accepts (area.action)", async () => {
+    const { procedures } = (await import("../../workers/api/src/rpc" as string)) as { procedures: Record<string, unknown> };
+    const bad = Object.keys(procedures).filter((name) => !/^[a-zA-Z]+\.[a-zA-Z]+$/.test(name));
+    expect(bad).toEqual([]);
+  });
+
   it("only allowlisted procedures exist", async () => {
     expect((await rpc("constructor")).status).toBe(404);
     expect((await rpc("__proto__.x")).status).toBe(404);

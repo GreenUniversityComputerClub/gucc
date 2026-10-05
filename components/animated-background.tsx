@@ -38,6 +38,10 @@ export const AnimatedBackground = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Built once the page is idle, so the hero's text and images paint first (LCP).
+    let dispose: (() => void) | undefined;
+    let cancelled = false;
+    const mount = (): (() => void) | undefined => {
     const container = containerRef.current;
     if (!container) return;
 
@@ -53,7 +57,8 @@ export const AnimatedBackground = () => {
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !isSmallScreen });
 
     renderer.setSize(window.innerWidth, window.innerHeight);
-    const maxPixelRatio = isSmallScreen ? 1.5 : 2;
+    // Soft particles gain nothing from more pixels: 1.5× is as sharp to the eye and far cheaper.
+    const maxPixelRatio = isSmallScreen ? 1.25 : 1.5;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
     container.appendChild(renderer.domElement);
 
@@ -63,8 +68,10 @@ export const AnimatedBackground = () => {
 
     /* ---------------- Dust: fine, many, per-particle colour and size -------- */
 
-    // Phones get roughly half the dust: same impression, far less GPU work.
-    const dustCount = isSmallScreen ? 1100 : 2400;
+    // Phones get roughly half the dust, touch devices and small CPUs a bit less again: same
+    // impression, far less GPU work.
+    const lowPower = window.matchMedia('(pointer: coarse)').matches || (navigator.hardwareConcurrency ?? 8) <= 4;
+    const dustCount = Math.round((isSmallScreen ? 1100 : 2400) * (lowPower ? 0.7 : 1));
     const dustGeometry = new THREE.BufferGeometry();
     const dustPos = new Float32Array(dustCount * 3);
     const dustColor = new Float32Array(dustCount * 3);
@@ -304,6 +311,19 @@ export const AnimatedBackground = () => {
       linkMaterial.dispose();
       // Frees the WebGL context; browsers cap how many may be live at once.
       renderer.dispose();
+    };
+    };
+    // Safari has no requestIdleCallback: a short timer instead.
+    const idle = "requestIdleCallback" in window;
+    const begin = () => {
+      if (!cancelled) dispose = mount();
+    };
+    const handle = idle ? window.requestIdleCallback(begin, { timeout: 2500 }) : window.setTimeout(begin, 400);
+    return () => {
+      cancelled = true;
+      if (idle) window.cancelIdleCallback(handle);
+      else window.clearTimeout(handle);
+      dispose?.();
     };
   }, []);
 

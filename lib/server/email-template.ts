@@ -9,6 +9,8 @@ import { escapeHtml } from "../html";
 export interface EmailLayout {
   /** Shown in the inbox list next to the subject (not in the message). */
   preheader?: string;
+  /** A small label above the heading ("Club announcement"). */
+  kicker?: string;
   /** Big first line. */
   heading?: string;
   /** Paragraphs of plain text (line breaks kept; web addresses become links). */
@@ -25,9 +27,9 @@ export interface EmailLayout {
   site: string;
 }
 
-const GREEN = "#16a34a";
+const GREEN = "#15803d";
 const INK = "#0f172a";
-const MUTED = "#64748b";
+const MUTED = "#475569";
 
 /** Plain text with web addresses made clickable (the addresses are escaped first). */
 function linked(text: string): string {
@@ -61,6 +63,7 @@ ${logo ? `<td style="padding-right:10px"><img src="${escapeHtml(logo)}" width="3
 <td style="font-size:14px;font-weight:700;letter-spacing:.02em;color:${GREEN}">GREEN UNIVERSITY<br><span style="color:${INK};font-size:12px;letter-spacing:.08em">COMPUTER CLUB</span></td>
 </tr></table></td></tr>
 <tr><td style="background:#ffffff;border-radius:14px;padding:28px 24px;border:1px solid #e2e8f0">
+${l.kicker ? `<p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${GREEN}">${escapeHtml(l.kicker)}</p>` : ""}
 ${l.heading ? `<h1 style="margin:0 0 14px;font-size:20px;line-height:1.35;color:${INK}">${escapeHtml(l.heading)}</h1>` : ""}
 ${(l.paragraphs ?? []).filter(Boolean).map(para).join("\n")}
 ${button}

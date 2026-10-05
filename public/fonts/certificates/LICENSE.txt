@@ -1,0 +1,4 @@
+The fonts in this folder are licensed under the SIL Open Font License, Version 1.1
+(https://openfontlicense.org): Cinzel, Pinyon Script, Great Vibes, Cormorant Garamond,
+EB Garamond, Montserrat, UnifrakturMaguntia and Orbitron, from Google Fonts. They are used
+on GUCC certificates (on screen and embedded in downloaded PDFs).

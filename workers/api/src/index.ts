@@ -15,7 +15,7 @@
  */
 import { Db } from "../../../lib/server/db";
 import { AppError, AuthRequiredError, ValidationError } from "../../../lib/server/errors";
-import { readCommittees, readContests, readEvent, readEvents, readForm, readPost, readPosts, readSetting, readSitemap, readSponsorship, readSponsorships } from "../../../lib/public/read";
+import { readCommittees, readContests, readCertificate, readCertificateByStudent, readProfileCertificates, readEvent, readEvents, readForm, readForms, readPost, readPosts, readSetting, readSitemap, readSponsorship, readSponsorships } from "../../../lib/public/read";
 import type { VariantName } from "../../../lib/media/bytes";
 import { forgetMediaLookup, resolveMediaAccess, uploadMedia, uploadsOpen, MAX_BYTES_PER_REQUEST } from "../../../lib/server/services/media";
 import { recordHeartbeat, runDailyHousekeeping, runMaintenance } from "../../../lib/server/services/maintenance";
@@ -33,6 +33,7 @@ import { allow, clientIp, EDGE_LIMITS, tooMany } from "./guard";
 import { beginIdempotent, isIdempotent } from "../../../lib/server/idempotency";
 import { limit } from "../../../lib/server/limits";
 import { flushOutbox, sendDigests } from "../../../lib/server/email-outbox";
+import { runCampaignTick } from "../../../lib/server/services/campaigns";
 import { procedures, STEP_UP } from "./rpc";
 import { requireRecentAuth } from "../../../lib/server/security";
 import { API_VERSION } from "../../../lib/version";
@@ -91,8 +92,19 @@ async function handlePublic(env: Env, url: URL): Promise<Response> {
       const page = await readSponsorship(db, parts[1]);
       return page ? ok(page) : notFound();
     }
+    case "certificates": {
+      if (parts[1] === "of" && parts[2]) return ok(await readProfileCertificates(db, decodeURIComponent(parts[2]).slice(0, 120)));
+      if (parts[1] === "by-student" && parts[2]) {
+        const c = await readCertificateByStudent(db, parts[2]);
+        return c ? ok(c) : notFound();
+      }
+      const code = parts[1] && /^[0-9A-Z]{16}$/.test(parts[1]) ? parts[1] : null;
+      const cert = code ? await readCertificate(db, code) : null;
+      return cert ? ok(cert) : notFound();
+    }
     case "forms": {
-      const f = parts[1] ? await readForm(db, parts[1]) : null;
+      if (!parts[1]) return ok(await readForms(db));
+      const f = await readForm(db, parts[1]);
       return f ? ok(f) : notFound();
     }
     case "recruitment": {
@@ -120,7 +132,7 @@ async function recordError(env: Env, e: { requestId: string; procedure: string; 
 }
 
 /** Frequent checks answered from the session alone (see buildCtx `light`). */
-const LIGHT_PROCEDURES = new Set(["session.counts", "chat.pulse", "notifications.seenPath", "live.ticket", "posts.reactions"]);
+const LIGHT_PROCEDURES = new Set(["session.counts", "chat.pulse", "notifications.seenPath", "live.ticket", "posts.reactions", "notifications.list", "notifications.markRead", "notifications.markUnread"]);
 
 async function handleRpc(env: Env, req: Request, name: string, ectx: ExecutionContext): Promise<Response> {
   const requestId = req.headers.get("x-request-id")?.slice(0, 64) || crypto.randomUUID();
@@ -175,6 +187,13 @@ async function handleRpc(env: Env, req: Request, name: string, ectx: ExecutionCo
     // Emails for the notifications this request really wrote. Also after an error: a failed
     // sign-in that locks the account writes its security notice, then answers with an error.
     if (built?.outbox?.length) background(ectx, flushOutbox(built));
+    // Announcement emails just queued (or resumed): the first few go now, the rest hourly. The
+    // request made few outgoing calls of its own, so this keeps well inside the 50 per invocation.
+    if (built?.campaignTick) {
+      built.campaignTick = false;
+      built.fetchBudget ??= { left: 30 };
+      background(ectx, runCampaignTick(built));
+    }
   }
 }
 
@@ -361,6 +380,10 @@ export default {
     ctx.waitUntil(
       (async () => {
         const { ctx: c, tags } = await buildCtx(env, new Request("https://cron.internal/"), { trusted: false });
+        // Workers Free allows 50 outgoing requests per run. Kept aside: the usage check (1), up to
+        // two revalidation pings and a spare; the rest is shared by this run's emails, most
+        // urgent first (immediate notices, then digests).
+        c.fetchBudget = { left: 45 };
         let report;
         try {
           report = await runMaintenance(c);
@@ -386,6 +409,8 @@ export default {
           await flushOutbox(c);
           // One email per person for what's still unread (roles, tasks, events, messages).
           report = { ...report, digests: await sendDigests(c) };
+          // Then announcement emails, with what's left of this run's requests and the hour's emails.
+          report = { ...report, campaigns: await runCampaignTick(c) };
           // Reminders and other notices written by this run reach open tabs at once.
           if (c.live?.length) await emitLive(env, c.live.splice(0));
         } catch (e) {

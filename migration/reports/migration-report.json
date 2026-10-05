@@ -1,12 +1,12 @@
 {
-  "runId": "run_2026-09-29T17-53-00-300Z_e1133b2d",
-  "started": "2026-09-29T17:53:00.300Z",
+  "runId": "run_2026-10-04T23-20-28-064Z_c5650c62",
+  "started": "2026-10-04T23:20:28.064Z",
   "target": "local",
   "mode": "insert-missing",
   "counts": {
     "media": {
-      "source": 268,
-      "migrated": 268,
+      "source": 275,
+      "migrated": 275,
       "merged": 0,
       "skipped": 0,
       "failed": 0,
@@ -114,7 +114,7 @@
     }
   },
   "expectedRows": {
-    "media": 268,
+    "media": 275,
     "committees": 10,
     "committee_members": 334,
     "profiles": 224,
@@ -133,7 +133,7 @@
     "certificate_programs": 1,
     "certificate_recipients": 146,
     "organization_settings": 5,
-    "migration_source_map": 1099,
+    "migration_source_map": 1106,
     "migration_conflicts": 59
   },
   "positionMappings": [
@@ -2042,5 +2042,5 @@
       "resolution": "Hard-coded lost & found admin emails are replaced by the lostfound.moderate permission. Grant it (e.g. via a position or the Administrator role) once that person registers."
     }
   ],
-  "sourceMapEntries": 1099
+  "sourceMapEntries": 1106
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { uploadImage } from "@/lib/media/client";
 import { useSession } from "@/lib/api/use-session";
@@ -170,7 +170,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
     }
   };
 
-  const loadInbox = async () => {
+  const loadInbox = useCallback(async () => {
     if (!userEmail) return;
     setIsLoadingInbox(true);
     try {
@@ -182,7 +182,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
     } finally {
       setIsLoadingInbox(false);
     }
-  };
+  }, [userEmail]);
 
   useEffect(() => {
     // Wait for the session check, so a signed-in member loads their view once.
@@ -214,11 +214,11 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
 
   useEffect(() => {
     if (userEmail) {
-      loadInbox();
+      void loadInbox();
     } else {
       setInboxMessages([]);
     }
-  }, [userEmail]);
+  }, [userEmail, loadInbox]);
 
   const resetForm = () => {
     setFormValues({
@@ -355,7 +355,8 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
   ];
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-950 via-slate-950 to-slate-950 text-foreground">
+    // The board is designed dark: `dark dark-surface` keeps its text and fields in the dark palette in light mode too.
+    <div className="dark dark-surface min-h-screen bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-950 via-slate-950 to-slate-950 text-foreground">
       {confirmDialog}
       {notice && <p role="status" className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-lg border bg-background p-3 text-center text-sm shadow-lg" onClick={() => setNotice(null)}>{notice}</p>}
       <section className="relative overflow-hidden">
@@ -613,9 +614,13 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                         <p className="text-sm text-slate-200/80">{post.description}</p>
                         {post.image_url && (
                           <div className="overflow-hidden rounded-lg border border-slate-800">
+                            {/* Posts may still point at older storage on other hosts, which the image optimiser doesn't allow. */}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={post.image_url}
                               alt={post.title}
+                              loading="lazy"
+                              decoding="async"
                               className="h-48 w-full object-cover"
                             />
                           </div>

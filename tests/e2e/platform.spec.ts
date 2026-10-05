@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
-import { d1, login, mailLink, MODERATOR, settle, signUp, acceptConfirms } from "./helpers";
+import { d1, login, mailLink, memberRow, MODERATOR, openMemberSheet, settle, signUp, acceptConfirms } from "./helpers";
 
 /**
  * One story through the platform, exercising each hierarchy level:
@@ -77,9 +77,10 @@ test("applicants register, verify their email and wait for approval", async ({ p
 test("Moderator approves members and appoints a new President", async ({ page }) => {
   await login(page, MODERATOR.email, MODERATOR.password, "/dashboard/members?status=PENDING_APPROVAL");
   for (const u of [pres, pub, member]) {
-    const card = page.locator("article", { hasText: u.email });
-    await card.getByRole("button", { name: "Approve" }).click();
-    await expect(page.locator("article", { hasText: u.email })).toHaveCount(0);
+    const sheet = await openMemberSheet(page, u.email);
+    await sheet.getByRole("button", { name: "Approve", exact: true }).click();
+    await acceptConfirms(page);
+    await expect(page.locator("tr, li").filter({ hasText: u.email }).filter({ visible: true })).toHaveCount(0);
   }
   // End the sitting President's assignment (history is kept), then appoint ours.
   await page.goto(`/dashboard/committees/${committeeId()}`);
@@ -285,14 +286,15 @@ test("Moderator sees the audit trail and suspends an account", async ({ page, br
   await expect(page.getByText("LOGIN_SUCCESS").first()).toBeVisible();
 
   await page.goto(`/dashboard/members?status=ACTIVE&q=${encodeURIComponent(pub.email)}`);
-  const card = page.locator("article", { hasText: pub.email }).first();
-  await card.locator("summary", { hasText: "Suspend" }).click();
-  await card.getByPlaceholder("Reason").fill("E2E suspension test");
-  await card.getByRole("button", { name: "Suspend" }).click();
-  // The page reloads after the action; the account leaves the ACTIVE list.
-  await expect(page.locator("article", { hasText: pub.email })).toHaveCount(0);
+  const sheet = await openMemberSheet(page, pub.email);
+  await sheet.locator("summary", { hasText: "Suspend" }).click();
+  await sheet.getByPlaceholder("Reason").fill("E2E suspension test");
+  await sheet.getByRole("button", { name: "Suspend" }).click();
+  await acceptConfirms(page);
+  // The list refreshes after the action; the account leaves the ACTIVE list.
+  await expect(page.locator("tr, li").filter({ hasText: pub.email }).filter({ visible: true })).toHaveCount(0);
   await page.goto(`/dashboard/members?status=SUSPENDED&q=${encodeURIComponent(pub.email)}`);
-  await expect(page.locator("article", { hasText: pub.email }).getByText("suspended", { exact: true }).first()).toBeVisible();
+  await expect(memberRow(page, pub.email).getByText("suspended", { exact: true }).first()).toBeVisible();
   await other.goto("/dashboard");
   await expect(other).toHaveURL(/\/auth\/login/);
   await other.close();

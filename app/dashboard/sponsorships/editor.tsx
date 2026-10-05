@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  AlertTriangle, Award, CheckCircle2, Code2, ExternalLink, Eye, FileJson, Handshake, Lightbulb, ListChecks, Medal, Package, Phone, Sparkles, Star, Trophy, XCircle,
+  AlertTriangle, Award, CheckCircle2, Code2, ExternalLink, Eye, FileJson, Handshake, LayoutList, Lightbulb, ListChecks, Medal, Package, Palette, Phone, Sparkles, Star, Trophy, XCircle,
 } from "lucide-react";
 import { ActionForm, Field, FormSection, Hidden, type Result } from "@/components/admin/ui";
 import { Rows } from "@/components/admin/structured-editors";
@@ -21,6 +21,8 @@ import {
   type SponsorAchievement, type SponsorComparison, type SponsorContact, type SponsorOpportunity, type SponsorPackage, type SponsorPartner, type SponsorProgram, type SponsorReason, type SponsorshipContent,
 } from "@/lib/sponsorship/content";
 import { draftKey } from "./draft";
+import { LayoutTab, LookTab } from "./builder";
+import type { SectionedContent } from "@/lib/sponsorship/sections";
 
 const input = "h-10 w-full rounded-md border border-input bg-background px-3 text-base md:h-9 md:text-sm";
 const area = "w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm";
@@ -106,6 +108,8 @@ function LogoField({ value, name, onChange }: { value: string; name: string; onC
 }
 
 const TABS = [
+  { key: "layout", label: "Layout", icon: LayoutList },
+  { key: "look", label: "Look & SEO", icon: Palette },
   { key: "hero", label: "Hero", icon: Sparkles },
   { key: "program", label: "Program", icon: Code2 },
   { key: "packages", label: "Packages", icon: Package },
@@ -132,7 +136,7 @@ export interface EditorPage {
 
 export function SponsorshipEditor({ page, action, siteHost }: { page: EditorPage; action: (fd: FormData) => Promise<Result>; siteHost: string }) {
   const [content, setContent] = useState<SponsorshipContent>(page.content);
-  const [tab, setTab] = useState<Tab>("hero");
+  const [tab, setTab] = useState<Tab>("layout");
   const [slug, setSlug] = useState(page.slug);
   const [summary, setSummary] = useState(page.summary ?? "");
   const hiddenRef = useRef<HTMLInputElement>(null);
@@ -231,6 +235,9 @@ export function SponsorshipEditor({ page, action, siteHost }: { page: EditorPage
           </div>
 
           <div role="tabpanel" id={`spn-panel-${tab}`} aria-labelledby={`spn-tab-${tab}`} className="space-y-4 p-4 sm:p-5">
+            {tab === "layout" && <LayoutTab content={content as SectionedContent} setContent={(c) => setContent(c)} />}
+            {tab === "look" && <LookTab content={content as SectionedContent} setContent={(c) => setContent(c)} title={page.title} summary={summary} slug={slug} siteHost={siteHost} />}
+
             {tab === "hero" && (
               <>
                 <p className="text-sm text-muted-foreground">The first screen: the badge, the big line and the typed phrases.</p>

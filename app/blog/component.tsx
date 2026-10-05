@@ -151,9 +151,15 @@ export default function PostContent({ post, mdx, extras }: PostContentProps) {
             <div className="flex items-center gap-3.5">
               {/* Author Avatar */}
               {post.author?.avatarUrl ? (
+                // A 44 px avatar already served at its size by the media origin: no optimiser needed.
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={post.author.avatarUrl}
                   alt={post.author.name}
+                  width={44}
+                  height={44}
+                  loading="lazy"
+                  decoding="async"
                   className="w-11 h-11 rounded-full object-cover ring-2 ring-emerald-500/30"
                 />
               ) : (
@@ -280,7 +286,7 @@ export default function PostContent({ post, mdx, extras }: PostContentProps) {
             </p>
             <Link
               href="/blog"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition-all shadow-sm hover:shadow"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-emerald-700 hover:bg-emerald-600 transition-all shadow-sm hover:shadow"
             >
               Explore More Articles
             </Link>

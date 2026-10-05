@@ -140,6 +140,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: p.isDefault ? 0.75 : 0.6,
   }));
 
+  // Listed forms that take answers now (the /forms index is listed while any are).
+  const forms = meta.forms ?? [];
+  const formEntries: Entry[] = [
+    ...(forms.length ? [{ url: absoluteUrl("/forms"), lastModified: latest(...forms.map((f) => f.updated_at)) ?? latestContentDate, changeFrequency: "weekly" as const, priority: 0.6 }] : []),
+    ...forms.map((f) => ({ url: absoluteUrl(`/forms/${f.slug}`), lastModified: latest(f.updated_at) ?? latestContentDate, changeFrequency: "weekly" as const, priority: 0.55 })),
+  ];
+
   const contestEntries: Entry[] = contests.filter((contest) => contest.teams.length > 0).map((contest) => ({
     url: absoluteUrl(`/contests/${contest.id}`),
     lastModified: latest(contestUpdated.get(String(contest.id))) ?? latestContentDate,
@@ -157,6 +164,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...memberEntries,
     ...eventEntries,
     ...sponsorshipEntries,
+    ...formEntries,
     ...contestEntries,
     ...(await blogEntries()),
   ].filter((entry) => !seen.has(entry.url) && seen.add(entry.url));
