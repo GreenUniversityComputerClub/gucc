@@ -6,7 +6,7 @@ import { getPublicForms } from "@/lib/public/data";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { JsonLd } from "@/components/seo/json-ld";
 import { breadcrumbSchema, collectionPageSchema, graph, itemListSchema } from "@/lib/seo/schema";
-import { formState, PROVIDER_LABEL, providerOf, type FormState } from "@/lib/forms/providers";
+import { formState, PROVIDER_LABEL, type FormState } from "@/lib/forms/providers";
 import type { PublicForm } from "@/lib/forms/types";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 function FormCard({ form, state }: { form: PublicForm; state: FormState }) {
-  const provider = form.provider ?? providerOf(form.url);
+  const provider = form.provider ?? null;
   const status = state === "open"
     ? form.closesAt ? `Open until ${when(form.closesAt)}` : "Open now"
     : state === "scheduled" ? form.opensAt ? `Opens ${when(form.opensAt)}` : "Opens soon"

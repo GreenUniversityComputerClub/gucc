@@ -57,6 +57,25 @@ describe("gatekeeping", () => {
     expect((await call("/v1/rpc/session.me", { method: "POST" })).status).toBe(401);
   });
 
+  it("a form's page data never carries its own address; the source route does, and also needs the key", async () => {
+    const mod = await w.user({ email: "mod@x.bd", roles: ["moderator"] });
+    const { saveForm } = await import("@/lib/server/services/forms");
+    await saveForm(await w.ctx(mod), null, { title: "Private Link", url: "https://forms.gle/WorkerSecret1", slug: "private-link", listed: "1" });
+    const headers = { "X-Api-Key": KEY };
+    const page = await (await call("/v1/public/forms/private-link", { headers })).text();
+    const list = await (await call("/v1/public/forms", { headers })).text();
+    for (const text of [page, list]) {
+      expect(text).toContain("Private Link");
+      expect(text).not.toMatch(/forms\.gle|WorkerSecret1|docs\.google/);
+    }
+    expect((await call("/v1/public/forms/private-link/source")).status).toBe(401);
+    const source = await call("/v1/public/forms/private-link/source", { headers });
+    expect(source.status).toBe(200);
+    expect(source.headers.get("cache-control")).toContain("no-store");
+    expect(((await source.json()) as { data: { url: string } }).data.url).toBe("https://forms.gle/WorkerSecret1");
+    expect((await call("/v1/public/forms/nope/source", { headers })).status).toBe(404);
+  });
+
   it("every procedure has a name the route accepts (area.action)", async () => {
     const { procedures } = (await import("../../workers/api/src/rpc" as string)) as { procedures: Record<string, unknown> };
     const bad = Object.keys(procedures).filter((name) => !/^[a-zA-Z]+\.[a-zA-Z]+$/.test(name));

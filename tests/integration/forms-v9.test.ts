@@ -1,11 +1,11 @@
 /**
  * Forms (round 9): saving with what the website learned by checking the link, addresses that
  * keep working after a rename or in another spelling, archive/restore, duplicates, the public
- * list and the sitemap. The responses sheet never reaches a public read.
+ * list and the sitemap. Neither the responses sheet nor the form's own address reaches a public read.
  */
 import { beforeEach, describe, expect, it } from "vitest";
 import { deleteForm, duplicateForm, getForm, listForms, recordInspection, saveForm, setFormArchived } from "@/lib/server/services/forms";
-import { readForm, readForms, readSitemap } from "@/lib/public/read";
+import { readForm, readFormSource, readForms, readSitemap } from "@/lib/public/read";
 import { createWorld, type TestWorld } from "../support/d1";
 
 let w: TestWorld;
@@ -28,7 +28,7 @@ describe("saving a form", () => {
     expect(row<{ embed_url: string | null; inspected_at: string | null; provider: string }>("SELECT embed_url, inspected_at, provider FROM external_forms WHERE id = ?", id))
       .toEqual({ embed_url: null, inspected_at: null, provider: "google" });
 
-    await saveForm(c, id, { title: "CR Information Form", url: "https://forms.gle/Abc123", slug, inspected: "1", openUrl: GOOGLE, requiresSignIn: "1", questionCount: "12", accepting: "1", display: "AUTO" });
+    await saveForm(c, id, { title: "CR Information Form", url: "https://forms.gle/Abc123", slug, inspected: "1", openUrl: GOOGLE, requiresSignIn: "1", questionCount: "12", accepting: "1" });
     const f = (await getForm(c, id)).form;
     expect(f.embedUrl).toBe("https://docs.google.com/forms/d/e/1FAIpQLSdAbCdEf/viewform?embedded=true");
     expect(f.openUrl).toBe("https://docs.google.com/forms/d/e/1FAIpQLSdAbCdEf/viewform");
@@ -143,6 +143,25 @@ describe("public reads", () => {
     expect((await readForm(w.db, "paused"))?.accepting).toBe(false);
     // Only listed forms that take answers now go in the sitemap.
     expect((await readSitemap(w.db)).forms.map((f) => f.slug)).toEqual(["open"]);
+  });
+
+  it("never serves the form's own address in the list, the page's data or the sitemap; only the server-side source has it", async () => {
+    const c = await w.ctx(mod);
+    const { id } = await saveForm(c, null, { title: "Secret link", url: "https://forms.gle/PrivateAbc9", listed: "1" });
+    await saveForm(c, id, { title: "Secret link", url: "https://forms.gle/PrivateAbc9", slug: "secret-link", inspected: "1", openUrl: GOOGLE, requiresSignIn: "1", questionCount: "4" });
+    const page = await readForm(w.db, "secret-link");
+    // The provider and sign-in need are known (the page words its help from them); no address is.
+    expect(page).toMatchObject({ provider: "google", requiresSignIn: true });
+    const everything = JSON.stringify([page, await readForms(w.db), await readSitemap(w.db)]);
+    for (const leak of ["docs.google.com", "forms.gle", "PrivateAbc9", "FormsAbCdEf", "viewform", "embed"]) expect(everything).not.toContain(leak);
+    expect(Object.keys(page ?? {})).not.toEqual(expect.arrayContaining(["url"]));
+    // The server-side source, reached by any address the form has had, does carry it.
+    expect(await readFormSource(w.db, "SECRET-LINK")).toMatchObject({
+      url: "https://forms.gle/PrivateAbc9", embedUrl: "https://docs.google.com/forms/d/e/1FAIpQLSdAbCdEf/viewform?embedded=true", requiresSignIn: true, accepting: true,
+    });
+    // Archived forms are gone for both.
+    await setFormArchived(c, id, true);
+    expect(await readFormSource(w.db, "secret-link")).toBeNull();
   });
 
   it("a fresh check that finds the form closed stops it taking answers", async () => {

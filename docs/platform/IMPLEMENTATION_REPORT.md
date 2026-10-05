@@ -15,12 +15,30 @@ Worker and the website, in that order (`bun run release:api:production`, then th
 
 **Forms** (`/forms`, `/forms/<address>`, `/dashboard/forms`). Google Forms (and Microsoft, Tally,
 Airtable) shown in a page built for them: a 48 px bar on phones with the form filling the visible
-screen (long dropdowns such as "Batch" fit), a side column on computers, a card that opens the form
-at Google for forms needing a Google account on phones and in-app browsers. The dashboard checks a
+screen (long dropdowns such as "Batch" fit), a side column on computers. The dashboard checks a
 link (where `forms.gle` leads, sign-in, question count, closed), schedules forms (opens/closes,
 closed message), lists them at `/forms`, keeps every old address (`external_form_slugs`, any
 spelling), archives/restores/duplicates and gives a QR code. Open/close times refresh the pages
 from the hourly job.
+
+_The original link is never published._ There is no "open in Google Forms" button, menu item or
+card anywhere, and the form's own address is not in the page's HTML, its cached data, the
+`/forms` list, the sitemap, the JSON-LD or a link preview: the public API leaves it out (only
+`GET /v1/public/forms/<slug>/source`, which needs the server's key, has it). The page's script asks
+`/api/forms/<slug>/frame` for the frame address once the form is open; that route answers only a
+same-origin script (not a visit, a frame or another site), says `no-store`, and gives nothing for a
+form that is closed or not open yet. What a visitor's own browser tools show about a frame it is
+displaying can't be hidden. A form that needs a Google account shows a "Needs your Google account /
+Trouble signing in?" strip; "Can't see the form?" (header menu, side column) lists, for the visitor's
+browser, the steps: sign in to Google (only accounts.google.com is offered), let the page use the
+sign-in (Safari "Prevent Cross-Site Tracking", Chrome/Edge/Firefox cookie settings), reload; pause
+blockers; use Chrome or Safari. Inside Facebook/Messenger/Instagram browsers (where Google blocks
+sign-in) a sign-in form first asks to be opened in a real browser (an "Open in Chrome" button on
+Android, a copy-link button, and "Try here anyway"). The dashboard's "How it's shown" setting
+(automatic / embedded / open at Google) and its "Open the form" link are gone (column `display_mode`
+removed from 0017, which is unreleased); for the widest reach, turn off "Restrict to users",
+"Limit to 1 response" and file uploads in Google Forms. iPhone/Safari users of a sign-in-only form
+must change one Safari setting: the help says which.
 
 **Certificates** (`/dashboard/certificates`, `/c/<code>`, `/c`). Seven designs drawn as SVG in the
 browser (`lib/certificates/render.tsx`): Heritage, Laurel Crest, Emerald Prestige, Royal Navy,

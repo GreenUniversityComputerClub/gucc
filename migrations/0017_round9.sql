@@ -19,8 +19,7 @@ ALTER TABLE external_forms ADD COLUMN open_url TEXT CHECK (open_url IS NULL OR (
 ALTER TABLE external_forms ADD COLUMN description TEXT CHECK (description IS NULL OR length(description) <= 1000);
 ALTER TABLE external_forms ADD COLUMN question_count INTEGER CHECK (question_count IS NULL OR question_count BETWEEN 0 AND 10000);
 ALTER TABLE external_forms ADD COLUMN requires_sign_in INTEGER NOT NULL DEFAULT 0 CHECK (requires_sign_in IN (0, 1));
--- AUTO: framed, except forms that need a Google account open at Google on phones and in apps.
-ALTER TABLE external_forms ADD COLUMN display_mode TEXT NOT NULL DEFAULT 'AUTO' CHECK (display_mode IN ('AUTO', 'EMBED', 'LINK'));
+-- Forms are always shown inside the GUCC page; the original address is never published (public reads leave it out).
 -- Shown on /forms and in search engines.
 ALTER TABLE external_forms ADD COLUMN listed INTEGER NOT NULL DEFAULT 0 CHECK (listed IN (0, 1));
 ALTER TABLE external_forms ADD COLUMN accepting INTEGER NOT NULL DEFAULT 1 CHECK (accepting IN (0, 1));

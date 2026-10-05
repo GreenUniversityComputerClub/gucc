@@ -5,6 +5,7 @@
  */
 import { avatarOfProfileSql, avatarUrl } from "../server/avatar";
 import type { Db } from "../server/db";
+import { providerOf } from "../forms/providers";
 import { buildCommittee, buildContest, buildEvent, mediaUrl, type CommitteeRow, type ContestRow, type ContestTeamRow, type EventRow, type MediaRow, type MemberRow, type PublicCommittee, type PublicContest, type PublicEvent } from "./shapes";
 import { COMMITTEES_SQL, CONTEST_IMAGES_SQL, CONTEST_TEAMS_SQL, CONTESTS_SQL, EVENT_BY_SLUG_SQL, EVENTS_SQL, MEMBERS_SQL } from "./queries";
 
@@ -224,14 +225,15 @@ export async function readSponsorship(db: Db, slug: string): Promise<{ slug: str
 }
 
 interface PublicFormRow {
-  slug: string; title: string; url: string; description: string | null; provider: string | null; embed_url: string | null; open_url: string | null;
-  requires_sign_in: number; display_mode: string; listed: number; accepting: number; opens_at: string | null; closes_at: string | null; closed_message: string | null;
+  slug: string; title: string; url: string; description: string | null; provider: string | null;
+  requires_sign_in: number; listed: number; accepting: number; opens_at: string | null; closes_at: string | null; closed_message: string | null;
   question_count: number | null; category: string | null; inspected_at: string | null; updated_at: string; event_slug: string | null; event_title: string | null;
   m_id: string | null; m_storage: MediaRow["storage"] | null; m_key: string | null; m_legacy: string | null; m_external: string | null; m_variants: string | null;
 }
 
-// Never the responses sheet: that's for the club's leaders.
-const PUBLIC_FORM_SELECT = `SELECT f.slug, f.title, f.url, f.description, f.provider, f.embed_url, f.open_url, f.requires_sign_in, f.display_mode, f.listed, f.accepting,
+// Never the responses sheet (for the club's leaders) and never the form's own address: the page shows
+// the form inside itself, and its address only leaves the API through `readFormSource`, to the server.
+const PUBLIC_FORM_SELECT = `SELECT f.slug, f.title, f.url, f.description, f.provider, f.requires_sign_in, f.listed, f.accepting,
          f.opens_at, f.closes_at, f.closed_message, f.question_count, f.category, f.inspected_at, f.updated_at, e.slug AS event_slug, e.title AS event_title,
          m.id AS m_id, m.storage AS m_storage, m.object_key AS m_key, m.legacy_path AS m_legacy, m.external_url AS m_external, m.variants_json AS m_variants
   FROM external_forms f
@@ -240,8 +242,8 @@ const PUBLIC_FORM_SELECT = `SELECT f.slug, f.title, f.url, f.description, f.prov
 
 function publicForm(r: PublicFormRow) {
   return {
-    slug: r.slug, title: r.title, url: r.url, description: r.description, provider: r.provider, embedUrl: r.embed_url, openUrl: r.open_url,
-    requiresSignIn: r.requires_sign_in === 1, display: r.display_mode, listed: r.listed === 1, accepting: r.accepting === 1,
+    slug: r.slug, title: r.title, description: r.description, provider: r.provider ?? providerOf(r.url),
+    requiresSignIn: r.requires_sign_in === 1, listed: r.listed === 1, accepting: r.accepting === 1,
     opensAt: r.opens_at, closesAt: r.closes_at, closedMessage: r.closed_message, questionCount: r.question_count, category: r.category,
     inspectedAt: r.inspected_at, updatedAt: r.updated_at,
     event: r.event_slug ? { slug: r.event_slug, title: r.event_title ?? r.event_slug } : null,
@@ -257,6 +259,18 @@ export async function readForm(db: Db, slug: string) {
   const row = await db.first<PublicFormRow>(
     `${PUBLIC_FORM_SELECT} JOIN external_form_slugs s ON s.form_id = f.id WHERE s.slug = ?1 AND f.status = 'ACTIVE' AND f.deleted_at IS NULL LIMIT 1`, slug);
   return row ? publicForm(row) : null;
+}
+
+/**
+ * Where a form really is: its address and schedule, for the website's server only (the page's
+ * frame route). Never part of the public read model, so it isn't in the cached pages or the lists.
+ */
+export async function readFormSource(db: Db, slug: string) {
+  const r = await db.first<{ url: string; embed_url: string | null; requires_sign_in: number; inspected_at: string | null; accepting: number; opens_at: string | null; closes_at: string | null }>(
+    `SELECT f.url, f.embed_url, f.requires_sign_in, f.inspected_at, f.accepting, f.opens_at, f.closes_at
+     FROM external_forms f JOIN external_form_slugs s ON s.form_id = f.id
+     WHERE s.slug = ?1 AND f.status = 'ACTIVE' AND f.deleted_at IS NULL LIMIT 1`, slug);
+  return r ? { url: r.url, embedUrl: r.embed_url, requiresSignIn: r.requires_sign_in === 1, inspectedAt: r.inspected_at, accepting: r.accepting === 1, opensAt: r.opens_at, closesAt: r.closes_at } : null;
 }
 
 /** Forms the club lists at /forms: open ones, upcoming ones, and those closed in the last 30 days. */

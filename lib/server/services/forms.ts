@@ -16,9 +16,8 @@ import { NotFoundError, ValidationError } from "../errors";
 import { toSlug, Validator } from "../validate";
 import { TAGS } from "./cache-tags";
 import { mediaUrl, type MediaRow } from "../../public/shapes";
-import { embedUrlFor, extractFormUrl, formState, openUrlFor, providerOf, type FormDisplay, type FormProvider } from "../../forms/providers";
+import { embedUrlFor, extractFormUrl, formState, openUrlFor, providerOf, type FormProvider } from "../../forms/providers";
 
-export const FORM_DISPLAYS = ["AUTO", "EMBED", "LINK"] as const satisfies readonly FormDisplay[];
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /** Addresses the website itself uses under /forms. */
 const RESERVED = new Set(["dashboard", "new"]);
@@ -36,7 +35,6 @@ export interface FormAdminRow {
   description: string | null;
   questionCount: number | null;
   requiresSignIn: boolean;
-  display: FormDisplay;
   listed: boolean;
   accepting: boolean;
   opensAt: string | null;
@@ -60,13 +58,13 @@ export interface FormAdminRow {
 interface FormDbRow {
   id: string; slug: string; title: string; url: string; status: "ACTIVE" | "ARCHIVED";
   provider: string | null; embed_url: string | null; open_url: string | null; description: string | null; question_count: number | null;
-  requires_sign_in: number; display_mode: FormDisplay; listed: number; accepting: number; opens_at: string | null; closes_at: string | null;
+  requires_sign_in: number; listed: number; accepting: number; opens_at: string | null; closes_at: string | null;
   closed_message: string | null; responses_url: string | null; category: string | null; event_id: string | null; event_slug: string | null; event_title: string | null;
   cover_media_id: string | null; m_storage: MediaRow["storage"] | null; m_key: string | null; m_legacy: string | null; m_external: string | null; m_variants: string | null;
   inspected_at: string | null; sort_order: number; created_at: string; updated_at: string; updated_by_name: string | null;
 }
 
-const SELECT = `SELECT f.id, f.slug, f.title, f.url, f.status, f.provider, f.embed_url, f.open_url, f.description, f.question_count, f.requires_sign_in, f.display_mode,
+const SELECT = `SELECT f.id, f.slug, f.title, f.url, f.status, f.provider, f.embed_url, f.open_url, f.description, f.question_count, f.requires_sign_in,
          f.listed, f.accepting, f.opens_at, f.closes_at, f.closed_message, f.responses_url, f.category, f.event_id, e.slug AS event_slug, e.title AS event_title,
          f.cover_media_id, m.storage AS m_storage, m.object_key AS m_key, m.legacy_path AS m_legacy, m.external_url AS m_external, m.variants_json AS m_variants,
          f.inspected_at, f.sort_order, f.created_at, f.updated_at, COALESCE(p.full_name, u.email) AS updated_by_name
@@ -87,7 +85,7 @@ function toRow(r: FormDbRow, now = Date.now()): FormAdminRow {
     id: r.id, slug: r.slug, title: r.title, url: r.url, status: r.status,
     provider: (r.provider as FormProvider | null) ?? providerOf(r.url),
     embedUrl: r.embed_url, openUrl: r.open_url, description: r.description, questionCount: r.question_count,
-    requiresSignIn: r.requires_sign_in === 1, display: r.display_mode, listed: r.listed === 1, accepting,
+    requiresSignIn: r.requires_sign_in === 1, listed: r.listed === 1, accepting,
     opensAt: r.opens_at, closesAt: r.closes_at, closedMessage: r.closed_message, responsesUrl: r.responses_url, category: r.category,
     eventId: r.event_id, event: r.event_id && r.event_slug ? { id: r.event_id, slug: r.event_slug, title: r.event_title ?? r.event_slug } : null,
     coverMediaId: r.cover_media_id, coverUrl: cover(r), inspectedAt: r.inspected_at, sortOrder: r.sort_order,
@@ -184,7 +182,6 @@ export async function saveForm(ctx: Ctx, id: string | null, input: Record<string
     ? current.slug
     : v.string("slug", { max: 80, label: "Address", pattern: SLUG_RE, patternMessage: "Use lowercase letters, digits and single hyphens." }) ?? (title ? toSlug(title).slice(0, 80).replace(/-+$/, "") : null);
   const description = v.string("description", { max: 1000, label: "Description" });
-  const display = v.oneOf("display", FORM_DISPLAYS, { label: "Display" }) ?? "AUTO";
   const listed = v.bool("listed");
   // The editor sends "accepting" as a checkbox; a request without it (older clients) keeps taking answers.
   const accepting = input.accepting === undefined ? true : v.bool("accepting");
@@ -224,7 +221,7 @@ export async function saveForm(ctx: Ctx, id: string | null, input: Record<string
   const embedUrl = embedUrlFor(source);
   const openUrl = openUrlFor(source);
   const urlChanged = !current || current.url !== url;
-  const after = { title, url, slug, listed, accepting, opensAt, closesAt, display, eventId };
+  const after = { title, url, slug, listed, accepting, opensAt, closesAt, eventId };
 
   if (id && current) {
     // Unchecked edits of the same link keep what was learned before; a new link starts unchecked.
@@ -232,13 +229,13 @@ export async function saveForm(ctx: Ctx, id: string | null, input: Record<string
     await ctx.db.batch([
       ...claim,
       ctx.db.stmt(
-        `UPDATE external_forms SET title = ?2, url = ?3, slug = ?4, provider = ?5, description = ?6, display_mode = ?7, listed = ?8, accepting = ?9,
-                opens_at = ?10, closes_at = ?11, closed_message = ?12, responses_url = ?13, category = ?14, event_id = ?15, cover_media_id = ?16, sort_order = ?17,
-                embed_url = CASE WHEN ?18 THEN embed_url ELSE ?19 END, open_url = CASE WHEN ?18 THEN open_url ELSE ?20 END,
-                requires_sign_in = CASE WHEN ?18 THEN requires_sign_in ELSE ?21 END, question_count = CASE WHEN ?18 THEN question_count ELSE ?22 END,
-                inspected_at = CASE WHEN ?18 THEN inspected_at ELSE ?23 END, updated_at = ?24, updated_by = ?25
+        `UPDATE external_forms SET title = ?2, url = ?3, slug = ?4, provider = ?5, description = ?6, listed = ?7, accepting = ?8,
+                opens_at = ?9, closes_at = ?10, closed_message = ?11, responses_url = ?12, category = ?13, event_id = ?14, cover_media_id = ?15, sort_order = ?16,
+                embed_url = CASE WHEN ?17 THEN embed_url ELSE ?18 END, open_url = CASE WHEN ?17 THEN open_url ELSE ?19 END,
+                requires_sign_in = CASE WHEN ?17 THEN requires_sign_in ELSE ?20 END, question_count = CASE WHEN ?17 THEN question_count ELSE ?21 END,
+                inspected_at = CASE WHEN ?17 THEN inspected_at ELSE ?22 END, updated_at = ?23, updated_by = ?24
          WHERE id = ?1`,
-        id, title, url, slug, provider, description, display, listed ? 1 : 0, accepting ? 1 : 0, opensAt, closesAt, closedMessage, responsesUrl, category, eventId, coverMediaId, sortOrder,
+        id, title, url, slug, provider, description, listed ? 1 : 0, accepting ? 1 : 0, opensAt, closesAt, closedMessage, responsesUrl, category, eventId, coverMediaId, sortOrder,
         keepInspection ? 1 : 0, embedUrl, openUrl, requiresSignIn ? 1 : 0, questionCount, inspected ? now : null, now, actor.user.id),
       historyStmt(ctx, slug, id),
       ...coverStmts(ctx, id, coverMediaId),
@@ -249,10 +246,10 @@ export async function saveForm(ctx: Ctx, id: string | null, input: Record<string
     await ctx.db.batch([
       ...claim,
       ctx.db.stmt(
-        `INSERT INTO external_forms (id, slug, title, url, provider, description, display_mode, listed, accepting, opens_at, closes_at, closed_message, responses_url, category,
+        `INSERT INTO external_forms (id, slug, title, url, provider, description, listed, accepting, opens_at, closes_at, closed_message, responses_url, category,
                 event_id, cover_media_id, sort_order, embed_url, open_url, requires_sign_in, question_count, inspected_at, created_at, created_by, updated_at, updated_by)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?23, ?24)`,
-        id, slug, title, url, provider, description, display, listed ? 1 : 0, accepting ? 1 : 0, opensAt, closesAt, closedMessage, responsesUrl, category,
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?22, ?23)`,
+        id, slug, title, url, provider, description, listed ? 1 : 0, accepting ? 1 : 0, opensAt, closesAt, closedMessage, responsesUrl, category,
         eventId, coverMediaId, sortOrder, embedUrl, openUrl, requiresSignIn ? 1 : 0, questionCount, inspected ? now : null, now, actor.user.id),
       historyStmt(ctx, slug, id),
       ...coverStmts(ctx, id, coverMediaId),
@@ -326,7 +323,7 @@ export async function deleteForm(ctx: Ctx, id: string) {
 }
 
 /**
- * A copy for the next round ("CR Information Spring 2027"): same link, display and cover,
+ * A copy for the next round ("CR Information Spring 2027"): same link and cover,
  * unlisted, without a schedule, under a free address.
  */
 export async function duplicateForm(ctx: Ctx, id: string, input: Record<string, unknown> = {}) {
@@ -347,9 +344,9 @@ export async function duplicateForm(ctx: Ctx, id: string, input: Record<string, 
   const now = nowIso();
   await ctx.db.batch([
     ctx.db.stmt(
-      `INSERT INTO external_forms (id, slug, title, url, provider, description, display_mode, listed, accepting, closed_message, responses_url, category, event_id,
+      `INSERT INTO external_forms (id, slug, title, url, provider, description, listed, accepting, closed_message, responses_url, category, event_id,
               cover_media_id, sort_order, embed_url, open_url, requires_sign_in, question_count, inspected_at, created_at, created_by, updated_at, updated_by)
-       SELECT ?2, ?3, ?4, url, provider, description, display_mode, 0, 1, closed_message, responses_url, category, event_id,
+       SELECT ?2, ?3, ?4, url, provider, description, 0, 1, closed_message, responses_url, category, event_id,
               cover_media_id, sort_order, embed_url, open_url, requires_sign_in, question_count, inspected_at, ?5, ?6, ?5, ?6
        FROM external_forms WHERE id = ?1`, id, newIdValue, slug, title, now, actor.user.id),
     historyStmt(ctx, slug, newIdValue),

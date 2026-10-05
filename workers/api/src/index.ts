@@ -15,7 +15,7 @@
  */
 import { Db } from "../../../lib/server/db";
 import { AppError, AuthRequiredError, ValidationError } from "../../../lib/server/errors";
-import { readCommittees, readContests, readCertificate, readCertificateByStudent, readProfileCertificates, readEvent, readEvents, readForm, readForms, readPost, readPosts, readSetting, readSitemap, readSponsorship, readSponsorships } from "../../../lib/public/read";
+import { readCommittees, readContests, readCertificate, readCertificateByStudent, readProfileCertificates, readEvent, readEvents, readForm, readFormSource, readForms, readPost, readPosts, readSetting, readSitemap, readSponsorship, readSponsorships } from "../../../lib/public/read";
 import type { VariantName } from "../../../lib/media/bytes";
 import { forgetMediaLookup, resolveMediaAccess, uploadMedia, uploadsOpen, MAX_BYTES_PER_REQUEST } from "../../../lib/server/services/media";
 import { recordHeartbeat, runDailyHousekeeping, runMaintenance } from "../../../lib/server/services/maintenance";
@@ -104,6 +104,11 @@ async function handlePublic(env: Env, url: URL): Promise<Response> {
     }
     case "forms": {
       if (!parts[1]) return ok(await readForms(db));
+      // The form's own address, for the website's server (never cached by anything in between).
+      if (parts[2] === "source") {
+        const src = await readFormSource(db, parts[1]);
+        return src ? json({ ok: true, data: src }, { headers: { "Cache-Control": "private, no-store" } }) : notFound();
+      }
       const f = await readForm(db, parts[1]);
       return f ? ok(f) : notFound();
     }

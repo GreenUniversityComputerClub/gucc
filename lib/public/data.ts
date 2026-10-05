@@ -8,7 +8,7 @@ import "server-only";
  * within one render. Only published, public data is ever returned.
  */
 import { cache } from "react";
-import type { PublicForm } from "@/lib/forms/types";
+import type { FormSource, PublicForm } from "@/lib/forms/types";
 import type { PublicCertificate } from "@/lib/public/read";
 import { ApiUnavailableError, publicGet } from "@/lib/api/client";
 import { TAGS } from "@/lib/server/services/cache-tags";
@@ -126,6 +126,13 @@ export const getSponsorship = cache(async (slug: string): Promise<PublicSponsors
 
 export const getPublicForm = cache(async (slug: string) =>
   publicGet<PublicForm>(`forms/${encodeURIComponent(slug)}`, { tags: [TAGS.forms], revalidate: 6 * HOUR, fallback: null }));
+
+/**
+ * A form's own address and schedule. Server-side only: it feeds the frame route and the page's
+ * checks and is never passed to a page's props. Cached under the forms tag like the rest.
+ */
+export const getFormSource = cache(async (slug: string) =>
+  publicGet<FormSource>(`forms/${encodeURIComponent(slug)}/source`, { tags: [TAGS.forms], revalidate: 6 * HOUR, fallback: null }));
 
 /** Forms listed at /forms (an API older than round 9 has no list: empty). */
 export const getPublicForms = cache(async () =>

@@ -103,6 +103,11 @@ export async function inspectForm(pasted: string): Promise<FormInspection> {
 
 /**
  * The same, remembered for a day per address (refreshed with the "forms" cache tag). Next's
- * fetch cache doesn't keep redirects, so the whole answer is cached instead.
+ * fetch cache doesn't keep redirects, so the whole answer is cached instead. A failed look isn't
+ * remembered (it is usually a hiccup): it throws, which keeps it out of the cache.
  */
-export const inspectFormCached = unstable_cache(async (url: string) => inspectForm(url), ["form-inspection-v1"], { revalidate: 86_400, tags: ["forms"] });
+export const inspectFormCached = unstable_cache(async (url: string) => {
+  const r = await inspectForm(url);
+  if (!r.ok) throw new Error(r.error);
+  return r;
+}, ["form-inspection-v2"], { revalidate: 86_400, tags: ["forms"] });

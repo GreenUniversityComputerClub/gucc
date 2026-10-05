@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { extractFormUrl, formState, PROVIDER_LABEL, providerOf, type FormDisplay } from "@/lib/forms/providers";
+import { extractFormUrl, formState, PROVIDER_LABEL, providerOf } from "@/lib/forms/providers";
 import type { FormInspection } from "@/lib/forms/inspect";
 import { slugify } from "@/lib/governance/positions";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,6 @@ export interface EditableForm {
   title: string;
   url: string;
   description: string | null;
-  display: FormDisplay;
   listed: boolean;
   accepting: boolean;
   opensAt: string | null;
@@ -35,7 +34,6 @@ export interface EditableForm {
   requiresSignIn: boolean;
   questionCount: number | null;
   inspectedAt: string | null;
-  openUrl: string | null;
 }
 
 type Seen = Extract<FormInspection, { ok: true }> & { url: string };
@@ -50,12 +48,6 @@ function FieldError({ name }: { name: string }) {
 const toLocal = (iso: string | null) => (iso ? new Date(Date.parse(iso) + 6 * 3600_000).toISOString().slice(0, 16) : "");
 const fromLocal = (v: string) => (v ? Date.parse(`${v}:00+06:00`) : NaN);
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
-const DISPLAYS: Array<{ value: FormDisplay; label: string; text: string }> = [
-  { value: "AUTO", label: "Automatic (recommended)", text: "Shown inside the page. A form that needs a Google account opens at Google on phones and inside Facebook or Messenger, where signing in within a page fails." },
-  { value: "EMBED", label: "Always inside the page", text: "Everyone fills it on the GUCC page. Some phones may ask people to sign in again." },
-  { value: "LINK", label: "Always open at Google", text: "The page shows the title, schedule and a button that opens the form." },
-];
 
 function StatePreview({ opensAt, closesAt, accepting }: { opensAt: string; closesAt: string; accepting: boolean }) {
   const o = fromLocal(opensAt);
@@ -83,7 +75,6 @@ export function FormEditor({ form, events, categories }: {
   const [closesAt, setClosesAt] = useState(toLocal(form?.closesAt ?? null));
   const [accepting, setAccepting] = useState(form?.accepting ?? true);
   const [listed, setListed] = useState(form?.listed ?? false);
-  const [display, setDisplay] = useState<FormDisplay>(form?.display ?? "AUTO");
   const [seen, setSeen] = useState<Seen | null>(null);
   const [checkError, setCheckError] = useState<string | null>(null);
   const [checking, startCheck] = useTransition();
@@ -167,10 +158,9 @@ export function FormEditor({ form, events, categories }: {
                   <li className="flex items-center gap-1.5">{fresh.requiresSignIn ? <><Lock className="h-3.5 w-3.5" aria-hidden />Needs a Google account to answer</> : <><Unlock className="h-3.5 w-3.5" aria-hidden />Anyone can answer</>}</li>
                   {fresh.title && <li>Title at Google: <span className="text-foreground">{fresh.title}</span></li>}
                   {fresh.questionCount != null && <li>{fresh.questionCount} questions</li>}
-                  {!fresh.embedUrl && <li>Can&apos;t be shown inside the page: it opens at the provider.</li>}
+                  {!fresh.embedUrl && <li className="font-medium text-amber-700 dark:text-amber-300">Can&apos;t be shown inside the page: this link can&apos;t be framed. Use the form&apos;s normal link (Send → link), or its embed code.</li>}
                   {fresh.closed && <li className="font-medium text-amber-700 dark:text-amber-300">The form says it no longer accepts responses. Turn on “Accepting responses” in Google Forms, or untick “Taking answers” below.</li>}
                 </ul>
-                <a href={fresh.openUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-9 items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline">Open the form<ExternalLink className="h-3 w-3" aria-hidden /></a>
               </div>
             )}
             {!fresh && form && form.url === url && (
@@ -242,16 +232,13 @@ export function FormEditor({ form, events, categories }: {
           </FormSection>
 
           <FormSection title="How it's shown">
-            <fieldset className="grid gap-2">
-              <legend className="sr-only">Display</legend>
-              {DISPLAYS.map((d) => (
-                <label key={d.value} className={cn("flex cursor-pointer gap-3 rounded-lg border p-3 text-sm", display === d.value ? "border-primary bg-primary/5" : "hover:bg-muted/40")}>
-                  <input type="radio" name="display" value={d.value} checked={display === d.value} onChange={() => setDisplay(d.value)} className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span><span className="font-medium">{d.label}</span><span className="mt-0.5 block text-muted-foreground">{d.text}</span></span>
-                </label>
-              ))}
-            </fieldset>
-            {signIn && display === "EMBED" && <p className="text-xs text-amber-700 dark:text-amber-300">This form needs a Google account: inside Facebook, Messenger and some phones, people may not be able to sign in within the page.</p>}
+            <p className="text-sm text-muted-foreground">The form always appears inside its GUCC page: the original Google, Microsoft, Tally or Airtable address is never shown, linked or put in the page. Visitors see only the page link, so they can&apos;t pass around the original, and a closed or not-yet-open form is not handed out at all.</p>
+            {signIn && (
+              <p className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+                <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span>This form needs a Google account. The page tells visitors to sign in to Google and shows what to change in their browser if the form stays blank (iPhone/Safari users usually must turn off “Prevent Cross-Site Tracking”). For the widest reach, turn off “Restrict to users in…”, “Limit to 1 response” and file uploads in Google Forms, so anyone can answer.</span>
+              </p>
+            )}
           </FormSection>
 
           <FormSection title="Listing and links">
@@ -282,7 +269,7 @@ export function FormEditor({ form, events, categories }: {
               <div className="mt-2"><StatePreview opensAt={opensAt} closesAt={closesAt} accepting={accepting} /></div>
             </div>
             <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground">
-              <li>{display === "LINK" ? "Opens at the provider (button)." : signIn && display === "AUTO" ? "Computers: inside the page. Phones and in-app browsers: opens at Google." : "Shown inside the page."}</li>
+              <li>{signIn ? "Shown inside the page. Visitors are asked to sign in to Google, with help if the form stays blank." : "Shown inside the page. The original address is never shown."}</li>
               <li>{listed ? "Listed at /forms while open." : "Link only (not listed, not in search engines)."}</li>
             </ul>
             {form && (

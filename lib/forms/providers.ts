@@ -8,7 +8,6 @@
  */
 
 export type FormProvider = "google" | "microsoft" | "tally" | "airtable";
-export type FormDisplay = "AUTO" | "EMBED" | "LINK";
 export type FormState = "open" | "scheduled" | "closed";
 
 export const PROVIDER_LABEL: Record<FormProvider, string> = {
@@ -134,19 +133,6 @@ export function formState(f: { opensAt?: string | null; closesAt?: string | null
   if (f.closesAt && Date.parse(f.closesAt) <= t) return "closed";
   if (f.opensAt && Date.parse(f.opensAt) > t) return "scheduled";
   return "open";
-}
-
-/**
- * Whether to show the form inside the page or a card that opens it at the provider. Forms that
- * need a Google account open at Google on phones and inside in-app browsers (Facebook, Messenger,
- * Instagram…), where signing in inside a frame usually fails.
- */
-export function shouldEmbed(f: { display?: FormDisplay | null; requiresSignIn?: boolean | null; embedUrl?: string | null }, ctx: { phone: boolean; inAppBrowser: boolean }): boolean {
-  if (!f.embedUrl) return false;
-  if (f.display === "EMBED") return true;
-  if (f.display === "LINK") return false;
-  if (!f.requiresSignIn) return true;
-  return !ctx.phone && !ctx.inAppBrowser;
 }
 
 /** In-app browsers of social apps, where Google sign-in and new tabs behave badly. */

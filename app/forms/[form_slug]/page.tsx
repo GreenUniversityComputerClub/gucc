@@ -1,11 +1,11 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getPublicForm } from "@/lib/public/data";
+import { getFormSource, getPublicForm } from "@/lib/public/data";
 import { buildMetadata, truncate } from "@/lib/seo/metadata";
 import { JsonLd } from "@/components/seo/json-ld";
 import { breadcrumbSchema, graph, webPageSchema } from "@/lib/seo/schema";
-import { inspectFormCached } from "@/lib/forms/inspect";
-import { embedUrlFor, formState, isShortLink, openUrlFor, PROVIDER_LABEL, providerOf, type FormState } from "@/lib/forms/providers";
+import { resolveForm } from "@/lib/forms/resolve";
+import { formState, PROVIDER_LABEL, type FormState } from "@/lib/forms/providers";
 import type { PublicForm } from "@/lib/forms/types";
 import { FormShell, type FormView } from "./form-shell";
 
@@ -16,33 +16,27 @@ export async function generateStaticParams() {
   return [];
 }
 
-const OPEN_LABEL = { google: "Open in Google Forms", microsoft: "Open in Microsoft Forms", tally: "Open in Tally", airtable: "Open in Airtable" } as const;
 const dateLabel = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
 /**
- * Everything the page shows about a form: what the dashboard stored, and where it hasn't been
- * checked yet (forms saved before checking existed), what a look at the form itself says.
+ * Everything the page shows about a form: what the dashboard stored and, where it hasn't been
+ * checked yet (forms saved before checking existed), what a look at the form itself says. The
+ * form's own address is never part of this: the page's script asks the frame route for it.
  */
 async function viewOf(form: PublicForm): Promise<FormView> {
-  const provider = form.provider ?? providerOf(form.url);
-  let embedUrl = form.embedUrl ?? null;
-  let openUrl = form.openUrl ?? openUrlFor(form.url) ?? form.url;
+  const provider = form.provider ?? null;
   let requiresSignIn = Boolean(form.requiresSignIn);
   let description = form.description ?? null;
   let questionCount = form.questionCount ?? null;
   let providerClosed = false;
-  // Not checked by the dashboard yet: short links must be resolved, and sign-in detected.
   if (!form.inspectedAt) {
-    const seen = await inspectFormCached(form.url).catch(() => null);
-    if (seen?.ok) {
-      embedUrl = seen.embedUrl;
-      openUrl = seen.openUrl;
+    const source = await getFormSource(form.slug).catch(() => null);
+    const seen = source ? await resolveForm(source).catch(() => null) : null;
+    if (seen) {
       requiresSignIn = seen.requiresSignIn;
       description ??= seen.description;
       questionCount ??= seen.questionCount;
       providerClosed = seen.closed;
-    } else if (!isShortLink(form.url)) {
-      embedUrl = embedUrlFor(form.url);
     }
   }
   const state: FormState = providerClosed ? "closed" : formState({ opensAt: form.opensAt, closesAt: form.closesAt, accepting: form.accepting });
@@ -50,12 +44,9 @@ async function viewOf(form: PublicForm): Promise<FormView> {
     slug: form.slug,
     title: form.title,
     description,
+    provider,
     providerLabel: provider ? PROVIDER_LABEL[provider] : "Form",
-    openLabel: provider ? OPEN_LABEL[provider] : "Open the form",
-    openUrl,
-    embedUrl,
     requiresSignIn,
-    display: form.display ?? "AUTO",
     state,
     opensAt: form.opensAt ?? null,
     closesAt: form.closesAt ?? null,
@@ -89,9 +80,10 @@ export async function generateMetadata({ params }: { params: Promise<{ form_slug
 }
 
 /**
- * A form page: a slim header (the title, its state, open/share actions) and the form itself.
- * On phones the form fills the screen under a 48 px bar, so the provider's own pickers (a long
- * "Batch" list) always fit; a form that needs a Google account opens at Google there.
+ * A form page: a slim header (the title, its state, share actions) and the form itself, always
+ * inside this page: the form's own address is never shown or linked (the script fetches it once the
+ * form is open). On phones the form fills the screen under a 48 px bar, so the provider's own
+ * pickers (a long "Batch" list) always fit; when Google asks for a sign-in the page says what to do.
  */
 export default async function FormPage({ params }: { params: Promise<{ form_slug: string }> }) {
   const { form_slug } = await params;
