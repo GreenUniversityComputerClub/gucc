@@ -55,15 +55,15 @@ function ShareButton({ title }: { title: string }) {
     <button
       type="button"
       onClick={handleShare}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700/80 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700/80 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/40"
       aria-label="Share this article"
     >
       {copied ? (
         <>
-          <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
-          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Link Copied!</span>
+          <span className="text-brand-600 dark:text-brand-400 font-semibold">Link Copied!</span>
         </>
       ) : (
         <>
@@ -105,7 +105,7 @@ export default function PostContent({ post, mdx, extras }: PostContentProps) {
         <nav className="mb-10 sm:mb-12">
           <Link
             href="/blog"
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors group"
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors group"
           >
             <svg
               className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200"
@@ -124,7 +124,7 @@ export default function PostContent({ post, mdx, extras }: PostContentProps) {
           {/* Category Kicker */}
           {category && (
             <div className="mb-4">
-              <span className="inline-block text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-mono">
+              <span className="inline-block text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 font-mono">
                 {category}
               </span>
             </div>
@@ -160,10 +160,10 @@ export default function PostContent({ post, mdx, extras }: PostContentProps) {
                   height={44}
                   loading="lazy"
                   decoding="async"
-                  className="w-11 h-11 rounded-full object-cover ring-2 ring-emerald-500/30"
+                  className="w-11 h-11 rounded-full object-cover ring-2 ring-brand-500/30"
                 />
               ) : (
-                <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-semibold text-sm shadow-sm ring-2 ring-emerald-500/20">
+                <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-brand-600 to-aurora-500 flex items-center justify-center text-white font-semibold text-sm shadow-sm ring-2 ring-brand-500/20">
                   {authorInitials}
                 </div>
               )}
@@ -179,7 +179,7 @@ export default function PostContent({ post, mdx, extras }: PostContentProps) {
                       href={post.author.github}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-slate-400 hover:text-emerald-500 transition-colors"
+                      className="text-xs text-slate-400 hover:text-brand-500 transition-colors"
                       title="GitHub Profile"
                     >
                       <svg className="w-4 h-4 fill-current inline" viewBox="0 0 24 24">
@@ -223,7 +223,7 @@ export default function PostContent({ post, mdx, extras }: PostContentProps) {
         {post.tags && post.tags.length > 0 && (
           <div className="mt-10 flex flex-wrap gap-2" aria-label="Topics">
             {post.tags.map((t) => (
-              <Link key={t} href={`/blog/tag/${encodeURIComponent(t)}`} className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/40">#{t}</Link>
+              <Link key={t} href={`/blog/tag/${encodeURIComponent(t)}`} className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100 dark:bg-brand-950/40 dark:text-brand-300 dark:hover:bg-brand-900/40">#{t}</Link>
             ))}
           </div>
         )}
@@ -235,7 +235,7 @@ export default function PostContent({ post, mdx, extras }: PostContentProps) {
           {post.author?.avatarUrl
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={post.author.avatarUrl} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
-            : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 font-semibold text-white">{authorInitials}</div>}
+            : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-brand-600 to-aurora-500 font-semibold text-white">{authorInitials}</div>}
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-wider text-slate-500">Written by</p>
             <p className="font-semibold text-slate-900 dark:text-white">{post.author?.name || "GUCC Contributor"}</p>
@@ -246,15 +246,15 @@ export default function PostContent({ post, mdx, extras }: PostContentProps) {
         {extras && (extras.prev || extras.next) && (
           <nav className="mt-10 grid gap-3 sm:grid-cols-2" aria-label="More articles">
             {extras.prev ? (
-              <Link href={`/blog/${extras.prev.slug}`} className="group rounded-xl border border-slate-200/80 p-4 hover:border-emerald-400 dark:border-slate-800">
+              <Link href={`/blog/${extras.prev.slug}`} className="group rounded-xl border border-slate-200/80 p-4 hover:border-brand-400 dark:border-slate-800">
                 <span className="text-xs text-slate-500">← Newer</span>
-                <span className="mt-1 line-clamp-2 block font-semibold group-hover:text-emerald-600">{extras.prev.title}</span>
+                <span className="mt-1 line-clamp-2 block font-semibold group-hover:text-brand-600">{extras.prev.title}</span>
               </Link>
             ) : <span />}
             {extras.next && (
-              <Link href={`/blog/${extras.next.slug}`} className="group rounded-xl border border-slate-200/80 p-4 text-right hover:border-emerald-400 dark:border-slate-800">
+              <Link href={`/blog/${extras.next.slug}`} className="group rounded-xl border border-slate-200/80 p-4 text-right hover:border-brand-400 dark:border-slate-800">
                 <span className="text-xs text-slate-500">Older →</span>
-                <span className="mt-1 line-clamp-2 block font-semibold group-hover:text-emerald-600">{extras.next.title}</span>
+                <span className="mt-1 line-clamp-2 block font-semibold group-hover:text-brand-600">{extras.next.title}</span>
               </Link>
             )}
           </nav>
@@ -268,8 +268,8 @@ export default function PostContent({ post, mdx, extras }: PostContentProps) {
                 <li key={r.slug}>
                   <Link href={`/blog/${r.slug}`} className="group block overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {r.cover ? <img src={r.cover} alt="" loading="lazy" className="aspect-video w-full object-cover transition-transform group-hover:scale-105" /> : <div className="aspect-video bg-gradient-to-br from-emerald-600 to-teal-700" aria-hidden />}
-                    <span className="line-clamp-2 block p-3 text-sm font-semibold group-hover:text-emerald-600">{r.title}</span>
+                    {r.cover ? <img src={r.cover} alt="" loading="lazy" className="aspect-video w-full object-cover transition-transform group-hover:scale-105" /> : <div className="aspect-video bg-gradient-to-br from-brand-600 to-aurora-700" aria-hidden />}
+                    <span className="line-clamp-2 block p-3 text-sm font-semibold group-hover:text-brand-600">{r.title}</span>
                   </Link>
                 </li>
               ))}
@@ -280,13 +280,13 @@ export default function PostContent({ post, mdx, extras }: PostContentProps) {
         {/* Article Footer & Next Steps */}
         <footer className="mt-16 pt-8 border-t border-slate-200/80 dark:border-slate-800 text-center">
           <div className="inline-flex flex-col items-center gap-3">
-            <div className="w-8 h-1 rounded-full bg-emerald-500/60 mx-auto mb-2"></div>
+            <div className="w-8 h-1 rounded-full bg-brand-500/60 mx-auto mb-2"></div>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Published by Green University Computer Club
             </p>
             <Link
               href="/blog"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-emerald-700 hover:bg-emerald-600 transition-all shadow-sm hover:shadow"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-brand-700 hover:bg-brand-600 transition-all shadow-sm hover:shadow"
             >
               Explore More Articles
             </Link>
@@ -304,7 +304,7 @@ export function BlogPostMeta({ post }: { post: PostEdge }) {
         {post.node.publishedAt && (
           <time
             dateTime={post.node.publishedAt}
-            className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-mono"
+            className="text-xs font-medium text-brand-600 dark:text-brand-400 uppercase tracking-wider font-mono"
           >
             {new Date(post.node.publishedAt).toLocaleDateString("en-US", { timeZone: "Asia/Dhaka",
               year: "numeric",

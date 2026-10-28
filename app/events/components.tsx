@@ -52,13 +52,13 @@ export function EventCard({
           <div className="absolute top-3 left-3">
             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
               isUpcoming 
-                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                ? 'bg-brand-100 text-brand-800 dark:bg-brand-900/30 dark:text-brand-300' 
                 : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
             }`}>
               {isUpcoming ? 'Upcoming' : 'Past'}
             </span>
             {event.registrationOpen && (
-              <span className="ml-1.5 inline-flex items-center rounded-full bg-emerald-700 px-2 py-1 text-xs font-medium text-white">
+              <span className="ml-1.5 inline-flex items-center rounded-full bg-brand-700 px-2 py-1 text-xs font-medium text-white">
                 Registration open
               </span>
             )}

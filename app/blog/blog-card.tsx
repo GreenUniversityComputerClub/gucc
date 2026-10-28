@@ -25,7 +25,7 @@ function Author({ a, small }: { a: BlogCard["author"]; small?: boolean }) {
       {a.avatarUrl
         // eslint-disable-next-line @next/next/no-img-element
         ? <img src={a.avatarUrl} alt="" width={28} height={28} loading="lazy" className={cn("shrink-0 rounded-full object-cover", small ? "h-6 w-6" : "h-7 w-7")} />
-        : <span className={cn("flex shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-[10px] font-semibold text-white", small ? "h-6 w-6" : "h-7 w-7")} aria-hidden>{initials(a.name)}</span>}
+        : <span className={cn("flex shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-brand-600 to-aurora-500 text-[10px] font-semibold text-white", small ? "h-6 w-6" : "h-7 w-7")} aria-hidden>{initials(a.name)}</span>}
       <span className="truncate">{a.name}</span>
     </span>
   );
@@ -35,7 +35,7 @@ function Author({ a, small }: { a: BlogCard["author"]; small?: boolean }) {
 export function BlogPostCard({ p, featured, eager, headingLevel = 2 }: { p: BlogCard; featured?: boolean; eager?: boolean; headingLevel?: 2 | 3 }) {
   const Heading = headingLevel === 2 ? "h2" : "h3";
   return (
-    <article className={cn("group relative flex h-full overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-300/70 hover:shadow-lg focus-within:ring-2 focus-within:ring-ring",
+    <article className={cn("group relative flex h-full overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-300/70 hover:shadow-lg focus-within:ring-2 focus-within:ring-ring",
       featured ? "flex-col md:flex-row" : "flex-col")}>
       {p.cover ? (
         <div className={cn("relative overflow-hidden bg-muted", featured ? "aspect-video md:aspect-auto md:w-3/5" : "aspect-video")}>
@@ -52,11 +52,11 @@ export function BlogPostCard({ p, featured, eager, headingLevel = 2 }: { p: Blog
       )}
       <div className={cn("flex flex-1 flex-col gap-3 p-5", featured && "md:p-8")}>
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          {featured && <span className="rounded-full bg-emerald-700 px-2.5 py-0.5 font-semibold text-white">Latest</span>}
-          {p.category && <span className="font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">{p.category}</span>}
+          {featured && <span className="rounded-full bg-brand-700 px-2.5 py-0.5 font-semibold text-white">Latest</span>}
+          {p.category && <span className="font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-400">{p.category}</span>}
         </div>
         <Heading className={cn("font-bold leading-snug tracking-tight", featured ? "text-2xl md:text-3xl" : "text-lg")}>
-          <Link href={`/blog/${p.slug}`} className="after:absolute after:inset-0 group-hover:text-emerald-700 focus-visible:outline-none dark:group-hover:text-emerald-400">{p.title}</Link>
+          <Link href={`/blog/${p.slug}`} className="after:absolute after:inset-0 group-hover:text-brand-700 focus-visible:outline-none dark:group-hover:text-brand-400">{p.title}</Link>
         </Heading>
         {p.summary && <p className={cn("text-muted-foreground", featured ? "line-clamp-4" : "line-clamp-3 text-sm")}>{p.summary}</p>}
         <div className="mt-auto flex items-center justify-between gap-3 pt-2 text-xs text-muted-foreground">

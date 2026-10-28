@@ -49,7 +49,7 @@ const statusLabels: Record<LostFoundStatus, string> = {
 
 const statusStyles: Record<LostFoundStatus, string> = {
   pending: "bg-amber-500/15 text-amber-500 border-amber-500/30",
-  active: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
+  active: "bg-brand-500/15 text-brand-500 border-brand-500/30",
   resolved: "bg-slate-500/15 text-slate-300 border-slate-500/30",
   rejected: "bg-rose-500/15 text-rose-400 border-rose-500/30",
 };
@@ -356,7 +356,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
 
   return (
     // The board is designed dark: `dark dark-surface` keeps its text and fields in the dark palette in light mode too.
-    <div className="dark dark-surface min-h-screen bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-950 via-slate-950 to-slate-950 text-foreground">
+    <div className="dark dark-surface min-h-screen bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-950 via-slate-950 to-slate-950 text-foreground">
       {confirmDialog}
       {notice && <p role="status" className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-lg border bg-background p-3 text-center text-sm shadow-lg" onClick={() => setNotice(null)}>{notice}</p>}
       <section className="relative overflow-hidden">
@@ -364,7 +364,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
         <div className="container relative z-10 py-16 md:py-24">
           <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] items-center">
             <div className="space-y-6">
-              <Badge className="border border-emerald-400/40 bg-emerald-500/10 text-emerald-200">
+              <Badge className="border border-brand-400/40 bg-brand-500/10 text-brand-200">
                 Lost & Found Hub
               </Badge>
               <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
@@ -376,30 +376,30 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
               </p>
               <div className="flex flex-wrap gap-3">
                 {!userEmail ? (
-                  <Button asChild className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">
+                  <Button asChild className="bg-brand-400 text-slate-950 hover:bg-brand-300">
                     <Link href="/auth/login?next=%2Flost-found%23report">Sign in to post</Link>
                   </Button>
                 ) : (
-                  <Button type="button" className="bg-emerald-500 text-slate-950 hover:bg-emerald-400" onClick={() => openTab("report")}>
+                  <Button type="button" className="bg-brand-400 text-slate-950 hover:bg-brand-300" onClick={() => openTab("report")}>
                     Create a report
                   </Button>
                 )}
-                <Button type="button" variant="outline" className="border-emerald-400/40 bg-transparent text-emerald-100 hover:bg-emerald-500/10 hover:text-emerald-50" onClick={() => openTab("browse")}>
+                <Button type="button" variant="outline" className="border-brand-400/40 bg-transparent text-brand-100 hover:bg-brand-500/10 hover:text-brand-50" onClick={() => openTab("browse")}>
                   Browse active posts
                 </Button>
               </div>
               <div className="flex flex-wrap gap-4 text-sm text-slate-200/70">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-emerald-300" />
+                  <ShieldCheck className="h-4 w-4 text-brand-300" />
                   University email required
                 </div>
                 <div className="flex items-center gap-2">
-                  <Inbox className="h-4 w-4 text-emerald-300" />
+                  <Inbox className="h-4 w-4 text-brand-300" />
                   In-app messaging only
                 </div>
               </div>
             </div>
-            <Card className="border-emerald-500/30 bg-slate-950/60 text-slate-100 shadow-xl">
+            <Card className="border-brand-500/30 bg-slate-950/60 text-slate-100 shadow-xl">
               <CardHeader>
                 <CardTitle className="text-lg">Live pulse</CardTitle>
                 <CardDescription className="text-slate-300">
@@ -410,10 +410,10 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                 {heroStats.map((stat) => (
                   <div
                     key={stat.label}
-                    className="flex items-center justify-between rounded-lg border border-emerald-500/20 bg-slate-950/70 px-4 py-3"
+                    className="flex items-center justify-between rounded-lg border border-brand-500/20 bg-slate-950/70 px-4 py-3"
                   >
                     <span className="text-sm text-slate-300">{stat.label}</span>
-                    <span className="text-2xl font-semibold text-emerald-200">{stat.value}</span>
+                    <span className="text-2xl font-semibold text-brand-200">{stat.value}</span>
                   </div>
                 ))}
               </CardContent>
@@ -569,7 +569,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                   </div>
                   <Button
                     variant="outline"
-                    className="border-emerald-500/40 text-emerald-100"
+                    className="border-brand-500/40 text-brand-100"
                     onClick={loadPosts}
                   >
                     Refresh
@@ -581,7 +581,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                     <p>No posts match these filters.</p>
                     <div className="mt-3 flex flex-wrap justify-center gap-2">
                       <Button type="button" variant="outline" className="border-slate-700 text-slate-200" onClick={resetFilters}>Reset filters</Button>
-                      <Button type="button" className="bg-emerald-500 text-slate-950 hover:bg-emerald-400" onClick={() => openTab("report")}>Report an item</Button>
+                      <Button type="button" className="bg-brand-400 text-slate-950 hover:bg-brand-300" onClick={() => openTab("report")}>Report an item</Button>
                     </div>
                   </div>
                 )}
@@ -638,7 +638,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                           ) : (
                             <Button
                               variant="outline"
-                              className="border-emerald-500/40 text-emerald-100"
+                              className="border-brand-500/40 text-brand-100"
                               disabled={!userEmail}
                             >
                               {viewer?.active ? post.contact_value : userEmail ? "Visible to approved members" : "Log in to view contact"}
@@ -849,13 +849,13 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                           </div>
                         )}
                         {formSuccess && (
-                          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+                          <div className="rounded-lg border border-brand-500/40 bg-brand-500/10 p-3 text-sm text-brand-200">
                             {formSuccess}
                           </div>
                         )}
                         <Button
                           type="submit"
-                          className="bg-emerald-500 text-slate-950 hover:bg-emerald-400"
+                          className="bg-brand-400 text-slate-950 hover:bg-brand-300"
                           disabled={isSubmitting}
                         >
                           {isSubmitting ? "Submitting..." : "Submit report"}
@@ -965,7 +965,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                   <p className="text-sm text-slate-200/80">{message.body}</p>
-                                  <a href={`/dashboard/chat/${message.conversation_id}`} className="inline-flex rounded-md border border-emerald-500/40 px-3 py-1.5 text-sm text-emerald-100 hover:bg-emerald-500/10">
+                                  <a href={`/dashboard/chat/${message.conversation_id}`} className="inline-flex rounded-md border border-brand-500/40 px-3 py-1.5 text-sm text-brand-100 hover:bg-brand-500/10">
                                     Reply in Messages
                                   </a>
                                 </CardContent>
@@ -1007,7 +1007,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                                 </CardHeader>
                                 <CardContent className="flex flex-wrap gap-3">
                                   <Button
-                                    className="bg-emerald-500 text-slate-950 hover:bg-emerald-400"
+                                    className="bg-brand-400 text-slate-950 hover:bg-brand-300"
                                     onClick={() => handleAdminUpdate(post.id, "active")}
                                   >
                                     Approve
@@ -1089,7 +1089,7 @@ function MessageDialog({
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="border-emerald-500/40 text-emerald-100"
+          className="border-brand-500/40 text-brand-100"
           disabled={disabled}
         >
           {buttonLabel}
@@ -1115,7 +1115,7 @@ function MessageDialog({
             </div>
           )}
           <Button
-            className="bg-emerald-500 text-slate-950 hover:bg-emerald-400"
+            className="bg-brand-400 text-slate-950 hover:bg-brand-300"
             onClick={handleSend}
             disabled={isSending}
           >

@@ -269,7 +269,7 @@ export function JoinClient() {
         .slide-6 { animation: slideUp 0.75s 0.55s both ease-out; }
         .slide-7 { animation: slideUp 0.75s 0.65s both ease-out; }
         .shimmer-text {
-          background: linear-gradient(90deg,#22c55e 0%,#86efac 35%,#4ade80 50%,#86efac 65%,#22c55e 100%);
+          background: linear-gradient(90deg,#8b5cf6 0%,#c4b5fd 35%,#22d3ee 50%,#c4b5fd 65%,#8b5cf6 100%);
           background-size: 200% auto;
           -webkit-background-clip: text;
           background-clip: text;

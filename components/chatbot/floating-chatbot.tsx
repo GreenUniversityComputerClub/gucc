@@ -72,7 +72,7 @@ function FloatingChatbot() {
         className={cn(
           "fixed rounded-full shadow-2xl z-50",
           "flex items-center justify-center",
-          "bg-emerald-600 text-white hover:bg-emerald-500 transition-all duration-300",
+          "bg-brand-600 text-white hover:bg-brand-500 transition-all duration-300",
           "bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 w-12 h-12 gap-1 sm:bottom-6 sm:right-6 sm:w-14 sm:h-14 sm:gap-1.5 lg:bottom-8 lg:right-8 lg:w-16 lg:h-16 lg:gap-2",
           // On the dashboard the assistant waits for larger screens, where it doesn't cover forms.
           dashboard && "hidden lg:flex",
@@ -97,8 +97,8 @@ function FloatingChatbot() {
             "fixed z-50 shadow-2xl overflow-hidden flex flex-col transition-all duration-300",
             "animate-in fade-in slide-in-from-bottom-5 duration-200",
             isChatbotDark
-              ? "border border-emerald-950/40 bg-[#07140e] text-zinc-100"
-              : "border border-emerald-100 bg-[#f4faf7] text-zinc-900",
+              ? "border border-brand-950/40 bg-[#080b18] text-zinc-100"
+              : "border border-brand-100 bg-[#f7f6fd] text-zinc-900",
             // dvh: the on-screen keyboard shrinks the chat instead of covering its input.
             "bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 left-4 h-[500px] max-h-[80dvh] rounded-2xl",
             "sm:left-auto sm:bottom-6 sm:right-6 sm:w-[340px] sm:h-[520px] sm:max-h-[85dvh]",

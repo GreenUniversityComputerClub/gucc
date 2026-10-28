@@ -1,5 +1,6 @@
 import type React from "react";
 import type { Metadata, Viewport } from "next";
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
@@ -12,6 +13,11 @@ import { graph, organizationSchema, websiteSchema } from "@/lib/seo/schema";
 import { getLatestExecutiveYear } from "@/app/executives/util";
 import { getPublicSetting } from "@/lib/public/data";
 import { MEDIA_BASE_URL } from "@/lib/api/config";
+
+// Self-hosted at build time (no request to Google from the browser); globals.css names them.
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", display: "swap" });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -84,8 +90,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#020617" },
+    { media: "(prefers-color-scheme: light)", color: "#f8f8fc" },
+    { media: "(prefers-color-scheme: dark)", color: "#070a13" },
   ],
   colorScheme: "dark light",
   width: "device-width",
@@ -108,13 +114,13 @@ export default async function RootLayout({
     degrade(getPublicSetting<{ items?: Array<{ label: string; href: string; description?: string; visible?: boolean }> }>("nav.services")),
   ]);
   return (
-    <html lang="en" suppressHydrationWarning className="dark">
+    <html lang="en" suppressHydrationWarning className={`dark ${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
       <head>
         {/* Warm up the origins the first paint depends on: club photos come from the media origin. */}
         {MEDIA_BASE_URL.startsWith("https://") && <link rel="preconnect" href={new URL(MEDIA_BASE_URL).origin} />}
         <link rel="dns-prefetch" href="https://github.com" />
       </head>
-      <body style={{ fontFamily: 'var(--font-sans)' }} suppressHydrationWarning>{/* Using system font fallback */}
+      <body className="font-sans antialiased" suppressHydrationWarning>
         {/* Site-wide entity graph: consolidates GUCC as one entity for search engines. */}
         <JsonLd id="gucc-site-schema" data={graph(organizationSchema(), websiteSchema())} />
         <ThemeProvider

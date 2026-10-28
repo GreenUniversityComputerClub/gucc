@@ -137,10 +137,10 @@ export default async function MemberProfile({ params }: { params: Promise<{ hand
 
       {/* ── Who they are ── */}
       <section className="relative overflow-hidden rounded-3xl border bg-card shadow-sm">
-        <div className="relative h-32 bg-gradient-to-br from-emerald-800 via-emerald-600 to-teal-500 sm:h-44" aria-hidden>
+        <div className="relative h-32 bg-gradient-to-br from-brand-800 via-brand-600 to-aurora-500 sm:h-44" aria-hidden>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.22)_1px,transparent_0)] [background-size:18px_18px]" />
           <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
-          <div className="absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-teal-300/20 blur-3xl" />
+          <div className="absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-aurora-300/20 blur-3xl" />
         </div>
         <div className="px-5 pb-6 sm:px-8 sm:pb-8">
           {/* The photo overlaps the cover; the name and the buttons start just below it. */}
@@ -394,7 +394,7 @@ function SelfHint({ text, href = "/dashboard/profile", cta = "Complete your prof
 function RestrictedProfile({ r, path }: { r: Restricted; path: string }) {
   return (
     <div className="container flex max-w-lg flex-col items-center px-4 py-16 text-center">
-      <span className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-emerald-700 to-teal-500 shadow-lg"><Lock className="h-8 w-8 text-white" aria-hidden /></span>
+      <span className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-brand-700 to-aurora-500 shadow-lg"><Lock className="h-8 w-8 text-white" aria-hidden /></span>
       <h1 className="mt-5 text-2xl font-bold">{r.name ?? "This profile is private"}</h1>
       <p className="mt-2 text-muted-foreground">
         {r.visibility === "PRIVATE" ? "This member keeps their profile private." : r.signedIn ? "This profile is visible to approved GUCC members." : "This profile is visible to signed-in GUCC members."}

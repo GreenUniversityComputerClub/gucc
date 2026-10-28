@@ -148,7 +148,7 @@ export default function CodeBlockEnhancer({ children }: { children: React.ReactN
           
           // Terminal/Code dot indicator
           const dot = document.createElement("span");
-          dot.className = "w-2 h-2 rounded-full bg-emerald-500/80 inline-block";
+          dot.className = "w-2 h-2 rounded-full bg-brand-500/80 inline-block";
           langBadge.appendChild(dot);
 
           const langText = document.createElement("span");
@@ -160,7 +160,7 @@ export default function CodeBlockEnhancer({ children }: { children: React.ReactN
           // Copy button
           const copyBtn = document.createElement("button");
           copyBtn.type = "button";
-          copyBtn.className = "copy-code-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer";
+          copyBtn.className = "copy-code-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-brand-500/50 cursor-pointer";
           copyBtn.setAttribute("aria-label", "Copy code");
 
           // Initial Copy SVG Icon
@@ -173,10 +173,10 @@ export default function CodeBlockEnhancer({ children }: { children: React.ReactN
 
           // Copied SVG Icon
           const renderCopiedIcon = () => `
-            <svg class="w-3.5 h-3.5 text-emerald-400 animate-in zoom-in-50 duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-3.5 h-3.5 text-brand-400 animate-in zoom-in-50 duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
             </svg>
-            <span class="copy-text text-emerald-400 font-semibold">Copied!</span>
+            <span class="copy-text text-brand-400 font-semibold">Copied!</span>
           `;
 
           copyBtn.innerHTML = renderCopyIcon();
@@ -195,12 +195,12 @@ export default function CodeBlockEnhancer({ children }: { children: React.ReactN
             const success = await copyTextToClipboard(rawCode);
             if (success) {
               copyBtn.innerHTML = renderCopiedIcon();
-              copyBtn.classList.add("text-emerald-400");
+              copyBtn.classList.add("text-brand-400");
 
               if (timeoutId) clearTimeout(timeoutId);
               timeoutId = setTimeout(() => {
                 copyBtn.innerHTML = renderCopyIcon();
-                copyBtn.classList.remove("text-emerald-400");
+                copyBtn.classList.remove("text-brand-400");
               }, 2000);
             }
           });
@@ -210,7 +210,7 @@ export default function CodeBlockEnhancer({ children }: { children: React.ReactN
         }
 
         // Ensure pre styling
-        pre.className = "p-4 overflow-x-auto text-[0.875rem] leading-relaxed text-slate-100 font-mono bg-[#0d1117] focus:outline-none focus:ring-1 focus:ring-emerald-500/30 rounded-b-xl";
+        pre.className = "p-4 overflow-x-auto text-[0.875rem] leading-relaxed text-slate-100 font-mono bg-[#0d1117] focus:outline-none focus:ring-1 focus:ring-brand-500/30 rounded-b-xl";
       });
     };
 

@@ -242,12 +242,12 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
       {/* Header */}
       <div className={cn(
         "px-4 py-3 border-b flex-shrink-0 flex items-center justify-between",
-        isChatbotDark ? "bg-[#091a12]/60 border-emerald-950/30" : "bg-zinc-50 border-zinc-200"
+        isChatbotDark ? "bg-[#0b0f22]/60 border-brand-950/30" : "bg-zinc-50 border-zinc-200"
       )}>
         <div className="flex items-center gap-3">
           <div className={cn(
             "w-9 h-9 rounded-full overflow-hidden border flex items-center justify-center flex-shrink-0 bg-white",
-            isChatbotDark ? "border-emerald-900/30" : "border-zinc-200"
+            isChatbotDark ? "border-brand-900/30" : "border-zinc-200"
           )}>
             <Image
               src="/android-chrome-192x192.png"
@@ -258,13 +258,13 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             />
           </div>
           <div>
-            <h2 className={cn("text-sm font-bold tracking-tight", isChatbotDark ? "text-emerald-50" : "text-zinc-900")}>
+            <h2 className={cn("text-sm font-bold tracking-tight", isChatbotDark ? "text-brand-50" : "text-zinc-900")}>
               GUCC Assistant
             </h2>
-            <div className={cn("flex items-center gap-1.5 text-[11px] font-medium mt-0.5", isChatbotDark ? "text-emerald-400" : "text-emerald-600")}>
+            <div className={cn("flex items-center gap-1.5 text-[11px] font-medium mt-0.5", isChatbotDark ? "text-brand-400" : "text-brand-600")}>
               <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-500"></span>
               </span>
               <span>Online & Ready to help</span>
             </div>
@@ -278,7 +278,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             className={cn(
               "p-2 rounded-lg transition-colors",
               isChatbotDark
-                ? "hover:bg-[#10301f]/50 text-emerald-400 hover:text-emerald-200"
+                ? "hover:bg-[#1c1a44]/50 text-brand-400 hover:text-brand-200"
                 : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800"
             )}
             aria-label="New chat"
@@ -294,7 +294,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             className={cn(
               "p-2 rounded-lg transition-colors",
               isChatbotDark
-                ? "hover:bg-[#10301f]/50 text-emerald-400 hover:text-emerald-200"
+                ? "hover:bg-[#1c1a44]/50 text-brand-400 hover:text-brand-200"
                 : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800"
             )}
             aria-label="Close"
@@ -306,7 +306,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
       </div>
 
       {/* Scrollable Content Area */}
-      <div className={cn("flex-grow overflow-hidden relative", isChatbotDark ? "bg-[#07140e]" : "bg-[#f4faf7]")}>
+      <div className={cn("flex-grow overflow-hidden relative", isChatbotDark ? "bg-[#080b18]" : "bg-[#f7f6fd]")}>
         {error && (
           <Alert variant="destructive" className="m-3 pr-10" role="alert">
             <AlertCircle className="h-4 w-4" />
@@ -321,14 +321,14 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
           <div className="p-4 sm:p-5">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center h-full mt-6">
-                <h3 className={cn("text-base font-bold mb-2", isChatbotDark ? "text-emerald-50" : "text-zinc-800")}>
+                <h3 className={cn("text-base font-bold mb-2", isChatbotDark ? "text-brand-50" : "text-zinc-800")}>
                   Welcome to GUCC Assistant
                 </h3>
-                <p className={cn("text-xs max-w-sm mx-auto leading-relaxed mb-6 font-medium px-2", isChatbotDark ? "text-emerald-400" : "text-emerald-600")}>
+                <p className={cn("text-xs max-w-sm mx-auto leading-relaxed mb-6 font-medium px-2", isChatbotDark ? "text-brand-400" : "text-brand-600")}>
                   Ask me anything about Green University Computer Club, events, membership, or how we can help your career in tech!
                 </p>
                 <div className="w-full space-y-2 max-w-xs sm:max-w-sm">
-                  <p className={cn("text-[10px] font-bold tracking-wider uppercase text-left pl-1", isChatbotDark && "text-emerald-500/60 font-semibold")}>
+                  <p className={cn("text-[10px] font-bold tracking-wider uppercase text-left pl-1", isChatbotDark && "text-brand-500/60 font-semibold")}>
                     Frequently Asked Questions:
                   </p>
                   {PREDEFINED_QUESTIONS.map((question) => (
@@ -340,8 +340,8 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                       className={cn(
                         "w-full justify-start text-left text-xs py-3 px-4 rounded-xl transition-all font-normal whitespace-normal h-auto min-h-[44px] border",
                         isChatbotDark
-                          ? "bg-[#0b2016]/50 border-emerald-900/25 hover:bg-[#10301f]/50 hover:border-emerald-500/30 hover:text-emerald-100 text-emerald-200/90"
-                          : "bg-white border-emerald-200 hover:bg-emerald-50/50 hover:text-emerald-900 text-emerald-800"
+                          ? "bg-[#0e1230]/50 border-brand-900/25 hover:bg-[#1c1a44]/50 hover:border-brand-500/30 hover:text-brand-100 text-brand-200/90"
+                          : "bg-white border-brand-200 hover:bg-brand-50/50 hover:text-brand-900 text-brand-800"
                       )}
                     >
                       {question}
@@ -357,10 +357,10 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                     className={cn(
                       "flex flex-col rounded-2xl transition-all duration-155 p-3 sm:p-4 shadow-sm",
                       msg.role === "user"
-                        ? "ml-auto bg-emerald-600 text-white rounded-tr-none"
+                        ? "ml-auto bg-brand-600 text-white rounded-tr-none"
                         : cn("mr-auto rounded-tl-none border",
                             isChatbotDark
-                              ? "bg-[#0d261a] text-emerald-100 border-emerald-900/30"
+                              ? "bg-[#13173a] text-brand-100 border-brand-900/30"
                               : "bg-white text-zinc-800 border-zinc-200"),
                       "max-w-[85%] sm:max-w-[80%]",
                     )}
@@ -373,7 +373,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                       <span
                         className={cn(
                           "text-[9px] sm:text-[10px]",
-                          msg.role !== "user" && isChatbotDark && "text-emerald-500/60",
+                          msg.role !== "user" && isChatbotDark && "text-brand-500/60",
                         )}
                       >
                         {format(msg.timestamp, "h:mm a")}
@@ -382,7 +382,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                         type="button"
                         onClick={() => handleMessageClick(msg)}
                         aria-label={`Open ${msg.role === "user" ? "your message" : "this answer"} in full`}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md opacity-70 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md opacity-70 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
                       >
                         <Maximize2 className="h-3.5 w-3.5" aria-hidden />
                       </button>
@@ -394,11 +394,11 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                   <div className={cn(
                     "flex flex-col max-w-[85%] sm:max-w-[80%] rounded-2xl rounded-tl-none p-3 sm:p-4 mr-auto border shadow-sm",
                     isChatbotDark
-                      ? "bg-[#0d261a] text-emerald-100 border-emerald-900/30"
+                      ? "bg-[#13173a] text-brand-100 border-brand-900/30"
                       : "bg-white text-zinc-800 border-zinc-200"
                   )}>
                     <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+                      <Loader2 className="h-4 w-4 animate-spin text-brand-500" />
                       <span className="text-xs">Thinking...</span>
                     </div>
                   </div>
@@ -408,9 +408,9 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                 {showSuggestions && messages.length > 0 && messages[messages.length - 1].role === "model" && (
                   <div className={cn(
                     "my-4 p-3 border rounded-xl max-w-3xl mx-auto shadow-sm",
-                    isChatbotDark ? "bg-[#081d13]/30 border-emerald-950/40" : "bg-white border-zinc-200"
+                    isChatbotDark ? "bg-[#0a0d1f]/30 border-brand-950/40" : "bg-white border-zinc-200"
                   )}>
-                    <p className={cn("text-[10px] font-bold tracking-wider uppercase mb-2", isChatbotDark && "text-emerald-500/60 font-semibold")}>
+                    <p className={cn("text-[10px] font-bold tracking-wider uppercase mb-2", isChatbotDark && "text-brand-500/60 font-semibold")}>
                       You might also want to ask:
                     </p>
                     <div className="space-y-1.5">
@@ -425,8 +425,8 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                             className={cn(
                               "w-full text-left justify-start text-xs py-2 px-3 h-auto min-h-[36px] rounded-lg font-normal whitespace-normal border transition-all",
                               isChatbotDark
-                                ? "bg-[#0b2016]/60 hover:bg-[#10301f]/50 hover:text-emerald-100 hover:border-emerald-500/30 text-emerald-200/90 border-emerald-900/25"
-                                : "bg-white hover:bg-emerald-50/50 hover:text-emerald-900 text-emerald-800 border-emerald-200"
+                                ? "bg-[#0e1230]/60 hover:bg-[#1c1a44]/50 hover:text-brand-100 hover:border-brand-500/30 text-brand-200/90 border-brand-900/25"
+                                : "bg-white hover:bg-brand-50/50 hover:text-brand-900 text-brand-800 border-brand-200"
                             )}
                           >
                             {question}
@@ -446,7 +446,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
       {/* Fixed Input Area */}
       <div className={cn(
         "p-3 border-t flex-shrink-0",
-        isChatbotDark ? "border-emerald-950/40 bg-[#07140e]" : "border-zinc-200 bg-[#f4faf7]"
+        isChatbotDark ? "border-brand-950/40 bg-[#080b18]" : "border-zinc-200 bg-[#f7f6fd]"
       )}>
         <div className="flex gap-2 max-w-4xl mx-auto items-center">
           <input
@@ -460,10 +460,10 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             enterKeyHint="send"
             disabled={isLoading || !sessionId}
             className={cn(
-              "flex-1 min-w-0 rounded-full h-11 text-base sm:text-sm pl-4 pr-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 border",
+              "flex-1 min-w-0 rounded-full h-11 text-base sm:text-sm pl-4 pr-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 border",
               isChatbotDark
-                ? "bg-[#0b2016] border-emerald-900/30 text-emerald-50 placeholder-emerald-700/60"
-                : "bg-white text-emerald-950 placeholder-emerald-700/50"
+                ? "bg-[#0e1230] border-brand-900/30 text-brand-50 placeholder-brand-700/60"
+                : "bg-white text-brand-950 placeholder-brand-700/50"
             )}
           />
           <button
@@ -474,10 +474,10 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             className={cn(
               "border h-11 w-11 rounded-full transition-all active:scale-95 shrink-0 flex items-center justify-center",
               userInput.trim()
-                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
+                ? "bg-brand-600 hover:bg-brand-500 text-white shadow-md"
                 : (isChatbotDark
-                    ? "bg-[#0b2016] border-emerald-950/40 text-emerald-800/40 cursor-not-allowed"
-                    : "bg-emerald-50/50 border-emerald-100 text-emerald-400 cursor-not-allowed")
+                    ? "bg-[#0e1230] border-brand-950/40 text-brand-800/40 cursor-not-allowed"
+                    : "bg-brand-50/50 border-brand-100 text-brand-400 cursor-not-allowed")
             )}
           >
             {isLoading ? (
@@ -506,7 +506,7 @@ function Linked({ text, dark }: { text: string; dark: boolean }) {
     const at = m.index ?? 0
     if (at > last) parts.push(text.slice(last, at))
     const href = m[0]
-    const cls = cn("underline underline-offset-2 break-all", dark ? "text-emerald-300" : "text-emerald-700")
+    const cls = cn("underline underline-offset-2 break-all", dark ? "text-brand-300" : "text-brand-700")
     parts.push(href.startsWith("/")
       ? <Link key={at} href={href} className={cls}>{href}</Link>
       : <a key={at} href={href} target="_blank" rel="noopener noreferrer nofollow" className={cls}>{href}</a>)

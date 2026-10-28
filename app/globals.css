@@ -8,7 +8,7 @@
    `text-sp` reads the variables where it's used: a plain theme variable would resolve them once, at
    the root, where no page has set its accent. */
 @theme inline {
-  --color-sp: var(--sp-ink, var(--sp-accent, #15803d));
+  --color-sp: var(--sp-ink, var(--sp-accent, #6d28d9));
 }
 
 @theme {
@@ -46,15 +46,50 @@
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
-  /* Font families for system fallbacks */
+  /* "Nebula & Aurora": the club's palette, taken from the campus under the night sky. `brand` is
+     the nebula violet (primary), `aurora` the cyan glow (secondary). Pages that need a fixed shade
+     (a badge on a photo, text on light paper) use these scales; everything else uses the tokens. */
+  --color-brand-50: oklch(0.97 0.016 284);
+  --color-brand-100: oklch(0.943 0.03 284);
+  --color-brand-200: oklch(0.894 0.058 284);
+  --color-brand-300: oklch(0.811 0.112 284);
+  --color-brand-400: oklch(0.71 0.18 284);
+  --color-brand-500: oklch(0.61 0.235 284);
+  --color-brand-600: oklch(0.54 0.26 284);
+  --color-brand-700: oklch(0.48 0.245 284);
+  --color-brand-800: oklch(0.42 0.21 284);
+  --color-brand-900: oklch(0.37 0.17 284);
+  --color-brand-950: oklch(0.27 0.13 284);
+
+  --color-aurora-50: oklch(0.984 0.019 200);
+  --color-aurora-100: oklch(0.956 0.045 202);
+  --color-aurora-200: oklch(0.917 0.08 204);
+  --color-aurora-300: oklch(0.865 0.127 206);
+  --color-aurora-400: oklch(0.8 0.15 208);
+  --color-aurora-500: oklch(0.72 0.143 212);
+  --color-aurora-600: oklch(0.61 0.126 218);
+  --color-aurora-700: oklch(0.52 0.105 222);
+  --color-aurora-800: oklch(0.45 0.085 224);
+  --color-aurora-900: oklch(0.398 0.07 227);
+  --color-aurora-950: oklch(0.302 0.056 229);
+
+  /* Starlight: a warm highlight, used sparingly (a star, a live dot). */
+  --color-star: oklch(0.86 0.15 85);
+
+  /* Inter for reading, Space Grotesk for headlines, JetBrains Mono for labels (all self-hosted by
+     next/font in the root layout; the system stacks stand in until they load). */
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+  --font-display:
+    var(--font-space-grotesk), var(--font-inter), ui-sans-serif, system-ui,
+    sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono:
-    ui-monospace, SFMono-Regular, "Consolas", "Liberation Mono", Menlo, Courier,
-    monospace;
+    var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, "Consolas",
+    "Liberation Mono", Menlo, Courier, monospace;
 
   @keyframes accordion-down {
     from {
@@ -104,50 +139,52 @@
 }
 
 @layer base {
+  /* Daylight: lilac-white paper, deep violet ink. White on the primary and the primary on the
+     paper both pass 4.5:1; so do white on the secondary (cyan 700) and the muted text. */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 240 33% 98%;
+    --foreground: 234 45% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 234 45% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    /* Green 700-ish: white on it and it on white both pass 4.5:1 (the 36% green gave 3.2:1). */
-    --primary: 142 72% 28%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 43%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 234 45% 9%;
+    --primary: 262 72% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 192 82% 31%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 25% 95%;
+    --muted-foreground: 235 14% 40%;
+    --accent: 255 70% 96%;
+    --accent-foreground: 262 60% 30%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 142 72% 28%;
-    --radius: 0.5rem;
+    --border: 240 20% 89%;
+    --input: 240 20% 87%;
+    --ring: 262 72% 52%;
+    --radius: 0.875rem;
   }
 
+  /* Night: the navy of the hero photo's sky, starlight text, a glowing violet and cyan. */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 142 70% 50%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --background: 232 45% 5%;
+    --foreground: 228 40% 96%;
+    --card: 232 38% 9%;
+    --card-foreground: 228 40% 96%;
+    --popover: 232 40% 8%;
+    --popover-foreground: 228 40% 96%;
+    --primary: 256 92% 76%;
+    --primary-foreground: 232 45% 7%;
+    --secondary: 188 86% 53%;
+    --secondary-foreground: 232 45% 7%;
+    --muted: 232 30% 14%;
+    --muted-foreground: 228 18% 70%;
+    --accent: 250 35% 18%;
+    --accent-foreground: 228 40% 96%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 142 70% 50%;
+    --border: 232 28% 17%;
+    --input: 232 28% 20%;
+    --ring: 256 92% 76%;
   }
 }
 
@@ -158,26 +195,29 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Headlines across the site speak in the display face. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  ::selection {
+    background-color: hsl(var(--primary) / 0.3);
+  }
 }
 
 /* @tailwind base;
 @tailwind components; */
 @tailwind utilities;
 
-/* 🌙 Dark Mode Custom Styling
- * Page colours: white / black by day, #121212 / white by night. They are written as HSL
- * parts because the theme above wraps every token in hsl(); hex values here made every
- * `bg-background` utility (inputs, dropdowns, the navbar, the hero overlay) transparent.
- */
+/* The page colours are set with the theme above (as HSL parts, because the theme wraps every
+ * token in hsl()); this only tells the browser which way its own controls should lean. */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 0 0% 0%;
   color-scheme: light;
 }
 
 .dark {
-  --background: 0 0% 7.1%;
-  --foreground: 0 0% 100%;
   color-scheme: dark;
 }
 
@@ -281,10 +321,10 @@ body {
 /* The page's accent as text: darker on light paper, lighter on dark, so small coloured text stays
    readable (4.5:1) whatever accent the page chose. */
 .sp-page {
-  --sp-ink: color-mix(in oklab, var(--sp-accent, #16a34a) 78%, black);
+  --sp-ink: color-mix(in oklab, var(--sp-accent, #7c3aed) 78%, black);
 }
 .dark .sp-page {
-  --sp-ink: color-mix(in oklab, var(--sp-accent, #16a34a) 62%, white);
+  --sp-ink: color-mix(in oklab, var(--sp-accent, #7c3aed) 62%, white);
 }
 
 /* A gentle rise as sections scroll in, only where the browser drives it from scrolling (no
@@ -320,6 +360,296 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+   Nebula & Aurora: the shared look
+
+   Gradient text, frosted glass, a glowing border, the starfield and its motion.
+   Everything here is CSS, so it is there before (and without) JavaScript.
+   --------------------------------------------------------------------------- */
+
+/* Violet into cyan, slowly drifting. Light mode uses the deeper shades so the words stay legible. */
+.text-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-brand-700) 0%,
+    var(--color-brand-500) 40%,
+    var(--color-aurora-700) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-shift 8s ease-in-out infinite;
+}
+.dark .text-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-brand-300) 0%,
+    var(--color-brand-400) 35%,
+    var(--color-aurora-300) 75%,
+    var(--color-brand-300) 100%
+  );
+}
+
+/* A frosted panel: the page shows through, blurred. A Tailwind utility, so variants on the same
+   element (hover:bg-…) still win over it. */
+@utility glass {
+  background-color: hsl(var(--card) / 0.65);
+  border: 1px solid hsl(var(--foreground) / 0.08);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+}
+
+/* A hairline border in the brand gradient (drawn with a mask, so the inside stays transparent).
+   It sets no position: the element brings its own (`relative`, `absolute`). */
+.glow-border {
+  isolation: isolate;
+}
+.glow-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary) / 0.7),
+    hsl(var(--secondary) / 0.15) 40%,
+    hsl(var(--secondary) / 0.6)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* A faint blueprint grid that fades out towards the edges. */
+.bg-grid {
+  background-image:
+    linear-gradient(hsl(var(--foreground) / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--foreground) / 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(
+    ellipse 70% 60% at 50% 40%,
+    #000 30%,
+    transparent 75%
+  );
+  mask-image: radial-gradient(
+    ellipse 70% 60% at 50% 40%,
+    #000 30%,
+    transparent 75%
+  );
+}
+
+/* The hero photo settles in, then drifts very slowly. */
+@keyframes kenburns {
+  from {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1.02);
+  }
+}
+.animate-kenburns {
+  animation: kenburns 14s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Hero copy rises into place, line by line (delays set inline). */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+.animate-rise {
+  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Stars breathe at their own pace. */
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+.animate-twinkle {
+  animation: twinkle 4s ease-in-out infinite;
+}
+
+/* Now and then, a shooting star crosses the sky: most of each cycle it waits, unseen. */
+@keyframes shooting-star {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(-35deg) scaleX(0.2);
+  }
+  3% {
+    opacity: 1;
+  }
+  12% {
+    opacity: 0;
+    transform: translate3d(-48vw, 34vw, 0) rotate(-35deg) scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-48vw, 34vw, 0) rotate(-35deg) scaleX(1);
+  }
+}
+.shooting-star {
+  position: absolute;
+  height: 2px;
+  width: 140px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0.95),
+    hsl(188 86% 70% / 0.5) 30%,
+    transparent
+  );
+  filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.7));
+  transform-origin: left center;
+  opacity: 0;
+  animation: shooting-star 9s ease-out infinite;
+}
+
+/* Soft aurora light drifting behind sections. */
+@keyframes aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(4%, -6%, 0) scale(1.08);
+  }
+  66% {
+    transform: translate3d(-5%, 4%, 0) scale(0.95);
+  }
+}
+.animate-aurora {
+  animation: aurora-drift 18s ease-in-out infinite;
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.animate-float {
+  animation: float-y 6s ease-in-out infinite;
+}
+
+/* The scroll cue's dot runs down its track. */
+@keyframes scroll-dot {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+}
+.animate-scroll-dot {
+  animation: scroll-dot 1.8s ease-in-out infinite;
+}
+
+/* The impact board: a scanline sweeping a panel, a signal's bars, a comet along a timeline. */
+@keyframes scan {
+  0%,
+  70% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(400%);
+    opacity: 0;
+  }
+}
+.animate-scan {
+  animation: scan 7s ease-in-out infinite;
+}
+
+@keyframes equalize {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.animate-equalize {
+  animation: equalize 1.4s ease-in-out infinite;
+}
+
+@keyframes comet {
+  from {
+    left: -6rem;
+  }
+  to {
+    left: 100%;
+  }
+}
+.animate-comet {
+  animation: comet 4.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/* Sections lift in as they scroll into view, where the browser drives it from scrolling. Movement
+   only, as with .sp-reveal: fading would dim text below its contrast minimum mid-scroll. */
+@keyframes reveal-up {
+  from {
+    transform: translateY(40px) scale(0.98);
+  }
+  to {
+    transform: none;
+  }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 25%;
+    }
+  }
+}
+
+/* Cards lift towards the pointer and light their border. */
+.lift {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+.lift:hover {
+  transform: translateY(-4px);
+  border-color: hsl(var(--primary) / 0.45);
+  box-shadow: 0 18px 40px -18px hsl(var(--primary) / 0.45);
+}
+
+/* ---------------------------------------------------------------------------
    Reduced motion
 
    The site leans on continuous motion — marquees, pulses, the bouncing scroll
@@ -342,6 +672,13 @@ body {
   }
   .sp-gallery-track {
     animation: none !important;
+  }
+
+  .shooting-star {
+    display: none;
+  }
+  .lift:hover {
+    transform: none;
   }
 
   /* Marquees translate off-screen, so freezing them mid-run would hide content. */

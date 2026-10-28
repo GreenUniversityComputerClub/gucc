@@ -31,7 +31,7 @@ export function TableOfContents({ container = ".prose" }: { container?: string }
       {headings.map((h) => (
         <li key={h.id} className={h.level === 3 ? "pl-4" : ""}>
           <a href={`#${h.id}`} onClick={() => setOpen(false)} aria-current={active === h.id ? "location" : undefined}
-            className={cn("block rounded border-l-2 py-1 pl-3 transition-colors hover:text-emerald-600", active === h.id ? "border-emerald-500 font-medium text-emerald-700 dark:text-emerald-400" : "border-transparent text-slate-500 dark:text-slate-400")}>
+            className={cn("block rounded border-l-2 py-1 pl-3 transition-colors hover:text-brand-600", active === h.id ? "border-brand-500 font-medium text-brand-700 dark:text-brand-400" : "border-transparent text-slate-500 dark:text-slate-400")}>
             {h.text}
           </a>
         </li>
@@ -156,7 +156,7 @@ export function PostReactions({ postId, initial, next }: { postId: string; initi
           <button key={k} type="button" disabled={!signedIn} onClick={() => void pick(k)} aria-pressed={mine === k} title={REACTIONS[k].label}
             aria-label={`${REACTIONS[k].label}${counts[k] ? `: ${counts[k]}` : ""}`}
             className={cn("inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-sm transition-transform enabled:hover:scale-110 disabled:cursor-default",
-              mine === k ? "border-emerald-500 bg-emerald-500/10" : "border-slate-200 dark:border-slate-700")}>
+              mine === k ? "border-brand-500 bg-brand-500/10" : "border-slate-200 dark:border-slate-700")}>
             <span aria-hidden className="text-lg leading-none">{REACTIONS[k].emoji}</span>
             {counts[k] ? <span className="tabular-nums text-slate-600 dark:text-slate-300">{counts[k]}</span> : null}
           </button>
