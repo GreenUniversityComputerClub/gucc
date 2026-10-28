@@ -22,8 +22,8 @@ async function nameFor(year: string, pattern: RegExp): Promise<string | undefine
  */
 export async function getHomeFaq(): Promise<FaqEntry[]> {
   const year = await getLatestExecutiveYear();
-  const president = await nameFor(year, /^President$/i);
-  const generalSecretary = await nameFor(year, /^General Secretary$/i);
+  const president = year ? await nameFor(year, /^President$/i) : undefined;
+  const generalSecretary = year ? await nameFor(year, /^General Secretary$/i) : undefined;
 
   const leadership = [
     president && `${president} (President)`,
@@ -39,8 +39,10 @@ export async function getHomeFaq(): Promise<FaqEntry[]> {
         "GUCC is the flagship student-run, non-profit and non-political technology club of Green University of Bangladesh, operating in collaboration with the Department of Computer Science and Engineering (CSE). It has more than 7,000 members and exists to help CSE students build careers in modern computer science and engineering.",
     },
     {
-      question: `Who are the current GUCC executives (${year})?`,
-      answer: leadership
+      question: year ? `Who are the current GUCC executives (${year})?` : "Who are the current GUCC executives?",
+      answer: !year
+        ? "The GUCC executive committee is made up of faculty moderators from the Department of CSE and a full panel of student executives. Every executive has a profile page under the Executives section of this site."
+        : leadership
         ? `The ${year} GUCC executive committee is led by ${leadership}, supported by faculty moderators from the Department of CSE and a full panel of student executives. Every executive — current and past — has a profile page under the Executives section of this site.`
         : `The ${year} GUCC executive committee is made up of faculty moderators from the Department of CSE and a full panel of student executives. Every executive — current and past — has a profile page under the Executives section of this site.`,
     },

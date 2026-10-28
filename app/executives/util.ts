@@ -72,11 +72,12 @@ export async function getExecutivesByStudentId(studentId: string): Promise<Execu
 }
 
 /** The current committee's URL segment (the CURRENT committee, else the newest). */
-export async function getLatestExecutiveYear(): Promise<string> {
+export async function getLatestExecutiveYear(): Promise<string | null> {
   const current = await getCurrentCommitteeSlug();
   if (current) return current;
   const years = await getAvailableYears();
-  return [...years].sort((a, b) => Number.parseInt(b) - Number.parseInt(a))[0];
+  // No committee published yet (a fresh database): null, so no link points at /executives/undefined.
+  return [...years].sort((a, b) => Number.parseInt(b) - Number.parseInt(a))[0] ?? null;
 }
 
 /** Distinct student IDs across every year — one indexable profile each. */
