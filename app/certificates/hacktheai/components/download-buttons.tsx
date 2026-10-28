@@ -53,7 +53,7 @@ export function DownloadButtons({
       <button
         onClick={handlePNGDownload}
         disabled={downloadingPNG || downloadingPDF}
-        className="px-6 py-3 bg-green-700 hover:bg-green-800 text-white font-semibold rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {downloadingPNG ? (
           <>

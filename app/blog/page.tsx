@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Rss } from "lucide-react";
+import { Newspaper, Rss } from "lucide-react";
+import { PageHero } from "@/components/page-hero";
 import { JsonLd } from "@/components/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { SITE_URL } from "@/lib/seo/site";
@@ -35,19 +36,21 @@ export default async function Blog() {
     itemListSchema("GUCC blog posts", cards.slice(0, 50).map((c) => ({ name: c.title, path: `/blog/${c.slug}`, image: c.cover ?? undefined }))),
   );
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/60 via-background to-background dark:from-emerald-950/20">
+    <>
       <JsonLd id="blog-schema" data={schema} />
-      <div className="container mx-auto max-w-6xl px-4 py-12 sm:py-16">
-        <header className="mb-10 text-center">
-          <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-600/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">GUCC Blog</p>
-          <h1 className="mb-4 bg-gradient-to-r from-green-600 via-emerald-600 to-green-500 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent sm:text-5xl md:text-6xl">Our Blog</h1>
-          <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Insights, tutorials and stories from the Green University Computer Club community: technology, programming and innovation.
-          </p>
-          <a href="/blog/feed.xml" className="mt-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-emerald-600"><Rss className="h-4 w-4" aria-hidden />Follow with RSS</a>
-        </header>
+      <PageHero
+        icon={<Newspaper />}
+        eyebrow="GUCC Blog"
+        title={<>Stories from the <span className="text-gradient">community</span></>}
+        description="Insights, tutorials and stories from the Green University Computer Club community: technology, programming and innovation."
+      >
+        <a href="/blog/feed.xml" className="glass inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Rss className="h-4 w-4 text-aurora-300" aria-hidden />Follow with RSS
+        </a>
+      </PageHero>
+      <div className="container mx-auto max-w-6xl px-4 py-12">
         <BlogBrowser posts={cards} />
       </div>
-    </div>
+    </>
   );
 }

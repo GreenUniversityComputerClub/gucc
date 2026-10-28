@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Trophy } from "lucide-react";
 import Link from "next/link";
+import { PageHero } from "@/components/page-hero";
 
 interface Team {
   name: string;
@@ -101,7 +102,7 @@ function ContestCard({ contest }: { contest: Contest }) {
   return (
     <Link
       href={`/contests/${contest.id}`}
-      className="block rounded-lg border bg-card p-4 transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="lift block rounded-2xl border bg-card p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="flex items-start justify-between gap-3">
         <Badge variant="outline" className="shrink-0">
@@ -137,17 +138,14 @@ export function ContestsBrowser({ contests: all }: { contests: Contest[] }) {
   );
 
   return (
-    <div className="container mx-auto py-10">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-          GUBIAN Contest History
-        </h1>
-        <p className="mt-2 max-w-3xl text-muted-foreground">
-          Programming contests where Green University of Bangladesh teams
-          competed — {sortedContests.length} contests including ICPC, IUPC, NCPC
-          and hackathons.
-        </p>
-      </header>
+    <>
+    <PageHero
+      icon={<Trophy />}
+      eyebrow={`${sortedContests.length} contests on record`}
+      title={<>GUBIAN <span className="text-gradient">Contest History</span></>}
+      description={<>Programming contests where Green University of Bangladesh teams competed — {sortedContests.length} contests including ICPC, IUPC, NCPC and hackathons.</>}
+    />
+    <div className="container mx-auto py-12">
 
       {sortedContests.length === 0 ? (
         <p className="rounded-md border border-dashed p-8 text-center text-muted-foreground">
@@ -162,7 +160,7 @@ export function ContestsBrowser({ contests: all }: { contests: Contest[] }) {
             ))}
           </div>
 
-          <div className="hidden rounded-md border md:block">
+          <div className="hidden overflow-hidden rounded-3xl border bg-card/60 backdrop-blur md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -182,5 +180,6 @@ export function ContestsBrowser({ contests: all }: { contests: Contest[] }) {
         </>
       )}
     </div>
+    </>
   );
 }

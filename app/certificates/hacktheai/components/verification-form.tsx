@@ -45,11 +45,11 @@ export function VerificationForm() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8">
-        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">
+      <div className="glass glow-border relative rounded-3xl p-5 sm:p-8">
+        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">
           Verify Your Participation
         </h2>
-        <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+        <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
           Enter your team name and your email address to verify your participation and
           download your certificate. Both fields are required for authentication.
         </p>
@@ -58,7 +58,7 @@ export function VerificationForm() {
           <div>
             <label
               htmlFor="teamName"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-foreground mb-2"
             >
               Team Name <span className="text-red-500">*</span>
             </label>
@@ -69,7 +69,7 @@ export function VerificationForm() {
               onChange={(e) => setTeamName(e.target.value)}
               placeholder="Enter your team name"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder:text-gray-400"
+              className="w-full px-4 py-2 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent bg-background/60 text-foreground placeholder:text-muted-foreground"
               style={{ color: '#111827' }}
             />
           </div>
@@ -77,7 +77,7 @@ export function VerificationForm() {
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-foreground mb-2"
             >
               Email Address <span className="text-red-500">*</span>
             </label>
@@ -88,13 +88,13 @@ export function VerificationForm() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email address"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder:text-gray-400"
+              className="w-full px-4 py-2 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent bg-background/60 text-foreground placeholder:text-muted-foreground"
               style={{ color: '#111827' }}
             />
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+            <div className="bg-destructive/10 border border-destructive/30 text-destructive px-4 py-3 rounded-md">
               {error}
             </div>
           )}
@@ -102,7 +102,7 @@ export function VerificationForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-700 hover:bg-green-800 text-white font-semibold py-3 px-6 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-6 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Searching...' : 'Verify & Generate Certificate'}
           </button>
@@ -110,7 +110,7 @@ export function VerificationForm() {
 
         {results.length > 0 && (
           <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">
+            <h3 className="text-lg font-semibold mb-4 text-foreground">
               Multiple Teams Found
             </h3>
             <div className="space-y-2">
@@ -118,15 +118,15 @@ export function VerificationForm() {
                 <button
                   key={idx}
                   onClick={() => handleSelectTeam(participant)}
-                  className="w-full text-left bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md p-4 transition-colors"
+                  className="w-full text-left bg-card hover:bg-muted border border-border rounded-2xl p-4 transition-colors"
                 >
-                  <div className="font-semibold text-gray-800">
+                  <div className="font-semibold text-foreground">
                     {participant.teamName}
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     {participant.university}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     {participant.members.length} member(s)
                   </div>
                 </button>

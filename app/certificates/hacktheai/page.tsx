@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { JsonLd } from "@/components/seo/json-ld";
 import { breadcrumbSchema, graph, webPageSchema } from "@/lib/seo/schema";
+import { PageHero } from "@/components/page-hero";
+import { Award } from "lucide-react";
 
 export const metadata: Metadata = buildMetadata({
   title: "HackTheAI Certificate Verification",
@@ -39,21 +41,18 @@ const structuredData = graph(
 
 export default function CertificateVerificationPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white py-6 sm:py-12 px-4">
+    <>
       <JsonLd id="hacktheai-schema" data={structuredData} />
-      <div className="container mx-auto max-w-4xl">
-        <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-2 sm:mb-4">
-            HackTheAI Participation Certificate
-          </h1>
-          <p className="text-base sm:text-lg text-gray-600">
-            Verify your participation and download your personalized certificate
-          </p>
-        </div>
-
+      <PageHero
+        icon={<Award />}
+        eyebrow="HackTheAI"
+        title={<>Participation <span className="text-gradient">Certificate</span></>}
+        description="Verify your participation and download your personalized certificate"
+      />
+      <div className="container mx-auto max-w-4xl px-4 py-12">
         <VerificationForm />
       </div>
-    </div>
+    </>
   )
 }
 

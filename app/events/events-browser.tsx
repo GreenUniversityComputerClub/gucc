@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { countdown, eventPhase, eventStart, type EventPhase } from "./event-status";
 import { EventTile } from "./event-tile";
+import { PageHero } from "@/components/page-hero";
 
 /** Events per page: four rows of three on desktop. */
 const PAGE_SIZE = 12;
@@ -121,44 +122,39 @@ export function EventsBrowser({ events }: { events: ClubEvent[] }) {
   const filtered = Boolean(searchQuery || dateFilter !== "all" || category);
 
   return (
-    <div className="container mt-8 mb-12">
-      <header className="mb-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-end">
-        <div>
-          <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-            <CalendarDays className="h-3.5 w-3.5" aria-hidden />{events.length} events and counting
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight md:text-5xl">GUCC Events</h1>
-          <p className="mt-3 max-w-3xl text-muted-foreground md:text-lg">
-            Seminars, workshops, programming contests, hackathons and cultural programmes hosted by the Green University Computer Club at Green
-            University of Bangladesh.
-          </p>
-        </div>
-        {next && (
-          <Link href={`/events/${next.slug}`} className="group flex items-center gap-4 rounded-2xl border border-primary/30 bg-linear-to-br from-primary/10 to-transparent p-4 transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <span className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <span className="text-[10px] font-semibold uppercase">{new Date(next.startAt ?? `${next.date}T00:00:00+06:00`).toLocaleDateString("en-GB", { timeZone: TZ, month: "short" })}</span>
-              <span className="text-xl font-bold leading-none">{new Date(next.startAt ?? `${next.date}T00:00:00+06:00`).toLocaleDateString("en-GB", { timeZone: TZ, day: "numeric" })}</span>
-            </span>
-            <span className="min-w-0">
-              <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary"><Sparkles className="h-3.5 w-3.5" aria-hidden />{eventPhase(next, now!) === "live" ? "Happening now" : `Next up · ${countdown(next, now!) ?? ""}`}</span>
-              <span className="line-clamp-2 font-semibold group-hover:underline">{next.name}</span>
-              {next.registrationOpen && <span className="text-xs text-muted-foreground">Registration is open</span>}
-            </span>
-          </Link>
-        )}
-      </header>
+    <>
+    <PageHero
+      icon={<CalendarDays />}
+      eyebrow={`${events.length} events and counting`}
+      title={<>GUCC <span className="text-gradient">Events</span></>}
+      description="Seminars, workshops, programming contests, hackathons and cultural programmes hosted by the Green University Computer Club at Green University of Bangladesh."
+      aside={next && (
+        <Link href={`/events/${next.slug}`} className="glass glow-border group relative flex items-center gap-4 rounded-3xl p-4 transition-transform duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <span className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-brand-400 to-aurora-400 text-slate-950 shadow-[0_0_30px_-8px] shadow-brand-400/70">
+            <span className="text-[10px] font-bold uppercase tracking-wider">{new Date(next.startAt ?? `${next.date}T00:00:00+06:00`).toLocaleDateString("en-GB", { timeZone: TZ, month: "short" })}</span>
+            <span className="font-display text-2xl font-bold leading-none">{new Date(next.startAt ?? `${next.date}T00:00:00+06:00`).toLocaleDateString("en-GB", { timeZone: TZ, day: "numeric" })}</span>
+          </span>
+          <span className="min-w-0">
+            <span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.15em] text-aurora-300"><Sparkles className="h-3.5 w-3.5" aria-hidden />{eventPhase(next, now!) === "live" ? "Happening now" : `Next up · ${countdown(next, now!) ?? ""}`}</span>
+            <span className="mt-1 line-clamp-2 font-display font-semibold text-white group-hover:underline">{next.name}</span>
+            {next.registrationOpen && <span className="text-xs text-white/70">Registration is open</span>}
+          </span>
+        </Link>
+      )}
+    />
+    <div className="container mb-16 mt-8">
 
-      <div className="sticky top-16 z-10 -mx-4 mb-6 space-y-3 bg-background/95 px-4 py-3 supports-backdrop-filter:bg-background/80 supports-backdrop-filter:backdrop-blur md:static md:mx-0 md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none">
+      <div className="sticky top-16 z-10 -mx-4 mb-8 space-y-3 bg-background/95 px-4 py-3 supports-backdrop-filter:bg-background/80 supports-backdrop-filter:backdrop-blur md:static md:mx-0 md:rounded-3xl md:border md:border-border/70 md:bg-card/50 md:p-3 md:backdrop-blur">
         <div className="flex flex-col gap-3 sm:flex-row">
           <label className="relative flex-1">
             <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <input type="search" placeholder="Search by name, guest, place or year" aria-label="Search events" value={searchQuery} onChange={(e) => setFilters(e.target.value, dateFilter)}
-              className="h-11 w-full rounded-full border bg-background pl-9 pr-4 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm" />
+              className="h-11 w-full rounded-full border bg-background pl-9 pr-4 text-base transition-shadow focus-visible:shadow-[0_0_0_4px_hsl(var(--primary)/0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm" />
           </label>
           <div className="flex gap-1 rounded-full border bg-muted/50 p-1" role="group" aria-label="When">
             {(["all", "upcoming", "past"] as const).map((w) => (
               <button key={w} type="button" aria-pressed={dateFilter === w} onClick={() => setFilters(searchQuery, w)}
-                className={cn("min-h-9 flex-1 rounded-full px-4 text-sm font-medium transition-colors sm:flex-none", dateFilter === w ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+                className={cn("min-h-9 flex-1 rounded-full px-4 text-sm font-medium transition-colors sm:flex-none", dateFilter === w ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30" : "text-muted-foreground hover:text-foreground")}>
                 {w === "all" ? "All" : w === "upcoming" ? "Upcoming" : "Past"}
               </button>
             ))}
@@ -231,5 +227,6 @@ export function EventsBrowser({ events }: { events: ClubEvent[] }) {
         </nav>
       )}
     </div>
+    </>
   );
 }

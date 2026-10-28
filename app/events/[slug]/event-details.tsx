@@ -40,13 +40,13 @@ function ShareButton({ title }: { title: string }) {
       }
       try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* nothing to do */ }
     }} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium hover:bg-muted">
-      {copied ? <Check className="h-4 w-4 text-emerald-600" aria-hidden /> : <Share2 className="h-4 w-4" aria-hidden />}{copied ? "Link copied" : "Share"}
+      {copied ? <Check className="h-4 w-4 text-brand-600" aria-hidden /> : <Share2 className="h-4 w-4" aria-hidden />}{copied ? "Link copied" : "Share"}
     </button>
   );
 }
 
 const PHASE: Record<EventPhase, { label: string; className: string }> = {
-  upcoming: { label: "Upcoming", className: "bg-emerald-600 text-white" },
+  upcoming: { label: "Upcoming", className: "bg-brand-600 text-white" },
   live: { label: "Happening now", className: "bg-red-600 text-white" },
   past: { label: "This event has ended", className: "bg-muted text-muted-foreground" },
 };
@@ -98,8 +98,16 @@ export function EventDetails({ event, fields, gallery = [], people = [], attachm
 
   return (
     <div className="bg-background pb-24 md:pb-12">
-      <div className="container max-w-6xl pt-6">
-        <Link href="/events" className="mb-4 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary">
+      {/* The opening: the event's own poster, blurred into a glowing sky behind its title. Always dark. */}
+      <section className="dark dark-surface relative isolate -mt-16 overflow-hidden bg-background text-foreground">
+        <div aria-hidden className="absolute inset-0 -z-20">
+          <Image src={event.image} alt="" fill sizes="100vw" className="scale-125 object-cover opacity-45 blur-3xl saturate-150" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background" />
+          <div className="absolute inset-0 bg-grid opacity-40" />
+        </div>
+        <div aria-hidden className="absolute -right-24 top-10 -z-10 h-80 w-80 rounded-full bg-aurora-500/20 blur-[110px] animate-aurora" />
+      <div className="container max-w-6xl pb-12 pt-24 md:pt-28">
+        <Link href="/events" className="glass mb-6 inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ArrowLeft className="h-4 w-4" aria-hidden />All events
         </Link>
 
@@ -114,7 +122,7 @@ export function EventDetails({ event, fields, gallery = [], people = [], attachm
             on a blurred copy of itself, with the title and key facts beside it (below it on phones). */}
         <header className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-10">
           <a href={event.image} target="_blank" rel="noopener noreferrer" aria-label="Open the full event poster"
-            className="group relative block aspect-video overflow-hidden rounded-3xl border bg-muted shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            className="glow-border group relative block aspect-video overflow-hidden rounded-3xl bg-black/30 shadow-2xl shadow-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Image src={event.image} alt="" fill sizes="(max-width: 1024px) 100vw, 640px" className="scale-110 object-cover opacity-50 blur-2xl" aria-hidden />
             <Image src={event.image} alt={event.name} fill sizes="(max-width: 1024px) 100vw, 640px" className="object-contain transition-transform duration-500 group-hover:scale-[1.02]" priority />
           </a>
@@ -127,8 +135,8 @@ export function EventDetails({ event, fields, gallery = [], people = [], attachm
               {event.category && <span className="rounded-full border px-3 py-1 text-xs font-semibold">{event.category}</span>}
               {soon && <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{soon}</span>}
             </div>
-            <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-[2.5rem]">{event.name}</h1>
-            <ul className="mt-4 space-y-2 text-muted-foreground">
+            <h1 className="text-balance font-display text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">{event.name}</h1>
+            <ul className="mt-5 space-y-2.5 text-white/80">
               <li className="flex items-start gap-2"><CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden /><span>{longDate(start)}{event.endDate ? ` – ${longDate(`${event.endDate}T00:00:00+06:00`)}` : ""}</span></li>
               {(event.time || event.startAt) && <li className="flex items-start gap-2"><Clock className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden /><span>{event.time ?? `${hhmm(event.startAt!)}${event.endAt ? ` – ${hhmm(event.endAt)}` : ""}`}</span></li>}
               {event.location && <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden /><span>{event.location}</span></li>}
@@ -137,22 +145,25 @@ export function EventDetails({ event, fields, gallery = [], people = [], attachm
               <div className="mt-6 hidden flex-wrap gap-3 md:flex">
                 <a href={event.registrationOpen !== undefined ? "#register" : event.registrationForm!.url}
                   {...(event.registrationOpen !== undefined ? {} : { target: "_blank", rel: "noopener noreferrer" })}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 font-semibold text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary/90">
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-400 to-aurora-400 px-7 font-semibold text-slate-950 shadow-[0_0_30px_-8px] shadow-brand-400/70 transition-transform hover:-translate-y-0.5">
                   <Ticket className="h-4 w-4" aria-hidden />Register
                 </a>
-                <a href={googleCalendarUrl(calendarItem)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border px-5 font-medium hover:bg-muted">
+                <a href={googleCalendarUrl(calendarItem)} target="_blank" rel="noopener noreferrer" className="glass inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 font-medium text-white transition-colors hover:bg-white/10">
                   <CalendarPlus className="h-4 w-4" aria-hidden />Add to calendar
                 </a>
               </div>
             )}
           </div>
         </header>
+      </div>
+      </section>
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="container max-w-6xl">
+        <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="min-w-0 space-y-8">
             {description && (
               <section aria-labelledby="about-h">
-                <h2 id="about-h" className="mb-3 text-2xl font-bold">About the event</h2>
+                <h2 id="about-h" className="mb-3 font-display text-2xl font-bold">About the event</h2>
                 {/* Formatting written in the dashboard (headings, lists, links); every line break kept. Safe HTML only. */}
                 <div className="prose max-w-none wrap-break-word [&_:first-child]:mt-0! [&_h2]:mt-8! [&_h2]:text-2xl! [&_h3]:mt-6! [&_h3]:text-xl!"><div className="markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(description, { breaks: true }) }} /></div>
               </section>
@@ -160,7 +171,7 @@ export function EventDetails({ event, fields, gallery = [], people = [], attachm
 
             {agenda.length > 0 && (
               <section aria-labelledby="agenda-h">
-                <h2 id="agenda-h" className="mb-4 text-2xl font-bold">Programme</h2>
+                <h2 id="agenda-h" className="mb-4 font-display text-2xl font-bold">Programme</h2>
                 <ol className="relative space-y-4 border-l-2 border-primary/30 pl-6">
                   {agenda.map((a, i) => (
                     <li key={i} className="relative">
@@ -177,11 +188,11 @@ export function EventDetails({ event, fields, gallery = [], people = [], attachm
 
             {speakers.length > 0 && (
               <section aria-labelledby="speakers-h">
-                <h2 id="speakers-h" className="mb-4 flex items-center gap-2 text-2xl font-bold"><Mic className="h-6 w-6 text-primary" aria-hidden />Speakers</h2>
+                <h2 id="speakers-h" className="mb-4 flex items-center gap-2 font-display text-2xl font-bold"><Mic className="h-6 w-6 text-primary" aria-hidden />Speakers</h2>
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {speakers.map((p, i) => (
-                    <li key={i} className="flex items-center gap-3 rounded-xl border bg-card p-4">
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary" aria-hidden>{p.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("")}</span>
+                    <li key={i} className="lift flex items-center gap-3 rounded-2xl border bg-card p-4">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary font-semibold text-primary-foreground" aria-hidden>{p.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("")}</span>
                       <span className="min-w-0"><span className="block font-semibold">{p.name}</span>{p.title && <span className="block text-sm text-muted-foreground">{p.title}</span>}</span>
                     </li>
                   ))}
@@ -191,7 +202,7 @@ export function EventDetails({ event, fields, gallery = [], people = [], attachm
 
             {guests.length > 0 && (
               <section aria-labelledby="guests-h">
-                <h2 id="guests-h" className="mb-4 flex items-center gap-2 text-2xl font-bold"><User className="h-6 w-6 text-primary" aria-hidden />Honorable guests</h2>
+                <h2 id="guests-h" className="mb-4 flex items-center gap-2 font-display text-2xl font-bold"><User className="h-6 w-6 text-primary" aria-hidden />Honorable guests</h2>
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {guests.map((g, i) => (
                     <li key={i} className={cn("rounded-xl border bg-card p-4", g.title === "Chief Guest" && "border-primary/40 bg-primary/5 sm:col-span-2")}>
@@ -234,7 +245,7 @@ export function EventDetails({ event, fields, gallery = [], people = [], attachm
                   <a href="#register" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90"><Ticket className="h-4 w-4" aria-hidden />Register</a>
                 )}
                 {!cancelled && event.registrationForm && phase !== "past" && (
-                  <a href={event.registrationForm.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 font-semibold text-white hover:bg-emerald-700">
+                  <a href={event.registrationForm.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 font-semibold text-white hover:bg-brand-700">
                     {event.registrationForm.label || "Register on Google Forms"}<ExternalLink className="h-4 w-4" aria-hidden />
                   </a>
                 )}
@@ -293,7 +304,7 @@ export function EventDetails({ event, fields, gallery = [], people = [], attachm
           {event.registrationOpen !== undefined ? (
             <a href="#register" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-primary-foreground"><Ticket className="h-4 w-4" aria-hidden />Register</a>
           ) : event.registrationForm ? (
-            <a href={event.registrationForm.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 font-semibold text-white">Register</a>
+            <a href={event.registrationForm.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-600 font-semibold text-white">Register</a>
           ) : null}
           <a href={`/events/${event.slug}/calendar.ics`} aria-label="Add to calendar" className="inline-flex min-h-11 w-12 items-center justify-center rounded-lg border"><CalendarPlus className="h-5 w-5" /></a>
         </div>

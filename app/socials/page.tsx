@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
-import { Facebook, Linkedin, Instagram, Mail, Users, ExternalLink, Youtube, Globe, Github } from 'lucide-react';
+import { Facebook, Linkedin, Instagram, Mail, Users, ExternalLink, Youtube, Globe, Github, Share2 } from 'lucide-react';
+import { PageHero } from "@/components/page-hero";
 
 const socials = [
   {
@@ -50,8 +51,14 @@ const socials = [
 
 export default function SocialsPage() {
   return (
-    <div className="flex flex-col min-h-screen items-center justify-center py-8 px-2 sm:py-12 sm:px-4 bg-background text-foreground">
-      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8 tracking-tight text-center">Connect with GUCC</h1>
+    <>
+    <PageHero
+      icon={<Share2 />}
+      eyebrow="Socials"
+      title={<>Connect with <span className="text-gradient">GUCC</span></>}
+      description="News, photos, videos and code: follow the club wherever you are."
+    />
+    <div className="flex flex-col items-center px-4 py-12 text-foreground">
       <div
         className="w-full max-w-4xl grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
       >
@@ -97,5 +104,6 @@ export default function SocialsPage() {
         </div>
       </div>
     </div>
+    </>
   );
-} 
+}

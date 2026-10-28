@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Users } from "lucide-react";
+import { PageBand, PageHero } from "@/components/page-hero";
 import { isStudentId } from "@/app/executives/shared";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -40,92 +41,88 @@ export function ExecutivesHeader({
   // section header collapses to a breadcrumb trail instead.
   const profileRole = isProfile ? profiles[segment as string] : undefined;
 
-  return (
-    <div className="pb-16">
-      <div className="bg-muted py-6">
-        <div className="container">
-          <nav aria-label="Breadcrumb" className="mb-3">
-            <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-              <li className="flex items-center gap-1">
-                <Link href="/" className="-my-2.5 inline-block py-2.5 hover:text-primary transition-colors">
-                  Home
-                </Link>
-                <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </li>
-              <li className="flex items-center gap-1">
-                {isIndex ? (
-                  <span className="text-foreground font-medium">Executives</span>
-                ) : (
-                  <>
-                    <Link
-                      href="/executives"
-                      className="-my-2.5 inline-block py-2.5 hover:text-primary transition-colors"
-                    >
-                      Executives
-                    </Link>
-                    <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-                  </>
-                )}
-              </li>
-              {currentYear && (
-                <li className="text-foreground font-medium">{currentYear}</li>
-              )}
-              {profileRole && (
-                <li className="flex items-center gap-1">
-                  <Link
-                    href={`/executives/${profileRole.year}`}
-                    className="-my-2.5 inline-block py-2.5 hover:text-primary transition-colors"
-                  >
-                    {profileRole.year}
-                  </Link>
-                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span className="text-foreground font-medium">
-                    {profileRole.name}
-                  </span>
-                </li>
-              )}
-            </ol>
-          </nav>
-
-          {!isProfile && (
+  const breadcrumb = (
+    <nav aria-label="Breadcrumb">
+      <ol className="flex flex-wrap items-center gap-1 font-mono text-xs uppercase tracking-[0.15em] text-white/60">
+        <li className="flex items-center gap-1">
+          <Link href="/" className="-my-2.5 inline-block py-2.5 transition-colors hover:text-white">
+            Home
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+        </li>
+        <li className="flex items-center gap-1">
+          {isIndex ? (
+            <span className="font-medium text-aurora-300">Executives</span>
+          ) : (
             <>
-              <h1 className="text-3xl font-bold tracking-tight">
-                {currentYear
-                  ? `GUCC Executives ${currentYear}`
-                  : "GUCC Executives"}
-              </h1>
-              <p className="text-muted-foreground max-w-[700px] mt-2">
-                {currentYear
-                  ? `The ${currentYear} executive committee of the Green University Computer Club — faculty advisors and student executives of Green University of Bangladesh.`
-                  : "Meet every executive who has led the Green University Computer Club, from the founding committee to today."}
-              </p>
-
-              <div className="flex justify-center mt-6 mb-4">
-                <div className="max-w-full overflow-x-auto border rounded-lg border-2 border-gray-200 dark:border-white-100">
-                  <Tabs
-                    // Always controlled ("" = no year selected on the index page): switching
-                    // between undefined and a year made React warn on every navigation.
-                    value={currentYear ?? ""}
-                    onValueChange={handleYearChange}
-                    className="w-full min-w-max"
-                  >
-                    <TabsList className="w-full min-w-max">
-                      {availableYears.map((year) => (
-                        // The tabs switch pages (there's no tab panel here), so they don't point
-                        // at one: a dangling aria-controls is an accessibility error.
-                        <TabsTrigger key={year} value={year} aria-controls={undefined}>
-                          <span className="hidden md:inline">{year}</span>
-                          <span className="md:hidden">{year.slice(-2)}</span>
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </Tabs>
-                </div>
-              </div>
+              <Link
+                href="/executives"
+                className="-my-2.5 inline-block py-2.5 transition-colors hover:text-white"
+              >
+                Executives
+              </Link>
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
             </>
           )}
-        </div>
-      </div>
+        </li>
+        {currentYear && (
+          <li className="font-medium text-aurora-300">{currentYear}</li>
+        )}
+        {profileRole && (
+          <li className="flex items-center gap-1">
+            <Link
+              href={`/executives/${profileRole.year}`}
+              className="-my-2.5 inline-block py-2.5 transition-colors hover:text-white"
+            >
+              {profileRole.year}
+            </Link>
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="font-medium text-aurora-300">
+              {profileRole.name}
+            </span>
+          </li>
+        )}
+      </ol>
+    </nav>
+  );
+
+  return (
+    <div className="pb-16">
+      {isProfile ? (
+        <PageBand>{breadcrumb}</PageBand>
+      ) : (
+        <PageHero
+          breadcrumb={breadcrumb}
+          icon={<Users />}
+          eyebrow={currentYear ? `Committee ${currentYear}` : "Since 2016"}
+          title={currentYear ? <>GUCC Executives <span className="text-gradient">{currentYear}</span></> : <>GUCC <span className="text-gradient">Executives</span></>}
+          description={currentYear
+            ? `The ${currentYear} executive committee of the Green University Computer Club — faculty advisors and student executives of Green University of Bangladesh.`
+            : "Meet every executive who has led the Green University Computer Club, from the founding committee to today."}
+        >
+          <div className="glass max-w-full overflow-x-auto rounded-full p-1.5 [scrollbar-width:none]">
+            <Tabs
+              // Always controlled ("" = no year selected on the index page): switching
+              // between undefined and a year made React warn on every navigation.
+              value={currentYear ?? ""}
+              onValueChange={handleYearChange}
+              className="w-full min-w-max"
+            >
+              <TabsList className="h-auto w-full min-w-max gap-1 rounded-full bg-transparent p-0">
+                {availableYears.map((year) => (
+                  // The tabs switch pages (there's no tab panel here), so they don't point
+                  // at one: a dangling aria-controls is an accessibility error.
+                  <TabsTrigger key={year} value={year} aria-controls={undefined}
+                    className="h-9 rounded-full px-4 font-mono text-sm text-white/70 transition-colors hover:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-brand-400 data-[state=active]:to-aurora-400 data-[state=active]:text-slate-950 data-[state=active]:shadow-[0_0_20px_-4px] data-[state=active]:shadow-brand-400/70">
+                    <span className="hidden md:inline">{year}</span>
+                    <span className="md:hidden">{year.slice(-2)}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+        </PageHero>
+      )}
 
       {children}
     </div>

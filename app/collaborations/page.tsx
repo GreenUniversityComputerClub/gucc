@@ -6,6 +6,8 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { JsonLd } from "@/components/seo/json-ld";
 import { breadcrumbSchema, graph, webPageSchema } from "@/lib/seo/schema";
 import { getPublicSetting } from "@/lib/public/data";
+import { PageHero } from "@/components/page-hero";
+import { Handshake } from "lucide-react";
 
 export const metadata: Metadata = buildMetadata({
   title: "Collaborations & Partner Clubs",
@@ -54,26 +56,19 @@ export default async function CollaborationsPage() {
     <>
       <JsonLd id="collaborations-schema" data={structuredData} />
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="w-full py-16 md:py-24 bg-gradient-to-b from-primary/20 via-primary/10 to-background">
-        <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-center space-y-4 text-center">
-            <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl">
-              Our Collaborations
-            </h1>
-            <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
-              Working together with leading tech clubs and organizations to create impactful experiences
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        icon={<Handshake />}
+        eyebrow={`${featuredCollaborations.length} partner clubs`}
+        title={<>Our <span className="text-gradient">Collaborations</span></>}
+        description="Working together with leading tech clubs and organizations to create impactful experiences"
+      />
 
       {/* Collaborations Grid */}
       <section className="w-full py-12">
         <div className="container px-4 md:px-6">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {featuredCollaborations.map((collab, index) => (
-              <Card key={index} className="overflow-hidden">
+              <Card key={index} className="lift overflow-hidden rounded-3xl">
                 <div className="relative h-48 w-full bg-gray-100">
                   <Image
                     src={collab.image}

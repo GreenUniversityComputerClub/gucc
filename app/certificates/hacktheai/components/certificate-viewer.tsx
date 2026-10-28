@@ -30,10 +30,10 @@ export function CertificateViewer({ participant, verifiedEmail }: CertificateVie
   return (
     <div className="space-y-4 sm:space-y-6">
       {participant.members.length > 1 && (
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+        <div className="glass relative rounded-3xl p-5 sm:p-6">
           <label
             htmlFor="member-select"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-foreground mb-2"
           >
             Select Team Member
           </label>
@@ -43,7 +43,7 @@ export function CertificateViewer({ participant, verifiedEmail }: CertificateVie
             onChange={(e) =>
               setSelectedMember(participant.members[parseInt(e.target.value)])
             }
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 text-sm sm:text-base"
+            className="w-full px-4 py-2 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent bg-white text-foreground text-sm sm:text-base"
             style={{ color: '#111827' }}
           >
             {participant.members.map((member, idx) => (
@@ -55,7 +55,7 @@ export function CertificateViewer({ participant, verifiedEmail }: CertificateVie
         </div>
       )}
 
-      <div className="bg-gray-50 rounded-lg p-2 sm:p-4 overflow-x-auto">
+      <div className="bg-muted rounded-2xl p-2 sm:p-4 overflow-x-auto">
         <div className="min-w-full" style={{ minWidth: '300px' }}>
           <CertificateTemplate
             name={selectedMember.fullName}

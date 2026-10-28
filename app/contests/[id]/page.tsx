@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import Link from "next/link";
 import { getPublicContests } from "@/lib/public/data";
@@ -15,6 +14,8 @@ import type { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
 import { buildMetadata, truncate } from "@/lib/seo/metadata";
 import { breadcrumbSchema, graph, itemListSchema, webPageSchema } from "@/lib/seo/schema";
+import { PageHero } from "@/components/page-hero";
+import { ArrowLeft, Trophy } from "lucide-react";
 
 interface Team {
   name: string;
@@ -108,7 +109,19 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
   }
 
   return (
-    <div className="container mx-auto py-10">
+    <>
+    <PageHero
+      breadcrumb={
+        <Link href="/contests" className="glass inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <ArrowLeft className="h-4 w-4" aria-hidden />All contests
+        </Link>
+      }
+      icon={<Trophy />}
+      eyebrow={`${contest.type} · ${contest.timestamp}`}
+      title={contest.title}
+      size="sm"
+    />
+    <div className="container mx-auto py-12">
       <JsonLd
         id={`contest-${id}-schema`}
         data={graph(
@@ -138,36 +151,29 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
           )
         )}
       />
-      <div className="mb-8">
-        <Button variant="ghost" asChild>
-          <Link href="/contests">← Back to Contests</Link>
-        </Button>
-      </div>
-
       <div className="space-y-8">
-        {/* Contest Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{contest.title}</h1>
-          <div className="mt-2 flex items-center gap-4">
-            <Badge variant="outline">{contest.type}</Badge>
-            <p className="text-muted-foreground">{contest.timestamp}</p>
-          </div>
-        </div>
 
         {/* Team Performance */}
         <div className="grid gap-6 md:grid-cols-2">
           {contest.teams.map((team) => (
-            <Card key={team.name}>
-              <CardHeader>
-                <CardTitle>{team.name}</CardTitle>
-                <CardDescription>Rank: {team.rank} | Solved: {team.solved}</CardDescription>
+            <Card key={team.name} className="lift relative overflow-hidden rounded-3xl">
+              <div aria-hidden className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/15 blur-3xl" />
+              <CardHeader className="relative flex flex-row items-start justify-between gap-4">
+                <div>
+                  <CardTitle className="font-display text-xl">{team.name}</CardTitle>
+                  <CardDescription className="mt-1 font-mono text-xs uppercase tracking-[0.15em]">Solved: {team.solved}</CardDescription>
+                </div>
+                <div className="text-right">
+                  <p className="font-display text-4xl font-bold leading-none text-gradient">#{team.rank}</p>
+                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Rank</p>
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <h4 className="font-medium">Team Members</h4>
-                  <ul className="list-disc list-inside text-muted-foreground">
+              <CardContent className="relative">
+                <div className="space-y-3 border-t border-border/60 pt-4">
+                  <h3 className="font-mono text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">Team members</h3>
+                  <ul className="flex flex-wrap gap-2">
                     {team.members.map((member) => (
-                      <li key={member}>{member}</li>
+                      <li key={member} className="rounded-full border bg-background/60 px-3 py-1 text-sm">{member}</li>
                     ))}
                   </ul>
                 </div>
@@ -177,16 +183,16 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
         </div>
 
         {/* Contest Links */}
-        <Card>
+        <Card className="rounded-3xl">
           <CardHeader>
-            <CardTitle>Contest Resources</CardTitle>
+            <CardTitle className="font-display text-xl">Contest resources</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4">
-              <Button asChild>
+              <Button asChild className="rounded-full">
                 <Link href={contest.contestLink}>Contest Page</Link>
               </Button>
-              <Button asChild>
+              <Button asChild className="rounded-full">
                 <Link href={contest.problemsetLink}>Problem Set</Link>
               </Button>
               <Button asChild>
@@ -235,5 +241,6 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
         )}
       </div>
     </div>
+    </>
   );
 } 

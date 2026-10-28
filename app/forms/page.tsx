@@ -9,6 +9,7 @@ import { breadcrumbSchema, collectionPageSchema, graph, itemListSchema } from "@
 import { formState, PROVIDER_LABEL, type FormState } from "@/lib/forms/providers";
 import type { PublicForm } from "@/lib/forms/types";
 import { cn } from "@/lib/utils";
+import { PageHero } from "@/components/page-hero";
 
 // Forms open and close on a schedule: the hourly job refreshes the "forms" tag when one does.
 export const revalidate = 3600;
@@ -90,23 +91,28 @@ export default async function FormsIndex() {
   const scheduled = by("scheduled").sort((a, b) => Date.parse(a.opensAt ?? "") - Date.parse(b.opensAt ?? ""));
   const closed = by("closed");
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-10 sm:py-14">
+    <>
+    <PageHero
+      breadcrumb={
+        <nav aria-label="Breadcrumb">
+          <ol className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.15em] text-white/60">
+            <li><Link href="/" className="transition-colors hover:text-white">Home</Link></li>
+            <li aria-hidden>/</li>
+            <li aria-current="page" className="text-aurora-300">Forms</li>
+          </ol>
+        </nav>
+      }
+      icon={<ClipboardList />}
+      eyebrow={`${open.length} open now`}
+      title={<>GUCC <span className="text-gradient">Forms</span></>}
+      description={DESCRIPTION}
+    />
+    <div className="container mx-auto max-w-6xl px-4 py-12">
       <JsonLd id="forms-schema" data={graph(
         breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Forms", path: "/forms" }]),
         collectionPageSchema({ name: "GUCC forms", description: DESCRIPTION, path: "/forms", list: itemListSchema("Open GUCC forms", open.map((f) => ({ name: f.title, path: `/forms/${f.slug}` }))) }),
       )} />
-      <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
-        <ol className="flex items-center gap-1.5">
-          <li><Link href="/" className="-my-2.5 inline-block py-2.5 hover:text-foreground">Home</Link></li>
-          <li aria-hidden>/</li>
-          <li aria-current="page" className="text-foreground">Forms</li>
-        </ol>
-      </nav>
-      <header className="mt-3 max-w-3xl">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Forms</h1>
-        <p className="mt-2 text-muted-foreground">{DESCRIPTION}</p>
-      </header>
-      <div className="mt-8">
+      <div>
         {forms.length === 0 || (open.length === 0 && scheduled.length === 0 && closed.length === 0) ? (
           <div className="rounded-2xl border border-dashed p-10 text-center">
             <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden />
@@ -123,5 +129,6 @@ export default async function FormsIndex() {
         )}
       </div>
     </div>
+    </>
   );
 }

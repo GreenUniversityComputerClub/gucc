@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { listBlogPosts } from "../data";
 import { fetchSubstackArticle, markdownToReact } from "./util";
 import PostContent from "../component";
 import { Post } from "../types";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { PageBand } from "@/components/page-hero";
 import { JsonLd } from "@/components/seo/json-ld";
 import { brandTitle, ogImageUrl, truncate } from "@/lib/seo/metadata";
 import { articleSchema, breadcrumbSchema, graph } from "@/lib/seo/schema";
@@ -155,6 +157,17 @@ export default async function BlogPost({
   const shared = (p: (typeof all)[number]) => (p.tags ?? []).filter((t) => (customPost.tags ?? []).includes(t)).length + (p.category && p.category === customPost.category ? 1 : 0);
   const related = all.filter((p) => p.slug !== customPost.slug).map((p) => ({ p, score: shared(p) })).filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score).slice(0, 3).map((x) => card(x.p)!);
+  // The trail in the night-sky band above the article.
+  const trail = (
+    <nav aria-label="Breadcrumb">
+      <ol className="flex flex-wrap items-center gap-2 font-mono text-xs uppercase tracking-[0.15em] text-white/60">
+        <li><Link href="/" className="transition-colors hover:text-white">Home</Link></li>
+        <li aria-hidden>/</li>
+        <li><Link href="/blog" className="transition-colors hover:text-white">Blog</Link></li>
+        {customPost.category && (<><li aria-hidden>/</li><li className="text-aurora-300">{customPost.category}</li></>)}
+      </ol>
+    </nav>
+  );
   const extras = { url: `${siteBaseUrl}/blog/${customPost.slug}`, reactions: customPost.reactions, related, prev: i > 0 ? card(all[i - 1]) : null, next: i >= 0 ? card(all[i + 1]) : null };
 
   if (customPost.body) {
@@ -162,8 +175,9 @@ export default async function BlogPost({
     // The client gets the rendered article only, not the markdown a second time.
     const { body: _body, ...post } = customPost;
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-        <div className="container mx-auto px-4 py-12 max-w-4xl">
+      <div className="min-h-screen">
+        <PageBand>{trail}</PageBand>
+        <div className="container mx-auto max-w-4xl px-4 pb-16 pt-2">
           <JsonLd id={`post-${customPost.slug}-schema`} data={postSchema(customPost)} />
           <PostContent post={post} mdx={mdx} extras={extras} />
         </div>
@@ -196,7 +210,7 @@ export default async function BlogPost({
           href={customPost.url}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center rounded-full bg-emerald-700 px-5 py-3 font-semibold text-white transition hover:bg-emerald-600"
+          className="inline-flex items-center rounded-full bg-primary px-5 py-3 font-semibold text-primary-foreground transition hover:bg-primary/90"
         >
           Read Full Article
         </a>
@@ -204,8 +218,9 @@ export default async function BlogPost({
     );
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-        <div className="container mx-auto px-4 py-12 max-w-4xl">
+      <div className="min-h-screen">
+        <PageBand>{trail}</PageBand>
+        <div className="container mx-auto max-w-4xl px-4 pb-16 pt-2">
           <JsonLd id={`post-${customPost.slug}-schema`} data={postSchema(customPost)} />
           <PostContent post={{ ...customPost, body: null } as Post} mdx={mdx} extras={extras} />
         </div>

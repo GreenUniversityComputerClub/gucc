@@ -5,6 +5,7 @@ import { getSession, rpc } from "@/lib/api/session";
 import type { membersDirectory } from "@/lib/server/services/profiles";
 import { PersonAvatar } from "@/components/person-avatar";
 import { Button } from "@/components/ui/button";
+import { PageHero } from "@/components/page-hero";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Members", description: "Find GUCC members by name, department, batch or skill.", robots: { index: false, follow: false } };
@@ -30,12 +31,15 @@ export default async function MembersDirectory({ searchParams }: { searchParams:
   const query = (p: number) => `/members?${new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), ...(sp.department ? { department: sp.department } : {}), ...(sp.batch ? { batch: sp.batch } : {}), ...(p > 1 ? { page: String(p) } : {}) })}`;
 
   return (
-    <div className="container max-w-6xl py-8 sm:py-10">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Members</h1>
-        <p className="mt-1 text-muted-foreground">Find members by name, department, batch or skill, and visit their profiles. Members who keep their profile private aren&apos;t listed.</p>
-      </header>
-      <form role="search" className="mb-6 grid gap-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,8rem)_auto]">
+    <>
+    <PageHero
+      icon={<Users />}
+      eyebrow="Directory"
+      title={<>GUCC <span className="text-gradient">Members</span></>}
+      description="Find members by name, department, batch or skill, and visit their profiles. Members who keep their profile private aren't listed."
+    />
+    <div className="container max-w-6xl py-10">
+      <form role="search" className="mb-8 grid gap-2 rounded-3xl border border-border/70 bg-card/50 p-3 backdrop-blur sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,8rem)_auto]">
         <label className="relative">
           <span className="sr-only">Name or skill</span>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -72,5 +76,6 @@ export default async function MembersDirectory({ searchParams }: { searchParams:
         </nav>
       )}
     </div>
+    </>
   );
 }
