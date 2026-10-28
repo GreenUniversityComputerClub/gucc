@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { SectionHeading } from '@/components/section-heading';
 
 export interface Partner {
   name: string;
@@ -13,31 +14,24 @@ export interface Partner {
 
 export function CollaborationScroll({ partners: collaborators }: { partners: Partner[] }) {
   return (
-    <section className="w-full py-12 bg-primary/5">
+    <section className="relative w-full overflow-hidden border-y border-border/60 bg-muted/30 py-16 md:py-24">
+      <div aria-hidden className="pointer-events-none absolute right-0 top-0 h-72 w-72 rounded-full bg-secondary/10 blur-[100px]" />
       <div className="container px-4 md:px-6">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
-              Featured Collaborations
-            </h2>
-            <p className="mt-2 text-muted-foreground">
-              Working together with leading tech clubs
-            </p>
-          </div>
+        <SectionHeading index="05" eyebrow="Partners" title="Featured collaborations" description="Working together with leading tech clubs" className="mb-12">
           <Link
             href="/collaborations"
-            className="inline-flex items-center gap-2 mt-4 md:mt-0 text-primary"
+            className="group inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:border-primary/50 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             View all collaborations
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
           </Link>
-        </div>
+        </SectionHeading>
 
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {collaborators.map((collab, index) => (
             <div
               key={index}
-              className="bg-white rounded-md shadow-sm border border-gray-100 overflow-hidden"
+              className="lift overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
             >
               <div className="relative w-full pt-[100%] bg-gray-50">
                 <Image

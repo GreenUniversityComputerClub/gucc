@@ -1,21 +1,18 @@
 import { PohelaBoishakhGreetingClient as PohelaBoishakhGreeting } from "@/components/client-only";
 import { HeroSection } from "@/components/hero";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SectionHeading } from "@/components/section-heading";
 import { getPublicEvents, getPublicSetting, getRecruitment } from "@/lib/public/data";
-import { Award, BookOpen, CalendarDays, ChevronDown, Users } from "lucide-react";
+import { ArrowRight, Plus, Rocket } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AnimatedStat } from "./component";
+import { AboutSection } from "./components/about-section";
+import { ChairpersonSection } from "./components/chairperson-section";
+import { ImpactSection } from "./components/impact-section";
+import { ModeratorsSection } from "./components/moderators-section";
 import { CollaborationScroll } from "./components/collaboration-scroll";
-import { EventCard } from "./events/components";
+import { EventTile } from "./events/event-tile";
+import { eventPhase } from "./events/event-status";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getHomeFaq } from "@/lib/seo/faq";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -92,8 +89,10 @@ export const metadata: Metadata = {
 export default async function Home() {
   const faq = await getHomeFaq();
   const latestYear = await getLatestExecutiveYear();
-  const roster = await getYearRoster(latestYear);
+  const roster = latestYear ? await getYearRoster(latestYear) : undefined;
   const eventsData = await getPublicEvents();
+  // The page is cached for an hour; an event's "upcoming"/"past" badge is as of this render.
+  const renderedAt = Date.now();
   // A small "Recruitment open" link under the hero while a call is open.
   const recruiting = (await getRecruitment().catch(() => null))?.open ?? null;
   const partners = (await getPublicSetting<{ partners: Array<{ name: string; image: string; description: string }> }>("page.collaborations"))?.partners ?? [];
@@ -126,7 +125,7 @@ export default async function Home() {
     }),
     faqSchema(faq),
     itemListSchema(
-      `GUCC Executive Committee ${latestYear}`,
+      latestYear ? `GUCC Executive Committee ${latestYear}` : "GUCC Executive Committee",
       leadership.map((person) => ({
         name: person.name,
         path:
@@ -151,309 +150,110 @@ export default async function Home() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <JsonLd id="home-schema" data={structuredData} />
       {new Date().getMonth() === 3 && new Date().getDate() === 14 && (
         <PohelaBoishakhGreeting />
       )}
-      {/* Hero Section */}
       <HeroSection />
       {recruiting && (
-        <div className="container relative z-10 -mt-5 flex justify-center px-4">
-          <Link href="/recruitment" className="inline-flex max-w-full items-center gap-2 rounded-full border border-emerald-500/40 bg-background/95 px-4 py-2 text-sm font-medium shadow-md backdrop-blur hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500" aria-hidden />
+        <div className="container relative z-10 -mt-6 flex justify-center px-4">
+          <Link href="/recruitment" className="glass glow-border relative inline-flex max-w-full items-center gap-2 rounded-full px-4 py-2 text-sm font-medium shadow-lg shadow-primary/10 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-secondary opacity-70" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-secondary" />
+            </span>
             <span className="truncate">Recruitment is open{recruiting.closesAt ? `, closes ${new Date(recruiting.closesAt).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short" })}` : ""}</span>
-            <span aria-hidden>→</span>
+            <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
           </Link>
         </div>
       )}
 
-      {/* About Section */}
-      <section className="w-full py-16 md:py-24 lg:py-32">
-        <div className="container px-4 md:px-6">
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
-            <div className="space-y-6">
-              <div className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium">
-                About Us
-              </div>
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">
-                Who We Are
-              </h2>
-              <div className="space-y-4 text-muted-foreground md:text-lg">
-                <p>
-                  Welcome to the Green University Computer Club (GUCC), a
-                  dynamic and student-driven non-profit and non-political
-                  organization operating in collaboration with the Department of
-                  Computer Science and Engineering (CSE) at the esteemed Green
-                  University of Bangladesh. As the flagship club of the
-                  university, GUCC boasts a thriving community of over 7000+
-                  members.
-                </p>
-                <p>
-                  Our primary objective is to empower and guide students within
-                  the Department of CSE on their journey to carve out successful
-                  careers in the ever-evolving realms of modern computer science
-                  and engineering. Under the vigilant supervision of the
-                  department, GUCC serves as a catalyst for excellence,
-                  fostering development and leadership among its members.
-                </p>
-              </div>
-            </div>
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold">Our Vision</h3>
-                <p className="text-muted-foreground md:text-lg">
-                  The vision of the Green University Computer Club is to
-                  increase the leadership and develop the professional skills of
-                  the CSE students of the Green University of Bangladesh.
-                </p>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-6">
-                <Card className="hover:shadow-lg transition-shadow duration-300">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center">
-                      <Users className="h-5 w-5 mr-2 text-primary" />
-                      Community
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Building a vibrant community of tech enthusiasts
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="hover:shadow-lg transition-shadow duration-300">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center">
-                      <Award className="h-5 w-5 mr-2 text-primary" />
-                      Excellence
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Striving for excellence in all our endeavors
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="hover:shadow-lg transition-shadow duration-300">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center">
-                      <BookOpen className="h-5 w-5 mr-2 text-primary" />
-                      Learning
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Promoting continuous learning and growth
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="hover:shadow-lg transition-shadow duration-300">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center">
-                      <CalendarDays className="h-5 w-5 mr-2 text-primary" />
-                      Events
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Organizing impactful events and workshops
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <AboutSection members={home.stats.find((st) => /member/i.test(st.label))} />
 
-      {/* Stats Section */}
-      <section className="w-full py-16 md:py-24 lg:py-32 bg-gradient-to-b from-background to-primary/5">
-        <div className="container px-4 md:px-6">
-          <div className="text-center space-y-6">
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">
-              GUCC in Numbers
-            </h2>
-            <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
-              Our impact in the university and beyond
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
-            {home.stats.map((st) => (
-              <div key={st.label} className="text-center p-6 rounded-lg bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-colors duration-300">
-                <AnimatedStat
-                  end={st.value}
-                  suffix={st.suffix ?? ""}
-                  className="text-4xl md:text-5xl font-bold text-primary"
-                />
-                <div className="text-sm text-muted-foreground mt-3">{st.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <ImpactSection stats={home.stats} />
 
+      <ChairpersonSection {...home.chairperson} />
 
-      {/* Messages from Our Chairperson Section */}
-      <section className="w-full py-12 md:py-16 lg:py-20">
-        <div className="container px-4 md:px-6">
-          <div className="text-center space-y-4">
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">
-              {home.chairperson.heading}
-            </h2>
-            <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
-              {home.chairperson.subheading}
-            </p>
-          </div>
-          <div className="flex justify-center mt-10">
-            <Card className="hover:shadow-lg transition-shadow duration-300 border-primary/10 max-w-xl w-full">
-              <CardContent className="p-5 flex flex-col items-center text-center space-y-3">
-                <Avatar className="w-20 h-20">
-                  <AvatarImage src={home.chairperson.person.photo} alt={home.chairperson.person.name} />
-                  <AvatarFallback>{home.chairperson.person.initials}</AvatarFallback>
-                </Avatar>
-                <div className="space-y-1">
-                  <h3 className="font-semibold text-lg">{home.chairperson.person.name}</h3>
-                  <p className="text-sm text-muted-foreground"> {home.chairperson.person.title}</p>
-                </div>
-                <blockquote className="text-sm text-muted-foreground italic leading-relaxed">
-                  &quot;{home.chairperson.person.message}&quot;
-                </blockquote>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
+      <ModeratorsSection {...home.moderators} />
 
-      {/* Messages from Our Moderators Section */}
-      <section className="w-full py-12 md:py-16 lg:py-20">
-        <div className="container px-4 md:px-6">
-          <div className="text-center space-y-4">
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">
-              {home.moderators.heading}
-            </h2>
-            <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
-              {home.moderators.subheading}
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
-            {home.moderators.people.map((m) => (
-              <Card key={m.name} className="hover:shadow-lg transition-shadow duration-300 border-primary/10">
-                <CardContent className="p-5">
-                  <div className="flex flex-col items-center text-center space-y-3">
-                    <Avatar className="w-16 h-16">
-                      <AvatarImage src={m.photo} alt={m.name} />
-                      <AvatarFallback>{m.initials}</AvatarFallback>
-                    </Avatar>
-                    <div className="space-y-1">
-                      <h3 className="font-semibold">{m.name}</h3>
-                      <p className="text-xs text-muted-foreground">{m.title}</p>
-                    </div>
-                    <blockquote className="text-xs text-muted-foreground italic leading-relaxed">
-                      &quot;{m.message}&quot;
-                    </blockquote>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Club Collaborations Scroll Section */}
       <CollaborationScroll partners={partners} />
 
-      {/* Featured Events Section */}
-      <section className="w-full">
-        <div className="container px-6">
-          <div className="flex flex-col items-center justify-center space-y-6 text-center">
-            <div className="space-y-4">
-              <h2 className="text-3xl mt-12 font-bold tracking-tighter md:text-4xl lg:text-5xl">
-                Recent and Upcoming Events
-              </h2>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
+      {/* Events */}
+      <section className="w-full py-16 md:py-24">
+        <div className="container px-4 md:px-6">
+          <SectionHeading index="06" eyebrow="What's happening" title="Recent and upcoming events">
+            <Link href="/events" className="group inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:border-primary/50 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              View all events
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+            </Link>
+          </SectionHeading>
+          <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[...eventsData]
-              .sort(
-                (a, b) =>
-                  new Date(b.date).getTime() - new Date(a.date).getTime()
-              )
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
               .slice(0, 6)
               .map((event, index) => (
-                <EventCard key={index} event={event} index={index} />
+                <div key={index} className="reveal">
+                  <EventTile event={event} phase={eventPhase(event, renderedAt)} now={null} headingLevel={3} />
+                </div>
               ))}
           </div>
         </div>
       </section>
 
-      <div className="flex justify-center m-12">
-        <Button
-          asChild
-          variant="outline"
-          className="border-primary/20 hover:bg-primary/10"
-        >
-          <Link href="/events">View All Events</Link>
-        </Button>
-      </div>
-
       {/* Leadership — a keyword-anchored path into the executives section. */}
       <section className="w-full py-12 md:py-16">
         <div className="container px-4 md:px-6">
-          <div className="rounded-2xl border border-primary/10 bg-primary/5 p-8 text-center md:p-12">
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
-              Meet the GUCC Executives
+          <div className="dark dark-surface reveal relative isolate overflow-hidden rounded-[2rem] border border-white/10 bg-background px-8 py-14 text-center text-foreground md:px-16 md:py-20">
+            <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_120%,var(--color-brand-700),transparent_70%)]" />
+            <div aria-hidden className="absolute left-[10%] top-[10%] -z-10 h-60 w-60 rounded-full bg-aurora-500/20 blur-[90px] animate-aurora" />
+            <div aria-hidden className="absolute inset-0 -z-10 bg-grid" />
+            <Rocket className="mx-auto h-10 w-10 text-aurora-300 animate-float" aria-hidden />
+            <h2 className="mx-auto mt-6 max-w-3xl font-display text-3xl font-bold tracking-tight text-white md:text-5xl">
+              Meet the <span className="text-gradient">GUCC Executives</span>
             </h2>
-            <p className="mx-auto mt-4 max-w-[720px] text-muted-foreground md:text-lg">
-              The {latestYear} executive committee of the Green University
-              Computer Club — {leadership.length} faculty advisors and student
-              executives — plus every committee since 2016, each with a full
-              profile.
+            <p className="mx-auto mt-5 max-w-[720px] text-white/75 md:text-lg">
+              {latestYear
+                ? <>The {latestYear} executive committee of the Green University Computer Club — {leadership.length} faculty advisors and student executives — plus every committee since 2016, each with a full profile.</>
+                : <>Every executive committee of the Green University Computer Club since 2016, each member with a full profile.</>}
             </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-4">
-              <Button asChild>
-                <Link href="/executives">GUCC Executive Committee</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href={`/executives/${latestYear}`}>
+            <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link href="/executives" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-400 to-aurora-400 px-7 font-semibold text-slate-950 shadow-[0_0_40px_-8px] shadow-brand-400/60 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                GUCC Executive Committee
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+              {latestYear && (
+                <Link href={`/executives/${latestYear}`} className="glass inline-flex min-h-12 items-center justify-center rounded-full px-7 font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
                   {latestYear} Committee
                 </Link>
-              </Button>
+              )}
             </div>
           </div>
         </div>
       </section>
 
       {/* FAQ — visible answers backing the FAQPage structured data above. */}
-      <section
-        className="w-full py-12 md:py-16 lg:py-20"
-        aria-labelledby="faq-heading"
-      >
-        <div className="container px-4 md:px-6">
-          <div className="text-center space-y-4">
-            <h2
-              id="faq-heading"
-              className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl"
-            >
-              Frequently Asked Questions
-            </h2>
-            <p className="mx-auto max-w-[700px] text-muted-foreground md:text-lg">
-              Everything people usually want to know about GUCC
-            </p>
+      <section className="w-full py-16 md:py-24" aria-labelledby="faq-heading">
+        <div className="container grid gap-12 px-4 md:px-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+          <div className="lg:sticky lg:top-28 lg:self-start">
+            <SectionHeading index="07" eyebrow="FAQ" id="faq-heading" title="Frequently asked questions" description="Everything people usually want to know about GUCC" />
+            <Link href="/contact" className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline">
+              Still curious? Ask us <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
           </div>
-          <div className="mx-auto mt-10 max-w-3xl space-y-4">
+          <div className="space-y-3">
             {faq.map((item) => (
               <details
                 key={item.question}
-                className="group rounded-lg border bg-card p-5 transition-colors hover:border-primary/40"
+                className="group rounded-2xl border bg-card p-5 transition-[border-color,box-shadow] duration-300 open:border-primary/40 open:shadow-[0_12px_40px_-20px_hsl(var(--primary)/0.5)] hover:border-primary/40 md:p-6"
               >
-                <summary className="flex cursor-pointer list-none items-start justify-between gap-3 text-lg font-semibold marker:hidden [&::-webkit-details-marker]:hidden">
-                  <h3 className="inline">{item.question}</h3>
-                  <ChevronDown className="mt-1 h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+                <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-lg font-semibold marker:hidden [&::-webkit-details-marker]:hidden">
+                  <h3 className="inline font-display">{item.question}</h3>
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-300 group-open:rotate-45" aria-hidden>
+                    <Plus className="h-4 w-4" />
+                  </span>
                 </summary>
-                <p className="mt-3 leading-relaxed text-muted-foreground">
-                  {item.answer}
-                </p>
+                <p className="mt-3 leading-relaxed text-muted-foreground">{item.answer}</p>
               </details>
             ))}
           </div>
