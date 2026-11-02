@@ -35,7 +35,7 @@ const CSP = [
   `media-src 'self' blob: https: ${origin(MEDIA_BASE)}`.trim(),
   // The API's ws(s):// origin too: dashboard tabs keep one live connection to it.
   `connect-src 'self' ${[...new Set([origin(API_BASE), origin(MEDIA_BASE), origin(API_BASE).replace(/^http/, "ws")].filter(Boolean))].join(" ")} https://challenges.cloudflare.com`,
-  "frame-src 'self' https://docs.google.com https://forms.gle https://forms.office.com https://forms.microsoft.com https://tally.so https://airtable.com https://www.youtube-nocookie.com https://player.vimeo.com https://challenges.cloudflare.com",
+  "frame-src 'self' https://www.google.com https://docs.google.com https://forms.gle https://forms.office.com https://forms.microsoft.com https://tally.so https://airtable.com https://www.youtube-nocookie.com https://player.vimeo.com https://challenges.cloudflare.com",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "object-src 'none'",

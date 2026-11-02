@@ -43,6 +43,7 @@ const shortcuts = [
   { icon: Search, title: "Lost something?", text: "Campus lost & found", href: "/lost-found" },
 ];
 
+const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(`${PARENT_ORGANIZATION.name}, Purbachal`)}&z=15&output=embed`;
 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${ADDRESS.latitude},${ADDRESS.longitude}`;
 const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${ADDRESS.latitude},${ADDRESS.longitude}`;
 
@@ -74,18 +75,18 @@ export default function ContactPage() {
         description="Have a question, collaboration idea, or club request? Send GUCC a message and we will get back to you."
         aside={
           <div className="glass glow-border relative rounded-3xl p-5">
-            <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-aurora-300">
+            <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-secondary">
               <span className="relative flex h-2 w-2" aria-hidden>
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-aurora-400 opacity-70" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-aurora-400" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-secondary opacity-70" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-secondary" />
               </span>
               Inbox open
             </p>
             <div className="mt-3 flex items-center gap-1">
-              <a href={`mailto:${SITE.email}`} className="truncate font-display text-xl font-semibold text-white underline-offset-4 hover:underline">{SITE.email}</a>
-              <CopyButton value={SITE.email} label="Copy email address" className="text-white/70 hover:bg-white/10 hover:text-white" />
+              <a href={`mailto:${SITE.email}`} className="truncate font-display text-xl font-semibold text-foreground underline-offset-4 hover:underline">{SITE.email}</a>
+              <CopyButton value={SITE.email} label="Copy email address" className="text-foreground/70 hover:bg-foreground/10 hover:text-foreground" />
             </div>
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-white/65"><Clock className="h-3.5 w-3.5" aria-hidden />We usually reply within a few days.</p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-foreground/65"><Clock className="h-3.5 w-3.5" aria-hidden />We usually reply within a few days.</p>
           </div>
         }
       />
@@ -97,28 +98,17 @@ export default function ContactPage() {
             <ContactForm />
           </div>
 
-          {/* Where we are: a beacon on the campus */}
+          {/* Where we are */}
           <div className="relative overflow-hidden rounded-3xl border bg-card lg:col-start-1 lg:row-start-1">
-            <div aria-hidden className="relative h-48 overflow-hidden bg-gradient-to-br from-brand-950 via-slate-950 to-aurora-950 sm:h-56">
-              <div className="absolute inset-0 bg-[linear-gradient(rgb(255_255_255/0.06)_1px,transparent_1px),linear-gradient(90deg,rgb(255_255_255/0.06)_1px,transparent_1px)] bg-[size:28px_28px]" />
-              {/* Radar rings around the campus */}
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                {[0, 1, 2].map((r) => (
-                  <span key={r} className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 animate-ping rounded-full border border-aurora-400/60 [animation-duration:3s]"
-                    style={{ animationDelay: `${r}s` }} />
-                ))}
-                <span className="absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
-                <span className="absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
-                <span className="absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 animate-spin rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,rgb(34_211_238/0.25)_40deg,transparent_60deg)] [animation-duration:4s]" />
-                <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-aurora-400 text-slate-950 shadow-[0_0_30px_4px] shadow-aurora-400/50">
-                  <MapPin className="h-5 w-5" />
-                </span>
-              </div>
-              <p className="absolute bottom-3 left-4 font-mono text-[11px] tracking-[0.15em] text-white/70">
-                {ADDRESS.latitude.toFixed(4)}°N · {ADDRESS.longitude.toFixed(4)}°E
-              </p>
-              <p className="absolute right-4 top-3 font-mono text-[11px] uppercase tracking-[0.2em] text-aurora-300">Purbachal</p>
-            </div>
+            {/* Loaded as it nears the screen; the space is reserved, and the links below work without it. */}
+            <iframe
+              src={mapEmbedUrl}
+              title={`Map showing ${PARENT_ORGANIZATION.name}`}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+              className="block h-64 w-full border-0 bg-muted sm:h-80"
+            />
             <div className="p-5 sm:p-6">
               <h2 className="font-display text-lg font-semibold">Visit us</h2>
               <address className="mt-1 text-sm not-italic leading-6 text-muted-foreground">

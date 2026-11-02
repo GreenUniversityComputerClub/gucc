@@ -230,7 +230,7 @@ export function ContactForm() {
           <label>Website<input tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} /></label>
         </div>
         <Turnstile onToken={onToken} resetKey={attempt} />
-        <Button type="submit" size="lg" className="group h-12 w-full gap-2 rounded-full border-0 bg-gradient-to-r from-brand-600 to-aurora-700 text-base font-semibold text-white shadow-[0_0_30px_-8px] shadow-brand-500/70 transition-[transform,box-shadow] hover:-translate-y-0.5 hover:bg-gradient-to-r dark:from-brand-400 dark:to-aurora-400 dark:text-slate-950" disabled={isSubmitting}>
+        <Button type="submit" size="lg" className="group h-12 w-full gap-2 rounded-full border-0 bg-gradient-to-r from-brand-800 to-brand-700 text-base font-semibold text-white shadow-[0_0_30px_-8px] shadow-brand-500/70 transition-[transform,box-shadow] hover:-translate-y-0.5 hover:bg-gradient-to-r dark:from-brand-400 dark:to-aurora-400 dark:text-slate-950" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
