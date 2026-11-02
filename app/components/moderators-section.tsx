@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SectionHeading } from "@/components/section-heading";
 import { cn } from "@/lib/utils";
+import { SelectItem } from "@/components/live-cursors";
 
 type Person = { name: string; title: string; photo: string; initials: string; message: string };
 
@@ -23,7 +24,10 @@ export function ModeratorsSection({ heading, subheading, people }: { heading: st
   const reduce = useReducedMotion();
   const count = people.length;
   const go = useCallback((i: number) => setActive(((i % count) + count) % count), [count]);
-  const auto = !paused && !reduce && count > 1;
+  // Decided after hydration: the server can't know the visitor's motion setting, and must match.
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+  const auto = ready && !paused && !reduce && count > 1;
 
   useEffect(() => {
     if (!auto) return;
@@ -77,7 +81,8 @@ export function ModeratorsSection({ heading, subheading, people }: { heading: st
             </div>
 
             {/* The stage: every message is here, stacked; only the chosen one shows */}
-            <div className="glass glow-border relative isolate grid overflow-hidden rounded-[2rem] p-8 md:p-12">
+            <SelectItem>
+            <div className="glass glow-border h-full relative isolate grid overflow-hidden rounded-[2rem] p-8 md:p-12">
               <div aria-hidden className="absolute -left-20 -top-20 -z-10 h-72 w-72 rounded-full bg-primary/20 blur-[90px] animate-aurora" />
               <div aria-hidden className="absolute inset-0 -z-10 bg-grid opacity-40" />
               {people.map((m, i) => {
@@ -131,6 +136,7 @@ export function ModeratorsSection({ heading, subheading, people }: { heading: st
                 </div>
               )}
             </div>
+            </SelectItem>
           </div>
         </div>
       </section>

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { SectionHeading } from "@/components/section-heading";
 import { cn } from "@/lib/utils";
+import { SelectItem, WriteText } from "@/components/live-cursors";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -60,7 +61,7 @@ export function AboutSection({ members }: { members?: { value: number; suffix?: 
         <div className="container px-4 md:px-6">
           <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-10">
             {/* The gist */}
-            <div>
+            <SelectItem className="h-auto">
               <SectionHeading
                 index="01"
                 eyebrow="About us"
@@ -79,9 +80,7 @@ export function AboutSection({ members }: { members?: { value: number; suffix?: 
 
               <motion.p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground md:text-xl"
                 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.45, duration: 0.6, ease: EASE }}>
-                The flagship club of Green University&rsquo;s CSE department, where{" "}
-                <span className="font-semibold text-foreground">{(members?.value ?? 7000).toLocaleString("en-US")}{members?.suffix ?? "+"} students</span>{" "}
-                learn, build and lead together.
+                <WriteText text={`The flagship club of Green University\u2019s CSE department, where ${(members?.value ?? 7000).toLocaleString("en-US")}${members?.suffix ?? "+"} students learn, build and lead together.`} />
               </motion.p>
 
               <ul className="mt-6 flex flex-wrap gap-2">
@@ -146,9 +145,10 @@ export function AboutSection({ members }: { members?: { value: number; suffix?: 
                   </p>
                 </div>
               </details>
-            </div>
+            </SelectItem>
 
             {/* The orbit: what members do, circling the club */}
+            <SelectItem className="h-auto">
             <motion.div aria-hidden className="relative mx-auto aspect-square w-full max-w-[520px]"
               initial={{ opacity: 0, scale: 0.85, rotate: -10 }} whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
               viewport={{ once: true, amount: 0.3 }} transition={{ duration: 1.1, ease: EASE }}>
@@ -195,6 +195,7 @@ export function AboutSection({ members }: { members?: { value: number; suffix?: 
                 </div>
               </div>
             </motion.div>
+            </SelectItem>
           </div>
 
           {/* The pillars */}
@@ -203,7 +204,7 @@ export function AboutSection({ members }: { members?: { value: number; suffix?: 
               <motion.li key={p.title}
                 initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.4 }}
                 transition={{ delay: i * 0.1, duration: 0.6, ease: EASE }}>
-                <SpotlightCard>
+                <SelectItem><SpotlightCard>
                   <span className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 text-primary ring-1 ring-primary/20 transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-110">
                     <p.icon className="h-6 w-6" aria-hidden />
                   </span>
@@ -211,7 +212,7 @@ export function AboutSection({ members }: { members?: { value: number; suffix?: 
                   <h3 className="mt-5 font-display text-lg font-semibold">{p.title}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{p.text}</p>
                   <span aria-hidden className="mt-5 block h-0.5 w-8 rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-500 group-hover:w-full" />
-                </SpotlightCard>
+                </SpotlightCard></SelectItem>
               </motion.li>
             ))}
           </ul>

@@ -4,6 +4,7 @@ import { MotionConfig, motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import { SectionHeading } from "@/components/section-heading";
 import { cn } from "@/lib/utils";
+import { SelectItem } from "@/components/live-cursors";
 
 export type Stat = { value: number; suffix?: string; label: string };
 
@@ -68,10 +69,11 @@ export function ImpactSection({ stats }: { stats: Stat[] }) {
 /** A HUD panel: corner brackets, a status code, a scanline sweeping down now and then. */
 function Panel({ children, className, code, delay }: { children: React.ReactNode; className?: string; code: string; delay: number }) {
   return (
+    <SelectItem className={className}>
     <motion.div
       initial={{ opacity: 0, y: 30, scale: 0.97 }} whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, amount: 0.3 }} transition={{ delay, duration: 0.7, ease: EASE }}
-      className={cn("group relative isolate flex min-h-[250px] flex-col justify-end overflow-hidden rounded-3xl border border-foreground/10 bg-card/60 p-6 backdrop-blur-sm transition-colors duration-500 hover:border-primary/40 md:p-8", className)}>
+      className={cn("group relative isolate flex h-full min-h-[250px] flex-col justify-end overflow-hidden rounded-3xl border border-foreground/10 bg-card/60 p-6 backdrop-blur-sm transition-colors duration-500 hover:border-primary/40 md:p-8")}>
       {/* Corner brackets */}
       <span aria-hidden className="absolute left-3 top-3 h-4 w-4 border-l-2 border-t-2 border-primary/60 transition-all duration-500 group-hover:left-2 group-hover:top-2" />
       <span aria-hidden className="absolute right-3 top-3 h-4 w-4 border-r-2 border-t-2 border-secondary/60 transition-all duration-500 group-hover:right-2 group-hover:top-2" />
@@ -82,6 +84,7 @@ function Panel({ children, className, code, delay }: { children: React.ReactNode
       <span aria-hidden className="pointer-events-none absolute inset-x-0 -top-1/3 h-1/3 bg-gradient-to-b from-transparent via-primary/10 to-transparent animate-scan" />
       {children}
     </motion.div>
+    </SelectItem>
   );
 }
 

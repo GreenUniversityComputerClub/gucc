@@ -8,6 +8,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AboutSection } from "./components/about-section";
 import { ChairpersonSection } from "./components/chairperson-section";
+import { SectionStop, SectionThread, SelectItem } from "@/components/live-cursors";
+import { GalleryLightbox } from "@/components/gallery-lightbox";
+import { listBlogPosts } from "./blog/data";
+import { BlogPostCard, toBlogCard } from "./blog/blog-card";
 import { ImpactSection } from "./components/impact-section";
 import { ModeratorsSection } from "./components/moderators-section";
 import { CollaborationScroll } from "./components/collaboration-scroll";
@@ -93,6 +97,13 @@ export default async function Home() {
   const eventsData = await getPublicEvents();
   // The page is cached for an hour; an event's "upcoming"/"past" badge is as of this render.
   const renderedAt = Date.now();
+  const latestPosts = (await listBlogPosts()).slice(0, 3).map(toBlogCard);
+  // The gallery: the banners of recent events (an event without its own shows the club logo: left out).
+  const gallery = [...eventsData]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .filter((e) => e.image && e.image !== "/gucc-logo.png")
+    .slice(0, 12)
+    .map((e) => ({ url: e.image, thumb: e.image, alt: e.name }));
   // A small "Recruitment open" link under the hero while a call is open.
   const recruiting = (await getRecruitment().catch(() => null))?.open ?? null;
   const partners = (await getPublicSetting<{ partners: Array<{ name: string; image: string; description: string }> }>("page.collaborations"))?.partners ?? [];
@@ -169,17 +180,19 @@ export default async function Home() {
         </div>
       )}
 
-      <AboutSection members={home.stats.find((st) => /member/i.test(st.label))} />
+      <SectionThread>
+      <SectionStop><AboutSection members={home.stats.find((st) => /member/i.test(st.label))} /></SectionStop>
 
-      <ImpactSection stats={home.stats} />
+      <SectionStop><ImpactSection stats={home.stats} /></SectionStop>
 
-      <ChairpersonSection {...home.chairperson} />
+      <SectionStop><ChairpersonSection {...home.chairperson} /></SectionStop>
 
-      <ModeratorsSection {...home.moderators} />
+      <SectionStop><ModeratorsSection {...home.moderators} /></SectionStop>
 
-      <CollaborationScroll partners={partners} />
+      <SectionStop><CollaborationScroll partners={partners} /></SectionStop>
 
       {/* Events */}
+      <SectionStop>
       <section className="w-full py-16 md:py-24">
         <div className="container px-4 md:px-6">
           <SectionHeading index="06" eyebrow="What's happening" title="Recent and upcoming events">
@@ -193,18 +206,21 @@ export default async function Home() {
               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
               .slice(0, 6)
               .map((event, index) => (
-                <div key={index} className="reveal">
+                <SelectItem key={index}>
                   <EventTile event={event} phase={eventPhase(event, renderedAt)} now={null} headingLevel={3} />
-                </div>
+                </SelectItem>
               ))}
           </div>
         </div>
       </section>
+      </SectionStop>
 
       {/* Leadership — a keyword-anchored path into the executives section. */}
+      <SectionStop>
       <section className="w-full py-12 md:py-16">
         <div className="container px-4 md:px-6">
-          <div className="dark dark-surface reveal relative isolate overflow-hidden rounded-[2rem] border border-white/10 bg-background px-8 py-14 text-center text-foreground md:px-16 md:py-20">
+          <SelectItem>
+          <div className="dark dark-surface relative isolate overflow-hidden rounded-[2rem] border border-white/10 bg-background px-8 py-14 text-center text-foreground md:px-16 md:py-20">
             <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_120%,var(--color-brand-700),transparent_70%)]" />
             <div aria-hidden className="absolute left-[10%] top-[10%] -z-10 h-60 w-60 rounded-full bg-aurora-500/20 blur-[90px] animate-aurora" />
             <div aria-hidden className="absolute inset-0 -z-10 bg-grid" />
@@ -229,22 +245,48 @@ export default async function Home() {
               )}
             </div>
           </div>
+          </SelectItem>
         </div>
       </section>
+      </SectionStop>
+
+      {/* The latest from the blog */}
+      {latestPosts.length > 0 && (
+        <SectionStop>
+          <section className="w-full py-16 md:py-24">
+            <div className="container px-4 md:px-6">
+              <SectionHeading index="07" eyebrow="From the blog" title="Latest stories">
+                <Link href="/blog" className="group inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:border-primary/50 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  Read the blog
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+                </Link>
+              </SectionHeading>
+              <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {latestPosts.map((p) => (
+                  <SelectItem key={p.id}>
+                    <BlogPostCard p={p} headingLevel={3} />
+                  </SelectItem>
+                ))}
+              </div>
+            </div>
+          </section>
+        </SectionStop>
+      )}
 
       {/* FAQ — visible answers backing the FAQPage structured data above. */}
+      <SectionStop>
       <section className="w-full py-16 md:py-24" aria-labelledby="faq-heading">
         <div className="container grid gap-12 px-4 md:px-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
           <div className="lg:sticky lg:top-28 lg:self-start">
-            <SectionHeading index="07" eyebrow="FAQ" id="faq-heading" title="Frequently asked questions" description="Everything people usually want to know about GUCC" />
+            <SectionHeading index="08" eyebrow="FAQ" id="faq-heading" title="Frequently asked questions" description="Everything people usually want to know about GUCC" />
             <Link href="/contact" className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline">
               Still curious? Ask us <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           </div>
           <div className="space-y-3">
             {faq.map((item) => (
+              <SelectItem key={item.question} className="h-auto">
               <details
-                key={item.question}
                 className="group rounded-2xl border bg-card p-5 transition-[border-color,box-shadow] duration-300 open:border-primary/40 open:shadow-[0_12px_40px_-20px_hsl(var(--primary)/0.5)] hover:border-primary/40 md:p-6"
               >
                 <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-lg font-semibold marker:hidden [&::-webkit-details-marker]:hidden">
@@ -255,10 +297,32 @@ export default async function Home() {
                 </summary>
                 <p className="mt-3 leading-relaxed text-muted-foreground">{item.answer}</p>
               </details>
+              </SelectItem>
             ))}
           </div>
         </div>
       </section>
+      </SectionStop>
+
+      {/* Moments from the club's events */}
+      {gallery.length > 0 && (
+        <SectionStop>
+          <section className="w-full py-16 md:py-24">
+            <div className="container px-4 md:px-6">
+              <SectionHeading index="09" eyebrow="Gallery" title="Moments from GUCC" description="A look back at the club's recent events">
+                <Link href="/events?when=past" className="group inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:border-primary/50 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  All past events
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+                </Link>
+              </SectionHeading>
+              <div className="mt-12">
+                <GalleryLightbox images={gallery} label="GUCC" />
+              </div>
+            </div>
+          </section>
+        </SectionStop>
+      )}
+      </SectionThread>
     </div>
   );
 }

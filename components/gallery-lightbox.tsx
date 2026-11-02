@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SelectItem } from "@/components/live-cursors";
 
 export interface GalleryImage {
   url: string;
@@ -51,12 +52,14 @@ export function GalleryLightbox({ images, label }: { images: GalleryImage[]; lab
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
         {images.map((g, i) => (
           <li key={g.url}>
+            <SelectItem>
             <a href={g.url} onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); opener.current = e.currentTarget; setOpen(i); }}
               className="group block overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Open photo ${i + 1} of ${n}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={g.thumb} alt={g.alt ?? `${label} photo ${i + 1}`} loading="lazy" decoding="async" width={400} height={300}
                 className="aspect-4/3 w-full object-cover transition-transform duration-300 group-hover:scale-105" />
             </a>
+            </SelectItem>
           </li>
         ))}
       </ul>

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { SectionHeading } from '@/components/section-heading';
+import { SelectItem } from "@/components/live-cursors";
 
 export interface Partner {
   name: string;
@@ -29,9 +30,9 @@ export function CollaborationScroll({ partners: collaborators }: { partners: Par
 
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {collaborators.map((collab, index) => (
+            <SelectItem key={index}>
             <div
-              key={index}
-              className="lift overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+              className="lift h-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
             >
               <div className="relative w-full pt-[100%] bg-gray-50">
                 <Image
@@ -49,6 +50,7 @@ export function CollaborationScroll({ partners: collaborators }: { partners: Par
                 <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{collab.description}</p>
               </div>
             </div>
+            </SelectItem>
           ))}
         </div>
       </div>

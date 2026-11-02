@@ -2,10 +2,11 @@
 
 import { useRef, type MouseEvent } from "react";
 import {
-  MotionConfig, motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform, type MotionValue,
+  MotionConfig, motion, useMotionValue, useReducedMotion, useSpring, useTransform,
 } from "framer-motion";
 import { Building2, GraduationCap } from "lucide-react";
 import { SectionHeading } from "@/components/section-heading";
+import { SelectItem, WriteText } from "@/components/live-cursors";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -13,8 +14,8 @@ type Person = { name: string; title: string; photo: string; initials: string; me
 
 /**
  * The chairperson's message as an editorial spread: a portrait in a glowing frame that tilts towards
- * the pointer, and the message lighting up word by word as it scrolls past, signed by hand. Every
- * word is in the page from the start (only its brightness moves), and all of it is edited by
+ * the pointer, and the message written out by a cursor, signed by hand. Every word is in the page
+ * from the start, and all of it is edited by
  * leaders (Settings → Home page).
  */
 export function ChairpersonSection({ heading, subheading, person }: { heading: string; subheading: string; person: Person }) {
@@ -28,8 +29,9 @@ export function ChairpersonSection({ heading, subheading, person }: { heading: s
           <SectionHeading index="03" eyebrow="Leadership" title={heading} description={subheading} />
 
           <figure className="mt-14 grid items-center gap-14 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-20">
-            <Portrait person={person} />
+            <SelectItem className="h-auto"><Portrait person={person} /></SelectItem>
 
+            <SelectItem className="h-auto">
             <div className="relative pt-16 sm:pt-20">
               {/* A large quotation mark above the words */}
               <span aria-hidden className="pointer-events-none absolute -left-1 -top-4 select-none font-display text-[8rem] font-bold leading-none text-gradient sm:-top-6 sm:text-[10rem]">
@@ -47,6 +49,7 @@ export function ChairpersonSection({ heading, subheading, person }: { heading: s
                 </span>
               </figcaption>
             </div>
+            </SelectItem>
           </figure>
         </div>
       </section>
@@ -121,28 +124,13 @@ function Portrait({ person }: { person: Person }) {
   );
 }
 
-/** The message, its words brightening in reading order as it scrolls through the view. */
+/** The message, written out by one cursor. */
 function Message({ text }: { text: string }) {
-  const ref = useRef<HTMLQuoteElement>(null);
-  const reduce = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.85", "end 0.6"] });
-  const words = text.split(/\s+/).filter(Boolean);
   return (
-    <blockquote ref={ref} className="relative font-display text-xl leading-relaxed tracking-tight sm:text-2xl lg:text-[1.7rem] lg:leading-[1.5]">
-      <p className="flex flex-wrap gap-x-[0.3em]">
-        {words.map((w, i) => (
-          <Word key={i} progress={scrollYProgress} range={[i / words.length, (i + 1) / words.length]} still={!!reduce}>
-            {w}
-          </Word>
-        ))}
-      </p>
+    <blockquote className="relative font-display text-xl leading-relaxed tracking-tight text-foreground sm:text-2xl lg:text-[1.7rem]">
+      <p><WriteText text={text} msPerChar={17} /></p>
     </blockquote>
   );
-}
-
-function Word({ children, progress, range, still }: { children: string; progress: MotionValue<number>; range: [number, number]; still: boolean }) {
-  const opacity = useTransform(progress, range, [0.18, 1]);
-  return <motion.span style={{ opacity: still ? 1 : opacity }} className="text-foreground">{children}</motion.span>;
 }
 
 /** A hand-drawn flourish under the name, drawn once it's seen. */
