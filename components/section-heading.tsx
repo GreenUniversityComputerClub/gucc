@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { WriteText } from "@/components/live-cursors";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,7 +37,7 @@ export function SectionHeading({
         <h2 id={id} className="mt-4 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl lg:text-5xl">
           {title}
         </h2>
-        {description && <p className="mt-4 text-base leading-relaxed text-muted-foreground md:text-lg">{description}</p>}
+        {description && <p className="mt-4 text-base leading-relaxed text-muted-foreground md:text-lg">{typeof description === "string" ? <WriteText text={description} /> : description}</p>}
       </div>
       {children}
     </div>
