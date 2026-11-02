@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
+import { NavProgress } from "@/components/nav-progress";
+import { SelectionStage } from "@/components/live-cursors";
 import { Footer } from "@/components/footer";
 import FloatingChatbot from "@/components/chatbot/floating-chatbot";
 import { SignedInChrome } from "@/components/notifications/signed-in-chrome";
@@ -90,8 +92,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8f8fc" },
-    { media: "(prefers-color-scheme: dark)", color: "#070a13" },
+    { media: "(prefers-color-scheme: light)", color: "#f8f9f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#07140f" },
   ],
   colorScheme: "dark light",
   width: "device-width",
@@ -129,10 +131,11 @@ export default async function RootLayout({
           enableSystem={true}
           disableTransitionOnChange={false}
         >
+          <NavProgress />
           <div className="flex min-h-screen flex-col">
             <Navbar executivesHref={executivesYear ? `/executives/${executivesYear}` : "/executives"}
               services={(services?.items ?? []).filter((i) => i.visible !== false && typeof i.href === "string" && i.href.startsWith("/"))} />
-            <main id="main-content" className="flex-1">{children}</main>
+            <SelectionStage id="main-content" className="flex-1">{children}</SelectionStage>
             <Footer />
             <FloatingChatbot />
             <SignedInChrome />

@@ -175,12 +175,12 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
     {/* A floating glass capsule, 64 px tall with its margin (as the pages below expect). Over the
         home page's night-sky hero it is see-through and always dark; it frosts and tightens once
         the page scrolls. */}
-    <header className={cn("sticky top-0 z-50 w-full px-2 pt-2 sm:px-4", overHero && "dark dark-surface")}>
+    <header className={cn("sticky top-0 z-50 w-full px-2 pt-2 sm:px-4")}>
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-popover focus:px-3 focus:py-2 focus:text-popover-foreground">Skip to content</a>
       <div className={cn(
         "relative mx-auto flex h-14 items-center gap-2 rounded-full border pl-2 pr-1.5 text-foreground transition-[max-width,background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
         overHero
-          ? "max-w-[1400px] border-white/10 bg-white/[0.04] backdrop-blur-md"
+          ? "max-w-[1400px] border-foreground/10 bg-background/30 backdrop-blur-md"
           : "max-w-6xl border-foreground/10 bg-background/70 shadow-[0_10px_40px_-14px_hsl(var(--primary)/0.35),inset_0_1px_0_hsl(var(--foreground)/0.06)] backdrop-blur-2xl backdrop-saturate-150",
       )}>
         {/* A thin light along the capsule's top edge */}
@@ -195,7 +195,7 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
           {/* The name gives way to the links where they need the room (1024–1279 px), and on phones
               to the messages and notifications buttons of a signed-in member. */}
           <span className={cn("hidden leading-none lg:hidden xl:block", signedIn ? "sm:block" : "min-[380px]:block")} aria-hidden>
-            <span className="block font-display text-[15px] font-bold tracking-tight">GUCC</span>
+            <span className="block font-display text-[15px] font-bold tracking-tight">Green University</span>
             <span className="mt-1 block font-mono text-[9.5px] font-medium uppercase tracking-[0.2em] text-muted-foreground">Computer Club</span>
           </span>
         </Link>
@@ -210,13 +210,13 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
                   <Link href={l.href} aria-current={active ? "page" : undefined}
                     onMouseEnter={() => setHovered(l.label)} onFocus={() => setHovered(l.label)} onBlur={() => setHovered(null)}
                     className={cn("relative isolate flex h-10 items-center rounded-full px-3.5 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      active ? "text-foreground" : "text-muted-foreground hover:text-foreground")}>
+                      active ? "text-bright" : "text-muted-foreground hover:text-foreground")}>
                     {hovered === l.label && (
                       <motion.span layoutId="nav-hover" aria-hidden className="absolute inset-0 -z-10 rounded-full bg-foreground/[0.07]"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.45 }} />
                     )}
                     {active && (
-                      <motion.span layoutId="nav-active" aria-hidden className="absolute inset-x-3 bottom-1 -z-10 h-[2px] rounded-full bg-gradient-to-r from-primary to-secondary shadow-[0_0_10px_1px] shadow-primary/70"
+                      <motion.span layoutId="nav-active" aria-hidden className="absolute inset-x-3 bottom-1 -z-10 h-[2px] rounded-full bg-bright shadow-[0_0_10px_1px] shadow-bright/70"
                         transition={{ type: "spring", bounce: 0.25, duration: 0.55 }} />
                     )}
                     {l.label}
@@ -230,13 +230,13 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
                   <DropdownMenuTrigger asChild>
                     <button type="button" onMouseEnter={() => setHovered("Services")}
                       className={cn("group relative isolate inline-flex h-10 items-center gap-1 rounded-full px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        servicesActive ? "text-foreground" : "text-muted-foreground hover:text-foreground")}>
+                        servicesActive ? "text-bright" : "text-muted-foreground hover:text-foreground")}>
                       {hovered === "Services" && (
                         <motion.span layoutId="nav-hover" aria-hidden className="absolute inset-0 -z-10 rounded-full bg-foreground/[0.07]"
                           transition={{ type: "spring", bounce: 0.2, duration: 0.45 }} />
                       )}
                       {servicesActive && (
-                        <motion.span layoutId="nav-active" aria-hidden className="absolute inset-x-3 bottom-1 -z-10 h-[2px] rounded-full bg-gradient-to-r from-primary to-secondary shadow-[0_0_10px_1px] shadow-primary/70" />
+                        <motion.span layoutId="nav-active" aria-hidden className="absolute inset-x-3 bottom-1 -z-10 h-[2px] rounded-full bg-bright shadow-[0_0_10px_1px] shadow-bright/70" />
                       )}
                       Services
                       <ChevronDown className="h-4 w-4 transition-transform duration-300 group-data-[state=open]:rotate-180" aria-hidden />
@@ -279,7 +279,7 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
             </Link>
           )}
           <Link href="/join"
-            className="group relative hidden h-11 items-center gap-1.5 overflow-hidden rounded-full bg-gradient-to-r from-brand-600 to-aurora-700 pl-5 pr-4 text-sm font-semibold text-white shadow-[0_0_24px_-6px] shadow-brand-500/70 transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:shadow-brand-500/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:from-brand-400 dark:to-aurora-400 dark:text-slate-950 sm:inline-flex">
+            className="group relative hidden h-11 items-center gap-1.5 overflow-hidden rounded-full bg-gradient-to-r from-brand-800 to-brand-700 pl-5 pr-4 text-sm font-semibold text-white shadow-[0_0_24px_-6px] shadow-brand-500/70 transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:shadow-brand-500/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:from-brand-400 dark:to-aurora-400 dark:text-slate-950 sm:inline-flex">
             <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
             Join Us
             <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden />
@@ -347,7 +347,7 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     <Button asChild variant="outline" className="h-12 rounded-full"><Link href={signInHref} onClick={closeMenu}><LogIn className="mr-2 h-4 w-4" aria-hidden />Sign in</Link></Button>
-                    <Link href="/join" onClick={closeMenu} className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-600 to-aurora-700 text-sm font-semibold text-white dark:from-brand-400 dark:to-aurora-400 dark:text-slate-950">
+                    <Link href="/join" onClick={closeMenu} className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-800 to-brand-700 text-sm font-semibold text-white dark:from-brand-400 dark:to-aurora-400 dark:text-slate-950">
                       <UserPlus className="h-4 w-4" aria-hidden />Join Us
                     </Link>
                   </div>
