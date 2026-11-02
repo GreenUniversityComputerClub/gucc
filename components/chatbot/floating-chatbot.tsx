@@ -97,8 +97,8 @@ function FloatingChatbot() {
             "fixed z-50 shadow-2xl overflow-hidden flex flex-col transition-all duration-300",
             "animate-in fade-in slide-in-from-bottom-5 duration-200",
             isChatbotDark
-              ? "border border-brand-950/40 bg-[#080b18] text-zinc-100"
-              : "border border-brand-100 bg-[#f7f6fd] text-zinc-900",
+              ? "border border-brand-950/40 bg-[#07140f] text-zinc-100"
+              : "border border-brand-100 bg-[#f4fbf6] text-zinc-900",
             // dvh: the on-screen keyboard shrinks the chat instead of covering its input.
             "bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 left-4 h-[500px] max-h-[80dvh] rounded-2xl",
             "sm:left-auto sm:bottom-6 sm:right-6 sm:w-[340px] sm:h-[520px] sm:max-h-[85dvh]",

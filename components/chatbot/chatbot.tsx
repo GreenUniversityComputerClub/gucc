@@ -242,7 +242,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
       {/* Header */}
       <div className={cn(
         "px-4 py-3 border-b flex-shrink-0 flex items-center justify-between",
-        isChatbotDark ? "bg-[#0b0f22]/60 border-brand-950/30" : "bg-zinc-50 border-zinc-200"
+        isChatbotDark ? "bg-[#0a1c15]/60 border-brand-950/30" : "bg-zinc-50 border-zinc-200"
       )}>
         <div className="flex items-center gap-3">
           <div className={cn(
@@ -278,7 +278,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             className={cn(
               "p-2 rounded-lg transition-colors",
               isChatbotDark
-                ? "hover:bg-[#1c1a44]/50 text-brand-400 hover:text-brand-200"
+                ? "hover:bg-[#14352a]/50 text-brand-400 hover:text-brand-200"
                 : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800"
             )}
             aria-label="New chat"
@@ -294,7 +294,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             className={cn(
               "p-2 rounded-lg transition-colors",
               isChatbotDark
-                ? "hover:bg-[#1c1a44]/50 text-brand-400 hover:text-brand-200"
+                ? "hover:bg-[#14352a]/50 text-brand-400 hover:text-brand-200"
                 : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800"
             )}
             aria-label="Close"
@@ -306,7 +306,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
       </div>
 
       {/* Scrollable Content Area */}
-      <div className={cn("flex-grow overflow-hidden relative", isChatbotDark ? "bg-[#080b18]" : "bg-[#f7f6fd]")}>
+      <div className={cn("flex-grow overflow-hidden relative", isChatbotDark ? "bg-[#07140f]" : "bg-[#f4fbf6]")}>
         {error && (
           <Alert variant="destructive" className="m-3 pr-10" role="alert">
             <AlertCircle className="h-4 w-4" />
@@ -340,7 +340,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                       className={cn(
                         "w-full justify-start text-left text-xs py-3 px-4 rounded-xl transition-all font-normal whitespace-normal h-auto min-h-[44px] border",
                         isChatbotDark
-                          ? "bg-[#0e1230]/50 border-brand-900/25 hover:bg-[#1c1a44]/50 hover:border-brand-500/30 hover:text-brand-100 text-brand-200/90"
+                          ? "bg-[#0c2219]/50 border-brand-900/25 hover:bg-[#14352a]/50 hover:border-brand-500/30 hover:text-brand-100 text-brand-200/90"
                           : "bg-white border-brand-200 hover:bg-brand-50/50 hover:text-brand-900 text-brand-800"
                       )}
                     >
@@ -360,7 +360,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                         ? "ml-auto bg-brand-600 text-white rounded-tr-none"
                         : cn("mr-auto rounded-tl-none border",
                             isChatbotDark
-                              ? "bg-[#13173a] text-brand-100 border-brand-900/30"
+                              ? "bg-[#0f2a20] text-brand-100 border-brand-900/30"
                               : "bg-white text-zinc-800 border-zinc-200"),
                       "max-w-[85%] sm:max-w-[80%]",
                     )}
@@ -394,7 +394,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                   <div className={cn(
                     "flex flex-col max-w-[85%] sm:max-w-[80%] rounded-2xl rounded-tl-none p-3 sm:p-4 mr-auto border shadow-sm",
                     isChatbotDark
-                      ? "bg-[#13173a] text-brand-100 border-brand-900/30"
+                      ? "bg-[#0f2a20] text-brand-100 border-brand-900/30"
                       : "bg-white text-zinc-800 border-zinc-200"
                   )}>
                     <div className="flex items-center gap-2">
@@ -408,7 +408,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                 {showSuggestions && messages.length > 0 && messages[messages.length - 1].role === "model" && (
                   <div className={cn(
                     "my-4 p-3 border rounded-xl max-w-3xl mx-auto shadow-sm",
-                    isChatbotDark ? "bg-[#0a0d1f]/30 border-brand-950/40" : "bg-white border-zinc-200"
+                    isChatbotDark ? "bg-[#081a13]/30 border-brand-950/40" : "bg-white border-zinc-200"
                   )}>
                     <p className={cn("text-[10px] font-bold tracking-wider uppercase mb-2", isChatbotDark && "text-brand-500/60 font-semibold")}>
                       You might also want to ask:
@@ -425,7 +425,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
                             className={cn(
                               "w-full text-left justify-start text-xs py-2 px-3 h-auto min-h-[36px] rounded-lg font-normal whitespace-normal border transition-all",
                               isChatbotDark
-                                ? "bg-[#0e1230]/60 hover:bg-[#1c1a44]/50 hover:text-brand-100 hover:border-brand-500/30 text-brand-200/90 border-brand-900/25"
+                                ? "bg-[#0c2219]/60 hover:bg-[#14352a]/50 hover:text-brand-100 hover:border-brand-500/30 text-brand-200/90 border-brand-900/25"
                                 : "bg-white hover:bg-brand-50/50 hover:text-brand-900 text-brand-800 border-brand-200"
                             )}
                           >
@@ -446,7 +446,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
       {/* Fixed Input Area */}
       <div className={cn(
         "p-3 border-t flex-shrink-0",
-        isChatbotDark ? "border-brand-950/40 bg-[#080b18]" : "border-zinc-200 bg-[#f7f6fd]"
+        isChatbotDark ? "border-brand-950/40 bg-[#07140f]" : "border-zinc-200 bg-[#f4fbf6]"
       )}>
         <div className="flex gap-2 max-w-4xl mx-auto items-center">
           <input
@@ -462,7 +462,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
             className={cn(
               "flex-1 min-w-0 rounded-full h-11 text-base sm:text-sm pl-4 pr-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 border",
               isChatbotDark
-                ? "bg-[#0e1230] border-brand-900/30 text-brand-50 placeholder-brand-700/60"
+                ? "bg-[#0c2219] border-brand-900/30 text-brand-50 placeholder-brand-700/60"
                 : "bg-white text-brand-950 placeholder-brand-700/50"
             )}
           />
@@ -476,7 +476,7 @@ export default function Chatbot({ onClose, isChatbotDark = false }: { onClose?: 
               userInput.trim()
                 ? "bg-brand-600 hover:bg-brand-500 text-white shadow-md"
                 : (isChatbotDark
-                    ? "bg-[#0e1230] border-brand-950/40 text-brand-800/40 cursor-not-allowed"
+                    ? "bg-[#0c2219] border-brand-950/40 text-brand-800/40 cursor-not-allowed"
                     : "bg-brand-50/50 border-brand-100 text-brand-400 cursor-not-allowed")
             )}
           >

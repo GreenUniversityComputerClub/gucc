@@ -356,7 +356,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
 
   return (
     // The board is designed dark: `dark dark-surface` keeps its text and fields in the dark palette in light mode too.
-    <div className="dark dark-surface min-h-screen bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-950 via-slate-950 to-slate-950 text-foreground">
+    <div className="dark dark-surface min-h-screen bg-[#07140f] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-950 via-[#07140f] to-[#07140f] text-foreground">
       {confirmDialog}
       {notice && <p role="status" className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-lg border bg-background p-3 text-center text-sm shadow-lg" onClick={() => setNotice(null)}>{notice}</p>}
       <section className="relative overflow-hidden">
@@ -399,7 +399,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                 </div>
               </div>
             </div>
-            <Card className="border-brand-500/30 bg-slate-950/60 text-slate-100 shadow-xl">
+            <Card className="border-brand-500/30 bg-brand-950/60 text-slate-100 shadow-xl">
               <CardHeader>
                 <CardTitle className="text-lg">Live pulse</CardTitle>
                 <CardDescription className="text-slate-300">
@@ -410,7 +410,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                 {heroStats.map((stat) => (
                   <div
                     key={stat.label}
-                    className="flex items-center justify-between rounded-lg border border-brand-500/20 bg-slate-950/70 px-4 py-3"
+                    className="flex items-center justify-between rounded-lg border border-brand-500/20 bg-brand-950/70 px-4 py-3"
                   >
                     <span className="text-sm text-slate-300">{stat.label}</span>
                     <span className="text-2xl font-semibold text-brand-200">{stat.value}</span>
@@ -423,7 +423,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
       </section>
 
       <section id="board" className="container -mt-8 scroll-mt-20 pb-16">
-        <Card className="border border-slate-800 bg-slate-950/80 shadow-2xl">
+        <Card className="border border-slate-800 bg-brand-950/80 shadow-2xl">
           <CardHeader>
             <CardTitle className="text-2xl">Lost & Found Board</CardTitle>
             <CardDescription className="text-slate-400">
@@ -432,7 +432,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
           </CardHeader>
           <CardContent>
             <Tabs value={tab} onValueChange={setTab} className="w-full">
-              <TabsList className={`grid h-auto w-full bg-slate-900/60 ${isAdmin ? "grid-cols-3 md:grid-cols-5" : "grid-cols-2 sm:grid-cols-4"}`}>
+              <TabsList className={`grid h-auto w-full bg-brand-950/60 ${isAdmin ? "grid-cols-3 md:grid-cols-5" : "grid-cols-2 sm:grid-cols-4"}`}>
                 <TabsTrigger value="browse" className="min-h-10">Browse</TabsTrigger>
                 <TabsTrigger value="report" className="min-h-10">Report</TabsTrigger>
                 <TabsTrigger value="mine" className="min-h-10">My posts</TabsTrigger>
@@ -441,7 +441,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
               </TabsList>
 
               <TabsContent value="browse" className="space-y-6 pt-6">
-                <Card className="border border-slate-800 bg-slate-950/60">
+                <Card className="border border-slate-800 bg-brand-950/60">
                   <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
                       <CardTitle className="text-lg">Search and filter</CardTitle>
@@ -577,7 +577,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                 </div>
 
                 {!isLoadingPosts && posts.length === 0 && (
-                  <div className="rounded-lg border border-dashed border-slate-700 bg-slate-900/40 p-8 text-center text-sm text-slate-300">
+                  <div className="rounded-lg border border-dashed border-slate-700 bg-brand-950/40 p-8 text-center text-sm text-slate-300">
                     <p>No posts match these filters.</p>
                     <div className="mt-3 flex flex-wrap justify-center gap-2">
                       <Button type="button" variant="outline" className="border-slate-700 text-slate-200" onClick={resetFilters}>Reset filters</Button>
@@ -587,7 +587,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                 )}
                 <div className="grid gap-6 lg:grid-cols-2">
                   {posts.map((post) => (
-                    <Card key={post.id} className="border border-slate-800 bg-slate-950/60">
+                    <Card key={post.id} className="border border-slate-800 bg-brand-950/60">
                       <CardHeader className="space-y-3">
                         <div className="flex items-start justify-between gap-4">
                           <div>
@@ -666,7 +666,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
               </TabsContent>
 
               <TabsContent value="report" className="pt-6">
-                <Card className="border border-slate-800 bg-slate-950/60">
+                <Card className="border border-slate-800 bg-brand-950/60">
                   <CardHeader>
                     <CardTitle className="text-lg">Create a report</CardTitle>
                     <CardDescription className="text-slate-400">
@@ -690,7 +690,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                       </div>
                     ) : (
                       <form className="space-y-6" onSubmit={handleSubmit}>
-                        <p className="rounded-lg border border-slate-700 bg-slate-900/40 p-3 text-xs text-slate-300">
+                        <p className="rounded-lg border border-slate-700 bg-brand-950/40 p-3 text-xs text-slate-300">
                           Please don&apos;t post photos that show ID numbers, phone numbers or other private details. A moderator reviews every post first.
                         </p>
                         <div className="grid gap-4 md:grid-cols-2">
@@ -867,7 +867,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
               </TabsContent>
 
               <TabsContent value="mine" className="pt-6">
-                <Card className="border border-slate-800 bg-slate-950/60">
+                <Card className="border border-slate-800 bg-brand-950/60">
                   <CardHeader>
                     <CardTitle className="text-lg">My posts</CardTitle>
                     <CardDescription className="text-slate-400">
@@ -876,20 +876,20 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {!userId ? (
-                      <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-300">
+                      <div className="rounded-lg border border-slate-700 bg-brand-950/40 p-4 text-sm text-slate-300">
                         <a href="/auth/login?next=/lost-found%23mine" className="underline">Sign in</a> to see your posts.
                       </div>
                     ) : myPosts === null ? (
                       <p className="text-sm text-slate-400" role="status">Loading your posts…</p>
                     ) : myPosts.length === 0 ? (
-                      <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-300">
+                      <div className="rounded-lg border border-slate-700 bg-brand-950/40 p-4 text-sm text-slate-300">
                         You haven&apos;t posted anything yet.{" "}
                         <button type="button" className="underline" onClick={() => openTab("report")}>Report a lost or found item</button>
                       </div>
                     ) : (
                       <ul className="space-y-3">
                         {myPosts.map((post) => (
-                          <li key={post.id} className="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
+                          <li key={post.id} className="rounded-lg border border-slate-800 bg-brand-950/40 p-4">
                             <div className="flex flex-wrap items-center gap-2">
                               <Badge variant="outline" className={typeStyles[post.type]}>{typeLabels[post.type]}</Badge>
                               <Badge variant="outline" className={statusStyles[post.status]}>{post.status === "rejected" ? "Needs changes" : post.status === "pending" ? "Waiting for review" : statusLabels[post.status]}</Badge>
@@ -926,7 +926,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
               </TabsContent>
 
               <TabsContent value="inbox" className="pt-6">
-                <Card className="border border-slate-800 bg-slate-950/60">
+                <Card className="border border-slate-800 bg-brand-950/60">
                   <CardHeader>
                     <CardTitle className="text-lg">Inbox</CardTitle>
                     <CardDescription className="text-slate-400">
@@ -935,7 +935,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {!userEmail ? (
-                      <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-300">
+                      <div className="rounded-lg border border-slate-700 bg-brand-950/40 p-4 text-sm text-slate-300">
                         Log in to see your inbox.
                       </div>
                     ) : (
@@ -948,13 +948,13 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                           {isLoadingInbox ? "Refreshing..." : "Refresh inbox"}
                         </Button>
                         {inboxMessages.length === 0 ? (
-                          <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-300">
+                          <div className="rounded-lg border border-slate-700 bg-brand-950/40 p-4 text-sm text-slate-300">
                             No messages yet.
                           </div>
                         ) : (
                           <div className="space-y-4">
                             {inboxMessages.map((message) => (
-                              <Card key={message.id} className="border border-slate-800 bg-slate-950/60">
+                              <Card key={message.id} className="border border-slate-800 bg-brand-950/60">
                                 <CardHeader>
                                   <CardTitle className="text-base">
                                     {message.post?.title || "Lost & Found"}
@@ -981,7 +981,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
 
               {isAdmin && (
                 <TabsContent value="admin" className="pt-6">
-                  <Card className="border border-slate-800 bg-slate-950/60">
+                  <Card className="border border-slate-800 bg-brand-950/60">
                     <CardHeader>
                       <CardTitle className="text-lg">Admin moderation</CardTitle>
                       <CardDescription className="text-slate-400">
@@ -990,7 +990,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {posts.filter((post) => post.status === "pending").length === 0 ? (
-                        <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-300">
+                        <div className="rounded-lg border border-slate-700 bg-brand-950/40 p-4 text-sm text-slate-300">
                           No pending posts right now.
                         </div>
                       ) : (
@@ -998,7 +998,7 @@ export function LostFoundClient({ config }: { config: { categories: string[]; lo
                           {posts
                             .filter((post) => post.status === "pending")
                             .map((post) => (
-                              <Card key={post.id} className="border border-slate-800 bg-slate-950/60">
+                              <Card key={post.id} className="border border-slate-800 bg-brand-950/60">
                                 <CardHeader>
                                   <CardTitle className="text-base">{post.title}</CardTitle>
                                   <CardDescription className="text-slate-400">
@@ -1095,7 +1095,7 @@ function MessageDialog({
           {buttonLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent className="border border-slate-800 bg-slate-950 text-slate-100">
+      <DialogContent className="border border-slate-800 bg-[#07140f] text-slate-100">
         <DialogHeader>
           <DialogTitle>Send a message</DialogTitle>
           <DialogDescription className="text-slate-400">
@@ -1109,7 +1109,7 @@ function MessageDialog({
             placeholder="Share where you saw the item or how to verify ownership."
           />
           {feedback && (
-            <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-3 text-sm text-slate-300">
+            <div className="rounded-lg border border-slate-700 bg-brand-950/40 p-3 text-sm text-slate-300">
               {feedback}
               {conversation && <> <a href={`/dashboard/chat/${conversation}`} className="underline">Continue in Messages</a></>}
             </div>
