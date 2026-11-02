@@ -8,6 +8,7 @@ import { absoluteUrl } from "@/lib/seo/site";
 import type { SponsorPackage, SponsorshipContent } from "@/lib/sponsorship/content";
 import { visibleSections, type BlockData, type SectionedContent } from "@/lib/sponsorship/sections";
 import { SponsorshipView } from "@/components/sponsorship/sponsorship-view";
+import { SelectAll } from "@/components/live-cursors";
 
 // Cached; refreshed when a sponsorship page is edited in the dashboard.
 export const revalidate = 21600;
@@ -90,7 +91,7 @@ export default async function SponsorshipPage({ params }: { params: Promise<{ sl
           mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
         },
       )} />
-      <SponsorshipView content={content} />
+      <SelectAll selector=".sp-reveal"><SponsorshipView content={content} /></SelectAll>
     </>
   );
 }

@@ -7,6 +7,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { breadcrumbSchema, graph, webPageSchema } from "@/lib/seo/schema";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { SelectItem } from "@/components/live-cursors";
 
 // Cached; refreshed when a sponsorship page is edited in the dashboard.
 export const revalidate = 21600;
@@ -55,12 +56,12 @@ export default async function BecomeASponsor() {
           </div>
         ) : (
           <div className="mt-12 space-y-6">
-            {featured && <OpportunityCard page={featured} featured />}
+            {featured && <SelectItem className="h-auto"><OpportunityCard page={featured} featured /></SelectItem>}
             {others.length > 0 && (
               <section aria-label="More sponsorship opportunities">
                 {featured && <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">More opportunities</h2>}
                 <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {others.map((p) => <li key={p.slug} className="h-full"><OpportunityCard page={p} level={featured ? "h3" : "h2"} /></li>)}
+                  {others.map((p) => <li key={p.slug} className="h-full"><SelectItem><OpportunityCard page={p} level={featured ? "h3" : "h2"} /></SelectItem></li>)}
                 </ul>
               </section>
             )}

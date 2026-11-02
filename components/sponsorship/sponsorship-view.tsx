@@ -17,6 +17,7 @@ import {
 import { renderMarkdown } from "@/lib/markdown";
 import type { SponsorIcon, SponsorshipContent, SponsorPackage, SponsorProgram, SponsorReason, SponsorAchievement, SponsorOpportunity, SponsorContact, SponsorComparison } from "@/lib/sponsorship/content";
 import { ACCENTS, comparisonTiers, comparisonValue, isBlock, SECTION_LABEL, visibleSections, type BlockData, type SectionedContent, type SectionEntry } from "@/lib/sponsorship/sections";
+import { WriteText } from "@/components/live-cursors";
 import { cn } from "@/lib/utils";
 import { TypedPhrases } from "./typing";
 import { PartnersStrip, type Partner } from "./partners";
@@ -390,7 +391,7 @@ function Hero({ c, event, heroSubtitle, phrases, stats, ctaHref, secondary }: {
             <h1 className="mb-6 text-balance text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
               {title ?? <>Become <span className="bg-gradient-to-r from-sp via-emerald-500 to-teal-500 bg-clip-text text-transparent">Our Partner</span></>}
             </h1>
-            <p className="mb-4 max-w-xl text-pretty text-lg leading-relaxed text-muted-foreground sm:text-xl">{heroSubtitle}</p>
+            <p className="mb-4 max-w-xl text-pretty text-lg leading-relaxed text-muted-foreground sm:text-xl"><WriteText text={heroSubtitle} immediate /></p>
             <div className="mb-8 flex flex-wrap items-center gap-3">
               {event.name && (
                 <span className="inline-flex items-center gap-2 rounded-xl border border-sp/20 bg-sp/10 px-3 py-1.5 text-sm font-semibold text-sp">
