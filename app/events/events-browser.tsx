@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { countdown, eventPhase, eventStart, type EventPhase } from "./event-status";
 import { EventTile } from "./event-tile";
 import { PageHero } from "@/components/page-hero";
+import { SelectItem } from "@/components/live-cursors";
 
 /** Events per page: four rows of three on desktop. */
 const PAGE_SIZE = 12;
@@ -130,14 +131,14 @@ export function EventsBrowser({ events }: { events: ClubEvent[] }) {
       description="Seminars, workshops, programming contests, hackathons and cultural programmes hosted by the Green University Computer Club at Green University of Bangladesh."
       aside={next && (
         <Link href={`/events/${next.slug}`} className="glass glow-border group relative flex items-center gap-4 rounded-3xl p-4 transition-transform duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <span className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-brand-400 to-aurora-400 text-slate-950 shadow-[0_0_30px_-8px] shadow-brand-400/70">
+          <span className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-brand-800 to-brand-700 dark:from-brand-400 dark:to-aurora-400 text-white dark:text-slate-950 shadow-[0_0_30px_-8px] shadow-brand-400/70">
             <span className="text-[10px] font-bold uppercase tracking-wider">{new Date(next.startAt ?? `${next.date}T00:00:00+06:00`).toLocaleDateString("en-GB", { timeZone: TZ, month: "short" })}</span>
             <span className="font-display text-2xl font-bold leading-none">{new Date(next.startAt ?? `${next.date}T00:00:00+06:00`).toLocaleDateString("en-GB", { timeZone: TZ, day: "numeric" })}</span>
           </span>
           <span className="min-w-0">
-            <span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.15em] text-aurora-300"><Sparkles className="h-3.5 w-3.5" aria-hidden />{eventPhase(next, now!) === "live" ? "Happening now" : `Next up · ${countdown(next, now!) ?? ""}`}</span>
-            <span className="mt-1 line-clamp-2 font-display font-semibold text-white group-hover:underline">{next.name}</span>
-            {next.registrationOpen && <span className="text-xs text-white/70">Registration is open</span>}
+            <span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.15em] text-secondary"><Sparkles className="h-3.5 w-3.5" aria-hidden />{eventPhase(next, now!) === "live" ? "Happening now" : `Next up · ${countdown(next, now!) ?? ""}`}</span>
+            <span className="mt-1 line-clamp-2 font-display font-semibold text-foreground group-hover:underline">{next.name}</span>
+            {next.registrationOpen && <span className="text-xs text-foreground/70">Registration is open</span>}
           </span>
         </Link>
       )}
@@ -180,7 +181,7 @@ export function EventsBrowser({ events }: { events: ClubEvent[] }) {
       )}
 
       <div ref={gridRef} className="grid scroll-mt-40 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {pageEvents.map((event, index) => <EventTile key={event.slug} event={event} phase={phaseOf(event)} priority={index < 3} now={now} />)}
+        {pageEvents.map((event, index) => <SelectItem key={event.slug}><EventTile event={event} phase={phaseOf(event)} priority={index < 3} now={now} /></SelectItem>)}
       </div>
 
       {filteredEvents.length === 0 && (

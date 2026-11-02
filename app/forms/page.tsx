@@ -95,10 +95,10 @@ export default async function FormsIndex() {
     <PageHero
       breadcrumb={
         <nav aria-label="Breadcrumb">
-          <ol className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.15em] text-white/60">
-            <li><Link href="/" className="transition-colors hover:text-white">Home</Link></li>
+          <ol className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.15em] text-foreground/60">
+            <li><Link href="/" className="transition-colors hover:text-foreground">Home</Link></li>
             <li aria-hidden>/</li>
-            <li aria-current="page" className="text-aurora-300">Forms</li>
+            <li aria-current="page" className="text-secondary">Forms</li>
           </ol>
         </nav>
       }

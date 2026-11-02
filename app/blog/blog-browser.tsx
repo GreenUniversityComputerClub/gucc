@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BlogPostCard as Card, type BlogCard } from "./blog-card";
+import { SelectItem } from "@/components/live-cursors";
 
 export type { BlogCard };
 
@@ -73,7 +74,7 @@ export function BlogBrowser({ posts, initialTag }: { posts: BlogCard[]; initialT
         <>
           {first && !filtering && <Card p={first} featured eager />}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {(filtering ? list : rest).slice(0, shown).map((p, i) => <Card key={p.id} p={p} eager={filtering && i < 3} />)}
+            {(filtering ? list : rest).slice(0, shown).map((p, i) => <SelectItem key={p.id}><Card p={p} eager={filtering && i < 3} /></SelectItem>)}
           </div>
           {(filtering ? list : rest).length > shown && (
             <div className="flex justify-center">

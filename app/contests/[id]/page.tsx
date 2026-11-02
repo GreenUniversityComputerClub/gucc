@@ -16,6 +16,7 @@ import { buildMetadata, truncate } from "@/lib/seo/metadata";
 import { breadcrumbSchema, graph, itemListSchema, webPageSchema } from "@/lib/seo/schema";
 import { PageHero } from "@/components/page-hero";
 import { ArrowLeft, Trophy } from "lucide-react";
+import { SelectItem } from "@/components/live-cursors";
 
 interface Team {
   name: string;
@@ -112,7 +113,7 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
     <>
     <PageHero
       breadcrumb={
-        <Link href="/contests" className="glass inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Link href="/contests" className="glass inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-medium text-foreground transition-colors hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ArrowLeft className="h-4 w-4" aria-hidden />All contests
         </Link>
       }
@@ -156,7 +157,7 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
         {/* Team Performance */}
         <div className="grid gap-6 md:grid-cols-2">
           {contest.teams.map((team) => (
-            <Card key={team.name} className="lift relative overflow-hidden rounded-3xl">
+            <SelectItem key={team.name}><Card className="lift relative h-full overflow-hidden rounded-3xl">
               <div aria-hidden className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/15 blur-3xl" />
               <CardHeader className="relative flex flex-row items-start justify-between gap-4">
                 <div>
@@ -178,7 +179,7 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
                   </ul>
                 </div>
               </CardContent>
-            </Card>
+            </Card></SelectItem>
           ))}
         </div>
 
@@ -188,7 +189,7 @@ export default async function ContestPage({ params }: { params: Promise<{ id: st
             <CardTitle className="font-display text-xl">Contest resources</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-3">
               <Button asChild className="rounded-full">
                 <Link href={contest.contestLink}>Contest Page</Link>
               </Button>

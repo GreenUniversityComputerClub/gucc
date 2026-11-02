@@ -43,21 +43,21 @@ export function ExecutivesHeader({
 
   const breadcrumb = (
     <nav aria-label="Breadcrumb">
-      <ol className="flex flex-wrap items-center gap-1 font-mono text-xs uppercase tracking-[0.15em] text-white/60">
+      <ol className="flex flex-wrap items-center gap-1 font-mono text-xs uppercase tracking-[0.15em] text-foreground/60">
         <li className="flex items-center gap-1">
-          <Link href="/" className="-my-2.5 inline-block py-2.5 transition-colors hover:text-white">
+          <Link href="/" className="-my-2.5 inline-block py-2.5 transition-colors hover:text-foreground">
             Home
           </Link>
           <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
         </li>
         <li className="flex items-center gap-1">
           {isIndex ? (
-            <span className="font-medium text-aurora-300">Executives</span>
+            <span className="font-medium text-secondary">Executives</span>
           ) : (
             <>
               <Link
                 href="/executives"
-                className="-my-2.5 inline-block py-2.5 transition-colors hover:text-white"
+                className="-my-2.5 inline-block py-2.5 transition-colors hover:text-foreground"
               >
                 Executives
               </Link>
@@ -66,18 +66,18 @@ export function ExecutivesHeader({
           )}
         </li>
         {currentYear && (
-          <li className="font-medium text-aurora-300">{currentYear}</li>
+          <li className="font-medium text-secondary">{currentYear}</li>
         )}
         {profileRole && (
           <li className="flex items-center gap-1">
             <Link
               href={`/executives/${profileRole.year}`}
-              className="-my-2.5 inline-block py-2.5 transition-colors hover:text-white"
+              className="-my-2.5 inline-block py-2.5 transition-colors hover:text-foreground"
             >
               {profileRole.year}
             </Link>
             <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="font-medium text-aurora-300">
+            <span className="font-medium text-secondary">
               {profileRole.name}
             </span>
           </li>
@@ -113,7 +113,7 @@ export function ExecutivesHeader({
                   // The tabs switch pages (there's no tab panel here), so they don't point
                   // at one: a dangling aria-controls is an accessibility error.
                   <TabsTrigger key={year} value={year} aria-controls={undefined}
-                    className="h-9 rounded-full px-4 font-mono text-sm text-white/70 transition-colors hover:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-brand-400 data-[state=active]:to-aurora-400 data-[state=active]:text-slate-950 data-[state=active]:shadow-[0_0_20px_-4px] data-[state=active]:shadow-brand-400/70">
+                    className="h-9 rounded-full px-4 font-mono text-sm text-foreground/70 transition-colors hover:text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-brand-400 data-[state=active]:to-aurora-400 data-[state=active]:text-slate-950 data-[state=active]:shadow-[0_0_20px_-4px] data-[state=active]:shadow-brand-400/70">
                     <span className="hidden md:inline">{year}</span>
                     <span className="md:hidden">{year.slice(-2)}</span>
                   </TabsTrigger>

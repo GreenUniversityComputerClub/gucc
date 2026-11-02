@@ -268,7 +268,7 @@ export default function PostContent({ post, mdx, extras }: PostContentProps) {
                 <li key={r.slug}>
                   <Link href={`/blog/${r.slug}`} className="group block overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {r.cover ? <img src={r.cover} alt="" loading="lazy" className="aspect-video w-full object-cover transition-transform group-hover:scale-105" /> : <div className="aspect-video bg-gradient-to-br from-brand-600 to-aurora-700" aria-hidden />}
+                    {r.cover ? <img src={r.cover} alt="" loading="lazy" className="aspect-video w-full object-cover transition-transform group-hover:scale-105" /> : <div className="aspect-video bg-gradient-to-br from-brand-800 to-brand-700" aria-hidden />}
                     <span className="line-clamp-2 block p-3 text-sm font-semibold group-hover:text-brand-600">{r.title}</span>
                   </Link>
                 </li>

@@ -64,6 +64,7 @@ export function ExecutivesEditorProvider({ year, children }: { year: string; chi
   return <EditorContext.Provider value={{ year, canEdit, resizeMode: canEdit && resizeMode, setResizeMode }}>{children}</EditorContext.Provider>;
 }
 import { mailtoHref } from "@/lib/utils";
+import { SelectItem } from "@/components/live-cursors";
 
 /** An executive's links (LinkedIn, GitHub, Facebook, X, email); `touch` gives each a 44 px target. */
 function SocialLinks({ executive, size }: { executive: Executive; size: "sm" | "touch" }) {
@@ -380,11 +381,10 @@ export function CampusTabs({ year, yearData }: { year: string; yearData: Committ
           </h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {(yearData.facultyMembers ?? []).map((faculty, index) => (
-              <ExecutiveCard
-                key={index}
+              <SelectItem key={index}><ExecutiveCard
                 executive={faculty}
                 isResizeMode={isResizeMode}
-              />
+              /></SelectItem>
             ))}
           </div>
         </section>
@@ -398,11 +398,10 @@ export function CampusTabs({ year, yearData }: { year: string; yearData: Committ
           </h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {(yearData.studentExecutives ?? []).map((executive, index) => (
-              <ExecutiveCard
-                key={index}
+              <SelectItem key={index}><ExecutiveCard
                 executive={executive}
                 isResizeMode={isResizeMode}
-              />
+              /></SelectItem>
             ))}
           </div>
         </section>
@@ -427,11 +426,10 @@ export function renderCampusContent(campus: Unit | undefined, isResizeMode: bool
         </h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {faculty.map((member, index) => (
-            <ExecutiveCard
-              key={index}
+            <SelectItem key={index}><ExecutiveCard
               executive={member}
               isResizeMode={isResizeMode}
-            />
+            /></SelectItem>
           ))}
         </div>
       </section>}
@@ -443,11 +441,10 @@ export function renderCampusContent(campus: Unit | undefined, isResizeMode: bool
         </h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {students.map((executive, index) => (
-            <ExecutiveCard
-              key={index}
+            <SelectItem key={index}><ExecutiveCard
               executive={executive}
               isResizeMode={isResizeMode}
-            />
+            /></SelectItem>
           ))}
         </div>
       </section>}

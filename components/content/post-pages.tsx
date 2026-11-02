@@ -11,6 +11,7 @@ import { articleSchema, breadcrumbSchema, graph } from "@/lib/seo/schema";
 import { FramedImage } from "@/components/framed-image";
 import { PageBand, PageHero } from "@/components/page-hero";
 import { ArrowLeft, ArrowRight, Megaphone, Newspaper } from "lucide-react";
+import { SelectItem } from "@/components/live-cursors";
 
 type Kind = { type: "NEWS" | "ANNOUNCEMENT"; basePath: string; label: string; description: string };
 
@@ -43,14 +44,14 @@ export async function PostIndex({ kind }: { kind: Kind }) {
             {posts.map((p) => (
               <li key={p.id} className="relative">
                 <span aria-hidden className="absolute -left-[39px] top-7 h-3.5 w-3.5 rounded-full border-2 border-background bg-gradient-to-br from-primary to-secondary shadow-[0_0_12px_2px] shadow-primary/40" />
-                <Link href={`${kind.basePath}/${p.slug}`} className="lift group block rounded-3xl border bg-card p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <SelectItem><Link href={`${kind.basePath}/${p.slug}`} className="lift group block rounded-3xl border bg-card p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <time className="font-mono text-xs uppercase tracking-[0.15em] text-secondary" dateTime={p.publishedAt ?? undefined}>{fmt(p.publishedAt)}</time>
                   <h2 className="mt-2 font-display text-2xl font-semibold transition-colors group-hover:text-primary">{p.title}</h2>
                   {(p.subtitle || p.brief) && <p className="mt-2 line-clamp-3 text-muted-foreground">{p.subtitle || p.brief}</p>}
                   <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
                     Read more <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
                   </span>
-                </Link>
+                </Link></SelectItem>
               </li>
             ))}
           </ol>
@@ -81,7 +82,7 @@ export async function PostDetail({ kind, slug }: { kind: Kind; slug: string }) {
   return (
     <>
     <PageBand>
-      <Link href={kind.basePath} className="glass inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <Link href={kind.basePath} className="glass inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-medium text-foreground transition-colors hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <ArrowLeft className="h-4 w-4" aria-hidden />All {kind.label.toLowerCase()}
       </Link>
     </PageBand>

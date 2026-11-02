@@ -160,11 +160,11 @@ export default async function BlogPost({
   // The trail in the night-sky band above the article.
   const trail = (
     <nav aria-label="Breadcrumb">
-      <ol className="flex flex-wrap items-center gap-2 font-mono text-xs uppercase tracking-[0.15em] text-white/60">
-        <li><Link href="/" className="transition-colors hover:text-white">Home</Link></li>
+      <ol className="flex flex-wrap items-center gap-2 font-mono text-xs uppercase tracking-[0.15em] text-foreground/60">
+        <li><Link href="/" className="transition-colors hover:text-foreground">Home</Link></li>
         <li aria-hidden>/</li>
-        <li><Link href="/blog" className="transition-colors hover:text-white">Blog</Link></li>
-        {customPost.category && (<><li aria-hidden>/</li><li className="text-aurora-300">{customPost.category}</li></>)}
+        <li><Link href="/blog" className="transition-colors hover:text-foreground">Blog</Link></li>
+        {customPost.category && (<><li aria-hidden>/</li><li className="text-secondary">{customPost.category}</li></>)}
       </ol>
     </nav>
   );

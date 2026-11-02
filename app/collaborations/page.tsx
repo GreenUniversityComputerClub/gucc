@@ -8,6 +8,7 @@ import { breadcrumbSchema, graph, webPageSchema } from "@/lib/seo/schema";
 import { getPublicSetting } from "@/lib/public/data";
 import { PageHero } from "@/components/page-hero";
 import { Handshake } from "lucide-react";
+import { SelectItem } from "@/components/live-cursors";
 
 export const metadata: Metadata = buildMetadata({
   title: "Collaborations & Partner Clubs",
@@ -68,7 +69,7 @@ export default async function CollaborationsPage() {
         <div className="container px-4 md:px-6">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {featuredCollaborations.map((collab, index) => (
-              <Card key={index} className="lift overflow-hidden rounded-3xl">
+              <SelectItem key={index}><Card className="lift h-full overflow-hidden rounded-3xl">
                 <div className="relative h-48 w-full bg-gray-100">
                   <Image
                     src={collab.image}
@@ -83,7 +84,7 @@ export default async function CollaborationsPage() {
                   <CardTitle>{collab.name}</CardTitle>
                   <CardDescription>{collab.description}</CardDescription>
                 </CardHeader>
-              </Card>
+              </Card></SelectItem>
             ))}
           </div>
         </div>

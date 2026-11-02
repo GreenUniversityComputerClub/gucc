@@ -44,8 +44,8 @@ export default async function Blog() {
         title={<>Stories from the <span className="text-gradient">community</span></>}
         description="Insights, tutorials and stories from the Green University Computer Club community: technology, programming and innovation."
       >
-        <a href="/blog/feed.xml" className="glass inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <Rss className="h-4 w-4 text-aurora-300" aria-hidden />Follow with RSS
+        <a href="/blog/feed.xml" className="glass inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-medium text-foreground transition-colors hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Rss className="h-4 w-4 text-secondary" aria-hidden />Follow with RSS
         </a>
       </PageHero>
       <div className="container mx-auto max-w-6xl px-4 py-12">
