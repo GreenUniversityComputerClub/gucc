@@ -2,6 +2,7 @@
 
 import { ArrowRight, CalendarDays, Sparkles } from "lucide-react";
 import Image from "next/image";
+import { WriteText } from "@/components/live-cursors";
 import Link from "next/link";
 import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
@@ -42,31 +43,34 @@ export const HeroSection = () => {
     <section
       ref={ref}
       aria-labelledby="hero-heading"
-      className="dark dark-surface relative isolate -mt-16 flex min-h-[100svh] items-end overflow-hidden bg-background pb-20 pt-32 text-foreground sm:items-center sm:pb-24"
+      className="relative isolate -mt-16 flex min-h-[100svh] items-end overflow-hidden bg-background pb-20 transition-colors duration-[1200ms] pt-32 text-foreground sm:items-center sm:pb-24"
     >
-      {/* The campus under the Milky Way */}
+      {/* The campus: by day in light mode, under the Milky Way in dark */}
       <motion.div aria-hidden className="absolute inset-0 -z-30 will-change-transform" style={{ y: photoY }}>
         <div className="absolute inset-0 animate-kenburns">
-          <Image
-            src="/hero/campus-night.webp"
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-[50%_35%] brightness-110 saturate-[1.15]"
-          />
+          {/* The same framing for both, so the building stays still as day turns to night. */}
+          <div className="day-only absolute inset-0">
+            <Image src="/hero/campus-day.webp" alt="" fill priority sizes="100vw" className="object-cover object-[50%_35%] contrast-[1.06] saturate-[1.25]" />
+          </div>
+          <div className="night-only absolute inset-0">
+            <Image src="/hero/campus-night.webp" alt="" fill priority sizes="100vw" className="object-cover object-[50%_35%] brightness-110 saturate-[1.15]" />
+          </div>
         </div>
       </motion.div>
 
       {/* Light: aurora glows mixed into the sky */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-20 mix-blend-screen">
+      {/* By day, the sun instead */}
+      <div aria-hidden className="day-only pointer-events-none absolute -right-24 -top-24 -z-20 h-[60vh] w-[60vh]">
+        <div className="h-full w-full rounded-full bg-[radial-gradient(circle,rgb(255_255_230/0.7),rgb(217_249_157/0.2)_40%,transparent_70%)] animate-aurora" />
+      </div>
+      <div aria-hidden className="pointer-events-none night-only absolute inset-0 -z-20 mix-blend-screen">
         <div className="absolute -left-[10%] -top-[20%] h-[70vh] w-[60vw] rounded-full bg-brand-600/30 blur-[120px] animate-aurora" />
         <div className="absolute -right-[10%] top-[5%] h-[55vh] w-[45vw] rounded-full bg-aurora-500/20 blur-[120px] animate-aurora [animation-delay:-6s]" />
         <div className="absolute bottom-[10%] left-[30%] h-[35vh] w-[40vw] rounded-full bg-brand-400/10 blur-[100px] animate-aurora [animation-delay:-12s]" />
       </div>
 
-      {/* Stars and the odd shooting star */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+      {/* Stars and the odd shooting star, at night */}
+      <div aria-hidden className="night-only pointer-events-none absolute inset-0 -z-10">
         {STARS.map((s, i) => (
           <span
             key={i}
@@ -86,11 +90,19 @@ export const HeroSection = () => {
         <span className="shooting-star right-[38%] top-[4%]" style={{ animationDelay: "6.5s", animationDuration: "11s" }} />
       </div>
 
-      {/* Scrims: the header reads at the top, the copy on the left, and the photo melts into the page */}
+      {/* Scrims: the header reads at the top, the copy on the left, and the photo melts into the page.
+          One set each for day and night, crossfading with the photos. */}
+      <div aria-hidden className="day-only pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-paper/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-paper via-paper/70 to-transparent sm:bg-gradient-to-r sm:from-paper/95 sm:via-paper/45 sm:via-45% sm:to-transparent sm:to-75%" />
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-paper to-transparent" />
+      </div>
+      <div aria-hidden className="night-only pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-forest/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-forest via-forest/25 to-transparent sm:bg-gradient-to-r sm:from-forest/80 sm:via-forest/20 sm:to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-forest to-transparent" />
+      </div>
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-background/80 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/25 to-transparent sm:bg-gradient-to-r sm:from-background/80 sm:via-background/20 sm:to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-background to-transparent" />
         <div className="absolute inset-0 bg-grid opacity-40" />
       </div>
 
@@ -106,19 +118,18 @@ export const HeroSection = () => {
             </p>
 
             <h1 id="hero-heading" className="font-display text-5xl font-bold leading-[0.95] tracking-tight text-balance sm:text-7xl lg:text-8xl">
-              <span {...rise(0.25)} className="animate-rise block text-white">Green University</span>
+              <span {...rise(0.25)} className="animate-rise block text-foreground">Green University</span>
               <span {...rise(0.4)} className="animate-rise block pb-2 text-gradient">Computer Club</span>
             </h1>
 
             <p {...rise(0.55)} className="animate-rise mt-6 max-w-xl text-lg leading-relaxed text-foreground/80 sm:text-xl">
-              Where curious minds learn, build and lead. Empowering students to excel in technology through innovation,
-              collaboration and continuous learning.
+              <WriteText immediate text="Where curious minds learn, build and lead. Empowering students to excel in technology through innovation, collaboration and continuous learning." />
             </p>
 
             <div {...rise(0.7)} className="animate-rise mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
                 href="/join"
-                className="group relative inline-flex min-h-12 items-center justify-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-brand-400 to-aurora-400 px-7 text-base font-semibold text-slate-950 shadow-[0_0_40px_-8px] shadow-brand-400/70 transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_60px_-6px] hover:shadow-aurora-400/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="group relative inline-flex min-h-12 items-center justify-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-brand-800 to-brand-700 dark:from-brand-400 dark:to-aurora-400 px-7 text-base font-semibold text-white dark:text-slate-950 shadow-[0_0_40px_-8px] shadow-brand-400/70 transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_60px_-6px] hover:shadow-aurora-400/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
                 Join the club
@@ -126,7 +137,7 @@ export const HeroSection = () => {
               </Link>
               <Link
                 href="/events"
-                className="glass inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-7 text-base font-medium text-foreground transition-colors duration-300 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="glass inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-7 text-base font-medium text-foreground transition-colors duration-300 hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <CalendarDays className="h-5 w-5" aria-hidden />
                 Explore events
@@ -142,7 +153,7 @@ export const HeroSection = () => {
 
           {/* A terminal card floating by the building, for the wide screens */}
           <div {...rise(0.9)} aria-hidden className="animate-rise hidden lg:block">
-            <div className="animate-float glass glow-border relative rounded-2xl p-5 font-mono text-[13px] leading-relaxed shadow-2xl shadow-brand-950/60">
+            <div className="animate-float glass glow-border relative rounded-2xl p-5 font-mono text-[13px] leading-relaxed shadow-2xl shadow-brand-950/30">
               <div className="mb-4 flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-rose-400/80" />
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-300/80" />
@@ -150,14 +161,14 @@ export const HeroSection = () => {
                 <span className="ml-auto text-[11px] text-foreground/50">~/gucc</span>
               </div>
               <p className="text-foreground/60">
-                <span className="text-aurora-300">$</span> gucc join --student
+                <span className="text-secondary">$</span> gucc join --student
               </p>
-              <p className="mt-2 text-brand-300">› workshops &amp; bootcamps</p>
-              <p className="text-brand-300">› contests &amp; hackathons</p>
-              <p className="text-brand-300">› mentors &amp; community</p>
-              <p className="mt-2 flex items-center gap-2 text-aurora-300">
+              <p className="mt-2 text-primary">› workshops &amp; bootcamps</p>
+              <p className="text-primary">› contests &amp; hackathons</p>
+              <p className="text-primary">› mentors &amp; community</p>
+              <p className="mt-2 flex items-center gap-2 text-secondary">
                 <Sparkles className="h-3.5 w-3.5" /> ready to build
-                <span className="inline-block h-4 w-2 animate-pulse bg-aurora-300" />
+                <span className="inline-block h-4 w-2 animate-pulse bg-secondary" />
               </p>
             </div>
           </div>
@@ -166,8 +177,8 @@ export const HeroSection = () => {
 
       {/* Scroll cue */}
       <div aria-hidden className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 sm:block">
-        <div className="flex h-10 w-6 justify-center rounded-full border border-white/25 pt-2">
-          <span className="h-2 w-1 rounded-full bg-white/70 animate-scroll-dot" />
+        <div className="flex h-10 w-6 justify-center rounded-full border border-foreground/25 pt-2">
+          <span className="h-2 w-1 rounded-full bg-foreground/70 animate-scroll-dot" />
         </div>
       </div>
     </section>

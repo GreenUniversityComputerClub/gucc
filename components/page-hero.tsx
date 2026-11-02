@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { WriteText } from "@/components/live-cursors";
 import { cn } from "@/lib/utils";
 
 /** Stars at fixed positions (the same on the server and in the browser). */
@@ -17,8 +18,8 @@ const STARS = (() => {
 
 /**
  * The opening band of an inner page: the campus night sky, faint, under the floating header, with
- * a mono eyebrow, a gradient headline and a line of description. Always dark, whatever the theme,
- * so it reads as the same sky as the home page. `aside` sits beside the copy on wide screens (a
+ * a mono eyebrow, a gradient headline and a line of description. The sky follows the theme: the
+ * campus by day in light mode, by night in dark. `aside` sits beside the copy on wide screens (a
  * "next up" card, actions); `children` sit under the copy (search, filters, breadcrumbs).
  */
 export function PageHero({
@@ -44,22 +45,22 @@ export function PageHero({
   size?: "sm" | "md";
 }) {
   return (
-    <section className={cn("dark dark-surface relative isolate -mt-16 overflow-hidden bg-background text-foreground", className)}>
+    <section className={cn("relative isolate -mt-16 overflow-hidden bg-background text-foreground transition-colors duration-[1200ms]", className)}>
       <Sky />
 
       <div className={cn("container relative px-4 md:px-6", size === "md" ? "pb-14 pt-32 md:pb-20 md:pt-40" : "pb-10 pt-28 md:pb-14 md:pt-32")}>
         <div className={cn("grid gap-8", aside && "lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-end")}>
           <div className="max-w-3xl">
             {breadcrumb && <div className="animate-rise mb-6">{breadcrumb}</div>}
-            <p className="animate-rise inline-flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-[0.25em] text-aurora-300">
-              {icon && <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 text-aurora-200 ring-1 ring-white/15 [&_svg]:h-3.5 [&_svg]:w-3.5">{icon}</span>}
+            <p className="animate-rise inline-flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-[0.25em] text-secondary">
+              {icon && <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-foreground/10 text-secondary ring-1 ring-foreground/15 [&_svg]:h-3.5 [&_svg]:w-3.5">{icon}</span>}
               {eyebrow}
             </p>
-            <h1 className="animate-rise mt-4 font-display text-4xl font-bold leading-[1.05] tracking-tight text-white text-balance [animation-delay:0.1s] sm:text-5xl lg:text-6xl">
+            <h1 className="animate-rise mt-4 font-display text-4xl font-bold leading-[1.05] tracking-tight text-foreground text-balance [animation-delay:0.1s] sm:text-5xl lg:text-6xl">
               {title}
             </h1>
             {description && (
-              <p className="animate-rise mt-5 max-w-2xl text-base leading-relaxed text-white/75 [animation-delay:0.2s] md:text-lg">{description}</p>
+              <p className="animate-rise mt-5 max-w-2xl text-base leading-relaxed text-foreground/75 [animation-delay:0.2s] md:text-lg">{typeof description === "string" ? <WriteText text={description} immediate /> : description}</p>
             )}
           </div>
           {aside && <div className="animate-rise [animation-delay:0.3s]">{aside}</div>}
@@ -70,29 +71,36 @@ export function PageHero({
   );
 }
 
-/** The night sky behind a page's opening: the campus far away, aurora light, stars. */
+/** The sky behind a page's opening: the campus far away, aurora light, stars. */
 function Sky() {
   return (
     <>
       {/* The campus, far away */}
       <div aria-hidden className="absolute inset-0 -z-30">
-        <Image src="/hero/campus-night.webp" alt="" fill sizes="100vw" className="scale-110 object-cover object-[50%_30%] opacity-35 blur-[2px]" />
+        <div className="day-only absolute inset-0">
+          <Image src="/hero/campus-day.webp" alt="" fill loading="eager" sizes="100vw" className="scale-110 object-cover object-[50%_30%] opacity-75 blur-[1px] saturate-[1.15]" />
+        </div>
+        <div className="night-only absolute inset-0">
+          <Image src="/hero/campus-night.webp" alt="" fill loading="eager" sizes="100vw" className="scale-110 object-cover object-[50%_30%] opacity-35 blur-[2px]" />
+        </div>
       </div>
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-20">
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/40" />
-        <div className="absolute -left-[10%] -top-1/2 h-[120%] w-[55%] rounded-full bg-brand-600/25 blur-[120px] animate-aurora" />
+        <div className="day-only absolute inset-0 bg-gradient-to-r from-paper via-paper/85 to-paper/30" />
+        <div className="night-only absolute inset-0 bg-gradient-to-r from-forest via-forest/80 to-forest/40" />
+        <div className="absolute -left-[10%] -top-1/2 h-[120%] w-[55%] rounded-full bg-brand-500/20 blur-[120px] animate-aurora" />
         <div className="absolute -right-[10%] top-0 h-full w-[40%] rounded-full bg-aurora-500/15 blur-[120px] animate-aurora [animation-delay:-7s]" />
         <div className="absolute inset-0 bg-grid opacity-50" />
       </div>
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+      <div aria-hidden className="night-only pointer-events-none absolute inset-0 -z-10">
         {STARS.map((s, i) => (
           <span key={i} className="absolute rounded-full bg-white animate-twinkle"
             style={{ top: `${s.top}%`, left: `${s.left}%`, width: s.size, height: s.size, animationDelay: `${s.delay}s`, animationDuration: `${s.duration}s` }} />
         ))}
         <span className="shooting-star right-[12%] top-[18%]" style={{ animationDelay: "3s", animationDuration: "12s" }} />
-        {/* Melts into the page below, over the aurora */}
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
       </div>
+      {/* Melts into the page below, over the aurora */}
+      <div aria-hidden className="day-only pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-24 bg-gradient-to-t from-paper to-transparent" />
+      <div aria-hidden className="night-only pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-24 bg-gradient-to-t from-forest to-transparent" />
     </>
   );
 }
@@ -103,7 +111,7 @@ function Sky() {
  */
 export function PageBand({ children, className }: { children?: ReactNode; className?: string }) {
   return (
-    <section className={cn("dark dark-surface relative isolate -mt-16 overflow-hidden bg-background text-foreground", className)}>
+    <section className={cn("relative isolate -mt-16 overflow-hidden bg-background text-foreground transition-colors duration-[1200ms]", className)}>
       <Sky />
       <div className="container relative px-4 pb-8 pt-24 md:px-6 md:pt-28">{children}</div>
     </section>
