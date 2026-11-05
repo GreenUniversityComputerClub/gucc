@@ -118,7 +118,7 @@ export function SponsorshipView({ content: raw }: { content: SponsorshipContent 
   const featuring = parts.slice(0, 4).map(short);
   const joinList = (xs: string[]) => (xs.length <= 2 ? xs.join(" and ") : `${xs.slice(0, -1).join(", ")}, and ${xs[xs.length - 1]}`);
   const eventName = event.fullName ?? event.name ?? "our events";
-  const heroSubtitle = c.heroSubtitle ?? `Partner with Green University Computer Club to sponsor ${program?.name ?? eventName}${featuring.length ? `, featuring ${joinList(featuring)}` : ""}.`;
+  const heroSubtitle = c.heroSubtitle ?? `Partner with Green University Computer Club to sponsor ${program?.name ?? eventName}${featuring.length ? `, featuring ${joinList(featuring)}` : ""}, plus workshops and seminars.`;
   const phrases = c.typingPhrases?.length ? c.typingPhrases.map(String)
     : program?.id === "cse-carnival" ? CARNIVAL_PHRASES
       : featuring.length ? parts.slice(0, 4).map((x) => x.match(/\((.*)\)\s*$/)?.[1] ?? x) : [eventName];
@@ -149,7 +149,7 @@ export function SponsorshipView({ content: raw }: { content: SponsorshipContent 
                 <div>
                   <span className="mb-3 inline-block rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">2026</span>
                   <h3 className="mb-2 text-xl font-bold sm:text-2xl">Club Excellence Award</h3>
-                  <p className="mb-1 font-medium text-amber-700 dark:text-amber-200/80">Best Computer Science &amp; Programming Club</p>
+                  <p className="mb-1 font-medium text-amber-700 dark:text-amber-200/80">Recognized as the Best Computer Science &amp; Programming Club among Private Universities in Bangladesh.</p>
                   <p className="text-sm leading-relaxed text-muted-foreground">Recognized for outstanding contributions to technical education, community building, and student development at Green University of Bangladesh.</p>
                 </div>
               </div>
@@ -198,7 +198,7 @@ export function SponsorshipView({ content: raw }: { content: SponsorshipContent 
               </div>
             </div>
             {parts.length > 0 && (
-              <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+              <ul className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
                 {parts.map((x) => PROGRAM_CARDS[short(x).toLowerCase()] ?? { title: short(x), subtitle: x.match(/\((.*)\)\s*$/)?.[1] ?? "", desc: "", icon: Star }).map((item, i) => {
                   const Icon = item.icon;
                   return (
@@ -220,7 +220,7 @@ export function SponsorshipView({ content: raw }: { content: SponsorshipContent 
         return (
           <Shell key={s.id} id="why" icon={Megaphone} eyebrow="Why sponsor" heading={headingOf(s, <>Why <Highlight>Partner with Us?</Highlight></>)}
             sub={s.subheading ?? "Gain access to an unmatched talent pool, premium brand exposure, and a direct pipeline to Bangladesh's brightest tech minds."}>
-            <ul className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+            <ul className="grid gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
               {reasons.map((r, i) => {
                 const Icon = iconOf(r.icon, Lightbulb);
                 return (
@@ -283,7 +283,7 @@ export function SponsorshipView({ content: raw }: { content: SponsorshipContent 
         return (
           <Shell key={s.id} id="opportunities" icon={Gift} eyebrow="Partnership options" muted heading={headingOf(s, <>Other <Highlight>Partnership</Highlight> Opportunities</>)}
             sub={s.subheading ?? "In-kind partnerships with their own brand touchpoints, beyond traditional sponsorship."}>
-            <ul className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+            <ul className="grid gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
               {opportunities.map((o, i) => {
                 const Icon = iconOf(o.icon, OPPORTUNITY_ICONS[o.title] ?? Gift);
                 return (
@@ -359,7 +359,7 @@ export function SponsorshipView({ content: raw }: { content: SponsorshipContent 
   };
 
   return (
-    <div style={{ "--sp-accent": accent } as CSSProperties} className="sp-page relative pb-24 md:pb-0">
+    <div style={{ "--sp-accent": accent } as CSSProperties} className="sp-page relative pb-24 text-foreground [&_.text-muted-foreground]:text-foreground/70 md:pb-0">
       <Hero c={c} event={event} heroSubtitle={heroSubtitle} phrases={phrases} stats={stats} ctaHref={ctaHref} secondary={download?.href ? { label: download.label || "Download the proposal", href: download.href } : { label: "Talk to us", href: contactHref }} />
       <SectionNav items={navItems} cta={{ label: "Become a sponsor", href: ctaHref }} contact={contactHref} />
       {sections.map(render)}
@@ -467,14 +467,13 @@ function Packages({ s, packages, comparison, tiers, contactHref }: {
     <Shell id="packages" icon={Zap} eyebrow="Packages" wide heading={headingOf(s, <>Choose Your <Highlight>Sponsorship Tier</Highlight></>)}
       sub={s.subheading ?? "Select the package that fits your brand's goals and budget. Every tier delivers real, measurable impact."}>
       {/* Phones: one card at a time, swiped; tablets and up: side by side. */}
-      <ul className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 [scrollbar-width:none] md:mx-0 md:grid md:snap-none md:items-end md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden"
-        style={{ gridTemplateColumns: `repeat(${Math.min(packages.length, 4)}, minmax(0, 1fr))` }} aria-label="Packages">
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-label="Packages">
         {packages.map((p, i) => {
           const t = tierStyle(p.tier);
           const Icon = t.icon;
           const priced = Number(p.price) > 0;
           return (
-            <li key={`${p.tier}-${i}`} className={cn("sp-reveal w-[85%] shrink-0 snap-center sm:w-[60%] md:w-auto", p.highlight && "md:-translate-y-4")}>
+            <li key={`${p.tier}-${i}`} className={cn("sp-reveal", p.highlight && "lg:-translate-y-4")}>
               <div className={cn("flex h-full flex-col rounded-2xl border bg-card p-6 shadow-sm", p.highlight && cn(t.ring, t.glow, "shadow-xl"))}>
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
                   <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider", t.ring, t.soft, t.text)}>
@@ -506,8 +505,6 @@ function Packages({ s, packages, comparison, tiers, contactHref }: {
           );
         })}
       </ul>
-      {packages.length > 1 && <p className="mt-1 text-center text-xs text-muted-foreground md:hidden">Swipe to see every package</p>}
-
       {comparison.length > 0 && (
         <div className="sp-reveal mx-auto mt-14 max-w-4xl">
           <h3 className="mb-4 text-center text-lg font-semibold">Compare the packages</h3>
