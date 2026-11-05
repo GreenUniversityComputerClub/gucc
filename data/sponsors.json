@@ -8,6 +8,7 @@
     "website": "gucc.green.edu.bd",
     "email": "gucc@green.edu.bd"
   },
+  "heroSubtitle": "Partner with Green University Computer Club to sponsor CSE Carnival 2026, featuring programming contests, workshops, seminars, networking and awards.",
   "about": {
     "eventDescription": "The Inter Departmental Programming Contest and Math Olympiad are premier flagship events designed to foster algorithmic problem-solving, analytical thinking, and mathematical prowess among university students. Operating as a core talent-discovery platform, these events challenge young minds to apply complex logic and coding skills to solve real-world computational problems under extreme time constraints. This dual-event structure serves as a critical stepping stone for students aiming to represent the institution in national and international arenas like the ICPC and national hackathons.",
     "clubDescription": "Green University Computer Club (GUCC) is a dynamic, student-driven non-profit organization operating in collaboration with the Department of Computer Science and Engineering (CSE), with a thriving community of over 7,000+ members. GUCC is dedicated to cultivating aspiring professionals and building the next generation of tech leaders in Bangladesh."
@@ -24,8 +25,8 @@
       "eventSlug": "gub-cse-carnival-2024-inauguration-ceremony"
     },
     {
-      "title": "Best Programming & Computer Science Club Award",
-      "description": "Recognized as the best programming and computer science club for outstanding contributions to technical education and community building at Green University of Bangladesh.",
+      "title": "Club Excellence Award",
+      "description": "Recognized as the Best Computer Science & Programming Club among Private Universities in Bangladesh.",
       "eventSlug": "gucc-receives-club-excellence-award-2026"
     },
     {
@@ -210,8 +211,8 @@
   "otherOpportunities": [
     {
       "title": "T-Shirt Partner",
-      "detail": "200 pieces",
-      "description": "Your brand on 200 event t-shirts worn by participants, volunteers, and organizers — walking billboards throughout the campus."
+      "detail": "200 sponsored pieces",
+      "description": "Your brand on a 200-piece sponsored run for participants, volunteers, and organizers. The final quantity can be aligned with confirmed attendance."
     },
     {
       "title": "Food & Beverage Partner",
