@@ -13,7 +13,8 @@
  * `wrangler login`.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 export type Target = "local" | "staging" | "production";
@@ -84,14 +85,21 @@ export function d1ExecuteFile(target: Target, file: string): boolean {
   return res.ok;
 }
 
-/** Run one read query and return its rows. */
+/** Run one read query and return its rows (file-backed so multi-line SQL comments work safely). */
 export function d1Query<T = Record<string, unknown>>(target: Target, sql: string): T[] {
-  const args = ["d1", "execute", "DB", ...targetFlags(target), "--json", "--command", sql];
-  const res = wrangler(args);
-  if (!res.ok) throw new Error(`Query failed: ${sql.slice(0, 120)}`);
-  const start = res.stdout.indexOf("[");
-  const parsed = JSON.parse(res.stdout.slice(start)) as Array<{ results: T[]; success: boolean }>;
-  return parsed.flatMap((p) => p.results ?? []);
+  const dir = mkdtempSync(path.join(tmpdir(), "gucc-d1q-"));
+  const file = path.join(dir, "query.sql");
+  try {
+    writeFileSync(file, sql, { mode: 0o600 });
+    const args = ["d1", "execute", "DB", ...targetFlags(target), "--json", "--file", file, "--yes"];
+    const res = wrangler(args);
+    if (!res.ok) throw new Error(`Query failed: ${sql.slice(0, 120)}`);
+    const start = res.stdout.indexOf("[");
+    const parsed = JSON.parse(res.stdout.slice(start)) as Array<{ results: T[]; success: boolean }>;
+    return parsed.flatMap((p) => p.results ?? []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 export function d1Export(target: Target, outFile: string): boolean {

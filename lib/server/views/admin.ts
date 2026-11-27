@@ -7,7 +7,7 @@
 import { ensureProfileHandle } from "../services/profiles";
 import { API_VERSION } from "../../version";
 import { holdsProtectedRole } from "../../governance/engine";
-import { PERMISSIONS, PERMISSIONS_V2, PERMISSIONS_V3, PERMISSIONS_V4, PERMISSIONS_V5 } from "../../governance/catalog";
+import { PERMISSIONS, PERMISSIONS_V2, PERMISSIONS_V3, PERMISSIONS_V4, PERMISSIONS_V5, PERMISSIONS_V6 } from "../../governance/catalog";
 import { mediaUrl, type MediaRow } from "../../public/shapes";
 import { listingAvatarIdSql } from "../../public/queries";
 import { authorize, can, eventResource, requireActor, requirePermission, scopesFor } from "../authz";
@@ -18,12 +18,13 @@ import { listContestsAdmin, myNotifications } from "../services/community";
 import { getEventForEdit, listRegistrations, eventAgenda } from "../services/events";
 import { listPermissions, listPolicies, listPositions, listRules } from "../services/governance";
 import { getPostForEdit } from "../services/posts";
+import { getQuizAdmin, getQuizFormOptions, getQuizHostView } from "../services/quizzes";
 import { TRIGGER_EVENTS } from "../triggers";
 
-const ALL_PERMISSION_KEYS = [...PERMISSIONS, ...PERMISSIONS_V2, ...PERMISSIONS_V3, ...PERMISSIONS_V4, ...PERMISSIONS_V5].map((p) => p.key).filter((k) => k !== "*");
+const ALL_PERMISSION_KEYS = [...PERMISSIONS, ...PERMISSIONS_V2, ...PERMISSIONS_V3, ...PERMISSIONS_V4, ...PERMISSIONS_V5, ...PERMISSIONS_V6].map((p) => p.key).filter((k) => k !== "*");
 
 /** Permissions that open some part of the admin. */
-const ADMIN_ENTRY = ["events.read", "posts.read", "members.read", "media.upload", "approvals.read", "recruitment.manage", "messages.read", "executives.assign", "contests.manage", "forms.manage"];
+const ADMIN_ENTRY = ["events.read", "posts.read", "members.read", "media.upload", "approvals.read", "recruitment.manage", "messages.read", "executives.assign", "contests.manage", "forms.manage", "quizzes.read", "quizzes.host"];
 
 const MEDIA_COLS = "id, storage, object_key, legacy_path, external_url, variants_json";
 async function mediaRow(ctx: Ctx, id: string | null | undefined): Promise<MediaRow | null> {
@@ -165,6 +166,15 @@ export async function postView(ctx: Ctx, id: string) {
   const data = await getPostForEdit(ctx, id);
   const cover = await mediaRow(ctx, data.post.featured_media_id);
   return { ...data, coverUrl: mediaUrl(cover) ?? null, sentBack: data.post.status === "REJECTED" ? await lastSentBack(ctx, "post", id) : null };
+}
+
+export async function quizView(ctx: Ctx, id: string) {
+  const [data, options] = await Promise.all([getQuizAdmin(ctx, id), getQuizFormOptions(ctx)]);
+  return { ...data, options };
+}
+
+export async function quizHostView(ctx: Ctx, sessionId: string) {
+  return getQuizHostView(ctx, sessionId);
 }
 
 /** All contests with their teams in two queries (was one query per contest). */

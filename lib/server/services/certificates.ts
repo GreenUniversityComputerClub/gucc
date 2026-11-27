@@ -22,7 +22,7 @@ import { mergeServiceLines } from "../../certificates/lines";
 
 /** Recipients one request adds at most (one statement however many). */
 export const MAX_PER_REQUEST = 300;
-export const SOURCES = ["MEMBERS", "EVENT", "EVENT_PEOPLE", "COMMITTEE", "CSV", "MANUAL"] as const;
+export const SOURCES = ["MEMBERS", "EVENT", "EVENT_PEOPLE", "COMMITTEE", "QUIZ", "CSV", "MANUAL"] as const;
 export type CertificateSource = (typeof SOURCES)[number];
 
 // ───────────────────────────── designs ─────────────────────────────
@@ -112,7 +112,7 @@ export interface RecipientDraft {
 /** Who the club can issue to, by source (the wizard's lists). */
 export async function certificateOptions(ctx: Ctx) {
   requirePermission(ctx, "certificates.manage");
-  const [events, committees, groups, designs] = await Promise.all([
+  const [events, committees, groups, designs, quizSessions] = await Promise.all([
     ctx.db.all<{ id: string; title: string; start_at: string | null; registrations: number; people: number }>(
       `SELECT e.id, e.title, e.start_at,
               (SELECT COUNT(*) FROM event_registrations r WHERE r.event_id = e.id AND r.status IN ('REGISTERED','ATTENDED')) AS registrations,
@@ -128,6 +128,11 @@ export async function certificateOptions(ctx: Ctx) {
        SELECT 'department', MIN(p.department), COUNT(*) FROM profiles p JOIN users u ON u.id = p.user_id AND u.status = 'ACTIVE' AND u.deleted_at IS NULL
          WHERE p.deleted_at IS NULL AND p.department IS NOT NULL AND trim(p.department) <> '' GROUP BY lower(p.department)`),
     listDesigns(ctx),
+    ctx.db.all<{ id: string; title: string; join_code: string; finalized_at: string | null; participants: number }>(
+      `SELECT qs.id, q.title, qs.join_code, qs.finalized_at,
+              (SELECT COUNT(*) FROM quiz_participants qp WHERE qp.session_id = qs.id AND qp.status = 'JOINED') AS participants
+       FROM quiz_sessions qs JOIN quizzes q ON q.id = qs.quiz_id AND q.deleted_at IS NULL
+       WHERE qs.status = 'FINALIZED' ORDER BY qs.finalized_at DESC LIMIT 40`),
   ]);
   return {
     events: events.map((e) => ({ id: e.id, title: e.title, startAt: e.start_at, registrations: e.registrations, people: e.people })),
@@ -135,6 +140,7 @@ export async function certificateOptions(ctx: Ctx) {
     batches: groups.filter((g) => g.kind === "batch").sort((a, b) => b.value.localeCompare(a.value)).map((g) => ({ value: g.value, count: g.n })),
     departments: groups.filter((g) => g.kind === "department").sort((a, b) => b.n - a.n).map((g) => ({ value: g.value, count: g.n })),
     designs,
+    quizSessions: quizSessions.map((q) => ({ id: q.id, title: q.title, joinCode: q.join_code, finalizedAt: q.finalized_at, participants: q.participants })),
   };
 }
 
@@ -193,6 +199,27 @@ export async function importPreview(ctx: Ctx, raw: Record<string, unknown>): Pro
       // Committees in the order chosen (older first reads "2023–24 and Reformed 2024").
       entries.sort((a, b) => ids.indexOf(a.cid) - ids.indexOf(b.cid));
       rows = mergeServiceLines(entries).map((m) => ({ name: m.name, email: m.email, profileId: m.profileId, userId: m.userId, role: m.role }));
+      break;
+    }
+    case "quiz": {
+      const topN = Number(raw.topN) > 0 && Number.isInteger(Number(raw.topN)) ? Number(raw.topN) : null;
+      const list = await ctx.db.all<RecipientDraft & { rankNum: number | null }>(
+        `SELECT qp.display_name AS name, COALESCE(u.email, qp.email) AS email, p.id AS profileId, u.id AS userId,
+                COALESCE(p.student_id, qp.student_id) AS studentId, qp.rank AS rankNum
+         FROM quiz_participants qp
+         LEFT JOIN users u ON u.id = qp.user_id AND u.status = 'ACTIVE' AND u.deleted_at IS NULL
+         LEFT JOIN profiles p ON p.deleted_at IS NULL AND p.merged_into_id IS NULL
+           AND (p.user_id = qp.user_id OR (qp.student_id IS NOT NULL AND p.student_id = qp.student_id))
+         WHERE qp.session_id = ?1 AND qp.status = 'JOINED'
+           AND (?2 IS NULL OR (qp.rank IS NOT NULL AND qp.rank <= ?2))
+           AND EXISTS (SELECT 1 FROM quiz_answers qa WHERE qa.session_id = ?1 AND qa.participant_id = qp.id)
+         ORDER BY COALESCE(qp.rank, 999999) ASC, qp.display_name ASC LIMIT ${cap}`,
+        String(raw.sessionId ?? ""), topN);
+      rows = list.map(({ rankNum, ...r }) => ({
+        ...r,
+        rank: topN && rankNum ? `#${rankNum}` : null,
+        role: topN && rankNum ? `Rank #${rankNum}` : "Quiz Participant",
+      }));
       break;
     }
     case "match": {

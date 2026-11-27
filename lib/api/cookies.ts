@@ -16,3 +16,9 @@ export const SESSION_COOKIE = SECURE_SITE ? "__Host-gucc_session" : "gucc_sessio
  * who is signed in when it's present, so anonymous visitors cost no function call.
  */
 export const SIGNED_IN_HINT = "gucc_signed_in";
+
+/** HttpOnly participant session cookie for a specific Quiz Arena sessionId. */
+export function quizParticipantCookie(sessionId: string): string {
+  const safeId = sessionId.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64);
+  return SECURE_SITE ? `__Host-gucc_qp_${safeId}` : `gucc_qp_${safeId}`;
+}

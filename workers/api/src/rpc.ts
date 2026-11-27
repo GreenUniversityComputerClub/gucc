@@ -42,6 +42,7 @@ import * as members from "../../../lib/server/services/members";
 import * as people from "../../../lib/server/services/people";
 import * as profiles from "../../../lib/server/services/profiles";
 import * as posts from "../../../lib/server/services/posts";
+import * as quizzes from "../../../lib/server/services/quizzes";
 import * as recruitment from "../../../lib/server/services/recruitment";
 import * as views from "../../../lib/server/views/admin";
 import { requireSecret, signToken } from "../../../lib/server/signing";
@@ -133,7 +134,7 @@ export const STEP_UP = new Set([
   "positions.save", "positions.archive", "positions.setGrant",
   "rules.create", "rules.update", "rules.setStatus", "rules.createNotify", "policies.save",
   "members.suspend", "members.reactivate", "committees.delete", "people.delete", "people.merge", "media.purge", "grants.copy",
-  "accounts.delete", "accounts.bulkDelete", "accounts.changeEmail",
+  "accounts.delete", "accounts.bulkDelete", "accounts.changeEmail", "quizzes.delete",
 ]);
 
 export const procedures: Record<string, Handler> = {
@@ -201,6 +202,8 @@ export const procedures: Record<string, Handler> = {
   "views.committee": ({ ctx, input }) => views.committeeView(ctx, s(input, "id")),
   "views.event": ({ ctx, input }) => views.eventView(ctx, s(input, "id")),
   "views.post": ({ ctx, input }) => views.postView(ctx, s(input, "id")),
+  "views.quiz": ({ ctx, input }) => views.quizView(ctx, s(input, "id")),
+  "views.quizHost": ({ ctx, input }) => views.quizHostView(ctx, s(input, "sessionId")),
   "views.contests": ({ ctx }) => views.contestsView(ctx),
   "views.rules": ({ ctx }) => views.rulesView(ctx),
   "views.rule": ({ ctx, input }) => views.ruleView(ctx, s(input, "id")),
@@ -480,5 +483,29 @@ export const procedures: Record<string, Handler> = {
   "members.resetLink": ({ ctx, input }) => auth.issueResetLink(ctx, s(input, "userId")),
   "recruitment.exportCsv": ({ ctx, input }) => recruitment.applicationsCsv(ctx, s(input, "campaignId")),
   "recruitment.import": ({ ctx, input }) => recruitment.importApplications(ctx, s(input, "campaignId"), input.rows, input.apply === true),
+
+  // ── Quiz Arena ──
+  "quizzes.list": ({ ctx, input }) => quizzes.listQuizzesAdmin(ctx, { status: opt(input, "status"), q: opt(input, "q"), page: n(input, "page") }),
+  "quizzes.get": ({ ctx, input }) => quizzes.getQuizAdmin(ctx, s(input, "id")),
+  "quizzes.options": ({ ctx }) => quizzes.getQuizFormOptions(ctx),
+  "quizzes.exportCsv": ({ ctx, input }) => quizzes.exportQuizCsv(ctx, s(input, "sessionId")),
+  "quizzes.create": ({ ctx, input }) => quizzes.createQuiz(ctx, o(input, "input")),
+  "quizzes.update": ({ ctx, input }) => quizzes.updateQuiz(ctx, s(input, "id"), o(input, "input")),
+  "quizzes.saveQuestions": ({ ctx, input }) => quizzes.saveQuizQuestions(ctx, s(input, "id"), input.questions),
+  "quizzes.setModerators": ({ ctx, input }) => quizzes.setQuizModerators(ctx, s(input, "id"), Array.isArray(input.moderators) ? (input.moderators as never) : []),
+  "quizzes.publish": ({ ctx, input }) => quizzes.publishQuiz(ctx, s(input, "id")),
+  "quizzes.setStatus": ({ ctx, input }) => quizzes.archiveQuiz(ctx, s(input, "id"), oneOf(input, "status", ["DRAFT", "ARCHIVED"] as const)),
+  "quizzes.delete": ({ ctx, input }) => quizzes.deleteQuiz(ctx, s(input, "id")),
+  "quizzes.createSession": ({ ctx, input }) => quizzes.createQuizSession(ctx, s(input, "quizId"), input.input && typeof input.input === "object" ? o(input, "input") : input),
+  "quizzes.join": ({ ctx, input }) => quizzes.joinQuiz(ctx, input),
+  "quizzes.ticket": ({ ctx, input }) => quizzes.issueQuizTicket(ctx, { sessionId: s(input, "sessionId"), participantToken: opt(input, "participantToken") ?? null, asHost: input.asHost === true }),
+  "quizzes.state": ({ ctx, input }) => quizzes.getSessionState(ctx, s(input, "sessionId"), { participantToken: opt(input, "participantToken") ?? null, asHost: input.asHost === true }),
+  "quizzes.hostAction": ({ ctx, input }) => quizzes.hostAction(ctx, s(input, "sessionId"), input),
+  "quizzes.kickParticipant": ({ ctx, input }) => quizzes.kickParticipant(ctx, s(input, "sessionId"), s(input, "participantId"), (opt(input, "status") ?? "KICKED") as never, opt(input, "reason") ?? null),
+  "quizzes.finalize": ({ ctx, input }) => quizzes.finalizeSession(ctx, s(input, "sessionId")),
+  "quizzes.issueCertificates": ({ ctx, input }) => quizzes.issueQuizCertificates(ctx, s(input, "sessionId"), input),
+  "quizzes.reportIncident": ({ ctx, input }) => quizzes.reportIncident(ctx, s(input, "sessionId"), input, opt(input, "participantToken") ?? null),
+  "quizzes.resolveIncident": ({ ctx, input }) => quizzes.resolveIncident(ctx, s(input, "id"), input),
+  "quizzes.results": ({ ctx, input }) => quizzes.getQuizResults(ctx, s(input, "sessionId"), opt(input, "participantToken") ?? null),
 };
 

@@ -14,8 +14,10 @@ import { ApiUnavailableError, publicGet } from "@/lib/api/client";
 import { TAGS } from "@/lib/server/services/cache-tags";
 import type { PublicPost, PublicSponsorship, RegistrationFieldPublic } from "./read";
 import type { PublicCommittee, PublicContest, PublicEvent } from "./shapes";
+import type { PublicQuizResultView, PublicQuizSummary } from "./quiz";
 
 export type { PublicPost, PublicSponsorship } from "./read";
+export type { PublicQuizResultView, PublicQuizSummary } from "./quiz";
 
 const HOUR = 3600;
 
@@ -175,3 +177,18 @@ export interface PublicCampaign {
 
 export const getRecruitment = cache(async (): Promise<PublicCampaign> =>
   (await publicGet<PublicCampaign>("recruitment", { tags: ["recruitment"], revalidate: 300, fallback: { open: null, upcoming: null, semesters: [], genders: [] } })) ?? { open: null, upcoming: null, semesters: [], genders: [] });
+
+export const getPublicQuizzes = cache(async (limit = 50): Promise<PublicQuizSummary[]> =>
+  (await publicGet<PublicQuizSummary[]>(`quizzes?limit=${limit}`, { tags: [TAGS.quizzes], revalidate: 60, fallback: [] })) ?? []);
+
+export const getPublicQuizBySlug = cache(async (slug: string): Promise<PublicQuizSummary | null> =>
+  publicGet<PublicQuizSummary>(`quizzes/${encodeURIComponent(slug)}`, { tags: [TAGS.quizzes, TAGS.quiz(slug)], revalidate: 0, fallback: null }));
+
+export const getPublicQuizByCode = async (code: string) =>
+  publicGet<{ quiz: PublicQuizSummary; session: NonNullable<PublicQuizSummary["activeSession"]> }>(
+    `quizzes/by-code/${encodeURIComponent(code.trim().toUpperCase())}`,
+    { tags: [TAGS.quizzes], revalidate: 0, fallback: null },
+  );
+
+export const getPublicQuizResults = cache(async (idOrSlug: string): Promise<PublicQuizResultView | null> =>
+  publicGet<PublicQuizResultView>(`quizzes/results/${encodeURIComponent(idOrSlug)}`, { tags: [TAGS.quizzes], revalidate: 60, fallback: null }));

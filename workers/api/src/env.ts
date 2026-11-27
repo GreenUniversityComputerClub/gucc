@@ -5,6 +5,8 @@ export interface Env {
   MEDIA_PRIVATE: R2Bucket;
   /** The live hub (live-hub.ts). Optional: without it pages check for news on a timer. */
   LIVE?: DurableObjectNamespace;
+  /** Per-session Quiz Arena room (quiz-room.ts). Optional in tests/dev without DO bindings. */
+  QUIZ_ROOM?: DurableObjectNamespace;
   APP_ENV: string;
   /** The Vercel frontend's public origin, used in emailed links. */
   PUBLIC_BASE_URL: string;

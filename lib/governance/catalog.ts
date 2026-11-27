@@ -507,6 +507,17 @@ export const PERMISSIONS_V5: PermissionDef[] = [
   P("email.campaigns", "Email announcements to members (uses the club's monthly email allowance)"),
 ];
 
+/** Quiz Arena permissions (seeded idempotently in migrations/0018_quiz_arena.sql). */
+export const PERMISSIONS_V6: PermissionDef[] = [
+  P("quizzes.read", "View quizzes and live session summaries in the dashboard"),
+  P("quizzes.create", "Create quiz drafts and edit question banks"),
+  P("quizzes.update", "Edit existing quizzes and questions"),
+  P("quizzes.publish", "Publish or archive quizzes"),
+  P("quizzes.host", "Host live quiz sessions, advance questions, and manage participants"),
+  P("quizzes.delete", "Archive or delete quizzes and clear sessions", true),
+  P("quizzes.moderate", "Review quiz incidents and override session outcomes", true),
+];
+
 /** Governance powers the President and General Secretary now use day to day. */
 export const LEADERSHIP_GOVERNANCE_V4 = ["roles.create", "roles.update", "roles.delete", "roles.assign", "permissions.assign", "positions.permissions", "positions.delete"] as const;
 

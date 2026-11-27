@@ -56,6 +56,8 @@ export function emailCategory(type: string): EmailCategory | "system" | null {
   if (type.startsWith("task.") || type.startsWith("meeting.") || type === "recruitment.assigned" || type === "event.assigned") return "work";
   if (type.startsWith("event.")) return "events";
   if (type === "message.received" || type === "message.mention") return "messages";
+  // Quiz Arena notifications stay in-app only so 500-player events never exhaust the 1,000/month email allowance.
+  if (type.startsWith("quiz.")) return null;
   return null;
 }
 

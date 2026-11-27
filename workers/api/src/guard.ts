@@ -26,8 +26,12 @@ export function allow(key: string, limit: number, windowMs = 60_000, now = Date.
 }
 
 /** Per-minute limits for the routes browsers call directly. */
-/** `live`: a tab reconnects every half hour, or after a dropped connection with growing waits. */
-export const EDGE_LIMITS = { media: 300, health: 30, upload: 30, live: 20 } as const;
+/**
+ * `live`: a tab reconnects every half hour, or after a dropped connection with growing waits.
+ * `quizWs`: campus Wi-Fi NATs share ~1-3 public IPs across 500 auditorium players; ticketed
+ * upgrades get a NAT-tolerant cap while invalid/unverified upgrades hit `quizWsInvalid`.
+ */
+export const EDGE_LIMITS = { media: 300, health: 30, upload: 30, live: 20, quizWs: 600, quizWsInvalid: 30 } as const;
 
 export function clientIp(req: Request): string {
   return req.headers.get("cf-connecting-ip") ?? "unknown";

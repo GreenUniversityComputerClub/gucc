@@ -40,7 +40,7 @@ export async function whyNoVerification(ctx: Ctx, userId: string): Promise<SkipR
   if (!state.provider || !state.active) return "email_off";
   if ((await emailAllowanceLeft(ctx, state)).left <= 0) return "email_limit";
   const last = await ctx.db.value<string>(
-    "SELECT status FROM email_log WHERE user_id = ?1 AND type = 'account.verify' ORDER BY created_at DESC LIMIT 1", userId);
+    "SELECT status FROM email_log WHERE user_id = ?1 AND type = 'account.verify' ORDER BY created_at DESC, rowid DESC LIMIT 1", userId);
   return last && last !== "sent" ? "email_failed" : null;
 }
 

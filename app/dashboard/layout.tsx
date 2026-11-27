@@ -50,6 +50,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ] },
     { label: "Events", items: [
       { href: "/dashboard/events", label: "Events", show: writes("events") },
+      { href: "/dashboard/quizzes", label: "Quiz Arena", show: c("quizzes.read") || c("quizzes.create") || c("quizzes.host") },
       // The all-events list is for club-wide managers; others manage registrations on their event's page.
       { href: "/dashboard/registrations", label: "Registrations", show: Boolean(session.wideCaps?.["events.manage_registration"]) },
     ] },

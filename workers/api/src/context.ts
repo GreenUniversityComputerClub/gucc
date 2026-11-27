@@ -10,6 +10,7 @@ import { Db } from "../../../lib/server/db";
 import { resolveSessionInfo } from "../../../lib/server/services/auth";
 import type { Env } from "./env";
 import { hubClient } from "./live";
+import { quizRoomClient } from "./quiz";
 
 export interface BuiltCtx {
   ctx: Ctx;
@@ -57,6 +58,7 @@ export async function buildCtx(env: Env, req: Request, opts: { trusted: boolean;
     outbox: [],
     live: [],
     hub: hubClient(env),
+    quizRoom: quizRoomClient(env),
   };
   const session = !opts.userId && opts.sessionToken ? await resolveSessionInfo(ctx, opts.sessionToken) : null;
   if (session) ctx.session = session;

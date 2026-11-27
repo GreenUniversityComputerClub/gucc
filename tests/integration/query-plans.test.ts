@@ -35,6 +35,12 @@ const HOT: Record<string, string> = {
   "seats taken": "SELECT COUNT(*) FROM event_registrations WHERE event_id = 'e' AND status IN ('REGISTERED','ATTENDED')",
   "rate limit": "SELECT * FROM rate_limits WHERE key = 'k'",
   "usage counter": "SELECT count FROM usage_counters WHERE day = 'd' AND key = 'k'",
+  "published quizzes": "SELECT id, slug, title FROM quizzes WHERE status = 'PUBLISHED' AND deleted_at IS NULL ORDER BY published_at DESC LIMIT 20",
+  "quiz questions": "SELECT id, kind, prompt_markdown, options_json FROM quiz_questions WHERE quiz_id = 'q' AND deleted_at IS NULL ORDER BY sort_order",
+  "quiz session by join code": "SELECT id, quiz_id, status FROM quiz_sessions WHERE join_code = 'GUCC26'",
+  "quiz participant by token": "SELECT id, display_name, status FROM quiz_participants WHERE session_id = 's' AND participant_token_hash = 'h'",
+  "quiz leaderboard": "SELECT id, display_name, score_total, correct_count, avg_response_ms FROM quiz_participants WHERE session_id = 's' AND status = 'JOINED' ORDER BY score_total DESC, correct_count DESC, avg_response_ms ASC LIMIT 50",
+  "quiz session incidents": "SELECT id, kind, reason FROM quiz_incidents WHERE session_id = 's' AND status = 'OPEN' ORDER BY created_at",
 };
 
 describe("query plans", () => {

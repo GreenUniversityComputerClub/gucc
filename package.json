@@ -55,7 +55,7 @@
     "jspdf": "^4.2.1",
     "lucide-react": "^0.523.0",
     "marked": "^18.0.14",
-    "next": "15.5.26",
+    "next": "15.5.29",
     "next-themes": "^0.4.6",
     "qrcode": "^1.5.4",
     "react": "^19.1.0",
@@ -78,7 +78,7 @@
     "@types/react-dom": "19.0.4",
     "aws4fetch": "^1.0.20",
     "eslint": "^9.29.0",
-    "eslint-config-next": "15.5.26",
+    "eslint-config-next": "15.5.29",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "postcss": "^8.5.28",
@@ -90,7 +90,8 @@
   },
   "overrides": {
     "@types/react": "19.0.10",
-    "@types/react-dom": "19.0.4"
+    "@types/react-dom": "19.0.4",
+    "dompurify": "^3.5.0"
   },
   "description": "Green University Computer Club website: Next.js frontend (Vercel) + Cloudflare Worker API with D1 and R2.",
   "repository": {

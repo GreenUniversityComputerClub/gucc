@@ -16,6 +16,7 @@
 import { Db } from "../../../lib/server/db";
 import { AppError, AuthRequiredError, ValidationError } from "../../../lib/server/errors";
 import { readCommittees, readContests, readCertificate, readCertificateByStudent, readProfileCertificates, readEvent, readEvents, readForm, readFormSource, readForms, readPost, readPosts, readSetting, readSitemap, readSponsorship, readSponsorships } from "../../../lib/public/read";
+import { readPublicQuizByJoinCode, readPublicQuizBySlug, readPublicQuizResults, readPublicQuizzes } from "../../../lib/public/quiz";
 import type { VariantName } from "../../../lib/media/bytes";
 import { forgetMediaLookup, resolveMediaAccess, uploadMedia, uploadsOpen, MAX_BYTES_PER_REQUEST } from "../../../lib/server/services/media";
 import { recordHeartbeat, runDailyHousekeeping, runMaintenance } from "../../../lib/server/services/maintenance";
@@ -38,9 +39,11 @@ import { procedures, STEP_UP } from "./rpc";
 import { requireRecentAuth } from "../../../lib/server/security";
 import { API_VERSION } from "../../../lib/version";
 import { emitLive, handleLiveConnect } from "./live";
+import { handleQuizWs } from "./quiz";
 
-/** The live hub's Durable Object class (wrangler.jsonc "exports"). */
+/** Durable Object classes (wrangler.jsonc "exports"). */
 export { LiveHub } from "./live-hub";
+export { QuizRoom } from "./quiz-room";
 
 const VARIANTS: VariantName[] = ["master", "lg", "md", "sm", "thumb"];
 /** The daily cron in wrangler.jsonc (data retention and media lifecycle); the other one is hourly. */
@@ -115,6 +118,21 @@ async function handlePublic(env: Env, url: URL): Promise<Response> {
     case "recruitment": {
       const { ctx } = await buildCtx(env, new Request(url), { trusted: false });
       return json({ ok: true, data: await publicCampaign(ctx) }, { headers: { "Cache-Control": "no-store" } });
+    }
+    case "quizzes": {
+      if (parts[1] === "by-code" && parts[2]) {
+        const q = await readPublicQuizByJoinCode(db, parts[2]);
+        return q ? json({ ok: true, data: q }, { headers: { "Cache-Control": "private, no-store" } }) : notFound();
+      }
+      if (parts[1] === "results" && parts[2]) {
+        const r = await readPublicQuizResults(db, parts[2]);
+        return r ? ok(r) : notFound();
+      }
+      if (parts[1]) {
+        const q = await readPublicQuizBySlug(db, parts[1]);
+        return q ? json({ ok: true, data: q }, { headers: { "Cache-Control": "private, no-store" } }) : notFound();
+      }
+      return ok(await readPublicQuizzes(db, Number(url.searchParams.get("limit") ?? 50)));
     }
     case "sitemap":
       return ok(await readSitemap(db));
@@ -339,6 +357,9 @@ export default {
       if (path === "/v1/live" && req.method === "GET") {
         if (!allow(`l:${clientIp(req)}`, EDGE_LIMITS.live * edge)) return tooMany();
         return handleLiveConnect(env, req);
+      }
+      if (path === "/v1/quiz/ws" && req.method === "GET") {
+        return handleQuizWs(env, req);
       }
       if (path === "/v1/upload" && (req.method === "POST" || req.method === "OPTIONS")) {
         if (req.method === "POST" && !allow(`u:${clientIp(req)}`, EDGE_LIMITS.upload * edge)) return tooMany();

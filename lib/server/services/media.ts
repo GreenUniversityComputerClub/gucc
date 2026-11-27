@@ -352,6 +352,9 @@ const REFS_SQL = `(SELECT COUNT(*) FROM media_references r WHERE r.media_id = m.
   + (SELECT COUNT(*) FROM recruitment_applications ra WHERE ra.cv_media_id = m.id)
   + (SELECT COUNT(*) FROM recruitment_applications ra WHERE ra.photo_media_id = m.id)
   + (SELECT COUNT(*) FROM recruitment_applications ra WHERE ra.id_card_media_id = m.id)
+  + (SELECT COUNT(*) FROM quizzes q WHERE q.banner_media_id = m.id AND q.deleted_at IS NULL)
+  + (SELECT COUNT(*) FROM quizzes q WHERE q.logo_media_id = m.id AND q.deleted_at IS NULL)
+  + (SELECT COUNT(*) FROM quiz_questions qq WHERE qq.media_id = m.id AND qq.deleted_at IS NULL)
   -- Files placed inside text (article bodies, event descriptions, settings): these small tables are read.
   + (SELECT COUNT(*) FROM posts po WHERE po.deleted_at IS NULL AND instr(po.body_markdown, m.id) > 0)
   + (SELECT COUNT(*) FROM events e WHERE e.deleted_at IS NULL AND instr(e.description, m.id) > 0)

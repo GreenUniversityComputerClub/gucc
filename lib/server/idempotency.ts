@@ -15,12 +15,13 @@ import { AppError } from "./errors";
 
 export const REPLAY_WINDOW_MS = 10_000;
 
-const READ = /^(session\.me|views\..+|.+\.(list|get|search|view|feed|related|matrix|person|publishers|explain|unread|thread|inbox|verify|details|signedUrl|campaigns|applications|application|registrations|status|health|authEvents|sessions|mfaStatus|preferences|overview|simulate|recipients|options|pulse|counts|home|blocks|profile|directory|queue|submissions|audiences|revision)|.+\.(export|exportCsv|exportRegistrations|bulkPreview|importPreview))$/;
+const READ = /^(session\.me|views\..+|.+\.(list|get|search|view|feed|related|matrix|person|publishers|explain|unread|thread|inbox|verify|details|signedUrl|campaigns|applications|application|registrations|status|health|authEvents|sessions|mfaStatus|preferences|overview|simulate|recipients|options|pulse|counts|home|blocks|profile|directory|queue|submissions|audiences|revision|state|results)|.+\.(export|exportCsv|exportRegistrations|bulkPreview|importPreview))$/;
 /** Never stored: the answer contains a secret, or repeating is the point. */
 const NEVER = new Set([
   "auth.login", "auth.mfaVerify", "auth.logout", "auth.register", "auth.resendVerification", "auth.verifyEmail", "auth.confirmEmailChange", "auth.requestPasswordReset", "auth.resetPassword",
   "auth.changePassword", "auth.acceptInvite", "account.reauth", "account.mfaStart", "account.mfaConfirm", "account.mfaDisable", "account.mfaRecoveryCodes", "account.mfaReplaceStart", "account.mfaReplaceConfirm",
   "members.resetLink", "people.invite", "media.uploadToken", "recruitment.uploadToken", "assistant.chat", "chat.send", "chat.start", "notifications.markRead", "notifications.markUnread", "notifications.seenPath", "notifications.open", "live.ticket",
+  "quizzes.ticket", "quizzes.join",
   "audit.verify", "email.test", "email.unsubscribe", "email.resubscribe", "campaigns.setStatus", "certificates.visibility",
   // Toggles: switching on, off and on again within seconds is deliberate, not a double click (the
   // forms disable while they run, and each change is guarded or idempotent in its service).

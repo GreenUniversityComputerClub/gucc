@@ -11,6 +11,8 @@ export const TAGS = {
   sponsorships: "sponsorships",
   certificates: "certificates",
   certificate: (code: string) => `cert:${code}`,
+  quizzes: "quizzes",
+  quiz: (slug: string) => `quiz:${slug}`,
 };
 
 export function tagsForPost(type: string, ...slugs: string[]): string[] {

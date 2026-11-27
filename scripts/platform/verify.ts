@@ -49,7 +49,7 @@ const report = JSON.parse(readFileSync(path.join(ROOT, "migration/reports/migrat
   issues: Array<{ entity: string; key: string; kind: string; detail: Json }>;
 };
 const readJson = <T>(rel: string): T => JSON.parse(readFileSync(path.join(ROOT, rel), "utf8")) as T;
-const q = <T = Json>(sql: string) => d1Query<T>(target, sql.replace(/\s+/g, " ").trim());
+const q = <T = Json>(sql: string) => d1Query<T>(target, sql.trim());
 
 const PK: Record<string, string> = {
   role_permissions: "role_id", position_permissions: "position_id", event_media: "event_id", contest_media: "contest_id", post_tags: "post_id",
@@ -70,7 +70,7 @@ for (const [t, expected] of Object.entries(report.expectedRows)) {
   const got = actual[t] ?? 0;
   // After go-live the tables grow, so by default the check is "nothing imported
   // is missing"; --strict demands exact equality (right after a fresh import).
-  const exact = argv.includes("--strict") && !["positions", "migration_conflicts", "migration_source_map"].includes(t);
+  const exact = argv.includes("--strict") && !["positions", "organization_settings", "migration_conflicts", "migration_source_map"].includes(t);
   const ok = exact ? got === expected : got >= expected;
   if (!ok) countsOk = false;
   countLines.push(`| ${t} | ${expected} | ${got} | ${ok ? "yes" : "**no**"} |`);
@@ -144,7 +144,16 @@ for (const i of report.issues) {
 }
 
 const PRIVATE = new Set(["contact", "phone", "whatsapp"]);
-const PROFILE_LEVEL: Record<string, string> = { linkedin: "linkedin_url", github: "github_url", twitter: "twitter_url", facebook: "facebook_url", mail: "public_email", department: "department" };
+const PROFILE_LEVEL: Record<string, string> = {
+  linkedin: "linkedin_url",
+  github: "github_url",
+  twitter: "twitter_url",
+  facebook: "facebook_url",
+  mail: "public_email",
+  department: "department",
+  avatarPosition: "avatar_position_x",
+  avatarScale: "avatar_scale",
+};
 const eqJson = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 /** Whitespace trimmed, or an empty value omitted: renders identically. */
 function benign(where: string, field: string, e: unknown, a: unknown): boolean {
