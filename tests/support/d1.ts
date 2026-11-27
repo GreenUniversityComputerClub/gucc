@@ -36,18 +36,26 @@ class Stmt implements D1StatementLike {
     }
     return this.sqlite.prepare(this.sql);
   }
+  private bindArgs(): unknown[] {
+    const code = this.sql.replace(/'(?:[^']|'')*'/g, "''").replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+    const numbered = [...code.matchAll(/\?(\d+)/g)].map((m) => Number(m[1]));
+    if (!numbered.length) return this.params;
+    const named: Record<string, unknown> = {};
+    for (const idx of numbered) named[String(idx)] = this.params[idx - 1];
+    return [named];
+  }
   async all<T>() {
-    return { results: this.prep().all(...(this.params as never[])) as T[] };
+    return { results: this.prep().all(...(this.bindArgs() as never[])) as T[] };
   }
   async first<T>() {
-    return (this.prep().get(...(this.params as never[])) as T) ?? null;
+    return (this.prep().get(...(this.bindArgs() as never[])) as T) ?? null;
   }
   async run() {
-    const r = this.prep().run(...(this.params as never[]));
+    const r = this.prep().run(...(this.bindArgs() as never[]));
     return { meta: { changes: Number(r.changes), last_row_id: Number(r.lastInsertRowid) } };
   }
   execSync() {
-    return { results: this.prep().all(...(this.params as never[])) };
+    return { results: this.prep().all(...(this.bindArgs() as never[])) };
   }
 }
 

@@ -48,7 +48,7 @@ jobs:
       - name: Local database round trip and verification
         run: |
           bunx wrangler d1 migrations apply DB --local
-          bun scripts/platform/migrate.ts --target local
+          bun scripts/platform/migrate.ts --target local --mode refresh
           bun scripts/platform/verify.ts --target local --strict --idempotency
 
       # Without API credentials the build renders pages from empty data; this
