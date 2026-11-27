@@ -19,10 +19,10 @@ import { DesignFields, SAMPLE, TemplatePicker } from "../design-editor";
 import { importPreviewAction, issueAction } from "../actions";
 
 type Options = Awaited<ReturnType<typeof certificateOptions>>;
-type SourceKind = "members" | "event" | "event_people" | "committee" | "csv" | "manual";
+type SourceKind = "members" | "event" | "event_people" | "committee" | "quiz" | "csv" | "manual";
 
 const input = "h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 text-base md:h-9 md:text-sm";
-const SOURCE_FOR: Record<SourceKind, string> = { members: "MEMBERS", event: "EVENT", event_people: "EVENT_PEOPLE", committee: "COMMITTEE", csv: "CSV", manual: "MANUAL" };
+const SOURCE_FOR: Record<SourceKind, string> = { members: "MEMBERS", event: "EVENT", event_people: "EVENT_PEOPLE", committee: "COMMITTEE", quiz: "QUIZ", csv: "CSV", manual: "MANUAL" };
 const today = () => new Date(Date.now() + 6 * 3600_000).toISOString().slice(0, 10);
 
 function Step({ n, title, children, hint }: { n: number; title: string; children: React.ReactNode; hint?: string }) {
@@ -58,6 +58,8 @@ export function IssueWizard({ options, initialKind = "PARTICIPATION", initialEve
   const [eventId, setEventId] = useState(initialEventId ?? options.events[0]?.id ?? "");
   const [statuses, setStatuses] = useState<string[]>(["ATTENDED"]);
   const [committeeIds, setCommitteeIds] = useState<string[]>([]);
+  const [quizSessionId, setQuizSessionId] = useState(options.quizSessions[0]?.id ?? "");
+  const [quizTopN, setQuizTopN] = useState("");
   const [manual, setManual] = useState("");
   const [rows, setRows] = useState<RecipientDraft[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -89,6 +91,7 @@ export function IssueWizard({ options, initialKind = "PARTICIPATION", initialEve
     else if (source === "event") load({ kind: "event", eventId, statuses });
     else if (source === "event_people") load({ kind: "event_people", eventId });
     else if (source === "committee") load({ kind: "committee", committeeIds });
+    else if (source === "quiz") load({ kind: "quiz", sessionId: quizSessionId, ...(quizTopN.trim() ? { topN: Number(quizTopN) } : {}) });
     else if (source === "manual") {
       // One person per line: "Name, email, role" (email and role optional).
       const list = manual.split("\n").map((l) => l.split(/[,\t]/).map((x) => x.trim())).filter((p) => p[0])
@@ -125,12 +128,13 @@ export function IssueWizard({ options, initialKind = "PARTICIPATION", initialEve
   };
 
   const event = options.events.find((e) => e.id === eventId);
+  const quizSession = options.quizSessions.find((q) => q.id === quizSessionId);
   const first = rows[0];
   const preview = useMemo(() => ({
     ...SAMPLE, name: first?.name || SAMPLE.name, role: first?.role ?? SAMPLE.role, rank: first?.rank ?? null, team: first?.team ?? null, body: first?.body ?? null,
-    event: name || event?.title || SAMPLE.event, title: name || SAMPLE.title,
+    event: name || (source === "quiz" ? quizSession?.title : event?.title) || SAMPLE.event, title: name || SAMPLE.title,
     date: new Date(`${issuedOn}T00:00:00+06:00`).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "long", year: "numeric" }),
-  }), [first, name, event, issuedOn]);
+  }), [first, name, source, quizSession, event, issuedOn]);
   const guests = rows.filter((r) => !r.userId && r.email).length;
   const withAccount = rows.filter((r) => r.userId).length;
   const tooMany = rows.length > 300;
@@ -138,7 +142,14 @@ export function IssueWizard({ options, initialKind = "PARTICIPATION", initialEve
   const issue = () => startIssue(async () => {
     setIssueError(null);
     const r = await issueAction({
-      name, kind, source: SOURCE_FOR[source], sourceJson: { source, eventId: source.startsWith("event") ? eventId : undefined, committeeIds: source === "committee" ? committeeIds : undefined },
+      name, kind, source: SOURCE_FOR[source],
+      sourceJson: {
+        source,
+        eventId: source.startsWith("event") ? eventId : undefined,
+        committeeIds: source === "committee" ? committeeIds : undefined,
+        quizSessionId: source === "quiz" ? quizSessionId : undefined,
+        quizTopN: source === "quiz" && quizTopN.trim() ? Number(quizTopN) : undefined,
+      },
       eventId: source === "event" || source === "event_people" ? eventId : null, committeeId: source === "committee" ? committeeIds[0] ?? null : null,
       designId, template, config, issuedOn, recipients: rows, notify, email, emailGuests,
     }).catch(() => null);
@@ -152,7 +163,7 @@ export function IssueWizard({ options, initialKind = "PARTICIPATION", initialEve
       <div className="min-w-0 space-y-4">
         <Step n={1} title="Who gets one" hint="Load people from the club's records, or from a Google Form export.">
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Where the people come from">
-            {([["members", "Members"], ["event", "Event registrants"], ["event_people", "Speakers & guests"], ["committee", "Committees"], ["csv", "Spreadsheet"], ["manual", "Type names"]] as const).map(([k, l]) => (
+            {([["members", "Members"], ["event", "Event registrants"], ["event_people", "Speakers & guests"], ["committee", "Committees"], ["quiz", "Quiz session"], ["csv", "Spreadsheet"], ["manual", "Type names"]] as const).map(([k, l]) => (
               <button key={k} type="button" role="radio" aria-checked={source === k} onClick={() => setSource(k)}
                 className={cn("min-h-10 rounded-full border px-3.5 text-sm", source === k ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted")}>{l}</button>
             ))}
@@ -203,6 +214,34 @@ export function IssueWizard({ options, initialKind = "PARTICIPATION", initialEve
                 ))}
               </div>
               <Button type="button" onClick={loadSource} disabled={loading || !committeeIds.length} className="min-h-10 gap-1.5">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}Load</Button>
+            </div>
+          )}
+          {source === "quiz" && (
+            <div className="grid gap-2 sm:grid-cols-[1fr_11rem_auto]">
+              <select className={input} value={quizSessionId} onChange={(e) => setQuizSessionId(e.target.value)} aria-label="Finalized quiz session">
+                {options.quizSessions.length === 0 ? (
+                  <option value="">No finalized quiz sessions yet</option>
+                ) : (
+                  options.quizSessions.map((qs) => (
+                    <option key={qs.id} value={qs.id}>
+                      {qs.title} ({qs.joinCode} · {qs.participants} players)
+                    </option>
+                  ))
+                )}
+              </select>
+              <input
+                type="number"
+                min={1}
+                max={500}
+                className={input}
+                value={quizTopN}
+                onChange={(e) => setQuizTopN(e.target.value)}
+                placeholder="Top N (blank = all)"
+                aria-label="Top N winners"
+              />
+              <Button type="button" onClick={loadSource} disabled={loading || !quizSessionId} className="min-h-10 gap-1.5">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}Load
+              </Button>
             </div>
           )}
           {source === "csv" && (

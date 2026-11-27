@@ -3,6 +3,7 @@
  * Next.js glue (lib/server/request-context.ts) or directly by tests.
  */
 import type { Rule, Subject } from "../governance/types";
+import type { QuizRoomClient } from "../quiz/types";
 import type { Db } from "./db";
 import type { HubClient, LiveItem } from "./live";
 
@@ -105,6 +106,8 @@ export interface Ctx {
   live?: LiveItem[];
   /** The live hub, where the Worker has one. */
   hub?: HubClient;
+  /** Per-session Quiz Arena Durable Object bridge, where the Worker has one. */
+  quizRoom?: QuizRoomClient;
   /**
    * Outgoing requests this invocation may still make (Workers Free allows 50). The hourly job sets
    * it so its emails (each one a request to SMTP2GO) can't push the run over; absent means no

@@ -13,3 +13,4 @@ export * as governance from "./governance";
 export * as media from "./media";
 export * as members from "./members";
 export * as posts from "./posts";
+export * as quizzes from "./quizzes";

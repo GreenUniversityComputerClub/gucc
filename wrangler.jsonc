@@ -45,10 +45,19 @@
     { "binding": "MEDIA_PUBLIC", "bucket_name": "gucc-media-public-dev" },
     { "binding": "MEDIA_PRIVATE", "bucket_name": "gucc-media-private-dev" }
   ],
-  // The live hub (workers/api/src/live-hub.ts): one SQLite-backed Durable Object, available on
-  // Workers Free. It caps itself at 80% of the free 100,000 requests a day, then pages poll.
-  "durable_objects": { "bindings": [{ "name": "LIVE", "class_name": "LiveHub" }] },
-  "exports": { "LiveHub": { "type": "durable-object", "storage": "sqlite" } },
+  // The live hub (workers/api/src/live-hub.ts) and Quiz Arena rooms (workers/api/src/quiz-room.ts):
+  // SQLite-backed Durable Objects. LiveHub stays within the Workers Free cap; QuizRoom targets
+  // up to 500 concurrent players per session (requires Workers Paid in production).
+  "durable_objects": {
+    "bindings": [
+      { "name": "LIVE", "class_name": "LiveHub" },
+      { "name": "QUIZ_ROOM", "class_name": "QuizRoom" }
+    ]
+  },
+  "exports": {
+    "LiveHub": { "type": "durable-object", "storage": "sqlite" },
+    "QuizRoom": { "type": "durable-object", "storage": "sqlite" }
+  },
 
   "env": {
     "staging": {
@@ -72,8 +81,16 @@
         { "binding": "MEDIA_PUBLIC", "bucket_name": "gucc-media-public-staging" },
         { "binding": "MEDIA_PRIVATE", "bucket_name": "gucc-media-private-staging" }
       ],
-      "durable_objects": { "bindings": [{ "name": "LIVE", "class_name": "LiveHub" }] },
-      "exports": { "LiveHub": { "type": "durable-object", "storage": "sqlite" } }
+      "durable_objects": {
+        "bindings": [
+          { "name": "LIVE", "class_name": "LiveHub" },
+          { "name": "QUIZ_ROOM", "class_name": "QuizRoom" }
+        ]
+      },
+      "exports": {
+        "LiveHub": { "type": "durable-object", "storage": "sqlite" },
+        "QuizRoom": { "type": "durable-object", "storage": "sqlite" }
+      }
     },
 
     "production": {
@@ -104,8 +121,16 @@
         { "binding": "MEDIA_PUBLIC", "bucket_name": "gucc-media-public-production" },
         { "binding": "MEDIA_PRIVATE", "bucket_name": "gucc-media-private-production" }
       ],
-      "durable_objects": { "bindings": [{ "name": "LIVE", "class_name": "LiveHub" }] },
-      "exports": { "LiveHub": { "type": "durable-object", "storage": "sqlite" } }
+      "durable_objects": {
+        "bindings": [
+          { "name": "LIVE", "class_name": "LiveHub" },
+          { "name": "QUIZ_ROOM", "class_name": "QuizRoom" }
+        ]
+      },
+      "exports": {
+        "LiveHub": { "type": "durable-object", "storage": "sqlite" },
+        "QuizRoom": { "type": "durable-object", "storage": "sqlite" }
+      }
     }
   }
 }

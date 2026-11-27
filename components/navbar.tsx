@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Bell, CalendarDays, ChevronDown, ChevronRight, Facebook, Github, Handshake, Home, Instagram, LayoutDashboard, LayoutGrid, Linkedin, LogIn, LogOut, Mail,
-  Menu, MessageSquare, Newspaper, User, UserPlus, Users, X, Youtube,
+  Menu, MessageSquare, Newspaper, Trophy, User, UserPlus, Users, X, Youtube,
 } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -148,6 +148,7 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
   const isActive = (path: string) => {
     if (path === executivesHref) return pathname.startsWith("/executives");
     if (path === "/sponsors") return pathname.startsWith("/sponsors") || pathname === "/become-a-sponsor";
+    if (path === "/quizzes") return pathname.startsWith("/quizzes") || pathname.startsWith("/q/");
     return path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`);
   };
   const signInHref = `/auth/login?next=${encodeURIComponent(pathname)}`;
@@ -155,6 +156,7 @@ export function Navbar({ executivesHref = "/executives", services = [] }: { exec
   const links = [
     { href: "/", label: "Home", icon: Home },
     { href: "/events", label: "Events", icon: CalendarDays },
+    { href: "/quizzes", label: "Quiz Arena", icon: Trophy },
     { href: "/blog", label: "Blog", icon: Newspaper },
     { href: executivesHref, label: "Executives", icon: Users },
     // /sponsors redirects, per request, to the default sponsorship page chosen in the dashboard,

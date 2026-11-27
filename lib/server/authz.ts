@@ -317,3 +317,26 @@ export async function userResource(db: Db, id: string): Promise<Resource | null>
   if (!row) return null;
   return { type: "user", id: row.id, ownerId: row.id, status: row.status, isProtected: Boolean(row.is_mod) };
 }
+
+export async function quizResource(db: Db, id: string): Promise<Resource | null> {
+  const row = await db.first<{ id: string; created_by: string; status: string; topic: string | null; committee_id: string | null; event_id: string | null }>(
+    `SELECT id, created_by, status, topic, committee_id, event_id FROM quizzes WHERE id = ?1 AND deleted_at IS NULL`,
+    id,
+  );
+  if (!row) return null;
+  const mods = await db.all<{ user_id: string }>("SELECT user_id FROM quiz_moderators WHERE quiz_id = ?1 AND (can_edit = 1 OR can_host = 1)", id);
+  const eventAssigned = row.event_id ? await eventAssignees(db, row.event_id) : [];
+  const assigned = [...new Set([...mods.map((m) => m.user_id), ...eventAssigned])];
+  return {
+    type: "quiz",
+    id: row.id,
+    createdBy: row.created_by,
+    ownerId: row.created_by,
+    status: row.status,
+    category: row.topic,
+    committeeId: row.committee_id,
+    eventId: row.event_id,
+    assignedUserIds: assigned,
+    eventAssignedUserIds: eventAssigned,
+  };
+}

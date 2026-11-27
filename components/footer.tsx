@@ -33,6 +33,7 @@ export function Footer() {
             <ul className="mb-3 grid grid-cols-2 gap-x-4 gap-y-2">
               {[
                 ["/events", "Events"],
+                ["/quizzes", "Quiz Arena"],
                 ["/blog", "Blog"],
                 ["/news", "News"],
                 ["/executives", "Executives"],

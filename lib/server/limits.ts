@@ -47,6 +47,9 @@ export const LIMITS = {
   "email.campaign": { limit: 10, windowSeconds: 86_400, label: "Announcement emails queued per account, day" },
   "email.campaignTest": { limit: 10, windowSeconds: 86_400, label: "Test announcement emails per account, day" },
   "certificates.issue": { limit: 40, windowSeconds: 86_400, label: "Certificate issues per account, day" },
+  // Campus auditorium NAT shares 1-3 public IPs across ~500 players: high join ceiling + Turnstile protection.
+  "quizzes.join": { limit: 600, windowSeconds: 600, label: "Quiz registrations per address, 10 minutes" },
+  "quizzes.incident": { limit: 15, windowSeconds: 600, label: "Quiz incident reports per address, 10 minutes" },
   "report": { limit: 10, windowSeconds: 3600, label: "Reports per account, hour" },
   "lostfound.post": { limit: 10, windowSeconds: 86_400, label: "Lost & found posts per account, day" },
   "content.create": { limit: 10, windowSeconds: 86_400, label: "New posts and events per member, day" },
