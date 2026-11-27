@@ -25,7 +25,15 @@ import {
 import { ActionForm, Field, Section } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import type { LeaderboardEntry, QuizParticipantStatus, QuizSessionStatus, QuizStateSnapshot } from "@/lib/quiz/types";
+import { API_PUBLIC_BASE_URL, MEDIA_BASE_URL } from "@/lib/api/config";
+import {
+  sanitizeQuizSnapshot,
+  type LeaderboardEntry,
+  type QuizParticipantStatus,
+  type QuizSessionStatus,
+  type QuizStateSnapshot,
+} from "@/lib/quiz/types";
+import { safeMediaSrc } from "@/lib/safe-path";
 import type { quizHostView } from "@/lib/server/views/admin";
 import {
   finalizeQuizAction,
@@ -106,7 +114,7 @@ export function HostConsole({ initial }: { initial: HostViewData }) {
       if (!res.ok) return;
       const body = (await res.json()) as { ok?: boolean; data?: QuizStateSnapshot | null };
       if (body.ok && body.data) {
-        setSnap(body.data);
+        setSnap(sanitizeQuizSnapshot(body.data, MEDIA_BASE_URL, API_PUBLIC_BASE_URL));
       }
     } catch {
       // ignore transient network errors during poll
@@ -207,7 +215,7 @@ export function HostConsole({ initial }: { initial: HostViewData }) {
               | { t: "finalized"; leaderboard: LeaderboardEntry[] };
 
             if (msg.t === "state" || msg.t === "question" || msg.t === "reveal") {
-              setSnap(msg.data);
+              setSnap(sanitizeQuizSnapshot(msg.data, MEDIA_BASE_URL, API_PUBLIC_BASE_URL));
             } else if (msg.t === "participants") {
               setSnap((prev) => ({ ...prev, participantCount: msg.count }));
             } else if (msg.t === "progress") {
@@ -332,6 +340,7 @@ export function HostConsole({ initial }: { initial: HostViewData }) {
   const remainingSec = Math.ceil(remainingMs / 1000);
   const timerPct = snap.status === "QUESTION" && endsMs ? Math.min(100, Math.max(0, (remainingMs / totalQuestionMs) * 100)) : 0;
 
+  const questionMediaSrc = safeMediaSrc(snap.question?.mediaUrl, MEDIA_BASE_URL, API_PUBLIC_BASE_URL);
   const hasMoreQuestions = snap.currentQuestionIdx + 1 < snap.totalQuestions;
   const filteredParticipants = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -599,10 +608,10 @@ export function HostConsole({ initial }: { initial: HostViewData }) {
                 {snap.question.promptMarkdown}
               </div>
 
-              {snap.question.mediaUrl && (
+              {questionMediaSrc && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={snap.question.mediaUrl}
+                  src={questionMediaSrc}
                   alt={`Illustration for question ${snap.currentQuestionIdx + 1}`}
                   className="max-h-64 rounded-lg border object-contain"
                 />

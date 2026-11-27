@@ -20,7 +20,15 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { LeaderboardEntry, QuizIncidentKind, QuizStateSnapshot, QuizThemeConfig } from "@/lib/quiz/types";
+import { API_PUBLIC_BASE_URL, MEDIA_BASE_URL } from "@/lib/api/config";
+import {
+  sanitizeQuizSnapshot,
+  type LeaderboardEntry,
+  type QuizIncidentKind,
+  type QuizStateSnapshot,
+  type QuizThemeConfig,
+} from "@/lib/quiz/types";
+import { safeMediaSrc } from "@/lib/safe-path";
 
 interface PlayerArenaProps {
   initial: QuizStateSnapshot;
@@ -63,9 +71,10 @@ export function PlayerArena({ initial, slug, theme }: PlayerArenaProps) {
       if (!res.ok) return;
       const body = (await res.json()) as { ok?: boolean; data?: QuizStateSnapshot };
       if (body.ok && body.data) {
+        const clean = sanitizeQuizSnapshot(body.data, MEDIA_BASE_URL, API_PUBLIC_BASE_URL);
         setSnap((prev) => ({
-          ...body.data!,
-          me: body.data!.me ?? prev.me,
+          ...clean,
+          me: clean.me ?? prev.me,
         }));
       }
     } catch {
@@ -164,24 +173,27 @@ export function PlayerArena({ initial, slug, theme }: PlayerArenaProps) {
               | { t: "finalized"; leaderboard: LeaderboardEntry[] };
 
             if (msg.t === "state") {
+              const clean = sanitizeQuizSnapshot(msg.data, MEDIA_BASE_URL, API_PUBLIC_BASE_URL);
               setSnap((prev) => ({
-                ...msg.data,
-                me: msg.data.me ?? prev.me,
+                ...clean,
+                me: clean.me ?? prev.me,
               }));
             } else if (msg.t === "question") {
+              const clean = sanitizeQuizSnapshot(msg.data, MEDIA_BASE_URL, API_PUBLIC_BASE_URL);
               setSelectedIds([]);
               setAckState(null);
               setScoreFeedback(null);
               setSubmitting(false);
               setSnap((prev) => ({
-                ...msg.data,
-                me: msg.data.me ?? (prev.me ? { ...prev.me, answeredCurrent: false } : null),
+                ...clean,
+                me: clean.me ?? (prev.me ? { ...prev.me, answeredCurrent: false } : null),
               }));
             } else if (msg.t === "reveal") {
+              const clean = sanitizeQuizSnapshot(msg.data, MEDIA_BASE_URL, API_PUBLIC_BASE_URL);
               setSubmitting(false);
               setSnap((prev) => ({
-                ...msg.data,
-                me: msg.data.me ?? prev.me,
+                ...clean,
+                me: clean.me ?? prev.me,
               }));
             } else if (msg.t === "paused") {
               setSnap((prev) => ({ ...prev, status: "PAUSED" }));
@@ -274,6 +286,7 @@ export function PlayerArena({ initial, slug, theme }: PlayerArenaProps) {
   }, [snap.status, snap.questionEndsAt]);
 
   const currentQ = snap.question;
+  const questionMediaSrc = safeMediaSrc(currentQ?.mediaUrl, MEDIA_BASE_URL, API_PUBLIC_BASE_URL);
   const alreadyAnswered = Boolean(snap.me?.answeredCurrent) || (ackState?.qIdx === snap.currentQuestionIdx && ackState.ok);
   const canAnswer = snap.status === "QUESTION" && Boolean(currentQ) && !alreadyAnswered && !submitting;
 
@@ -525,10 +538,10 @@ export function PlayerArena({ initial, slug, theme }: PlayerArenaProps) {
               {currentQ.promptMarkdown}
             </h2>
 
-            {currentQ.mediaUrl && (
+            {questionMediaSrc && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={currentQ.mediaUrl}
+                src={questionMediaSrc}
                 alt={`Question ${snap.currentQuestionIdx + 1} media`}
                 className="max-h-72 rounded-xl border object-contain"
               />

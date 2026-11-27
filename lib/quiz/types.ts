@@ -3,6 +3,7 @@
  * server-side scoring engine. Runtime-neutral (imported by Next.js, Worker services,
  * QuizRoom Durable Object, and tests).
  */
+import { safeMediaSrc } from "../safe-path";
 
 export const QUIZ_VISIBILITIES = ["PUBLIC", "MEMBERS", "EVENT"] as const;
 export type QuizVisibility = (typeof QUIZ_VISIBILITIES)[number];
@@ -345,4 +346,19 @@ export interface QuizRoomClient {
   getState(sessionId: string, opts?: { participantId?: string | null; role?: "host" | "player" }): Promise<QuizStateSnapshot | null>;
   finalizeExport(sessionId: string): Promise<QuizRoomFinalizeExport>;
   markFinalized(sessionId: string): Promise<void>;
+}
+
+/** Normalize untrusted fields inside a `QuizStateSnapshot` received from WebSocket or polling JSON. */
+export function sanitizeQuizSnapshot(
+  snap: QuizStateSnapshot,
+  ...allowedBases: (string | undefined)[]
+): QuizStateSnapshot {
+  if (!snap.question?.mediaUrl) return snap;
+  return {
+    ...snap,
+    question: {
+      ...snap.question,
+      mediaUrl: safeMediaSrc(snap.question.mediaUrl, ...allowedBases),
+    },
+  };
 }
